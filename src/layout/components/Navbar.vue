@@ -1,25 +1,33 @@
 <template>
   <div class="navbar">
-    <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-    <breadcrumb v-if="!settingsStore.topNav" id="breadcrumb-container" class="breadcrumb-container" />
-    <top-nav v-if="settingsStore.topNav" id="topmenu-container" class="topmenu-container" />
+    <hamburger
+      id="hamburger-container"
+      :is-active="appStore.sidebar.opened"
+      class="hamburger-container"
+      @toggleClick="toggleSideBar"
+    />
+    <breadcrumb
+      v-if="!settingsStore.topNav"
+      id="breadcrumb-container"
+      class="breadcrumb-container"
+    />
+    <top-nav
+      v-if="settingsStore.topNav"
+      id="topmenu-container"
+      class="topmenu-container"
+    />
 
     <div class="right-menu">
       <template v-if="appStore.device !== 'mobile'">
         <header-search id="header-search" class="right-menu-item" />
 
-        <el-tooltip content="源码地址" effect="dark" placement="bottom">
-          <ruo-yi-git id="ruoyi-git" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
-        <el-tooltip content="文档地址" effect="dark" placement="bottom">
-          <ruo-yi-doc id="ruoyi-doc" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
         <screenfull id="screenfull" class="right-menu-item hover-effect" />
 
         <el-tooltip content="主题模式" effect="dark" placement="bottom">
-          <div class="right-menu-item hover-effect theme-switch-wrapper" @click="toggleTheme">
+          <div
+            class="right-menu-item hover-effect theme-switch-wrapper"
+            @click="toggleTheme"
+          >
             <svg-icon v-if="settingsStore.isDark" icon-class="sunny" />
             <svg-icon v-if="!settingsStore.isDark" icon-class="moon" />
           </div>
@@ -30,7 +38,11 @@
         </el-tooltip>
       </template>
 
-      <el-dropdown @command="handleCommand" class="avatar-container right-menu-item hover-effect" trigger="hover">
+      <el-dropdown
+        @command="handleCommand"
+        class="avatar-container right-menu-item hover-effect"
+        trigger="hover"
+      >
         <div class="avatar-wrapper">
           <img :src="userStore.avatar" class="user-avatar" />
           <span class="user-nickname"> {{ userStore.nickName }} </span>
@@ -46,7 +58,11 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="settingsStore.showSettings">
+      <div
+        class="right-menu-item hover-effect setting"
+        @click="setLayout"
+        v-if="settingsStore.showSettings"
+      >
         <svg-icon icon-class="more-up" />
       </div>
     </div>
@@ -54,63 +70,63 @@
 </template>
 
 <script setup>
-import { ElMessageBox } from 'element-plus'
-import Breadcrumb from '@/components/Breadcrumb'
-import TopNav from '@/components/TopNav'
-import Hamburger from '@/components/Hamburger'
-import Screenfull from '@/components/Screenfull'
-import SizeSelect from '@/components/SizeSelect'
-import HeaderSearch from '@/components/HeaderSearch'
-import RuoYiGit from '@/components/RuoYi/Git'
-import RuoYiDoc from '@/components/RuoYi/Doc'
-import useAppStore from '@/store/modules/app'
-import useUserStore from '@/store/modules/user'
-import useSettingsStore from '@/store/modules/settings'
+import { ElMessageBox } from "element-plus";
+import Breadcrumb from "@/components/Breadcrumb";
+import TopNav from "@/components/TopNav";
+import Hamburger from "@/components/Hamburger";
+import Screenfull from "@/components/Screenfull";
+import SizeSelect from "@/components/SizeSelect";
+import HeaderSearch from "@/components/HeaderSearch";
+import useAppStore from "@/store/modules/app";
+import useUserStore from "@/store/modules/user";
+import useSettingsStore from "@/store/modules/settings";
 
-const appStore = useAppStore()
-const userStore = useUserStore()
-const settingsStore = useSettingsStore()
+const appStore = useAppStore();
+const userStore = useUserStore();
+const settingsStore = useSettingsStore();
 
 function toggleSideBar() {
-  appStore.toggleSideBar()
+  appStore.toggleSideBar();
 }
 
 function handleCommand(command) {
   switch (command) {
     case "setLayout":
-      setLayout()
-      break
+      setLayout();
+      break;
     case "logout":
-      logout()
-      break
+      logout();
+      break;
     default:
-      break
+      break;
   }
 }
 
 function logout() {
-  ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    userStore.logOut().then(() => {
-      location.href = '/index'
+  ElMessageBox.confirm("确定注销并退出系统吗？", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      userStore.logOut().then(() => {
+        location.href = "/index";
+      });
     })
-  }).catch(() => { })
+    .catch(() => {});
 }
 
-const emits = defineEmits(['setLayout'])
+const emits = defineEmits(["setLayout"]);
 function setLayout() {
-  emits('setLayout')
+  emits("setLayout");
 }
 
 function toggleTheme() {
-  settingsStore.toggleTheme()
+  settingsStore.toggleTheme();
 }
 </script>
 
-<style lang='scss' scoped>
+<style lang="scss" scoped>
 .navbar {
   height: 50px;
   overflow: hidden;
@@ -178,7 +194,7 @@ function toggleTheme() {
 
         svg {
           transition: transform 0.3s;
-          
+
           &:hover {
             transform: scale(1.15);
           }
@@ -202,7 +218,7 @@ function toggleTheme() {
           border-radius: 50%;
         }
 
-        .user-nickname{
+        .user-nickname {
           position: relative;
           left: 5px;
           bottom: 10px;
