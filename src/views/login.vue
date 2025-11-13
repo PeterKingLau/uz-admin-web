@@ -12,8 +12,8 @@
       <!-- 登录方式切换：仅 PASSWORD / SMS -->
       <el-form-item style="text-align: center; margin-bottom: 12px">
         <el-radio-group v-model="loginForm.loginType" size="small">
-          <el-radio-button label="PASSWORD">账号密码</el-radio-button>
-          <el-radio-button label="SMS">短信验证码</el-radio-button>
+          <el-radio-button value="PASSWORD">账号密码</el-radio-button>
+          <el-radio-button value="SMS">短信验证码</el-radio-button>
         </el-radio-group>
       </el-form-item>
       <!-- 账号 / 手机号 -->

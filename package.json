@@ -1,5 +1,5 @@
 {
-  "name": "ruoyi",
+  "name": "uz-web",
   "version": "1.0.0",
   "description": "优职吧",
   "author": "优职",
@@ -10,10 +10,6 @@
     "build:prod": "vite build",
     "build:stage": "vite build --mode staging",
     "preview": "vite preview"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://gitee.com/y_project/RuoYi-Vue.git"
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.1",
@@ -40,8 +36,13 @@
   "devDependencies": {
     "@iconify-json/ep": "^1.2.3",
     "@iconify-json/mdi": "^1.2.3",
+    "@unocss/preset-attributify": "^66.5.6",
+    "@unocss/preset-icons": "^66.5.6",
+    "@unocss/preset-uno": "^66.5.6",
     "@vitejs/plugin-vue": "5.0.5",
+    "postcss": "^8.4.38",
     "sass": "1.77.5",
+    "unocss": "^66.5.6",
     "unplugin-auto-import": "0.17.6",
     "unplugin-vue-setup-extend-plus": "1.0.1",
     "vite": "5.3.2",

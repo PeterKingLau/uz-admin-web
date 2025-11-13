@@ -94,3 +94,31 @@
 .el-dropdown .el-dropdown-link{
   color: var(--el-color-primary) !important;
 }
+
+
+// 针对特殊样式单独处理
+/* 通用图标微调 */
+.el-button .iconify {
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+/* 针对圆形按钮的图标居中修正 */
+.el-button.is-circle .iconify {
+  display: inline-block;
+  transform: translateY(1px); /* 轻微下移 */
+}
+
+.el-button.is-circle.is-large .iconify {
+  transform: translateY(1.5px);
+}
+
+.el-button.is-circle.is-small .iconify {
+  transform: translateY(0.5px);
+}
+
+.input-prefix-icon {
+  font-size: 16px;
+  line-height: 1;
+  vertical-align: -1px;
+}

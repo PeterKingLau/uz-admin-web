@@ -51,6 +51,8 @@ import ImagePreview from "@/components/ImagePreview";
 // 字典标签组件
 import DictTag from "@/components/DictTag";
 
+import { Icon } from "@iconify/vue";
+
 const app = createApp(App);
 
 // 全局方法挂载
@@ -78,6 +80,7 @@ app.use(store);
 app.use(plugins);
 app.use(elementIcons);
 app.component("svg-icon", SvgIcon);
+app.component("Icon", Icon);
 
 directive(app);
 
