@@ -1,7 +1,7 @@
 {
   "name": "uz-web",
   "version": "1.0.0",
-  "description": "优职吧",
+  "description": "优职吧后台管理系统",
   "author": "优职",
   "license": "MIT",
   "type": "module",

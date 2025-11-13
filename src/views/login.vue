@@ -11,11 +11,16 @@
 
       <!-- 登录方式切换：仅 PASSWORD / SMS -->
       <el-form-item style="text-align: center; margin-bottom: 12px">
-        <el-radio-group v-model="loginForm.loginType" size="small">
+        <el-radio-group
+          v-model="loginForm.loginType"
+          size="small"
+          class="login-type-switch"
+        >
           <el-radio-button value="PASSWORD">账号密码</el-radio-button>
           <el-radio-button value="SMS">短信验证码</el-radio-button>
         </el-radio-group>
       </el-form-item>
+
       <!-- 账号 / 手机号 -->
       <el-form-item prop="username">
         <el-input
@@ -354,6 +359,35 @@ function handleLogin() {
     height: 39px;
     width: 14px;
     margin-left: 0;
+  }
+  .login-type-switch {
+    display: inline-flex;
+    background: var(--el-fill-color-light);
+    border-radius: 20px;
+    padding: 4px;
+  }
+
+  .login-type-switch :deep(.el-radio-button__inner) {
+    border: none !important;
+    background: transparent;
+    box-shadow: none !important;
+    padding: 6px 16px;
+    border-radius: 16px;
+    color: var(--el-text-color-primary);
+    transition: 0.2s;
+  }
+
+  .login-type-switch :deep(.is-active .el-radio-button__inner) {
+    background: #409eff;
+    color: #fff !important;
+  }
+
+  .dark .login-type-switch {
+    background: #2f2f2f;
+  }
+
+  .dark .login-type-switch :deep(.is-active .el-radio-button__inner) {
+    background: #409eff;
   }
 }
 .el-login-footer {
