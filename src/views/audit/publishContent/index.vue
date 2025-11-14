@@ -46,10 +46,13 @@
       </el-form-item>
 
       <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">
-          搜索
+        <el-button type="primary" @click="handleQuery">
+          <el-icon><Icon icon="ep:search" /></el-icon>搜索
         </el-button>
-        <el-button icon="Refresh" @click="resetQuery"> 重置 </el-button>
+        <el-button @click="resetQuery">
+          <el-icon><Icon icon="ep:refresh" /></el-icon>
+          重置
+        </el-button>
       </el-form-item>
     </el-form>
 
@@ -57,176 +60,66 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
-    <el-table
-      v-loading="loading"
+    <ConfigTable
+      :loading="loading"
       :data="contentList"
-      style="width: 100%"
+      :columns="columns"
+      :table-props="{ style: 'width: 100%' }"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column
-        type="selection"
-        width="55"
-        align="center"
-        fixed="left"
-      />
+      <template #postType="{ row }">
+        <EnumTag enum-type="POST_TYPE" :value="row.postType" />
+      </template>
 
-      <el-table-column
-        label="用户名"
-        prop="userName"
-        width="140"
-        fixed="left"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="用户昵称"
-        prop="nickName"
-        width="140"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="帖子类型"
-        prop="postType"
-        width="100"
-        align="center"
-      >
-        <template #default="scope">
-          <span v-if="scope.row.postType === POST_TYPE.TEXT">文字</span>
-          <span v-else-if="scope.row.postType === POST_TYPE.IMAGE">图片</span>
-          <span v-else-if="scope.row.postType === POST_TYPE.VIDEO">视频</span>
-          <span v-else>未知</span>
-        </template>
-      </el-table-column>
+      <!-- 图片/视频列 -->
+      <template #media="{ row }">
+        <AuditMediaPreview
+          :post-type="row.postType"
+          :media-urls="row.mediaUrls"
+          :audit-status="row.auditStatus"
+          :mode="AUDIT_MEDIA_MODE.CELL"
+        />
+      </template>
 
-      <el-table-column
-        label="内容"
-        prop="content"
-        min-width="220"
-        :show-overflow-tooltip="true"
-      />
+      <!-- 内容状态列 -->
+      <template #status="{ row }">
+        <EnumTag enum-type="CONTENT_STATUS" :value="row.status" />
+      </template>
 
-      <el-table-column label="图片/视频" min-width="220">
-        <template #default="scope">
-          <AuditMediaPreview
-            :post-type="scope.row.postType"
-            :media-urls="scope.row.mediaUrls"
-            :audit-status="scope.row.auditStatus"
-            :mode="AUDIT_MEDIA_MODE.CELL"
-          />
-        </template>
-      </el-table-column>
+      <!-- 审核状态列 -->
+      <template #auditStatus="{ row }">
+        <EnumTag enum-type="AUDIT_STATUS" :value="row.auditStatus" />
+      </template>
 
-      <el-table-column
-        label="点赞数"
-        prop="likeCount"
-        width="100"
-        align="center"
-      />
-      <el-table-column
-        label="收藏数"
-        prop="bookmarkCount"
-        width="100"
-        align="center"
-      />
-      <el-table-column
-        label="转发数"
-        prop="repostCount"
-        width="100"
-        align="center"
-      />
-      <el-table-column
-        label="评论数"
-        prop="commentCount"
-        width="100"
-        align="center"
-      />
+      <!-- 操作列 -->
+      <template #operations="{ row }">
+        <el-tooltip content="查看详情" placement="top">
+          <el-button link type="primary" @click="handleView(row)">
+            <el-icon>
+              <Icon icon="ep:view" />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
 
-      <el-table-column
-        label="内容状态"
-        prop="status"
-        width="100"
-        align="center"
-      >
-        <template #default="scope">
-          <el-tag
-            v-if="scope.row.status === CONTENT_STATUS.NORMAL"
-            type="success"
-          >
-            正常
-          </el-tag>
-          <el-tag v-else type="info">删除</el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        label="审核状态"
-        prop="auditStatus"
-        width="120"
-        align="center"
-      >
-        <template #default="scope">
-          <el-tag
-            v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING"
-            type="warning"
-          >
-            待审核
-          </el-tag>
-          <el-tag
-            v-else-if="scope.row.auditStatus === AUDIT_STATUS.APPROVED"
-            type="success"
-          >
-            审核通过
-          </el-tag>
-          <el-tag v-else type="danger"> 审核未通过 </el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        label="审核理由"
-        prop="reason"
-        min-width="180"
-        :show-overflow-tooltip="true"
-      />
-
-      <el-table-column
-        fixed="right"
-        label="操作"
-        align="center"
-        width="220"
-        class-name="small-padding fixed-width"
-      >
-        <template #default="scope">
-          <el-tooltip content="查看详情" placement="top">
-            <el-button link type="primary" @click="handleView(scope.row)">
+        <template v-if="row.auditStatus === AUDIT_STATUS.PENDING">
+          <el-tooltip content="通过" placement="top">
+            <el-button link type="success" @click="handleApprove(row)">
               <el-icon>
-                <Icon icon="ep:view" />
+                <Icon icon="mdi:check-circle-outline" />
               </el-icon>
             </el-button>
           </el-tooltip>
 
-          <template v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING">
-            <el-tooltip content="通过" placement="top">
-              <el-button link type="success" @click="handleApprove(scope.row)">
-                <el-icon>
-                  <Icon icon="mdi:check-circle-outline" />
-                </el-icon>
-              </el-button>
-            </el-tooltip>
-
-            <el-tooltip content="驳回" placement="top">
-              <el-button
-                link
-                type="danger"
-                @click="openRejectDialog(scope.row)"
-              >
-                <el-icon>
-                  <Icon icon="ep:close" />
-                </el-icon>
-              </el-button>
-            </el-tooltip>
-          </template>
+          <el-tooltip content="驳回" placement="top">
+            <el-button link type="danger" @click="openRejectDialog(row)">
+              <el-icon>
+                <Icon icon="ep:close" />
+              </el-icon>
+            </el-button>
+          </el-tooltip>
         </template>
-      </el-table-column>
-    </el-table>
+      </template>
+    </ConfigTable>
 
     <pagination
       v-show="total > 0"
@@ -250,35 +143,21 @@
           {{ current?.nickName }}
         </el-descriptions-item>
         <el-descriptions-item label="帖子类型">
-          <span v-if="current?.postType === POST_TYPE.TEXT">文字</span>
-          <span v-else-if="current?.postType === POST_TYPE.IMAGE">图片</span>
-          <span v-else-if="current?.postType === POST_TYPE.VIDEO">视频</span>
-          <span v-else>未知</span>
+          <EnumTag
+            enum-type="POST_TYPE"
+            :value="current?.postType"
+            fallback-label="未知"
+          />
         </el-descriptions-item>
+
         <el-descriptions-item label="内容状态">
-          <el-tag
-            v-if="current?.status === CONTENT_STATUS.NORMAL"
-            type="success"
-          >
-            正常
-          </el-tag>
-          <el-tag v-else type="info">删除</el-tag>
+          <EnumTag enum-type="CONTENT_STATUS" :value="current?.status" />
         </el-descriptions-item>
+
         <el-descriptions-item label="审核状态">
-          <el-tag
-            v-if="current?.auditStatus === AUDIT_STATUS.PENDING"
-            type="warning"
-          >
-            待审核
-          </el-tag>
-          <el-tag
-            v-else-if="current?.auditStatus === AUDIT_STATUS.APPROVED"
-            type="success"
-          >
-            审核通过
-          </el-tag>
-          <el-tag v-else type="danger"> 审核未通过 </el-tag>
+          <EnumTag enum-type="AUDIT_STATUS" :value="current?.auditStatus" />
         </el-descriptions-item>
+
         <el-descriptions-item label="审核理由">
           {{ current?.reason || "-" }}
         </el-descriptions-item>
@@ -330,16 +209,23 @@
 </template>
 
 <script setup name="ContentAudit">
-import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { ref, reactive, onMounted, getCurrentInstance, computed } from "vue";
 import { Icon } from "@iconify/vue";
 import { listContentAudit, auditPost } from "@/api/audit/content";
 import AuditMediaPreview from "@/components/AuditMediaPreview/index.vue";
-import { POST_TYPE, AUDIT_STATUS, AUDIT_MEDIA_MODE } from "@/utils/enum";
-
-const CONTENT_STATUS = {
-  NORMAL: "0",
-  DELETED: "1",
-};
+import ConfigTable from "@/components/ConfigTable/index.vue";
+import {
+  POST_TYPE,
+  AUDIT_STATUS,
+  AUDIT_MEDIA_MODE,
+  CONTENT_STATUS,
+} from "@/utils/enum";
+import EnumTag from "@/components/EnumTag/index.vue";
+import {
+  CONTENT_AUDIT_COLUMNS,
+  CONTENT_AUDIT_TABLE_KEY,
+} from "@/config/table/contentAuditColumns.js";
+import { useTableColumnStore } from "@/store/modules/tableColumn";
 
 const { proxy } = getCurrentInstance();
 
@@ -365,6 +251,26 @@ const queryParams = reactive({
   postType: undefined,
   status: undefined,
   auditStatus: AUDIT_STATUS.PENDING,
+});
+
+const tableColumnStore = useTableColumnStore();
+
+// 基础列配置 map
+const baseColumnMap = computed(() => {
+  const map = new Map();
+  CONTENT_AUDIT_COLUMNS.forEach((col) => {
+    map.set(col.key, col);
+  });
+  return map;
+});
+
+const columns = computed(() => {
+  const enabledKeys =
+    tableColumnStore.getEnabledKeys(CONTENT_AUDIT_TABLE_KEY) ||
+    CONTENT_AUDIT_COLUMNS.map((c) => c.key);
+
+  const map = baseColumnMap.value;
+  return enabledKeys.map((key) => map.get(key)).filter(Boolean);
 });
 
 function getList() {

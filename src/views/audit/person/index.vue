@@ -51,160 +51,85 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
-    <el-table
-      v-loading="loading"
+    <ConfigTable
+      :loading="loading"
       :data="auditList"
+      :columns="columns"
+      :table-props="{}"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column
-        type="selection"
-        width="55"
-        align="center"
-        fixed="left"
-      />
-      <el-table-column
-        label="用户名"
-        prop="userName"
-        width="140"
-        fixed="left"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="昵称"
-        prop="nickName"
-        width="140"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="资料类型"
-        prop="applyTypeDesc"
-        width="120"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column label="原值" prop="oldValue" min-width="180">
-        <template #default="scope">
-          <template v-if="scope.row.applyType === 'avatar'">
-            <AvatarPreview :src="scope.row.oldValue" :size="40" />
-          </template>
-          <template v-else>
-            <span class="truncate">
-              {{ scope.row.oldValue }}
-            </span>
-          </template>
+      <!-- 原值：头像 + 文本 -->
+      <template #oldValue="{ row }">
+        <template v-if="row.applyType === 'avatar'">
+          <AvatarPreview :src="row.oldValue" :size="40" />
         </template>
-      </el-table-column>
-
-      <el-table-column label="新值" prop="newValue" min-width="180">
-        <template #default="scope">
-          <template v-if="scope.row.applyType === 'avatar'">
-            <AvatarPreview
-              :src="scope.row.newValue"
-              :size="40"
-              :deleted="scope.row.auditStatus === AUDIT_STATUS.REJECTED"
-            />
-          </template>
-          <template v-else>
-            {{ scope.row.newValue }}
-          </template>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        label="审核状态"
-        prop="auditStatus"
-        width="100"
-        align="center"
-      >
-        <template #default="scope">
-          <el-tag
-            v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING"
-            type="warning"
-          >
-            待审核
-          </el-tag>
-          <el-tag
-            v-else-if="scope.row.auditStatus === AUDIT_STATUS.APPROVED"
-            type="success"
-          >
-            通过
-          </el-tag>
-          <el-tag v-else type="danger">驳回</el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column
-        label="审核备注"
-        prop="auditRemark"
-        min-width="180"
-        :show-overflow-tooltip="true"
-      >
-        <template #default="scope">
-          <span v-if="scope.row.auditStatus === AUDIT_STATUS.REJECTED">
-            {{ scope.row.auditRemark || "无" }}
+        <template v-else>
+          <span class="truncate">
+            {{ row.oldValue }}
           </span>
         </template>
-      </el-table-column>
+      </template>
 
-      <el-table-column
-        label="审核人"
-        prop="auditBy"
-        width="120"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="申请时间"
-        prop="applyTime"
-        width="160"
-        align="center"
-      />
-      <el-table-column
-        label="审核时间"
-        prop="auditTime"
-        width="160"
-        align="center"
-      />
-      <el-table-column
-        label="操作"
-        align="center"
-        width="120"
-        class-name="small-padding fixed-width"
-        fixed="right"
-      >
-        <template #default="scope">
-          <el-tooltip content="查看详情" placement="top">
-            <el-button link type="primary" @click="handleView(scope.row)">
-              <el-icon>
-                <Icon icon="ep:view" :size="20" />
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-
-          <el-tooltip
-            v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING"
-            content="通过"
-            placement="top"
-          >
-            <el-button link type="success" @click="handleApprove(scope.row)">
-              <el-icon>
-                <Icon icon="mdi:check-circle-outline" :size="20" />
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-
-          <el-tooltip
-            v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING"
-            content="驳回"
-            placement="top"
-          >
-            <el-button link type="danger" @click="openRejectDialog(scope.row)">
-              <el-icon>
-                <Icon icon="ep:close" :size="20" />
-              </el-icon>
-            </el-button>
-          </el-tooltip>
+      <!-- 新值：头像 + 审核驳回显示已删除 -->
+      <template #newValue="{ row }">
+        <template v-if="row.applyType === 'avatar'">
+          <AvatarPreview
+            :src="row.newValue"
+            :size="40"
+            :deleted="row.auditStatus === AUDIT_STATUS.REJECTED"
+          />
         </template>
-      </el-table-column>
-    </el-table>
+        <template v-else>
+          {{ row.newValue }}
+        </template>
+      </template>
+
+      <template #auditStatus="{ row }">
+        <EnumTag enum-type="AUDIT_STATUS" :value="row.auditStatus" />
+      </template>
+
+      <!-- 审核备注：仅驳回时显示 -->
+      <template #auditRemark="{ row }">
+        <span v-if="row.auditStatus === AUDIT_STATUS.REJECTED">
+          {{ row.auditRemark || "无" }}
+        </span>
+      </template>
+
+      <!-- 操作列 -->
+      <template #operations="{ row }">
+        <el-tooltip content="查看详情" placement="top">
+          <el-button link type="primary" @click="handleView(row)">
+            <el-icon>
+              <Icon icon="ep:view" :size="20" />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip
+          v-if="row.auditStatus === AUDIT_STATUS.PENDING"
+          content="通过"
+          placement="top"
+        >
+          <el-button link type="success" @click="handleApprove(row)">
+            <el-icon>
+              <Icon icon="mdi:check-circle-outline" :size="20" />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip
+          v-if="row.auditStatus === AUDIT_STATUS.PENDING"
+          content="驳回"
+          placement="top"
+        >
+          <el-button link type="danger" @click="openRejectDialog(row)">
+            <el-icon>
+              <Icon icon="ep:close" :size="20" />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+      </template>
+    </ConfigTable>
 
     <pagination
       v-show="total > 0"
@@ -214,6 +139,7 @@
       @pagination="getList"
     />
 
+    <!-- 详情对话框 -->
     <el-dialog
       title="个人资料变更详情"
       v-model="openDetail"
@@ -233,21 +159,16 @@
         <el-descriptions-item label="申请时间">
           {{ current?.applyTime }}
         </el-descriptions-item>
+
+        <!-- ✅ 审核状态这里也统一用 EnumTag -->
         <el-descriptions-item label="审核状态">
-          <el-tag
-            v-if="current?.auditStatus === AUDIT_STATUS.PENDING"
-            type="warning"
-          >
-            待审核
-          </el-tag>
-          <el-tag
-            v-else-if="current?.auditStatus === AUDIT_STATUS.APPROVED"
-            type="success"
-          >
-            通过
-          </el-tag>
-          <el-tag v-else type="danger">驳回</el-tag>
+          <EnumTag
+            enum-type="AUDIT_STATUS"
+            :value="current?.auditStatus"
+            fallback-label="未知状态"
+          />
         </el-descriptions-item>
+
         <el-descriptions-item label="审核人">
           {{ current?.auditBy }}
         </el-descriptions-item>
@@ -314,14 +235,20 @@
 </template>
 
 <script setup name="ProfileAudit">
-import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { ref, reactive, onMounted, getCurrentInstance, computed } from "vue";
 import { Icon } from "@iconify/vue";
 import { listUserAuditDetail, auditUserAvatar } from "@/api/audit/person";
 import AvatarPreview from "@/components/AvatarPreview/index.vue";
+import ConfigTable from "@/components/ConfigTable/index.vue";
+import EnumTag from "@/components/EnumTag/index.vue";
 import { AUDIT_STATUS } from "@/utils/enum";
+import {
+  PROFILE_AUDIT_TABLE_KEY,
+  PROFILE_AUDIT_COLUMNS,
+} from "@/config/table/profileAuditColumns.js";
+import { useTableColumnStore } from "@/store/modules/tableColumn";
 
 const { proxy } = getCurrentInstance();
-
 const { apply_type } = proxy.useDict("apply_type");
 
 const loading = ref(false);
@@ -346,6 +273,25 @@ const queryParams = reactive({
   pageSize: 10,
   applyType: undefined,
   auditStatus: AUDIT_STATUS.PENDING,
+});
+
+const tableColumnStore = useTableColumnStore();
+
+const baseColumnMap = computed(() => {
+  const map = new Map();
+  PROFILE_AUDIT_COLUMNS.forEach((col) => {
+    map.set(col.key, col);
+  });
+  return map;
+});
+
+const columns = computed(() => {
+  const keys =
+    tableColumnStore.getEnabledKeys(PROFILE_AUDIT_TABLE_KEY) ||
+    PROFILE_AUDIT_COLUMNS.map((c) => c.key);
+
+  const map = baseColumnMap.value;
+  return keys.map((key) => map.get(key)).filter(Boolean);
 });
 
 function getList() {

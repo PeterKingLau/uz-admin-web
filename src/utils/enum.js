@@ -14,3 +14,8 @@ export const AUDIT_MEDIA_MODE = {
   CELL: "cell",
   DETAIL: "detail",
 };
+
+export const CONTENT_STATUS = {
+  NORMAL: "0",
+  DELETED: "1",
+};
