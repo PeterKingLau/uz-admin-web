@@ -1,57 +1,48 @@
 <template>
   <div class="app-container">
-    <!-- 查询条件 -->
     <el-form
       :model="queryParams"
       ref="queryRef"
       v-show="showSearch"
       :inline="true"
       label-width="68px"
-      class="flex flex-wrap items-center gap-3 p-3"
     >
-      <el-form-item label="内容标题" prop="title">
-        <el-input
-          v-model="queryParams.title"
-          placeholder="请输入内容标题"
-          clearable
-          class="w-60"
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-
-      <el-form-item label="发布人" prop="author">
-        <el-input
-          v-model="queryParams.author"
-          placeholder="请输入发布人"
-          clearable
-          class="w-60"
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-
-      <el-form-item label="状态" prop="status">
+      <el-form-item label="帖子类型" prop="postType">
         <el-select
-          v-model="queryParams.status"
-          placeholder="审核状态"
+          v-model="queryParams.postType"
+          placeholder="请选择帖子类型"
           clearable
           style="width: 240px"
         >
-          <el-option label="待审核" value="PENDING" />
-          <el-option label="已通过" value="APPROVED" />
-          <el-option label="已驳回" value="REJECTED" />
+          <el-option label="文字" :value="POST_TYPE.TEXT" />
+          <el-option label="图片" :value="POST_TYPE.IMAGE" />
+          <el-option label="视频" :value="POST_TYPE.VIDEO" />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="提交时间">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          value-format="YYYY-MM-DD"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          range-separator="-"
-          class="w-80"
-        />
+      <el-form-item label="审核状态" prop="auditStatus">
+        <el-select
+          v-model="queryParams.auditStatus"
+          placeholder="请选择审核状态"
+          clearable
+          style="width: 240px"
+        >
+          <el-option label="待审核" :value="AUDIT_STATUS.PENDING" />
+          <el-option label="审核通过" :value="AUDIT_STATUS.APPROVED" />
+          <el-option label="审核未通过" :value="AUDIT_STATUS.REJECTED" />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="内容状态" prop="status">
+        <el-select
+          v-model="queryParams.status"
+          placeholder="请选择内容状态"
+          clearable
+          style="width: 240px"
+        >
+          <el-option label="正常" :value="CONTENT_STATUS.NORMAL" />
+          <el-option label="删除" :value="CONTENT_STATUS.DELETED" />
+        </el-select>
       </el-form-item>
 
       <el-form-item>
@@ -62,52 +53,142 @@
       </el-form-item>
     </el-form>
 
-    <!-- 工具栏 -->
     <el-row :gutter="10" class="mb8">
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
-    <!-- 表格 -->
     <el-table
       v-loading="loading"
       :data="contentList"
+      style="width: 100%"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="编号" prop="id" width="90" />
       <el-table-column
-        label="标题"
-        prop="title"
-        min-width="200"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="发布人"
-        prop="author"
-        width="120"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column label="分类" prop="category" width="120" />
-      <el-table-column
-        label="提交时间"
-        prop="createTime"
-        width="160"
+        type="selection"
+        width="55"
         align="center"
+        fixed="left"
       />
 
-      <el-table-column label="状态" width="100" align="center">
+      <el-table-column
+        label="用户名"
+        prop="userName"
+        width="140"
+        fixed="left"
+        :show-overflow-tooltip="true"
+      />
+      <el-table-column
+        label="用户昵称"
+        prop="nickName"
+        width="140"
+        :show-overflow-tooltip="true"
+      />
+      <el-table-column
+        label="帖子类型"
+        prop="postType"
+        width="100"
+        align="center"
+      >
         <template #default="scope">
-          <el-tag v-if="scope.row.status === 'PENDING'" type="warning">
-            待审核
-          </el-tag>
-          <el-tag v-else-if="scope.row.status === 'APPROVED'" type="success">
-            已通过
-          </el-tag>
-          <el-tag v-else type="danger">已驳回</el-tag>
+          <span v-if="scope.row.postType === POST_TYPE.TEXT">文字</span>
+          <span v-else-if="scope.row.postType === POST_TYPE.IMAGE">图片</span>
+          <span v-else-if="scope.row.postType === POST_TYPE.VIDEO">视频</span>
+          <span v-else>未知</span>
         </template>
       </el-table-column>
 
       <el-table-column
+        label="内容"
+        prop="content"
+        min-width="220"
+        :show-overflow-tooltip="true"
+      />
+
+      <el-table-column label="图片/视频" min-width="220">
+        <template #default="scope">
+          <AuditMediaPreview
+            :post-type="scope.row.postType"
+            :media-urls="scope.row.mediaUrls"
+            :audit-status="scope.row.auditStatus"
+            :mode="AUDIT_MEDIA_MODE.CELL"
+          />
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="点赞数"
+        prop="likeCount"
+        width="100"
+        align="center"
+      />
+      <el-table-column
+        label="收藏数"
+        prop="bookmarkCount"
+        width="100"
+        align="center"
+      />
+      <el-table-column
+        label="转发数"
+        prop="repostCount"
+        width="100"
+        align="center"
+      />
+      <el-table-column
+        label="评论数"
+        prop="commentCount"
+        width="100"
+        align="center"
+      />
+
+      <el-table-column
+        label="内容状态"
+        prop="status"
+        width="100"
+        align="center"
+      >
+        <template #default="scope">
+          <el-tag
+            v-if="scope.row.status === CONTENT_STATUS.NORMAL"
+            type="success"
+          >
+            正常
+          </el-tag>
+          <el-tag v-else type="info">删除</el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="审核状态"
+        prop="auditStatus"
+        width="120"
+        align="center"
+      >
+        <template #default="scope">
+          <el-tag
+            v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING"
+            type="warning"
+          >
+            待审核
+          </el-tag>
+          <el-tag
+            v-else-if="scope.row.auditStatus === AUDIT_STATUS.APPROVED"
+            type="success"
+          >
+            审核通过
+          </el-tag>
+          <el-tag v-else type="danger"> 审核未通过 </el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        label="审核理由"
+        prop="reason"
+        min-width="180"
+        :show-overflow-tooltip="true"
+      />
+
+      <el-table-column
+        fixed="right"
         label="操作"
         align="center"
         width="220"
@@ -115,31 +196,34 @@
       >
         <template #default="scope">
           <el-tooltip content="查看详情" placement="top">
-            <el-button
-              link
-              type="primary"
-              icon="View"
-              @click="handleView(scope.row)"
-            />
+            <el-button link type="primary" @click="handleView(scope.row)">
+              <el-icon>
+                <Icon icon="ep:view" />
+              </el-icon>
+            </el-button>
           </el-tooltip>
 
-          <el-tooltip v-if="scope.row.status === 'PENDING'" content="通过">
-            <el-button
-              link
-              type="success"
-              icon="CircleCheck"
-              @click="handleApprove(scope.row)"
-            />
-          </el-tooltip>
+          <template v-if="scope.row.auditStatus === AUDIT_STATUS.PENDING">
+            <el-tooltip content="通过" placement="top">
+              <el-button link type="success" @click="handleApprove(scope.row)">
+                <el-icon>
+                  <Icon icon="mdi:check-circle-outline" />
+                </el-icon>
+              </el-button>
+            </el-tooltip>
 
-          <el-tooltip v-if="scope.row.status === 'PENDING'" content="驳回">
-            <el-button
-              link
-              type="danger"
-              icon="Close"
-              @click="openRejectDialog(scope.row)"
-            />
-          </el-tooltip>
+            <el-tooltip content="驳回" placement="top">
+              <el-button
+                link
+                type="danger"
+                @click="openRejectDialog(scope.row)"
+              >
+                <el-icon>
+                  <Icon icon="ep:close" />
+                </el-icon>
+              </el-button>
+            </el-tooltip>
+          </template>
         </template>
       </el-table-column>
     </el-table>
@@ -152,56 +236,81 @@
       @pagination="getList"
     />
 
-    <!-- 详情 -->
     <el-dialog
-      v-model="openDetail"
       title="内容详情"
+      v-model="openDetail"
       width="720px"
       append-to-body
     >
-      <el-descriptions :column="2" border class="mb-4">
-        <el-descriptions-item label="编号">
-          {{ current?.id }}
+      <el-descriptions :column="2" border class="mb8">
+        <el-descriptions-item label="用户名">
+          {{ current?.userName }}
         </el-descriptions-item>
-        <el-descriptions-item label="分类">
-          {{ current?.category }}
+        <el-descriptions-item label="用户昵称">
+          {{ current?.nickName }}
         </el-descriptions-item>
-        <el-descriptions-item label="标题">
-          {{ current?.title }}
+        <el-descriptions-item label="帖子类型">
+          <span v-if="current?.postType === POST_TYPE.TEXT">文字</span>
+          <span v-else-if="current?.postType === POST_TYPE.IMAGE">图片</span>
+          <span v-else-if="current?.postType === POST_TYPE.VIDEO">视频</span>
+          <span v-else>未知</span>
         </el-descriptions-item>
-        <el-descriptions-item label="发布人">
-          {{ current?.author }}
+        <el-descriptions-item label="内容状态">
+          <el-tag
+            v-if="current?.status === CONTENT_STATUS.NORMAL"
+            type="success"
+          >
+            正常
+          </el-tag>
+          <el-tag v-else type="info">删除</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="提交时间">
-          {{ current?.createTime }}
+        <el-descriptions-item label="审核状态">
+          <el-tag
+            v-if="current?.auditStatus === AUDIT_STATUS.PENDING"
+            type="warning"
+          >
+            待审核
+          </el-tag>
+          <el-tag
+            v-else-if="current?.auditStatus === AUDIT_STATUS.APPROVED"
+            type="success"
+          >
+            审核通过
+          </el-tag>
+          <el-tag v-else type="danger"> 审核未通过 </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="审核理由">
+          {{ current?.reason || "-" }}
         </el-descriptions-item>
       </el-descriptions>
 
-      <div class="detail-block">
-        <div class="font-bold mb-2">内容预览</div>
-        <div
-          class="bg-gray-100 p-3 rounded leading-6"
-          v-html="current?.content"
-        ></div>
-      </div>
-
-      <div v-if="current?.rejectReason" class="mt-4">
-        <div class="font-bold mb-2">驳回原因</div>
-        <div class="bg-red-50 p-3 rounded border-l-4 border-red-500 leading-6">
-          {{ current.rejectReason }}
-        </div>
-      </div>
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="内容">
+          <div class="whitespace-pre-wrap">
+            {{ current?.content }}
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="图片/视频">
+          <AuditMediaPreview
+            :post-type="current.postType"
+            :media-urls="current.mediaUrls"
+            :audit-status="current.auditStatus"
+            :mode="AUDIT_MEDIA_MODE.DETAIL"
+          />
+        </el-descriptions-item>
+      </el-descriptions>
 
       <template #footer>
-        <el-button @click="openDetail = false">关 闭</el-button>
+        <div class="dialog-footer">
+          <el-button @click="openDetail = false">关 闭</el-button>
+        </div>
       </template>
     </el-dialog>
 
-    <!-- 驳回弹窗 -->
     <el-dialog
       title="驳回原因"
       v-model="openReject"
-      width="400px"
+      width="420px"
       append-to-body
     >
       <el-input
@@ -210,9 +319,8 @@
         :rows="4"
         placeholder="请输入驳回原因"
       />
-
       <template #footer>
-        <div>
+        <div class="dialog-footer">
           <el-button @click="openReject = false">取 消</el-button>
           <el-button type="danger" @click="submitReject">确 定</el-button>
         </div>
@@ -221,8 +329,17 @@
   </div>
 </template>
 
-<script setup name="PublishAudit">
-import { ref, reactive, getCurrentInstance, onMounted } from "vue";
+<script setup name="ContentAudit">
+import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { Icon } from "@iconify/vue";
+import { listContentAudit, auditPost } from "@/api/audit/content";
+import AuditMediaPreview from "@/components/AuditMediaPreview/index.vue";
+import { POST_TYPE, AUDIT_STATUS, AUDIT_MEDIA_MODE } from "@/utils/enum";
+
+const CONTENT_STATUS = {
+  NORMAL: "0",
+  DELETED: "1",
+};
 
 const { proxy } = getCurrentInstance();
 
@@ -232,99 +349,113 @@ const total = ref(0);
 const contentList = ref([]);
 
 const ids = ref([]);
-const dateRange = ref([]);
 
 const openDetail = ref(false);
 const openReject = ref(false);
 const current = ref(null);
 const rejectTarget = ref(null);
 
-const rejectForm = reactive({ reason: "" });
+const rejectForm = reactive({
+  reason: "",
+});
 
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  title: undefined,
-  author: undefined,
-  status: "PENDING",
+  postType: undefined,
+  status: undefined,
+  auditStatus: AUDIT_STATUS.PENDING,
 });
 
-/** 模拟加载列表 */
 function getList() {
   loading.value = true;
-
-  setTimeout(() => {
-    const rows = [];
-    for (let i = 0; i < queryParams.pageSize; i++) {
-      const idx = (queryParams.pageNum - 1) * queryParams.pageSize + i + 1;
-      rows.push({
-        id: idx,
-        title: `发布内容标题 ${idx}`,
-        author: idx % 2 === 0 ? "张三" : "李四",
-        category: idx % 2 === 0 ? "新闻" : "公告",
-        createTime: "2025-11-13 11:30:00",
-        status: queryParams.status || "PENDING",
-        content: `<p>这是第 <b>${idx}</b> 条内容预览。</p>`,
-        rejectReason: "",
-      });
-    }
-    contentList.value = rows;
-    total.value = 56;
+  listContentAudit(queryParams).then((res) => {
+    contentList.value = res.rows || [];
+    total.value = res.total || 0;
     loading.value = false;
-  }, 300);
+  });
 }
 
-/** 搜索 */
 function handleQuery() {
   queryParams.pageNum = 1;
   getList();
 }
 
-/** 重置 */
 function resetQuery() {
-  dateRange.value = [];
   proxy.resetForm("queryRef");
   queryParams.pageNum = 1;
-  queryParams.status = "PENDING";
+  queryParams.pageSize = 10;
+  queryParams.postType = undefined;
+  queryParams.status = undefined;
+  queryParams.auditStatus = AUDIT_STATUS.PENDING;
   getList();
 }
 
-/** 多选 */
 function handleSelectionChange(selection) {
   ids.value = selection.map((item) => item.id);
 }
 
-/** 查看详情 */
 function handleView(row) {
   current.value = row;
   openDetail.value = true;
 }
 
-/** 通过 */
 function handleApprove(row) {
-  row.status = "APPROVED";
-  proxy.$modal?.msgSuccess("审核通过");
+  proxy.$modal
+    .confirm(`确认将该内容审核通过吗？`)
+    .then(() => {
+      return auditPost({
+        id: row.id,
+        auditStatus: AUDIT_STATUS.APPROVED,
+        reason: row.reason || "审核通过",
+      });
+    })
+    .then(() => {
+      proxy.$modal.msgSuccess("审核通过");
+      getList();
+      if (openDetail.value && current.value && current.value.id === row.id) {
+        current.value.auditStatus = AUDIT_STATUS.APPROVED;
+        current.value.reason = row.reason || "审核通过";
+      }
+    })
+    .catch(() => {});
 }
 
-/** 打开驳回 */
 function openRejectDialog(row) {
   rejectTarget.value = row;
-  rejectForm.reason = "";
+  rejectForm.reason = row.reason || "";
   openReject.value = true;
 }
 
-/** 提交驳回 */
 function submitReject() {
   if (!rejectForm.reason.trim()) {
-    proxy.$modal?.msgWarning("请输入驳回原因");
+    if (proxy.$modal?.msgWarning) {
+      proxy.$modal.msgWarning("请填写驳回原因");
+    } else {
+      ElMessage.warning("请填写驳回原因");
+    }
     return;
   }
 
-  rejectTarget.value.status = "REJECTED";
-  rejectTarget.value.rejectReason = rejectForm.reason;
-
-  openReject.value = false;
-  proxy.$modal?.msgSuccess("已驳回");
+  auditPost({
+    id: rejectTarget.value.id,
+    auditStatus: AUDIT_STATUS.REJECTED,
+    reason: rejectForm.reason,
+  })
+    .then(() => {
+      proxy.$modal?.msgSuccess && proxy.$modal.msgSuccess("已驳回");
+      openReject.value = false;
+      getList();
+      if (
+        openDetail.value &&
+        current.value &&
+        current.value.id === rejectTarget.value.id
+      ) {
+        current.value.auditStatus = AUDIT_STATUS.REJECTED;
+        current.value.reason = rejectForm.reason;
+      }
+    })
+    .catch(() => {});
 }
 
 onMounted(() => {

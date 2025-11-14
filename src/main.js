@@ -53,6 +53,8 @@ import DictTag from "@/components/DictTag";
 
 import { Icon } from "@iconify/vue";
 
+import ImgPlugin from "@/plugins/img";
+
 const app = createApp(App);
 
 // 全局方法挂载
@@ -79,6 +81,7 @@ app.use(router);
 app.use(store);
 app.use(plugins);
 app.use(elementIcons);
+app.use(ImgPlugin);
 app.component("svg-icon", SvgIcon);
 app.component("Icon", Icon);
 
