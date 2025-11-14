@@ -65,6 +65,7 @@
               <span>基本资料</span>
             </div>
           </template>
+
           <el-tabs v-model="selectedTab">
             <el-tab-pane label="基本资料" name="userinfo">
               <userInfo :user="state.user" />
@@ -80,25 +81,28 @@
 </template>
 
 <script setup name="Profile">
+import { ref, reactive, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
-import userAvatar from "./userAvatar";
-import userInfo from "./userInfo";
-import resetPwd from "./resetPwd";
+import userAvatar from "./userAvatar.vue";
+import userInfo from "./userInfo.vue";
+import resetPwd from "./resetPwd.vue";
 import { getUserProfile } from "@/api/system/user";
 
 const route = useRoute();
+
 const selectedTab = ref("userinfo");
 const state = reactive({
   user: {},
-  roleGroup: {},
-  postGroup: {},
+  roleGroup: "",
+  postGroup: "",
 });
 
 function getUser() {
   getUserProfile().then((response) => {
-    state.user = response.data;
-    state.roleGroup = response.roleGroup;
-    state.postGroup = response.postGroup;
+    state.user = response.data || {};
+    state.roleGroup = response.roleGroup || "";
+    state.postGroup = response.postGroup || "";
   });
 }
 

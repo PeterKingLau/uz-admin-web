@@ -234,12 +234,7 @@ import { Icon } from "@iconify/vue";
 import { listContentAudit, auditPost } from "@/api/audit/content";
 import AuditMediaPreview from "@/components/AuditMediaPreview/index.vue";
 import ConfigTable from "@/components/ConfigTable/index.vue";
-import {
-  POST_TYPE,
-  AUDIT_STATUS,
-  AUDIT_MEDIA_MODE,
-  CONTENT_STATUS,
-} from "@/utils/enum";
+import { AUDIT_STATUS, AUDIT_MEDIA_MODE } from "@/utils/enum";
 import EnumTag from "@/components/EnumTag/index.vue";
 import {
   CONTENT_AUDIT_COLUMNS,
