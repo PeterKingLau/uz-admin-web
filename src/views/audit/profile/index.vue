@@ -7,6 +7,7 @@
       :inline="true"
       label-width="68px"
     >
+      <!-- 帖子类型 -->
       <el-form-item label="帖子类型" prop="postType">
         <el-select
           v-model="queryParams.postType"
@@ -14,12 +15,19 @@
           clearable
           style="width: 240px"
         >
-          <el-option label="文字" :value="POST_TYPE.TEXT" />
-          <el-option label="图片" :value="POST_TYPE.IMAGE" />
-          <el-option label="视频" :value="POST_TYPE.VIDEO" />
+          <el-option
+            v-for="opt in postTypeOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          >
+            <!-- 下拉项里显示 Tag -->
+            <EnumTag enum-type="POST_TYPE" :value="opt.value" />
+          </el-option>
         </el-select>
       </el-form-item>
 
+      <!-- 审核状态 -->
       <el-form-item label="审核状态" prop="auditStatus">
         <el-select
           v-model="queryParams.auditStatus"
@@ -27,12 +35,18 @@
           clearable
           style="width: 240px"
         >
-          <el-option label="待审核" :value="AUDIT_STATUS.PENDING" />
-          <el-option label="审核通过" :value="AUDIT_STATUS.APPROVED" />
-          <el-option label="审核未通过" :value="AUDIT_STATUS.REJECTED" />
+          <el-option
+            v-for="opt in auditStatusOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          >
+            <EnumTag enum-type="AUDIT_STATUS" :value="opt.value" />
+          </el-option>
         </el-select>
       </el-form-item>
 
+      <!-- 内容状态 -->
       <el-form-item label="内容状态" prop="status">
         <el-select
           v-model="queryParams.status"
@@ -40,8 +54,14 @@
           clearable
           style="width: 240px"
         >
-          <el-option label="正常" :value="CONTENT_STATUS.NORMAL" />
-          <el-option label="删除" :value="CONTENT_STATUS.DELETED" />
+          <el-option
+            v-for="opt in contentStatusOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          >
+            <EnumTag enum-type="CONTENT_STATUS" :value="opt.value" />
+          </el-option>
         </el-select>
       </el-form-item>
 
@@ -226,6 +246,7 @@ import {
   CONTENT_AUDIT_TABLE_KEY,
 } from "@/config/table/contentAuditColumns.js";
 import { useTableColumnStore } from "@/store/modules/tableColumn";
+import { useEnumOptions } from "@/hooks/useEnumOptions";
 
 const { proxy } = getCurrentInstance();
 
@@ -255,7 +276,6 @@ const queryParams = reactive({
 
 const tableColumnStore = useTableColumnStore();
 
-// 基础列配置 map
 const baseColumnMap = computed(() => {
   const map = new Map();
   CONTENT_AUDIT_COLUMNS.forEach((col) => {
@@ -272,6 +292,10 @@ const columns = computed(() => {
   const map = baseColumnMap.value;
   return enabledKeys.map((key) => map.get(key)).filter(Boolean);
 });
+
+const postTypeOptions = useEnumOptions("POST_TYPE");
+const auditStatusOptions = useEnumOptions("AUDIT_STATUS");
+const contentStatusOptions = useEnumOptions("CONTENT_STATUS");
 
 function getList() {
   loading.value = true;

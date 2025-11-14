@@ -1,4 +1,4 @@
-export const PROFILE_AUDIT_TABLE_KEY = "profileAudit"; // 这个表的标识，可给 store 用
+export const PROFILE_AUDIT_TABLE_KEY = "profileAudit";
 
 export const PROFILE_AUDIT_COLUMNS = [
   {
@@ -24,9 +24,9 @@ export const PROFILE_AUDIT_COLUMNS = [
     showOverflowTooltip: true,
   },
   {
-    key: "applyTypeDesc",
+    key: "applyType",
     label: "资料类型",
-    prop: "applyTypeDesc",
+    prop: "applyType",
     width: 120,
     showOverflowTooltip: true,
   },

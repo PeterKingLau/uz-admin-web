@@ -58,7 +58,13 @@
       :table-props="{}"
       @selection-change="handleSelectionChange"
     >
-      <!-- 原值：头像 + 文本 -->
+      <template #applyType="{ row }">
+        <EnumTag
+          enum-type="PROFILE_APPLY_TYPE"
+          :value="row.applyType"
+          :fallback-label="row.applyTypeDesc || row.applyType"
+        />
+      </template>
       <template #oldValue="{ row }">
         <template v-if="row.applyType === 'avatar'">
           <AvatarPreview :src="row.oldValue" :size="40" />
@@ -70,7 +76,6 @@
         </template>
       </template>
 
-      <!-- 新值：头像 + 审核驳回显示已删除 -->
       <template #newValue="{ row }">
         <template v-if="row.applyType === 'avatar'">
           <AvatarPreview
@@ -154,13 +159,17 @@
           {{ current?.nickName }}
         </el-descriptions-item>
         <el-descriptions-item label="资料类型">
-          {{ current?.applyTypeDesc }} ({{ current?.applyType }})
+          <EnumTag
+            enum-type="PROFILE_APPLY_TYPE"
+            :value="current?.applyType"
+            :fallback-label="current?.applyTypeDesc || current?.applyType"
+          />
         </el-descriptions-item>
+
         <el-descriptions-item label="申请时间">
           {{ current?.applyTime }}
         </el-descriptions-item>
 
-        <!-- ✅ 审核状态这里也统一用 EnumTag -->
         <el-descriptions-item label="审核状态">
           <EnumTag
             enum-type="AUDIT_STATUS"
