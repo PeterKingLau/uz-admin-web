@@ -2,23 +2,27 @@
   <div class="avatar-preview">
     <el-tag v-if="deleted" type="danger" size="small">内容已删除</el-tag>
 
-    <!-- 正常头像预览 -->
     <el-image
-      v-else-if="finalSrc"
+      v-else-if="finalSrc && !imageError"
       :src="finalSrc"
       :style="imageStyle"
       fit="cover"
       :preview-src-list="previewList"
       :preview-teleported="true"
+      @error="onImageError"
     />
 
-    <!-- 无值兜底 -->
-    <span v-else>-</span>
+    <template v-if="imageError && finalSrc">
+      <Icon icon="mdi:account-off" style="font-size: 40px; color: #100d0d" />
+    </template>
+
+    <span v-if="!finalSrc">无</span>
   </div>
 </template>
 
 <script setup>
-import { computed, getCurrentInstance } from "vue";
+import { computed, ref, getCurrentInstance } from "vue";
+import { Icon } from "@iconify/vue";
 
 const props = defineProps({
   src: {
@@ -37,6 +41,8 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance() || {};
 
+const imageError = ref(false); // 用于跟踪图片是否加载失败
+
 const finalSrc = computed(() => {
   if (!props.src) return "";
   return proxy?.$imgUrl ? proxy.$imgUrl(props.src) : props.src;
@@ -52,6 +58,11 @@ const imageStyle = computed(() => ({
   borderRadius: "50%",
   cursor: "pointer",
 }));
+
+// 图片加载错误处理
+function onImageError() {
+  imageError.value = true; // 图片加载失败时设置为 true
+}
 </script>
 
 <style scoped>

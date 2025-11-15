@@ -15,21 +15,6 @@
       <!-- 图片类型 -->
       <template v-if="isImagePost">
         <el-image
-          v-if="isCellMode"
-          :src="imageList[0]"
-          fit="cover"
-          style="
-            width: 120px;
-            height: 120px;
-            border-radius: 4px;
-            cursor: pointer;
-          "
-          :preview-src-list="imageList"
-          :initial-index="0"
-          preview-teleported
-        />
-        <el-image
-          v-else
           :src="imageList[0]"
           fit="cover"
           style="
@@ -41,8 +26,14 @@
           :preview-src-list="imageList"
           :initial-index="0"
           show-progress
+          :infinite="false"
           preview-teleported
+          @error="onImageError"
         />
+
+        <template v-if="imageError">
+          <Icon icon="ep:picture-filled" style="font-size: 40px; color: #ccc" />
+        </template>
       </template>
 
       <!-- 视频类型 -->
@@ -214,9 +205,16 @@ const isCellMode = computed(() => modeValue.value === MODE.CELL);
 
 const isPreviewMode = ref(false);
 
+// 处理图片加载失败
+const imageError = ref(false);
+
 function openPreview(index) {
   currentImageIndex.value = index;
   isPreviewMode.value = true;
+}
+
+function onImageError() {
+  imageError.value = true; // 图片加载失败时设置为true
 }
 
 const videoThumb = computed(() => {

@@ -46,7 +46,7 @@ export const ENUM_TAG_CONFIG = {
 
   PROFILE_APPLY_TYPE: {
     avatar: { label: "头像", type: "warning" },
-    nick_name: { label: "用户昵称", type: "success" },
+    nick_name: { label: "昵称", type: "success" },
     signature: { label: "个性签名", type: "info" },
   },
 };
