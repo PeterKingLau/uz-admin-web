@@ -1,22 +1,32 @@
 <template>
   <div class="audit-media-preview">
+    <!-- 内容已删除 -->
     <template v-if="isAuditRejected">
       <el-tag type="danger" size="small">内容已删除</el-tag>
     </template>
 
-    <template v-else-if="normalizedList.length === 0">
+    <!-- 无数据 -->
+    <template v-else-if="limitedList.length === 0">
       <el-tag type="info" size="small">无数据</el-tag>
     </template>
 
+    <!-- 正常内容展示 -->
     <template v-else>
+      <!-- 图片类型 -->
       <template v-if="isImagePost">
         <el-image
           v-if="isCellMode"
           :src="imageList[0]"
           fit="cover"
-          style="width: 80px; height: 80px; border-radius: 4px; cursor: pointer"
+          style="
+            width: 120px;
+            height: 120px;
+            border-radius: 4px;
+            cursor: pointer;
+          "
           :preview-src-list="imageList"
-          :preview-teleported="true"
+          :initial-index="0"
+          preview-teleported
         />
         <el-image
           v-else
@@ -29,10 +39,13 @@
             cursor: pointer;
           "
           :preview-src-list="imageList"
-          :preview-teleported="true"
+          :initial-index="0"
+          show-progress
+          preview-teleported
         />
       </template>
 
+      <!-- 视频类型 -->
       <template v-else-if="isVideoPost">
         <template v-if="isCellMode">
           <div
@@ -102,6 +115,7 @@
         </template>
       </template>
 
+      <!-- 默认无数据 -->
       <template v-else>
         <span class="text-gray-500">无数据</span>
       </template>
@@ -111,6 +125,7 @@
 
 <script setup>
 import { computed, ref, getCurrentInstance } from "vue";
+import { isExternal } from "@/utils/validate";
 import { Icon } from "@iconify/vue";
 import {
   POST_TYPE,
@@ -129,7 +144,6 @@ const props = defineProps({
   },
   mode: {
     type: String,
-    // 这里不要再用 MODE.CELL，当它可选，让逻辑里兜底
   },
   auditStatus: {
     type: String,
@@ -148,19 +162,16 @@ const isAuditRejected = computed(
 const isImagePost = computed(() => props.postType === POST_TYPE.IMAGE);
 const isVideoPost = computed(() => props.postType === POST_TYPE.VIDEO);
 
-// 统一带默认值的 mode
-const modeValue = computed(() => props.mode || MODE.CELL);
-const isCellMode = computed(() => modeValue.value === MODE.CELL);
-
+const maxCount = 9;
 const normalizedList = computed(() => {
-  if (isAuditRejected.value) {
-    return [];
-  }
+  if (isAuditRejected.value) return [];
 
   let list = props.mediaUrls;
   if (!list) return [];
 
-  const transformUrl = (url) => (proxy?.$imgUrl ? proxy.$imgUrl(url) : url);
+  const transformUrl = (url) => {
+    return !isExternal(url) && proxy?.$imgUrl ? proxy.$imgUrl(url) : url;
+  };
 
   if (Array.isArray(list)) {
     return list.map(transformUrl).filter(Boolean);
@@ -189,19 +200,33 @@ const normalizedList = computed(() => {
   return [];
 });
 
+const limitedList = computed(() => normalizedList.value.slice(0, maxCount));
+
 const imageList = computed(() => {
   if (!isImagePost.value) return [];
-  return normalizedList.value;
+  return limitedList.value;
 });
+
+const currentImageIndex = ref(0);
+
+const modeValue = computed(() => props.mode || MODE.CELL);
+const isCellMode = computed(() => modeValue.value === MODE.CELL);
+
+const isPreviewMode = ref(false);
+
+function openPreview(index) {
+  currentImageIndex.value = index;
+  isPreviewMode.value = true;
+}
 
 const videoThumb = computed(() => {
   if (!isVideoPost.value) return "";
-  return normalizedList.value[0] || "";
+  return limitedList.value[0] || "";
 });
 
 const videoSrc = computed(() => {
   if (!isVideoPost.value) return "";
-  return normalizedList.value[1] || normalizedList.value[0] || "";
+  return limitedList.value[1] || limitedList.value[0] || "";
 });
 
 function openVideo() {
@@ -222,5 +247,11 @@ function handleVideoClose() {
 <style scoped>
 .audit-media-preview {
   display: inline-block;
+}
+
+.image-count {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
 }
 </style>

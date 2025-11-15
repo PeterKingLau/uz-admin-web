@@ -93,7 +93,7 @@
 
       <!-- 图片/视频列 -->
       <template #media="{ row }">
-        <AuditMediaPreview
+        <MediaPreview
           :post-type="row.postType"
           :media-urls="row.mediaUrls"
           :audit-status="row.auditStatus"
@@ -190,7 +190,7 @@
           </div>
         </el-descriptions-item>
         <el-descriptions-item label="图片/视频">
-          <AuditMediaPreview
+          <MediaPreview
             :post-type="current.postType"
             :media-urls="current.mediaUrls"
             :audit-status="current.auditStatus"
@@ -232,7 +232,6 @@
 import { ref, reactive, onMounted, getCurrentInstance, computed } from "vue";
 import { Icon } from "@iconify/vue";
 import { listContentAudit, auditPost } from "@/api/audit/content";
-import AuditMediaPreview from "@/components/AuditMediaPreview/index.vue";
 import ConfigTable from "@/components/ConfigTable/index.vue";
 import { AUDIT_STATUS, AUDIT_MEDIA_MODE } from "@/utils/enum";
 import EnumTag from "@/components/EnumTag/index.vue";

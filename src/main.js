@@ -47,7 +47,7 @@ import FileUpload from "@/components/FileUpload";
 // 图片上传组件
 import ImageUpload from "@/components/ImageUpload";
 // 图片预览组件
-import ImagePreview from "@/components/ImagePreview";
+import MediaPreview from "@/components/MediaPreview";
 // 字典标签组件
 import DictTag from "@/components/DictTag";
 
@@ -73,7 +73,7 @@ app.component("DictTag", DictTag);
 app.component("Pagination", Pagination);
 app.component("FileUpload", FileUpload);
 app.component("ImageUpload", ImageUpload);
-app.component("ImagePreview", ImagePreview);
+app.component("MediaPreview", MediaPreview);
 app.component("RightToolbar", RightToolbar);
 app.component("Editor", Editor);
 
