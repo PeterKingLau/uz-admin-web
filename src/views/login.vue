@@ -41,14 +41,13 @@
         </el-input>
       </el-form-item>
 
-      <!-- 密码（仅 PASSWORD） -->
       <el-form-item v-if="loginForm.loginType === 'PASSWORD'" prop="password">
         <el-input
           v-model="loginForm.password"
           type="password"
           size="large"
           autocomplete="off"
-          placeholder="密码"
+          placeholder="请输入您的密码"
           :validate-event="false"
           @keyup.enter="handleLogin"
         >
@@ -135,11 +134,10 @@ const router = useRouter();
 
 const loginRef = ref();
 
-// 仅两种登录类型
 const loginForm = ref({
   loginType: "PASSWORD",
-  username: "admin",
-  password: "admin123",
+  username: "",
+  password: "",
   smsCode: "",
   rememberMe: false,
 });

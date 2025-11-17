@@ -21,8 +21,6 @@
             :label="opt.label"
             :value="opt.value"
           >
-            <!-- 下拉项里显示 Tag -->
-            <EnumTag enum-type="POST_TYPE" :value="opt.value" />
           </el-option>
         </el-select>
       </el-form-item>
@@ -41,7 +39,6 @@
             :label="opt.label"
             :value="opt.value"
           >
-            <EnumTag enum-type="AUDIT_STATUS" :value="opt.value" />
           </el-option>
         </el-select>
       </el-form-item>
@@ -60,7 +57,6 @@
             :label="opt.label"
             :value="opt.value"
           >
-            <EnumTag enum-type="CONTENT_STATUS" :value="opt.value" />
           </el-option>
         </el-select>
       </el-form-item>
@@ -311,7 +307,7 @@ function resetQuery() {
   queryParams.pageSize = 10;
   queryParams.postType = undefined;
   queryParams.status = undefined;
-  queryParams.auditStatus = AUDIT_STATUS.PENDING;
+  queryParams.auditStatus = undefined;
   getList();
 }
 

@@ -17,26 +17,60 @@
         <el-image
           :src="imageList[0]"
           fit="cover"
-          style="
-            width: 140px;
-            height: 140px;
-            border-radius: 4px;
-            cursor: pointer;
-          "
+          style="width: 120px; height: 120px; cursor: pointer"
           :preview-src-list="imageList"
           :initial-index="0"
           show-progress
           :infinite="false"
           preview-teleported
           @error="onImageError"
-        />
+        >
+          <template #toolbar="{ actions, prev, next, setActiveItem }">
+            <Icon
+              @click="prev"
+              icon="mdi:chevron-left"
+              style="cursor: pointer"
+            />
+            <Icon
+              @click="next"
+              icon="mdi:chevron-right"
+              style="cursor: pointer"
+            />
+            <Icon
+              @click="setActiveItem(imageList.length - 1)"
+              icon="mdi:chevron-double-right"
+              style="cursor: pointer"
+            />
+            <Icon
+              @click="actions('zoomOut')"
+              icon="ep:zoom-out"
+              style="cursor: pointer"
+            />
+            <Icon
+              @click="
+                actions('zoomIn', { enableTransition: false, zoomRate: 2 })
+              "
+              icon="ep:zoom-in"
+              style="cursor: pointer"
+            />
+            <Icon
+              @click="actions('clockwise')"
+              icon="mdi:rotate-right"
+              style="cursor: pointer"
+            />
+            <Icon
+              @click="actions('anticlockwise')"
+              icon="mdi:rotate-left"
+              style="cursor: pointer"
+            />
+          </template>
+        </el-image>
 
         <template v-if="imageError">
           <Icon icon="ep:picture-filled" style="font-size: 40px; color: #ccc" />
         </template>
       </template>
 
-      <!-- 视频类型 -->
       <template v-else-if="isVideoPost">
         <template v-if="isCellMode">
           <div

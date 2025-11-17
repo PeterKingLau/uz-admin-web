@@ -326,7 +326,7 @@ function resetQuery() {
   proxy.resetForm("queryRef");
   queryParams.pageNum = 1;
   queryParams.pageSize = 10;
-  queryParams.auditStatus = AUDIT_STATUS.PENDING;
+  queryParams.auditStatus = undefined;
   getList();
 }
 
