@@ -1,8 +1,13 @@
+import epIcons from '@iconify-json/ep/icons.json'
+import mdiIcons from '@iconify-json/mdi/icons.json'
+import simpleIcons from '@iconify-json/simple-icons/icons.json'
+
 let icons = []
-const modules = import.meta.glob('./../../assets/icons/svg/*.svg')
-for (const path in modules) {
-  const p = path.split('assets/icons/svg/')[1].split('.svg')[0]
-  icons.push(p)
-}
+
+icons.push(...Object.keys(epIcons.icons).map(name => `ep:${name}`))
+
+icons.push(...Object.keys(mdiIcons.icons).map(name => `mdi:${name}`))
+
+icons.push(...Object.keys(simpleIcons.icons).map(name => `simple-icons:${name}`))
 
 export default icons
