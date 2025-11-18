@@ -142,3 +142,6 @@ vite.config.ts.timestamp-*
 
 # Yarn.lock
 yarn.lock
+
+# vscode settings\
+.vscode
