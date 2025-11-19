@@ -1,6 +1,5 @@
 <template>
     <div class="audit-dashboard">
-        <!-- 顶部统计卡片 -->
         <el-row :gutter="16" class="top-cards">
             <el-col :span="6" v-for="card in statCards" :key="card.key">
                 <el-card shadow="hover" class="stat-card">
@@ -17,7 +16,6 @@
             </el-col>
         </el-row>
 
-        <!-- 图表区：左边折线图 + 右边饼图 -->
         <el-row :gutter="16" class="charts-row">
             <el-col :span="16">
                 <el-card shadow="hover">
@@ -38,7 +36,6 @@
             </el-col>
         </el-row>
 
-        <!-- 近 7 天审核趋势（表格版，辅助） -->
         <el-card shadow="hover">
             <template #header>
                 <div class="card-header">近 7 天趋势（数据明细）</div>
@@ -57,7 +54,6 @@
             </el-table>
         </el-card>
 
-        <!-- 最新审核记录 -->
         <el-card shadow="hover">
             <template #header>
                 <div class="card-header">最新审核记录</div>
@@ -80,7 +76,6 @@ import { listContentAudit } from '@/api/audit/content'
 import { listUserAuditDetail } from '@/api/audit/person'
 
 const contentList = ref([])
-const userAuditList = ref([])
 
 const stats = ref({
     totalCount: 0,
@@ -96,19 +91,9 @@ const statCards = [
     { key: 'rejectedCount', title: '未通过', icon: 'ep:circle-close' }
 ]
 
-// ----------------------
-// 近 7 天趋势
-// ----------------------
 const trend = ref([])
-
-// ----------------------
-// 最新审核记录
-// ----------------------
 const latest = ref([])
 
-// ----------------------
-// ECharts 相关
-// ----------------------
 const trendChartRef = ref(null)
 const statusPieRef = ref(null)
 let trendChart = null
@@ -134,9 +119,7 @@ function renderTrendChart() {
     const rejected = trend.value.map(x => x.rejected)
 
     trendChart.setOption({
-        tooltip: {
-            trigger: 'axis'
-        },
+        tooltip: { trigger: 'axis' },
         legend: {
             data: ['审核总数', '通过', '未通过']
         },
@@ -156,24 +139,9 @@ function renderTrendChart() {
             minInterval: 1
         },
         series: [
-            {
-                name: '审核总数',
-                type: 'line',
-                smooth: true,
-                data: totals
-            },
-            {
-                name: '通过',
-                type: 'line',
-                smooth: true,
-                data: approved
-            },
-            {
-                name: '未通过',
-                type: 'line',
-                smooth: true,
-                data: rejected
-            }
+            { name: '审核总数', type: 'line', smooth: true, data: totals },
+            { name: '通过', type: 'line', smooth: true, data: approved },
+            { name: '未通过', type: 'line', smooth: true, data: rejected }
         ]
     })
 }
@@ -182,7 +150,13 @@ function renderStatusPie() {
     if (!statusChart) return
 
     const { approvedCount, rejectedCount, pendingCount } = stats.value
-    const total = approvedCount + rejectedCount + pendingCount
+    const data = [
+        { name: '待审核', value: pendingCount },
+        { name: '已通过', value: approvedCount },
+        { name: '未通过', value: rejectedCount }
+    ]
+    const total = data.reduce((sum, item) => sum + item.value, 0)
+
     if (!total) {
         statusChart.clear()
         return
@@ -190,31 +164,48 @@ function renderStatusPie() {
 
     statusChart.setOption({
         tooltip: {
-            trigger: 'item'
+            trigger: 'item',
+            formatter(params) {
+                return `${params.name}<br/>数量：${params.value}<br/>占比：${params.percent}%`
+            }
         },
         legend: {
             orient: 'vertical',
-            left: 'left'
+            left: 12,
+            top: 'middle',
+            icon: 'circle',
+            itemWidth: 10,
+            itemHeight: 10,
+            itemGap: 10,
+            textStyle: {
+                fontSize: 12,
+                color: '#606266'
+            },
+            formatter(name) {
+                const item = data.find(d => d.name === name)
+                if (!item) return name
+                const percent = ((item.value / total) * 100).toFixed(1).replace(/\.0$/, '')
+                return `${name}  ${item.value}（${percent}%）`
+            }
         },
+        color: ['#5470C6', '#91CC75', '#FAC858'],
         series: [
             {
                 name: '审核状态',
                 type: 'pie',
-                radius: ['40%', '70%'],
-                avoidLabelOverlap: false,
-                itemStyle: {
-                    borderRadius: 6,
-                    borderColor: '#fff',
-                    borderWidth: 2
-                },
+                radius: ['55%', '75%'],
+                center: ['65%', '50%'],
+                avoidLabelOverlap: true,
                 label: {
-                    formatter: '{b}: {c} ({d}%)'
+                    show: true,
+                    formatter: '{b}\n{c}（{d}%）',
+                    fontSize: 12
                 },
-                data: [
-                    { name: '待审核', value: pendingCount },
-                    { name: '已通过', value: approvedCount },
-                    { name: '未通过', value: rejectedCount }
-                ]
+                labelLine: {
+                    length: 12,
+                    length2: 6
+                },
+                data
             }
         ]
     })
@@ -225,16 +216,11 @@ const handleResize = () => {
     statusChart && statusChart.resize()
 }
 
-// ----------------------
-// 加载数据
-// ----------------------
 async function loadData() {
     const [contentRes, userRes] = await Promise.all([listContentAudit({ pageNum: 1, pageSize: 9999 }), listUserAuditDetail({ pageNum: 1, pageSize: 9999 })])
 
     const contentData = contentRes.rows || contentRes.data || []
     const userData = userRes.rows || userRes.data || []
-
-    // 合并：内容审核 + 个人资料审核
     const merged = [...contentData, ...userData]
 
     contentList.value = merged
@@ -243,14 +229,10 @@ async function loadData() {
     calcTrend(merged)
     calcLatest(merged)
 
-    // 数据准备好后再初始化 / 更新图表
     await nextTick()
     initCharts()
 }
 
-// ----------------------
-// 顶部统计
-// ----------------------
 function calcStats(list) {
     stats.value.totalCount = list.length
     stats.value.pendingCount = list.filter(x => x.auditStatus == 0).length
@@ -258,9 +240,6 @@ function calcStats(list) {
     stats.value.rejectedCount = list.filter(x => x.auditStatus == 2).length
 }
 
-// ----------------------
-// 近 7 天趋势统计
-// ----------------------
 function calcTrend(list) {
     const map = {}
 
@@ -285,9 +264,6 @@ function calcTrend(list) {
         }))
 }
 
-// ----------------------
-// 最新审核
-// ----------------------
 function calcLatest(list) {
     latest.value = [...list]
         .sort((a, b) => new Date(b.auditTime) - new Date(a.auditTime))
@@ -299,7 +275,6 @@ function calcLatest(list) {
         }))
 }
 
-// stats / trend 变化时，自动刷新图表（避免手动调用）
 watch(
     () => trend.value,
     () => {
@@ -384,7 +359,7 @@ onBeforeUnmount(() => {
         }
 
         .stat-card__value {
-            margin-left: 44px; // 和图标对齐一点
+            margin-left: 44px;
             font-size: 24px;
             font-weight: 600;
             color: var(--el-text-color-primary);
@@ -393,7 +368,6 @@ onBeforeUnmount(() => {
     }
 }
 
-/* 图标色块 */
 .icon-totalCount {
     background: #409eff;
 }
@@ -407,10 +381,10 @@ onBeforeUnmount(() => {
     background: #f56c6c;
 }
 
-/* 下面原来的样式保持即可 */
 .charts-row {
     margin-bottom: 8px;
 }
+
 .chart-container {
     width: 100%;
     height: 260px;

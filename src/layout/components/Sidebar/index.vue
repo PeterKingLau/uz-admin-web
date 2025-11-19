@@ -1,6 +1,7 @@
 <template>
-    <div :class="{ 'has-logo': showLogo }" class="sidebar-container">
+    <div class="sidebar-container" :class="[{ 'has-logo': showLogo }, isCollapse ? 'sidebar--collapse' : 'sidebar--expand']">
         <logo v-if="showLogo" :collapse="isCollapse" />
+
         <el-scrollbar wrap-class="scrollbar-wrapper">
             <el-menu
                 :default-active="activeMenu"
@@ -9,7 +10,6 @@
                 :text-color="getMenuTextColor"
                 :unique-opened="true"
                 :active-text-color="theme"
-                :collapse-transition="false"
                 mode="vertical"
                 :class="sideTheme"
                 @select="handleMenuSelect"
@@ -42,7 +42,6 @@ const sideTheme = computed(() => settingsStore.sideTheme)
 const theme = computed(() => settingsStore.theme)
 const isCollapse = computed(() => !appStore.sidebar.opened)
 
-// 获取菜单背景色
 const getMenuBackground = computed(() => {
     if (settingsStore.isDark) {
         return 'var(--sidebar-bg)'
@@ -50,7 +49,6 @@ const getMenuBackground = computed(() => {
     return sideTheme.value === 'theme-dark' ? variables.menuBg : variables.menuLightBg
 })
 
-// 获取菜单文字颜色
 const getMenuTextColor = computed(() => {
     if (settingsStore.isDark) {
         return 'var(--sidebar-text)'
@@ -60,9 +58,7 @@ const getMenuTextColor = computed(() => {
 
 const activeMenu = computed(() => {
     const { meta, path } = route
-    if (meta.activeMenu) {
-        return meta.activeMenu
-    }
+    if (meta.activeMenu) return meta.activeMenu
     return path
 })
 
@@ -75,8 +71,25 @@ function handleMenuSelect() {
 </script>
 
 <style lang="scss" scoped>
+$sidebar-expand-width: 210px;
+$sidebar-collapse-width: 60px;
+
 .sidebar-container {
+    position: relative;
+    height: 100%;
     background-color: v-bind(getMenuBackground);
+    transition:
+        width 0.2s ease-in-out,
+        background-color 0.2s ease-in-out;
+    overflow: hidden;
+
+    &.sidebar--expand {
+        width: $sidebar-expand-width;
+    }
+
+    &.sidebar--collapse {
+        width: $sidebar-collapse-width;
+    }
 
     .scrollbar-wrapper {
         background-color: v-bind(getMenuBackground);
@@ -86,6 +99,9 @@ function handleMenuSelect() {
         border: none;
         height: 100%;
         width: 100% !important;
+        transition:
+            width 0.2s ease-in-out,
+            background-color 0.2s ease-in-out;
 
         .el-menu-item,
         .el-sub-menu__title {
@@ -106,6 +122,22 @@ function handleMenuSelect() {
         .el-sub-menu__title {
             color: v-bind(getMenuTextColor);
         }
+    }
+}
+
+:deep(.sidebar--collapse) {
+    .el-sub-menu__title span,
+    .el-menu-item span {
+        transition: opacity 0.15s ease-in-out;
+        opacity: 0;
+    }
+}
+
+:deep(.sidebar--expand) {
+    .el-sub-menu__title span,
+    .el-menu-item span {
+        transition: opacity 0.15s ease-in-out;
+        opacity: 1;
     }
 }
 </style>
