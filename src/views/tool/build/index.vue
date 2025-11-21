@@ -4,7 +4,7 @@
             <div class="logo-wrapper">
                 <div class="logo">
                     <img :src="logo" alt="logo" />
-                    可视化表单
+                    可视化表单设计器
                 </div>
             </div>
 

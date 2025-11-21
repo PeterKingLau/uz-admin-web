@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"]
+        },
+        "target": "es2017",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "isolatedModules": true,
+        "useDefineForClassFields": true
+    },
+    "include": ["src/**/*", "types/**/*"]
+}

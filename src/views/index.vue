@@ -72,7 +72,7 @@
 import { ref, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import * as echarts from 'echarts'
-import { listContentAudit } from '@/api/audit/content'
+import { listContentAudit } from '@/api/audit/profile/content'
 import { listUserAuditDetail } from '@/api/audit/person'
 
 const contentList = ref([])

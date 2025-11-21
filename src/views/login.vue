@@ -89,7 +89,7 @@ import { ElMessage } from 'element-plus'
 import Cookies from 'js-cookie'
 import { encrypt, decrypt } from '@/utils/jsencrypt'
 import useUserStore from '@/store/modules/user'
-import { sendPhoneCode } from '@/api/login'
+import { sendPhoneCode } from '@/api/login/login'
 
 const title = import.meta.env.VITE_APP_TITLE
 const userStore = useUserStore()

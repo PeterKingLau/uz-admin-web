@@ -6,6 +6,8 @@ import UnoCSS from 'unocss/vite'
 // const baseUrl = 'http://192.168.10.17:8080/api' // 有线后端接口
 const baseUrl = 'http://192.168.100.26:8080/api' // 无线后端接口
 
+// const baseUrl = 'http://47.109.96.135' // 生产环境
+
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd())
     const { VITE_APP_ENV } = env
