@@ -28,7 +28,7 @@ export interface BaseElement {
     }>
     optionType?: 'default' | 'button'
     border?: boolean
-    multiple?: boolean // ✅ 只保留这一处
+    multiple?: boolean
     filterable?: boolean
 
     // 输入类补充
