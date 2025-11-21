@@ -2,23 +2,35 @@ import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import createVitePlugins from './vite/plugins'
 import UnoCSS from 'unocss/vite'
+import zipPack from 'vite-plugin-zip-pack'
 
 // const baseUrl = 'http://192.168.10.17:8080/api' // 有线后端接口
 const baseUrl = 'http://192.168.100.26:8080/api' // 无线后端接口
-
 // const baseUrl = 'http://47.109.96.135' // 生产环境
 
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd())
     const { VITE_APP_ENV } = env
+    const isBuild = command === 'build'
 
     // 兼容 createVitePlugins 返回 plugin 或 plugin[]
-    const basePlugins = createVitePlugins(env, command === 'build')
-    const plugins = Array.isArray(basePlugins) ? [...basePlugins, UnoCSS()] : [basePlugins, UnoCSS()]
+    const basePlugins = createVitePlugins(env, isBuild)
+
+    const plugins = [
+        ...(Array.isArray(basePlugins) ? basePlugins : [basePlugins]),
+        UnoCSS(),
+
+        isBuild &&
+            zipPack({
+                outDir: 'dist',
+                outFileName: 'dist.zip'
+            })
+    ].filter(Boolean)
 
     return {
         base: VITE_APP_ENV === 'production' ? '/' : '/',
         plugins,
+
         resolve: {
             alias: {
                 '~': path.resolve(__dirname, './'),
@@ -26,19 +38,30 @@ export default defineConfig(({ mode, command }) => {
             },
             extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
         },
+
         build: {
-            sourcemap: command === 'build' ? false : 'inline',
+            sourcemap: isBuild ? false : 'inline',
             outDir: 'dist',
             assetsDir: 'assets',
             chunkSizeWarningLimit: 2000,
+
             rollupOptions: {
                 output: {
                     chunkFileNames: 'static/js/[name]-[hash].js',
                     entryFileNames: 'static/js/[name]-[hash].js',
                     assetFileNames: 'static/[ext]/[name]-[hash].[ext]'
                 }
+            },
+
+            minify: 'terser',
+            terserOptions: {
+                compress: {
+                    drop_console: true,
+                    drop_debugger: true
+                }
             }
         },
+
         server: {
             port: 80,
             host: true,
@@ -55,6 +78,7 @@ export default defineConfig(({ mode, command }) => {
                 }
             }
         },
+
         css: {
             postcss: {
                 plugins: [
