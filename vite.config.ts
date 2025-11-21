@@ -13,7 +13,6 @@ export default defineConfig(({ mode, command }) => {
     const { VITE_APP_ENV } = env
     const isBuild = command === 'build'
 
-    // 兼容 createVitePlugins 返回 plugin 或 plugin[]
     const basePlugins = createVitePlugins(env, isBuild)
 
     const plugins = [

@@ -170,7 +170,7 @@
 <script setup name="ProfileAudit">
 import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import { listUserAuditDetail, auditUserAvatar } from '@/api/audit/person'
+import { listUserAuditDetail, auditUserAvatar } from '@/api/audit/person/person'
 import AvatarPreview from '@/components/AvatarPreview/index.vue'
 import ConfigTable from '@/components/ConfigTable/index.vue'
 import EnumTag from '@/components/EnumTag/index.vue'
