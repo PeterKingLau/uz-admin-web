@@ -18,3 +18,24 @@ export interface RegisterParams {
     password: string
     [key: string]: any
 }
+
+// 定义登录接口返回的类型
+export interface LoginResponse {
+    token: string // 服务器返回的token字段
+    // 其他可能返回的字段
+    data?: any
+}
+
+// 定义接口返回的类型
+export interface UserInfoResponse {
+    user: {
+        userId: string
+        userName: string
+        nickName: string
+        avatar: string
+    }
+    roles: string[]
+    permissions: string[]
+    isDefaultModifyPwd: boolean
+    isPasswordExpired: boolean
+}

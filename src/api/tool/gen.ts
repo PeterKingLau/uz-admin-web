@@ -18,7 +18,7 @@ export function listDbTable(query: any) {
 }
 
 // 查询表详细信息
-export function getGenTable(tableId: any) {
+export function getGenTable(tableId: string) {
     return request({
         url: '/tool/gen/' + tableId,
         method: 'get'
@@ -35,7 +35,7 @@ export function updateGenTable(data: any) {
 }
 
 // 导入表
-export function importTable(data: any) {
+export function importTable(data: { tables: any }) {
     return request({
         url: '/tool/gen/importTable',
         method: 'post',
@@ -43,8 +43,17 @@ export function importTable(data: any) {
     })
 }
 
+// 创建表
+export function createTable(data: { sql: any }) {
+    return request({
+        url: '/tool/gen/createTable',
+        method: 'post',
+        params: data
+    })
+}
+
 // 预览生成代码
-export function previewTable(tableId: any) {
+export function previewTable(tableId: string) {
     return request({
         url: '/tool/gen/preview/' + tableId,
         method: 'get'
@@ -52,7 +61,7 @@ export function previewTable(tableId: any) {
 }
 
 // 删除表数据
-export function delTable(tableId: any) {
+export function delTable(tableId: string) {
     return request({
         url: '/tool/gen/' + tableId,
         method: 'delete'
@@ -60,7 +69,7 @@ export function delTable(tableId: any) {
 }
 
 // 生成代码（自定义路径）
-export function genCode(tableName: any) {
+export function genCode(tableName: string) {
     return request({
         url: '/tool/gen/genCode/' + tableName,
         method: 'get'
@@ -68,7 +77,7 @@ export function genCode(tableName: any) {
 }
 
 // 同步数据库
-export function synchDb(tableName: any) {
+export function synchDb(tableName: string) {
     return request({
         url: '/tool/gen/synchDb/' + tableName,
         method: 'get'

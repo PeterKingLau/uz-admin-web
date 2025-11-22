@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import Cookies from 'js-cookie'
-import ElementPlus from 'element-plus'
+import ElementPlus, { type ComponentSize } from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import locale from 'element-plus/es/locale/lang/zh-cn'
@@ -44,8 +44,6 @@ import DictTag from '@/components/DictTag/index.vue'
 
 import { Icon } from '@iconify/vue'
 
-import ImgPlugin from '@/plugins/img'
-
 const app = createApp(App)
 
 // 全局方法挂载
@@ -72,17 +70,19 @@ app.use(router)
 app.use(store)
 app.use(plugins)
 app.use(elementIcons)
-app.use(ImgPlugin)
 app.component('svg-icon', SvgIcon)
 app.component('Icon', Icon)
 
 directive(app)
 
 // 使用element-plus 并且设置全局的大小
+const cookieSize = Cookies.get('size') as ComponentSize | undefined
+const elementSize: ComponentSize = cookieSize ?? 'default'
+
+// 使用 element-plus 并且设置全局的大小
 app.use(ElementPlus, {
-    locale: locale,
-    // 支持 large、default、small
-    size: Cookies.get('size') || 'default'
+    locale,
+    size: elementSize
 })
 
 app.mount('#app')

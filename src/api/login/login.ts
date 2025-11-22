@@ -1,8 +1,10 @@
 import request from '@/utils/request'
 import { LoginParams, LoginType, RegisterParams, SendPhoneCodeParams } from './login.types'
+import { LoginResponse, UserInfoResponse } from './login.types'
 
 /** 登录方法 */
-export function login(params: LoginParams) {
+export function login(params: LoginParams): Promise<LoginResponse> {
+    // 指定返回类型
     const { username, password, loginType = 'PASSWORD', smsCode = '' } = params
 
     const data: {
@@ -31,7 +33,7 @@ export function login(params: LoginParams) {
         },
         method: 'post',
         data
-    })
+    }) as Promise<LoginResponse> // 明确指定返回类型
 }
 
 /** 发送短信验证码 */
@@ -40,7 +42,7 @@ export function sendPhoneCode(username: SendPhoneCodeParams) {
         url: '/sendPhoneCode',
         method: 'post',
         headers: {
-            isToken: false, // 不带 token
+            isToken: false,
             repeatSubmit: false
         },
         data: { username }
@@ -60,7 +62,7 @@ export function register(data: RegisterParams) {
 }
 
 /** 获取用户详细信息 */
-export function getInfo() {
+export function getInfo(): Promise<UserInfoResponse> {
     return request({
         url: '/getInfo',
         method: 'get'

@@ -175,7 +175,7 @@ import AvatarPreview from '@/components/AvatarPreview/index.vue'
 import ConfigTable from '@/components/ConfigTable/index.vue'
 import EnumTag from '@/components/EnumTag/index.vue'
 import { AUDIT_STATUS } from '@/utils/enum'
-import { PROFILE_AUDIT_TABLE_KEY, PROFILE_AUDIT_COLUMNS } from '@/config/table/profileAuditColumns.js'
+import { PROFILE_AUDIT_TABLE_KEY, PROFILE_AUDIT_COLUMNS } from '@/config/table/profileAuditColumns'
 import { useTableColumnStore } from '@/store/modules/tableColumn'
 
 const { proxy } = getCurrentInstance()

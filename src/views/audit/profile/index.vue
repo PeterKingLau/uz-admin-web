@@ -162,7 +162,7 @@ import { listContentAudit, auditPost } from '@/api/audit/profile/content'
 import ConfigTable from '@/components/ConfigTable/index.vue'
 import { AUDIT_STATUS, AUDIT_MEDIA_MODE } from '@/utils/enum'
 import EnumTag from '@/components/EnumTag/index.vue'
-import { CONTENT_AUDIT_COLUMNS, CONTENT_AUDIT_TABLE_KEY } from '@/config/table/contentAuditColumns.js'
+import { CONTENT_AUDIT_COLUMNS, CONTENT_AUDIT_TABLE_KEY } from '@/config/table/contentAuditColumns'
 import { useTableColumnStore } from '@/store/modules/tableColumn'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
 
