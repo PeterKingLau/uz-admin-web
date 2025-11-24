@@ -24,7 +24,7 @@
                     @keyup.enter="handleLogin"
                 >
                     <template #prefix>
-                        <svg-icon icon-class="user" class="el-input__icon input-icon" />
+                        <svg-icon icon-class="ep:user" class="el-input__icon input-icon" />
                     </template>
                 </el-input>
             </el-form-item>
@@ -32,7 +32,7 @@
             <el-form-item v-if="loginForm.loginType === 'PASSWORD'" prop="password">
                 <el-input
                     v-model="loginForm.password"
-                    type="password"
+                    :type="showPassword ? 'text' : 'password'"
                     size="large"
                     autocomplete="off"
                     placeholder="请输入您的密码"
@@ -40,7 +40,10 @@
                     @keyup.enter="handleLogin"
                 >
                     <template #prefix>
-                        <svg-icon icon-class="password" class="el-input__icon input-icon" />
+                        <svg-icon icon-class="mdi:lock" class="el-input__icon input-icon" />
+                    </template>
+                    <template #suffix>
+                        <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="el-input__icon password-toggle" @click.stop="togglePassword" />
                     </template>
                 </el-input>
             </el-form-item>
@@ -49,7 +52,7 @@
             <el-form-item v-if="loginForm.loginType === 'SMS'" prop="smsCode">
                 <el-input v-model="loginForm.smsCode" maxlength="6" size="large" placeholder="短信验证码" :validate-event="false" @keyup.enter="handleLogin">
                     <template #prefix>
-                        <svg-icon icon-class="message" class="el-input__icon input-icon" />
+                        <svg-icon icon-class="ep:message" class="el-input__icon input-icon" />
                     </template>
                     <template #append>
                         <el-button :disabled="smsSending || smsCountdown > 0" @click="sendSms">
@@ -291,6 +294,11 @@ function handleLogin() {
             })
     })
 }
+const showPassword = ref(false)
+
+function togglePassword() {
+    showPassword.value = !showPassword.value
+}
 </script>
 
 <style lang="scss" scoped>
@@ -370,5 +378,15 @@ function handleLogin() {
     font-family: Arial;
     font-size: 12px;
     letter-spacing: 1px;
+}
+.password-toggle {
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+    color: var(--el-color-primary);
+    transform: scale(1.15);
 }
 </style>
