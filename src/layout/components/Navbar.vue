@@ -6,14 +6,14 @@
 
         <div class="right-menu">
             <template v-if="appStore.device !== 'mobile'">
-                <header-search id="header-search" class="right-menu-item" />
+                <header-search id="header-search" class="right-menu-item hover-effect" />
 
                 <screenfull id="screenfull" class="right-menu-item hover-effect" />
 
                 <el-tooltip content="主题模式" effect="dark" placement="bottom">
                     <div class="right-menu-item hover-effect theme-switch-wrapper" @click="toggleTheme">
-                        <svg-icon v-if="settingsStore.isDark" icon-class="ep:sunny" class="theme-toggle-icon" />
-                        <svg-icon v-else icon-class="ep:moon" class="theme-toggle-icon" />
+                        <Icon v-if="settingsStore.isDark" icon="ep:sunny"></Icon>
+                        <Icon v-else icon="ep:moon"></Icon>
                     </div>
                 </el-tooltip>
 
