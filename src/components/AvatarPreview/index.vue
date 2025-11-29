@@ -22,7 +22,6 @@
 
 <script setup>
 import { computed, ref, getCurrentInstance } from 'vue'
-import { Icon } from '@iconify/vue'
 
 const props = defineProps({
     src: {

@@ -169,7 +169,7 @@ import { ElNotification } from 'element-plus'
 import DraggableItem from './DraggableItem'
 import RightPanel from './RightPanel'
 import CodeTypeDialog from './CodeTypeDialog'
-import { Icon } from '@iconify/vue'
+
 import { iconMap } from '@/utils/generator/iconMap'
 
 const drawingList = ref(drawingDefalut)

@@ -90,7 +90,7 @@
 
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
-import { Icon } from '@iconify/vue'
+
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'

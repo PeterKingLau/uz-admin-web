@@ -157,7 +157,7 @@
 
 <script setup name="ContentAudit">
 import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
-import { Icon } from '@iconify/vue'
+
 import { listContentAudit, auditPost } from '@/api/audit/profile/content'
 import ConfigTable from '@/components/ConfigTable/index.vue'
 import { AUDIT_STATUS, AUDIT_MEDIA_MODE } from '@/utils/enum'

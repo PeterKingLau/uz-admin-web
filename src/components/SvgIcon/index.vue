@@ -4,7 +4,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Icon } from '@iconify/vue'
+
 import { iconMap } from '@/utils/generator/iconMap'
 
 const props = defineProps({
