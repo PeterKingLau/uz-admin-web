@@ -18,7 +18,7 @@ export function listDbTable(query: any) {
 }
 
 // 查询表详细信息
-export function getGenTable(tableId: string) {
+export function getGenTable(tableId: any) {
     return request({
         url: '/tool/gen/' + tableId,
         method: 'get'

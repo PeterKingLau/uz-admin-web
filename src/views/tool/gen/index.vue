@@ -37,6 +37,11 @@
                 </el-button>
             </el-col>
             <el-col :span="1.5">
+                <el-button type="primary" plain size="mini" @click="openCreateTable" v-hasRole="['admin']">
+                    <el-icon><Icon icon="ep:plus" /></el-icon>创建</el-button
+                >
+            </el-col>
+            <el-col :span="1.5">
                 <el-button type="info" plain @click="openImportTable" v-hasPermi="['tool:gen:import']">
                     <el-icon><Icon icon="ep:upload" /></el-icon>
                     导入
@@ -118,6 +123,7 @@
             </el-tabs>
         </el-dialog>
         <import-table ref="importRef" @ok="handleQuery" />
+        <create-table ref="createRef" @ok="handleQuery" />
     </div>
 </template>
 
@@ -129,6 +135,7 @@ import { oneOf } from '@zeronejs/utils'
 import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
 import importTable from './importTable.vue'
+import createTable from './createTable.vue'
 
 const route = useRoute()
 const { proxy } = getCurrentInstance() as ComponentInternalInstance
@@ -227,6 +234,10 @@ function handleSynchDb(row: any) {
 /** 打开导入表弹窗 */
 function openImportTable() {
     ;(proxy?.$refs['importRef'] as any).show()
+}
+/** 打开创建表弹窗 */
+function openCreateTable() {
+    ;(proxy?.$refs['createRef'] as any).show()
 }
 /** 重置按钮操作 */
 function resetQuery() {

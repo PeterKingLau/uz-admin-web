@@ -6,8 +6,8 @@
             </el-tab-pane>
             <el-tab-pane label="字段信息" name="columnInfo">
                 <el-table ref="dragTable" :data="columns" row-key="columnId" :max-height="tableHeight">
-                    <el-table-column label="序号" type="index" min-width="5%" class-name="allowDrag" />
-                    <el-table-column label="字段列名" prop="columnName" min-width="10%" :show-overflow-tooltip="true" class-name="allowDrag" />
+                    <el-table-column label="序号" type="index" min-width="5%" />
+                    <el-table-column label="字段列名" prop="columnName" min-width="10%" :show-overflow-tooltip="true" />
                     <el-table-column label="字段描述" min-width="10%">
                         <template #default="scope">
                             <el-input v-model="scope.row.columnComment"></el-input>
@@ -35,22 +35,22 @@
 
                     <el-table-column label="插入" min-width="5%">
                         <template #default="scope">
-                            <el-checkbox true-label="1" false-label="0" v-model="scope.row.isInsert"></el-checkbox>
+                            <el-checkbox true-label="1" v-model="scope.row.isInsert"></el-checkbox>
                         </template>
                     </el-table-column>
                     <el-table-column label="编辑" min-width="5%">
                         <template #default="scope">
-                            <el-checkbox true-label="1" false-label="0" v-model="scope.row.isEdit"></el-checkbox>
+                            <el-checkbox true-label="1" v-model="scope.row.isEdit"></el-checkbox>
                         </template>
                     </el-table-column>
                     <el-table-column label="列表" min-width="5%">
                         <template #default="scope">
-                            <el-checkbox true-label="1" false-label="0" v-model="scope.row.isList"></el-checkbox>
+                            <el-checkbox true-label="1" v-model="scope.row.isList"></el-checkbox>
                         </template>
                     </el-table-column>
                     <el-table-column label="查询" min-width="5%">
                         <template #default="scope">
-                            <el-checkbox true-label="1" false-label="0" v-model="scope.row.isQuery"></el-checkbox>
+                            <el-checkbox true-label="1" v-model="scope.row.isQuery"></el-checkbox>
                         </template>
                     </el-table-column>
                     <el-table-column label="查询方式" min-width="10%">
@@ -69,7 +69,7 @@
                     </el-table-column>
                     <el-table-column label="必填" min-width="5%">
                         <template #default="scope">
-                            <el-checkbox true-label="1" false-label="0" v-model="scope.row.isRequired"></el-checkbox>
+                            <el-checkbox true-label="1" v-model="scope.row.isRequired"></el-checkbox>
                         </template>
                     </el-table-column>
                     <el-table-column label="显示类型" min-width="12%">
@@ -112,28 +112,31 @@
     </el-card>
 </template>
 
-<script setup name="GenEdit">
+<script setup name="GenEdit" lang="ts">
 import { getGenTable, updateGenTable } from '@/api/tool/gen'
 import { optionselect as getDictOptionselect } from '@/api/system/dict/type'
-import basicInfoForm from './basicInfoForm'
-import genInfoForm from './genInfoForm'
-import Sortable from 'sortablejs'
+import basicInfoForm from './basicInfoForm.vue'
+import genInfoForm from './genInfoForm.vue'
+import { ComponentInternalInstance, getCurrentInstance, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const { proxy } = getCurrentInstance()
+const { proxy } = getCurrentInstance() as ComponentInternalInstance
 
 const activeName = ref('columnInfo')
 const tableHeight = ref(document.documentElement.scrollHeight - 245 + 'px')
-const tables = ref([])
-const columns = ref([])
-const dictOptions = ref([])
-const info = ref({})
+const tables = ref<any[]>([])
+const columns = ref<any[]>([])
+const dictOptions = ref<any[]>([])
+const info = ref<any>({})
+const basicInfo = ref<InstanceType<typeof basicInfoForm>>()
+const genInfo = ref<InstanceType<typeof genInfoForm>>()
 
 /** 提交按钮 */
 function submitForm() {
-    const basicForm = proxy.$refs.basicInfo.$refs.basicInfoForm
-    const genForm = proxy.$refs.genInfo.$refs.genInfoForm
-    Promise.all([basicForm, genForm].map(getFormPromise)).then(res => {
+    // const basicForm = proxy!.$refs.basicInfo.$refs.basicInfoForm;
+    // const genForm = proxy!.$refs.genInfo.$refs.genInfoForm;
+    Promise.all([basicInfo.value?.basicInfoForm, genInfo.value?.genInfoForm].map(getFormPromise)).then(res => {
         const validateResult = res.every(item => !!item)
         if (validateResult) {
             const genTable = Object.assign({}, info.value)
@@ -144,29 +147,27 @@ function submitForm() {
                 treeParentCode: info.value.treeParentCode,
                 parentMenuId: info.value.parentMenuId
             }
-            updateGenTable(genTable).then(res => {
-                proxy.$modal.msgSuccess(res.msg)
+            updateGenTable(genTable).then((res: any) => {
+                proxy?.$modal.msgSuccess(res.msg)
                 if (res.code === 200) {
                     close()
                 }
             })
         } else {
-            proxy.$modal.msgError('表单校验未通过，请重新检查提交内容')
+            proxy?.$modal.msgError('表单校验未通过，请重新检查提交内容')
         }
     })
 }
-
-function getFormPromise(form) {
+function getFormPromise(form: any) {
     return new Promise(resolve => {
-        form.validate(res => {
+        form.validate((res: any) => {
             resolve(res)
         })
     })
 }
-
 function close() {
     const obj = { path: '/tool/gen', query: { t: Date.now(), pageNum: route.query.pageNum } }
-    proxy.$tab.closeOpenPage(obj)
+    proxy?.$tab.closeOpenPage(obj)
 }
 
 ;(() => {
@@ -184,19 +185,4 @@ function close() {
         })
     }
 })()
-
-// 拖动排序
-onMounted(() => {
-    const element = document.querySelector('.el-table__body > tbody')
-    Sortable.create(element, {
-        handle: '.allowDrag',
-        onEnd: evt => {
-            const targetRow = columns.value.splice(evt.oldIndex, 1)[0]
-            columns.value.splice(evt.newIndex, 0, targetRow)
-            for (const index in columns.value) {
-                columns.value[index].sort = parseInt(index) + 1
-            }
-        }
-    })
-})
 </script>
