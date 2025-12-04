@@ -8,7 +8,7 @@ export interface UserAuditDetailQuery {
 
 export interface AuditUserAvatarData {
     id: number
-    auditStatus: '1' | '2' // '1' 为通过, '2' 为驳回
+    auditStatus: string // '1' 为通过, '2' 为驳回
     auditRemark?: string // 可选
 }
 
