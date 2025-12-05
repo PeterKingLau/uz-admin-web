@@ -10,17 +10,29 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+                <el-button type="primary" @click="handleQuery">
+                    <el-icon><Icon icon="ep:search" /></el-icon>
+                    搜索
+                </el-button>
+                <el-button @click="resetQuery">
+                    <el-icon><Icon icon="ep:refresh" /></el-icon>
+                    重置
+                </el-button>
             </el-form-item>
         </el-form>
 
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:menu:add']">新增</el-button>
+                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:menu:add']">
+                    <el-icon><Icon icon="ep:plus" /></el-icon>
+                    新增
+                </el-button>
             </el-col>
             <el-col :span="1.5">
-                <el-button type="info" plain icon="Sort" @click="toggleExpandAll">展开/折叠</el-button>
+                <el-button type="info" plain @click="toggleExpandAll">
+                    <el-icon><Icon icon="ep:sort" /></el-icon>
+                    展开/折叠
+                </el-button>
             </el-col>
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </el-row>
@@ -55,9 +67,18 @@
             </el-table-column>
             <el-table-column label="操作" align="center" width="210" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']">修改</el-button>
-                    <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']">新增</el-button>
-                    <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']">删除</el-button>
+                    <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']">
+                        <el-icon><Icon icon="ep:edit" /></el-icon>
+                        修改
+                    </el-button>
+                    <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']">
+                        <el-icon><Icon icon="ep:plus" /></el-icon>
+                        新增
+                    </el-button>
+                    <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']">
+                        <el-icon><Icon icon="ep:delete" /></el-icon>
+                        删除
+                    </el-button>
                 </template>
             </el-table-column>
         </el-table>
