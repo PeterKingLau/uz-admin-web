@@ -301,6 +301,6 @@ function submitReject() {
 }
 
 onMounted(() => {
-    getList()
+    resetQuery()
 })
 </script>
