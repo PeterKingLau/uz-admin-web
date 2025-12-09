@@ -50,7 +50,14 @@ service.interceptors.request.use(
             config.url = url
         }
 
-        if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put')) {
+        if (config.data instanceof FormData) {
+            delete headers['Content-Type']
+            delete headers['content-type']
+            return config
+        }
+
+        // 防重复提交（非 FormData）
+        if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put') && !(config.data instanceof FormData)) {
             const requestObj = {
                 url: config.url,
                 data: typeof config.data === 'object' ? JSON.stringify(config.data) : config.data,
