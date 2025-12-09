@@ -65,9 +65,8 @@
                         </template>
                     </el-input>
 
-                    <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
-                        <span v-if="smsCountdown === 0">获取验证码</span>
-                        <span v-else>{{ smsCountdown }}s</span>
+                    <el-button class="sms-btn" type="primary" :disabled="smsSending || smsCountdown > 0" @click="sendSms">
+                        {{ smsCountdown > 0 ? smsCountdown + 's' : '获取' }}
                     </el-button>
                 </div>
             </el-form-item>
@@ -157,7 +156,6 @@ const usernameMaxlength = computed(() => (loginForm.value.loginType === 'SMS' ? 
 function handleUsernameInput(val) {
     if (loginForm.value.loginType === 'SMS') {
         const cleaned = String(val).replace(/\D/g, '').slice(0, 11)
-        // 不强行改首位为 1，只是限制输入；发送前再做完整校验
         loginForm.value.username = cleaned
     } else {
         loginForm.value.username = val
@@ -244,8 +242,6 @@ onMounted(() => {
 })
 
 const cleanUsername = val => (val || '').replace(/^[\s\u3000]+|[\s\u3000]+$/g, '')
-
-// 去掉验证码里的所有空格（包含全角空格）
 const cleanSmsCode = val => (val || '').replace(/[\s\u3000]+/g, '')
 
 function normalizeLoginFields() {
@@ -276,7 +272,6 @@ function handleLogin() {
             Cookies.remove('rememberMe')
         }
 
-        // 只带需要的字段
         const payload = {
             loginType: loginForm.value.loginType,
             username: (loginForm.value.username || '').trim()
@@ -325,7 +320,6 @@ function togglePassword() {
     background-size: cover;
     overflow: hidden;
 
-    // 背景蒙层，压一压杂色，让表单更突出
     &::before {
         content: '';
         position: absolute;
@@ -457,31 +451,45 @@ function togglePassword() {
     color: var(--el-color-primary);
     transform: scale(1.1);
 }
+
+/* 短信输入 + 按钮连体样式（真正一体化） */
 .sms-input-group {
     display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.sms-input-group .sms-input {
-    flex: 1;
-}
-
-.sms-input-group .sms-btn {
-    height: 40px;
-    padding: 0 14px;
-    white-space: nowrap;
+    align-items: stretch;
+    width: 100%;
     border-radius: 8px;
-    font-size: 13px;
-}
-
-/* 让短信输入框和其他输入框保持一致风格 */
-.login-form :deep(.sms-input .el-input__wrapper) {
+    overflow: hidden;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+    background: #fff;
 }
 
-.login-form :deep(.sms-input .el-input__wrapper.is-focus) {
+/* 聚焦时整组统一高亮 */
+.sms-input-group:focus-within {
     box-shadow: 0 0 0 1px var(--el-color-primary);
+}
+
+/* 左侧输入框：移除自身阴影，交给外层 group 控制 */
+.login-form :deep(.sms-input .el-input__wrapper) {
+    box-shadow: none;
+    border-radius: 0 !important;
+    border: none;
+}
+
+/* 右侧按钮：贴合输入框、紧凑一点 */
+.sms-btn {
+    border-radius: 0;
+    margin-left: 0;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    height: 40px;
+    padding: 0 12px;
+    font-size: 12px;
+    letter-spacing: 0;
+    line-height: 1;
+}
+
+/* 禁用状态保持连体感 */
+.sms-btn.is-disabled {
+    border-left-color: rgba(0, 0, 0, 0.06);
 }
 
 /* 小屏适配 */
