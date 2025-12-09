@@ -50,29 +50,38 @@
 
             <!-- 短信验证码（仅 SMS） -->
             <el-form-item v-if="loginForm.loginType === 'SMS'" prop="smsCode">
-                <el-input v-model="loginForm.smsCode" maxlength="6" size="large" placeholder="短信验证码" :validate-event="false" @keyup.enter="handleLogin">
-                    <template #prefix>
-                        <svg-icon icon-class="ep:message" class="el-input__icon input-icon" />
-                    </template>
-                    <template #append>
-                        <el-button :disabled="smsSending || smsCountdown > 0" @click="sendSms">
-                            <span v-if="smsCountdown === 0">获取验证码</span>
-                            <span v-else>{{ smsCountdown }}s</span>
-                        </el-button>
-                    </template>
-                </el-input>
+                <div class="sms-input-group">
+                    <el-input
+                        v-model="loginForm.smsCode"
+                        maxlength="6"
+                        size="large"
+                        placeholder="短信验证码"
+                        :validate-event="false"
+                        @keyup.enter="handleLogin"
+                        class="sms-input"
+                    >
+                        <template #prefix>
+                            <svg-icon icon-class="ep:message" class="el-input__icon input-icon" />
+                        </template>
+                    </el-input>
+
+                    <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
+                        <span v-if="smsCountdown === 0">获取验证码</span>
+                        <span v-else>{{ smsCountdown }}s</span>
+                    </el-button>
+                </div>
             </el-form-item>
 
             <!-- 记住密码（仅 PASSWORD） -->
-            <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" style="margin: 0 0 25px 0"> 记住密码 </el-checkbox>
+            <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" class="remember-me"> 记住密码 </el-checkbox>
 
-            <el-form-item style="width: 100%">
-                <el-button :loading="loading" size="large" type="primary" style="width: 100%" @click.prevent="handleLogin">
-                    <span v-if="!loading">登录</span>
+            <el-form-item style="width: 100%; margin-bottom: 0">
+                <el-button :loading="loading" size="large" type="primary" class="login-btn" @click.prevent="handleLogin">
+                    <span v-if="!loading">登 录</span>
                     <span v-else>登录中</span>
                 </el-button>
 
-                <div style="float: right" v-if="register">
+                <div v-if="register" class="register-link">
                     <router-link class="link-type" :to="'/register'">立即注册</router-link>
                 </div>
             </el-form-item>
@@ -303,55 +312,95 @@ function togglePassword() {
 
 <style lang="scss" scoped>
 .login {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    background-color: #d7c7b4;
     background-image: url('../assets/images/login-background.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
     background-size: cover;
-}
-.title {
-    margin: 0 auto 16px auto;
-    text-align: center;
-    color: #707070;
-}
-.login-form {
-    :deep(.el-button--primary span) {
-        letter-spacing: 12px;
+    overflow: hidden;
+
+    // 背景蒙层，压一压杂色，让表单更突出
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.32), rgba(0, 0, 0, 0.22));
+        backdrop-filter: blur(1.5px);
+        z-index: 0;
     }
 }
+
+.title {
+    margin: 0 auto 18px auto;
+    text-align: center;
+    color: #555;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
 .login-form {
-    border-radius: 6px;
-    background: #fff;
-    width: 400px;
-    padding: 22px 22px 5px 22px;
+    position: relative;
     z-index: 1;
+    width: 420px;
+    padding: 26px 28px 18px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.8);
+
+    :deep(.el-form-item) {
+        margin-bottom: 18px;
+    }
+
+    :deep(.el-input__wrapper) {
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+    }
+
+    :deep(.el-input__wrapper.is-focus) {
+        box-shadow: 0 0 0 1px var(--el-color-primary);
+    }
+
+    :deep(.el-button--primary span) {
+        letter-spacing: 8px;
+    }
+
     .el-input {
         height: 40px;
         input {
             height: 40px;
         }
     }
+
     .input-icon {
         height: 39px;
         width: 14px;
         margin-left: 0;
     }
+
     .login-type-switch {
         display: inline-flex;
         background: var(--el-fill-color-light);
-        border-radius: 20px;
-        padding: 4px;
+        border-radius: 999px;
+        padding: 3px;
     }
 
     .login-type-switch :deep(.el-radio-button__inner) {
         border: none !important;
         background: transparent;
         box-shadow: none !important;
-        padding: 6px 16px;
-        border-radius: 16px;
+        padding: 6px 18px;
+        border-radius: 999px;
         color: var(--el-text-color-primary);
-        transition: 0.2s;
+        transition: all 0.2s ease;
+        font-size: 13px;
     }
 
     .login-type-switch :deep(.is-active .el-radio-button__inner) {
@@ -359,26 +408,45 @@ function togglePassword() {
         color: #fff !important;
     }
 
-    .dark .login-type-switch {
-        background: #2f2f2f;
+    .remember-me {
+        margin: 0 0 18px 0;
     }
 
-    .dark .login-type-switch :deep(.is-active .el-radio-button__inner) {
-        background: #409eff;
+    .login-btn {
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .register-link {
+        margin-top: 8px;
+        text-align: right;
     }
 }
+
+.dark .login-form .login-type-switch {
+    background: #2f2f2f;
+}
+
+.dark .login-form .login-type-switch :deep(.is-active .el-radio-button__inner) {
+    background: #409eff;
+}
+
 .el-login-footer {
-    height: 40px;
-    line-height: 40px;
     position: fixed;
     bottom: 0;
-    width: 100%;
+    left: 0;
+    right: 0;
+    height: 40px;
+    line-height: 40px;
     text-align: center;
-    color: #fff;
+    color: rgba(255, 255, 255, 0.9);
     font-family: Arial;
     font-size: 12px;
     letter-spacing: 1px;
+    z-index: 1;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
+
 .password-toggle {
     cursor: pointer;
     font-size: 18px;
@@ -387,6 +455,49 @@ function togglePassword() {
 
 .password-toggle:hover {
     color: var(--el-color-primary);
-    transform: scale(1.15);
+    transform: scale(1.1);
+}
+.sms-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sms-input-group .sms-input {
+    flex: 1;
+}
+
+.sms-input-group .sms-btn {
+    height: 40px;
+    padding: 0 14px;
+    white-space: nowrap;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+/* 让短信输入框和其他输入框保持一致风格 */
+.login-form :deep(.sms-input .el-input__wrapper) {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.login-form :deep(.sms-input .el-input__wrapper.is-focus) {
+    box-shadow: 0 0 0 1px var(--el-color-primary);
+}
+
+/* 小屏适配 */
+@media (max-width: 768px) {
+    .login {
+        padding: 16px;
+        align-items: flex-start;
+    }
+    .login-form {
+        width: 100%;
+        max-width: 380px;
+        margin-top: 40px;
+        padding: 22px 20px 14px;
+        box-shadow:
+            0 12px 30px rgba(0, 0, 0, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.7);
+    }
 }
 </style>
