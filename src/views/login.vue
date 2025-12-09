@@ -1,9 +1,9 @@
 <template>
     <div class="login">
         <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form">
-            <h3 class="title">{{ title }}</h3>
+            <h3 class="title">用户登录</h3>
 
-            <el-form-item style="text-align: center; margin-bottom: 12px">
+            <el-form-item class="login-type-item" style="margin-bottom: 16px">
                 <el-radio-group v-model="loginForm.loginType" size="small" class="login-type-switch">
                     <el-radio-button value="PASSWORD" label="账号密码" />
                     <el-radio-button value="SMS" label="短信验证码" />
@@ -186,12 +186,12 @@ watch(
 // 切换类型时清理
 watch(
     () => loginForm.value.loginType,
-    async val => {
-        if (val === 'SMS') {
+    async () => {
+        if (loginForm.value.loginType === 'SMS') {
             loginForm.value.username = ''
             loginForm.value.password = ''
             loginForm.value.rememberMe = false
-        } else if (val === 'PASSWORD') {
+        } else {
             loginForm.value.smsCode = ''
             smsCountdown.value = 0
         }
@@ -313,7 +313,8 @@ function togglePassword() {
     align-items: center;
     min-height: 100vh;
     padding: 24px;
-    background-color: #d7c7b4;
+    /* 背景：偏蓝的渐变 + 你的背景图 */
+    background-color: #e6f1ff;
     background-image: url('../assets/images/login-background.jpg');
     background-repeat: no-repeat;
     background-position: center;
@@ -324,8 +325,9 @@ function togglePassword() {
         content: '';
         position: absolute;
         inset: 0;
-        background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.32), rgba(0, 0, 0, 0.22));
-        backdrop-filter: blur(1.5px);
+        /* 更接近截图的柔和高光效果 */
+        background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.9), rgba(135, 182, 255, 0.25));
+        backdrop-filter: blur(3px);
         z-index: 0;
     }
 }
@@ -333,8 +335,8 @@ function togglePassword() {
 .title {
     margin: 0 auto 18px auto;
     text-align: center;
-    color: #555;
-    font-size: 20px;
+    color: #333;
+    font-size: 18px;
     font-weight: 600;
     letter-spacing: 2px;
 }
@@ -343,27 +345,56 @@ function togglePassword() {
     position: relative;
     z-index: 1;
     width: 420px;
-    padding: 26px 28px 18px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.96);
+    padding: 32px 36px 24px;
+    border-radius: 24px;
+    background: #ffffff;
     box-shadow:
-        0 18px 45px rgba(0, 0, 0, 0.18),
-        0 0 0 1px rgba(255, 255, 255, 0.8);
+        0 18px 35px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
 
     :deep(.el-form-item) {
         margin-bottom: 18px;
     }
 
+    :deep(.login-type-item .el-form-item__content) {
+        display: flex;
+        justify-content: center;
+    }
+
+    .login-type-switch {
+        display: inline-flex;
+        background: #f2f4f8;
+        border-radius: 999px;
+        padding: 3px;
+    }
+
+    .login-type-switch :deep(.el-radio-button__inner) {
+        border: none !important;
+        background: transparent;
+        box-shadow: none !important;
+        padding: 6px 20px;
+        border-radius: 999px;
+        color: #606266;
+        transition: all 0.2s ease;
+        font-size: 13px;
+    }
+
+    .login-type-switch :deep(.is-active .el-radio-button__inner) {
+        background: #409eff;
+        color: #fff !important;
+    }
+
     :deep(.el-input__wrapper) {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+        background-color: #f9fbff;
+        box-shadow: 0 0 0 1px #e4e7ed;
+        border-radius: 8px;
     }
 
     :deep(.el-input__wrapper.is-focus) {
-        box-shadow: 0 0 0 1px var(--el-color-primary);
-    }
-
-    :deep(.el-button--primary span) {
-        letter-spacing: 8px;
+        box-shadow:
+            0 0 0 1px var(--el-color-primary),
+            0 0 0 3px rgba(64, 158, 255, 0.12);
+        background-color: #ffffff;
     }
 
     .el-input {
@@ -374,14 +405,15 @@ function togglePassword() {
     }
 
     .input-icon {
-        height: 39px;
-        width: 14px;
-        margin-left: 0;
+        height: 40px;
+        width: 16px;
+        margin-left: 2px;
+        color: #c0c4cc;
     }
 
     .login-type-switch {
         display: inline-flex;
-        background: var(--el-fill-color-light);
+        background: #f2f4f8;
         border-radius: 999px;
         padding: 3px;
     }
@@ -390,9 +422,9 @@ function togglePassword() {
         border: none !important;
         background: transparent;
         box-shadow: none !important;
-        padding: 6px 18px;
+        padding: 6px 20px;
         border-radius: 999px;
-        color: var(--el-text-color-primary);
+        color: #606266;
         transition: all 0.2s ease;
         font-size: 13px;
     }
@@ -403,26 +435,28 @@ function togglePassword() {
     }
 
     .remember-me {
-        margin: 0 0 18px 0;
+        margin: 4px 0 18px 0;
+        font-size: 13px;
+        color: #666;
     }
 
     .login-btn {
         width: 100%;
-        margin-top: 4px;
+        margin-top: 6px;
+        border-radius: 999px;
+        font-size: 14px;
+        letter-spacing: 6px;
+    }
+
+    :deep(.el-button--primary span) {
+        letter-spacing: 6px;
     }
 
     .register-link {
         margin-top: 8px;
         text-align: right;
+        font-size: 13px;
     }
-}
-
-.dark .login-form .login-type-switch {
-    background: #2f2f2f;
-}
-
-.dark .login-form .login-type-switch :deep(.is-active .el-radio-button__inner) {
-    background: #409eff;
 }
 
 .el-login-footer {
@@ -449,47 +483,40 @@ function togglePassword() {
 
 .password-toggle:hover {
     color: var(--el-color-primary);
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
-/* 短信输入 + 按钮连体样式（真正一体化） */
+/* 短信输入 + 按钮：保持简洁，又不卡视觉 */
 .sms-input-group {
     display: flex;
     align-items: stretch;
     width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
-    background: #fff;
 }
 
-/* 聚焦时整组统一高亮 */
-.sms-input-group:focus-within {
-    box-shadow: 0 0 0 1px var(--el-color-primary);
-}
-
-/* 左侧输入框：移除自身阴影，交给外层 group 控制 */
+/* 左侧输入框：右侧边去掉，留给按钮 */
 .login-form :deep(.sms-input .el-input__wrapper) {
-    box-shadow: none;
-    border-radius: 0 !important;
-    border: none;
+    border-radius: 8px 0 0 8px !important;
+    box-shadow: 0 0 0 1px #e4e7ed;
+    border-right: none;
 }
 
-/* 右侧按钮：贴合输入框、紧凑一点 */
+/* 聚焦时整组高亮感保持一致 */
+.login-form :deep(.sms-input .el-input__wrapper.is-focus) {
+    box-shadow:
+        0 0 0 1px var(--el-color-primary),
+        0 0 0 3px rgba(64, 158, 255, 0.12);
+}
+
+/* 右侧按钮：贴边圆角、尺寸更接近截图按钮风格 */
 .sms-btn {
-    border-radius: 0;
+    border-radius: 0 8px 8px 0;
     margin-left: 0;
-    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    border-left: none;
     height: 40px;
-    padding: 0 12px;
+    padding: 0 14px;
     font-size: 12px;
     letter-spacing: 0;
     line-height: 1;
-}
-
-/* 禁用状态保持连体感 */
-.sms-btn.is-disabled {
-    border-left-color: rgba(0, 0, 0, 0.06);
 }
 
 /* 小屏适配 */
@@ -502,10 +529,10 @@ function togglePassword() {
         width: 100%;
         max-width: 380px;
         margin-top: 40px;
-        padding: 22px 20px 14px;
+        padding: 26px 22px 18px;
         box-shadow:
-            0 12px 30px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(255, 255, 255, 0.7);
+            0 12px 30px rgba(0, 0, 0, 0.18),
+            0 0 0 1px rgba(255, 255, 255, 0.9);
     }
 }
 </style>
