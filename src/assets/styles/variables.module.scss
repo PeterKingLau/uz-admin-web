@@ -8,13 +8,15 @@ $tiffany: #4AB7BD;
 $yellow: #FEC171;
 $panGreen: #30B08F;
 
-// 默认主题变量
+// 默认主题变量（深色侧边栏）
 $menuText: #bfcbd9;
 $menuActiveText: #409eff;
-$menuBg: #304156;
-$menuHover: #263445;
+// 原来是 #184870，偏亮偏冷，这里改成更中性的深灰蓝
+$menuBg: #202633;
+// hover 比背景稍微亮一点点，别太花
+$menuHover: #283347;
 
-// 浅色主题theme-light
+// 浅色主题 theme-light
 $menuLightBg: #ffffff;
 $menuLightHover: #f0f1f5;
 $menuLightText: #303133;
@@ -24,12 +26,12 @@ $menuLightActiveText: #409EFF;
 $base-sidebar-width: 200px;
 $sideBarWidth: 200px;
 
-// 菜单暗色变量
+// 菜单暗色变量（和上面 menuBg 系统一些）
 $base-menu-color: #bfcbd9;
 $base-menu-color-active: #f4f4f5;
-$base-menu-background: #304156;
-$base-sub-menu-background: #1f2d3d;
-$base-sub-menu-hover: #001528;
+$base-menu-background: #202633;
+$base-sub-menu-background: #171c26;
+$base-sub-menu-hover: #283347;
 
 // 组件变量
 $--color-primary: #409EFF;
@@ -67,7 +69,7 @@ $--color-info: #909399;
 
 // CSS变量定义
 :root {
-  /* 亮色模式变量 */
+  /* 亮色模式变量：默认布局 */
   --sidebar-bg: #{$menuBg};
   --sidebar-text: #{$menuText};
   --menu-hover: #{$menuHover};
@@ -77,10 +79,9 @@ $--color-info: #909399;
   
   /* splitpanes default-theme 变量 */
   --splitpanes-default-bg: #ffffff;
-
 }
 
-// 暗黑模式变量
+/* 暗黑模式变量 */
 html.dark {
   /* 默认通用 */
   --el-bg-color: #141414;
@@ -127,17 +128,18 @@ html.dark {
   --splitpanes-default-bg: #141414;
 
   /* 侧边栏菜单覆盖 */
-   .sidebar-container {
-    .el-menu-item, .menu-title {
+  .sidebar-container {
+    .el-menu-item,
+    .menu-title {
       color: var(--el-text-color-regular);
     }
-    & .theme-dark .nest-menu .el-sub-menu>.el-sub-menu__title,
+    & .theme-dark .nest-menu .el-sub-menu > .el-sub-menu__title,
     & .theme-dark .el-sub-menu .el-menu-item {
       background-color: var(--el-bg-color) !important;
     }
   }
 
-  /* 顶部栏栏菜单覆盖 */
+  /* 顶部栏菜单覆盖 */
   .el-menu--horizontal {
     .el-menu-item {
       &:not(.is-disabled) {
@@ -180,7 +182,8 @@ html.dark {
     --el-table-border-color: var(--el-border-color-light) !important;
     --el-table-row-hover-bg-color: var(--el-bg-color-overlay) !important;
 
-    .el-table__header-wrapper, .el-table__fixed-header-wrapper {
+    .el-table__header-wrapper,
+    .el-table__fixed-header-wrapper {
       th {
         background-color: var(--el-bg-color-overlay, #f8f8f9) !important;
         color: var(--el-text-color-regular, #515a6e);
@@ -201,7 +204,8 @@ html.dark {
   }
   
   /* 下拉菜单样式覆盖 */
-  .el-dropdown-menu__item:not(.is-disabled):focus, .el-dropdown-menu__item:not(.is-disabled):hover{
+  .el-dropdown-menu__item:not(.is-disabled):focus,
+  .el-dropdown-menu__item:not(.is-disabled):hover {
     background-color: var(--navbar-hover) !important;
   }
 
@@ -216,6 +220,4 @@ html.dark {
   .popup-result .title {
     background: var(--cron-border);
   }
-
 }
-
