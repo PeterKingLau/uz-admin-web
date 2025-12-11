@@ -486,28 +486,24 @@ function togglePassword() {
     transform: scale(1.05);
 }
 
-/* 短信输入 + 按钮：保持简洁，又不卡视觉 */
 .sms-input-group {
     display: flex;
     align-items: stretch;
     width: 100%;
 }
 
-/* 左侧输入框：右侧边去掉，留给按钮 */
 .login-form :deep(.sms-input .el-input__wrapper) {
     border-radius: 8px 0 0 8px !important;
     box-shadow: 0 0 0 1px #e4e7ed;
     border-right: none;
 }
 
-/* 聚焦时整组高亮感保持一致 */
 .login-form :deep(.sms-input .el-input__wrapper.is-focus) {
     box-shadow:
         0 0 0 1px var(--el-color-primary),
         0 0 0 3px rgba(64, 158, 255, 0.12);
 }
 
-/* 右侧按钮：贴边圆角、尺寸更接近截图按钮风格 */
 .sms-btn {
     border-radius: 0 8px 8px 0;
     margin-left: 0;

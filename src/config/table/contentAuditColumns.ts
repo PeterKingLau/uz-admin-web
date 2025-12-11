@@ -45,34 +45,6 @@ export const CONTENT_AUDIT_COLUMNS = [
         slot: 'media'
     },
     {
-        key: 'likeCount',
-        label: '点赞数',
-        prop: 'likeCount',
-        width: 100,
-        align: 'center'
-    },
-    {
-        key: 'bookmarkCount',
-        label: '收藏数',
-        prop: 'bookmarkCount',
-        width: 100,
-        align: 'center'
-    },
-    {
-        key: 'repostCount',
-        label: '转发数',
-        prop: 'repostCount',
-        width: 100,
-        align: 'center'
-    },
-    {
-        key: 'commentCount',
-        label: '评论数',
-        prop: 'commentCount',
-        width: 100,
-        align: 'center'
-    },
-    {
         key: 'status',
         label: '内容状态',
         prop: 'status',
@@ -92,6 +64,13 @@ export const CONTENT_AUDIT_COLUMNS = [
         key: 'reason',
         label: '审核理由',
         prop: 'reason',
+        minWidth: 180,
+        showOverflowTooltip: true
+    },
+    {
+        key: 'createTime',
+        label: '创建时间',
+        prop: 'createTime',
         minWidth: 180,
         showOverflowTooltip: true
     },
