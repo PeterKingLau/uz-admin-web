@@ -36,41 +36,47 @@
             </el-col>
         </el-row>
 
-        <el-card shadow="hover">
-            <template #header>
-                <div class="card-header">近 7 天趋势（数据明细）</div>
-            </template>
-
-            <el-table :data="trend" size="small" border>
-                <el-table-column prop="date" label="日期" width="120" />
-                <el-table-column prop="total" label="审核总数" width="120" />
-                <el-table-column prop="approved" label="通过" width="120" />
-                <el-table-column prop="rejected" label="未通过" width="120" />
-                <el-table-column label="通过率">
-                    <template #default="{ row }">
-                        <el-progress :percentage="row.approvedRate" :stroke-width="14" :text-inside="true" />
+        <!-- ✅ 底部两块放一行：左边趋势明细，右边最新记录 -->
+        <el-row :gutter="16" class="bottom-row">
+            <el-col :span="14">
+                <el-card shadow="hover" class="bottom-card">
+                    <template #header>
+                        <div class="card-header">近 7 天趋势（数据明细）</div>
                     </template>
-                </el-table-column>
-            </el-table>
-        </el-card>
 
-        <el-card shadow="hover">
-            <template #header>
-                <div class="card-header">最新审核记录</div>
-            </template>
+                    <el-table :data="trend" size="small" border>
+                        <el-table-column prop="date" label="日期" width="120" />
+                        <el-table-column prop="total" label="审核总数" width="120" />
+                        <el-table-column prop="approved" label="通过" width="120" />
+                        <el-table-column prop="rejected" label="未通过" width="120" />
+                        <el-table-column label="通过率">
+                            <template #default="{ row }">
+                                <el-progress :percentage="row.approvedRate" :stroke-width="14" :text-inside="true" />
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-card>
+            </el-col>
 
-            <el-table :data="latest" border size="small">
-                <el-table-column prop="title" label="内容标题" min-width="160" />
-                <el-table-column prop="auditStatus" label="审核状态" width="120" />
-                <el-table-column prop="auditTime" label="审核时间" width="180" />
-            </el-table>
-        </el-card>
+            <el-col :span="10">
+                <el-card shadow="hover" class="bottom-card">
+                    <template #header>
+                        <div class="card-header">最新审核记录</div>
+                    </template>
+
+                    <el-table :data="latest" border size="small">
+                        <el-table-column prop="title" label="内容标题" min-width="160" />
+                        <el-table-column prop="auditStatus" label="审核状态" width="120" />
+                        <el-table-column prop="auditTime" label="审核时间" width="180" />
+                    </el-table>
+                </el-card>
+            </el-col>
+        </el-row>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
-
 import * as echarts from 'echarts'
 import { listContentAudit } from '@/api/audit/profile/content'
 import { listUserAuditDetail } from '@/api/audit/person/person'
@@ -388,5 +394,21 @@ onBeforeUnmount(() => {
 .chart-container {
     width: 100%;
     height: 260px;
+}
+
+.bottom-row {
+    margin-top: 8px;
+
+    .bottom-card {
+        height: 100%;
+    }
+
+    :deep(.el-card__body) {
+        padding: 12px 16px;
+    }
+
+    :deep(.el-table) {
+        font-size: 13px;
+    }
 }
 </style>
