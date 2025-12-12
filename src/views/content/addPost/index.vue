@@ -10,9 +10,9 @@
             <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" class="post-form">
                 <el-form-item label="内容类型" prop="postType">
                     <el-radio-group v-model="form.postType">
-                        <el-radio-button label="1">纯文字</el-radio-button>
-                        <el-radio-button label="2">图片</el-radio-button>
-                        <el-radio-button label="3">视频</el-radio-button>
+                        <el-radio-button :label="POST_TYPE.TEXT">纯文字</el-radio-button>
+                        <el-radio-button :label="POST_TYPE.IMAGE">图片</el-radio-button>
+                        <el-radio-button :label="POST_TYPE.VIDEO">视频</el-radio-button>
                     </el-radio-group>
                 </el-form-item>
 
@@ -30,7 +30,7 @@
 
                 <el-form-item label="标签" prop="tagStr">
                     <div class="tag-select-wrapper">
-                        <el-skeleton v-if="interestLoading" rows="2" animated />
+                        <el-skeleton v-if="interestLoading" :rows="2" animated />
                         <template v-else>
                             <el-select
                                 v-model="selectedTagIds"
@@ -114,10 +114,11 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox, type UploadUserFile } from 'element-plus'
 import { addPost } from '@/api/content/post'
+import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 
 const form = reactive({
-    postType: '1',
+    postType: POST_TYPE.TEXT,
     content: '',
     tagStr: ''
 })
@@ -163,7 +164,7 @@ const rules = {
     content: [
         {
             validator: (rule: any, value: string, callback: (err?: Error) => void) => {
-                if (form.postType === '1') {
+                if (form.postType === POST_TYPE.TEXT) {
                     if (!value || !String(value).trim()) {
                         callback(new Error('纯文字内容时，正文必填'))
                     } else {
@@ -179,9 +180,9 @@ const rules = {
     files: [
         {
             validator: (rule: any, value: any, callback: (err?: Error) => void) => {
-                if (form.postType === '2' || form.postType === '3') {
+                if (form.postType === POST_TYPE.IMAGE || form.postType === POST_TYPE.VIDEO) {
                     if (!fileList.value.length) {
-                        callback(new Error(form.postType === '2' ? '请至少选择一张图片' : '请上传一个视频文件'))
+                        callback(new Error(form.postType === POST_TYPE.IMAGE ? '请至少选择一张图片' : '请上传一个视频文件'))
                     } else {
                         callback()
                     }
@@ -198,8 +199,8 @@ const formRef = ref()
 const submitting = ref(false)
 
 const uploadAccept = computed(() => {
-    if (form.postType === '2') return 'image/*'
-    if (form.postType === '3') return 'video/*'
+    if (form.postType === POST_TYPE.IMAGE) return 'image/*'
+    if (form.postType === POST_TYPE.VIDEO) return 'video/*'
     return ''
 })
 
@@ -225,17 +226,17 @@ watch(
 )
 
 function handleExceed() {
-    ElMessage.warning(form.postType === '2' ? '最多只能上传 9 张图片' : '仅支持上传一个视频文件')
+    ElMessage.warning(form.postType === POST_TYPE.IMAGE ? '最多只能上传 9 张图片' : '仅支持上传一个视频文件')
 }
 
 function beforeUpload(file: File) {
-    if (form.postType === '2') {
+    if (form.postType === POST_TYPE.IMAGE) {
         if (!file.type.startsWith('image/')) {
             ElMessage.error('请选择图片文件')
             return false
         }
     }
-    if (form.postType === '3') {
+    if (form.postType === POST_TYPE.VIDEO) {
         if (!file.type.startsWith('video/')) {
             ElMessage.error('请选择视频文件')
             return false
@@ -266,7 +267,9 @@ function handleSubmit() {
         submitting.value = true
         try {
             const files: File[] =
-                form.postType === '2' || form.postType === '3' ? fileList.value.map(item => item.raw as File | undefined).filter((f): f is File => !!f) : []
+                form.postType === POST_TYPE.IMAGE || form.postType === POST_TYPE.VIDEO
+                    ? fileList.value.map(item => item.raw as File | undefined).filter((f): f is File => !!f)
+                    : []
 
             await addPost({
                 postType: form.postType,
@@ -288,7 +291,7 @@ function handleSubmit() {
 
 function handleReset(keepType = false) {
     const currentType = form.postType
-    form.postType = keepType ? currentType : '1'
+    form.postType = keepType ? currentType : POST_TYPE.TEXT
     form.content = ''
     form.tagStr = ''
     fileList.value = []

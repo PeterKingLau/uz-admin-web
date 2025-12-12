@@ -19,9 +19,10 @@ export function addPost(data: AddPostPayload) {
     })
 
     return request({
-        url: 'content/postInfo/app/v1/addPost',
+        url: '/content/postInfo/app/v1/addPost',
         method: 'post',
-        data: formData
+        data: formData,
+        timeout: 300000
     })
 }
 
@@ -32,10 +33,10 @@ export function listPostByApp(params: {
     limit?: number
     content?: string
     targetUserId?: number | string
-}) {
+}): Promise<any> {
     return request({
         url: '/content/postInfo/app/v1/listByApp',
         method: 'get',
         params
-    })
+    }) as unknown as Promise<any>
 }

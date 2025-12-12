@@ -3,7 +3,6 @@ import path from 'path'
 import createVitePlugins from './vite/plugins'
 import UnoCSS from 'unocss/vite'
 import zipPack from 'vite-plugin-zip-pack'
-import Components from 'unplugin-vue-components/vite'
 
 // const baseUrl = 'http://192.168.10.17:8080/api' // 有线后端接口
 const baseUrl = 'http://192.168.100.26:8080/api' // 无线后端接口
@@ -19,10 +18,6 @@ export default defineConfig(({ mode, command }) => {
     const plugins = [
         ...(Array.isArray(basePlugins) ? basePlugins : [basePlugins]),
         UnoCSS(),
-        Components({
-            dirs: ['src/components'],
-            dts: true
-        }),
 
         isBuild &&
             zipPack({
@@ -47,21 +42,13 @@ export default defineConfig(({ mode, command }) => {
             sourcemap: isBuild ? false : 'inline',
             outDir: 'dist',
             assetsDir: 'assets',
-            chunkSizeWarningLimit: 5000, // 增大 chunk 大小警告的限制
+            chunkSizeWarningLimit: 2000,
 
             rollupOptions: {
                 output: {
                     chunkFileNames: 'static/js/[name]-[hash].js',
                     entryFileNames: 'static/js/[name]-[hash].js',
-                    assetFileNames: 'static/[ext]/[name]-[hash].[ext]',
-                    manualChunks(id) {
-                        if (id.includes('node_modules/vue')) {
-                            return 'vue'
-                        }
-                        if (id.includes('node_modules/element-plus')) {
-                            return 'element-plus'
-                        }
-                    }
+                    assetFileNames: 'static/[ext]/[name]-[hash].[ext]'
                 }
             },
 
