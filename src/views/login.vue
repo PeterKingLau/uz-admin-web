@@ -94,9 +94,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import Cookies from 'js-cookie'
 import { encrypt, decrypt } from '@/utils/jsencrypt'
 import useUserStore from '@/store/modules/user'
@@ -106,6 +105,7 @@ const title = import.meta.env.VITE_APP_TITLE
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
+const { proxy } = getCurrentInstance() || {}
 
 const loginRef = ref()
 
@@ -208,7 +208,7 @@ const smsCountdown = ref(0)
 async function sendSms() {
     const phone = loginForm.value.username
     if (!/^1[3-9]\d{9}$/.test(phone)) {
-        ElMessage.warning('请输入正确的手机号')
+        proxy?.$modal?.msgWarning?.('请输入正确的手机号')
         return
     }
     if (smsCountdown.value > 0 || smsSending.value) return
@@ -216,14 +216,14 @@ async function sendSms() {
     smsSending.value = true
     try {
         await sendPhoneCode(loginForm.value.username)
-        ElMessage.success('验证码已发送')
+        proxy?.$modal?.msgSuccess?.('验证码已发送')
         smsCountdown.value = 60
         const timer = setInterval(() => {
             smsCountdown.value--
             if (smsCountdown.value <= 0) clearInterval(timer)
         }, 1000)
     } catch (err) {
-        ElMessage.error('发送失败，请稍后重试')
+        proxy?.$modal?.msgError?.('发送失败，请稍后重试')
     } finally {
         smsSending.value = false
     }

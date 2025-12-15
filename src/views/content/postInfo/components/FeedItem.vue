@@ -1,5 +1,5 @@
 <template>
-    <div class="feed-item">
+    <div ref="rootRef" class="feed-item">
         <div class="select-box">
             <el-checkbox :model-value="checked" @change="$emit('select', $event)" />
         </div>
@@ -32,7 +32,7 @@
             </div>
             <div v-else class="feed-content feed-content--empty">（无正文内容）</div>
 
-            <div v-if="isImage && images.length" class="feed-media-inline feed-media-inline--images">
+            <div v-if="isVisible && isImage && images.length" class="feed-media-inline feed-media-inline--images">
                 <MediaPreview
                     v-for="(img, idx) in images"
                     :key="img + idx"
@@ -43,7 +43,7 @@
                 />
             </div>
 
-            <div v-if="isVideo && videos.length" class="feed-media-inline">
+            <div v-if="isVisible && isVideo && videos.length" class="feed-media-inline">
                 <MediaPreview :post-type="post.postType" :media-urls="[videos[0]]" :audit-status="post.auditStatus" :mode="auditMode" />
             </div>
 
@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance } from 'vue'
+import { computed, getCurrentInstance, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import EnumTag from '@/components/EnumTag/index.vue'
 import MediaPreview from '@/components/MediaPreview/index.vue'
 import { isExternal } from '@/utils/validate'
@@ -87,6 +87,9 @@ const emit = defineEmits<{
 }>()
 
 const { proxy } = getCurrentInstance() || {}
+const rootRef = ref<HTMLElement | null>(null)
+const isVisible = ref(false)
+let observer: IntersectionObserver | null = null
 
 const typeText = computed(() => {
     const t = String(props.post?.postType)
@@ -154,6 +157,47 @@ const videos = computed(() => {
 })
 
 const isTextOnly = computed(() => String(props.post?.postType) === '1' && images.value.length === 0 && videos.value.length === 0)
+
+function setupObserver() {
+    if (isVisible.value) return
+    const el = rootRef.value
+    if (!el || typeof IntersectionObserver === 'undefined') {
+        isVisible.value = true
+        return
+    }
+
+    observer?.disconnect()
+    observer = new IntersectionObserver(
+        entries => {
+            const entry = entries?.[0]
+            if (entry?.isIntersecting) {
+                isVisible.value = true
+                observer?.disconnect()
+                observer = null
+            }
+        },
+        { rootMargin: '200px 0px', threshold: 0 }
+    )
+    observer.observe(el)
+}
+
+onMounted(() => {
+    setupObserver()
+})
+
+onBeforeUnmount(() => {
+    observer?.disconnect()
+    observer = null
+})
+
+watch(
+    () => props.post?.id,
+    async () => {
+        isVisible.value = false
+        await nextTick()
+        setupObserver()
+    }
+)
 </script>
 
 <style scoped lang="scss">

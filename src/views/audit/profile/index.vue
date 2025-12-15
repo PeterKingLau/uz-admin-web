@@ -275,11 +275,7 @@ function openRejectDialog(row) {
 
 function submitReject() {
     if (!rejectForm.reason.trim()) {
-        if (proxy.$modal?.msgWarning) {
-            proxy.$modal.msgWarning('请填写驳回原因')
-        } else {
-            ElMessage.warning('请填写驳回原因')
-        }
+        proxy?.$modal?.msgWarning?.('请填写驳回原因')
         return
     }
 

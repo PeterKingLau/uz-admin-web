@@ -292,7 +292,7 @@ function submitReject() {
     }
 
     if (!remark) {
-        proxy.$modal?.msgWarning ? proxy.$modal.msgWarning('请填写驳回原因') : ElMessage.warning('请填写驳回原因')
+        proxy?.$modal?.msgWarning?.('请填写驳回原因')
         return
     }
 

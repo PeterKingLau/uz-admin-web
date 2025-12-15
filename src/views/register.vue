@@ -50,12 +50,13 @@
 </template>
 
 <script setup>
-import { ElMessageBox } from 'element-plus'
+import { getCurrentInstance } from 'vue'
+import { useRouter } from 'vue-router'
 import { getCodeImg, register } from '@/api/login/login'
 
 const title = import.meta.env.VITE_APP_TITLE
 const router = useRouter()
-const { proxy } = getCurrentInstance()
+const { proxy } = getCurrentInstance() || {}
 
 const registerForm = ref({
     username: '',
@@ -115,10 +116,8 @@ function handleRegister() {
             register(registerForm.value)
                 .then(res => {
                     const username = registerForm.value.username
-                    ElMessageBox.alert("<font color='red'>恭喜你，您的账号 " + username + ' 注册成功！</font>', '系统提示', {
-                        dangerouslyUseHTMLString: true,
-                        type: 'success'
-                    })
+                    proxy?.$modal
+                        ?.alertSuccess?.("<font color='red'>恭喜你，您的账号 " + username + ' 注册成功！</font>')
                         .then(() => {
                             router.push('/login')
                         })

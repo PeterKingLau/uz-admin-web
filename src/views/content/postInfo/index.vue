@@ -45,8 +45,7 @@
 </template>
 
 <script setup name="ContentList" lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive, onMounted, onActivated, getCurrentInstance } from 'vue'
 
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
@@ -76,6 +75,7 @@ const finished = ref(false)
 const deleting = ref(false)
 const selectedIds = ref<Array<number | string>>([])
 const showSearch = ref(true)
+const { proxy } = getCurrentInstance() || {}
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
 
@@ -110,7 +110,7 @@ async function fetchList(isLoadMore = false) {
         finished.value = records.length < queryParams.limit
     } catch (e) {
         console.error(e)
-        ElMessage.error('获取内容列表失败')
+        proxy?.$modal?.msgError?.('获取内容列表失败')
     } finally {
         loading.value = false
         loadingMore.value = false
@@ -156,8 +156,10 @@ function handleSelect(payload: { id: string | number; checked: boolean }) {
 async function handleBatchDelete() {
     if (!selectedIds.value.length || deleting.value) return
     const ids = selectedIds.value
+    const modal = proxy?.$modal
+    if (!modal?.confirm) return
     try {
-        await ElMessageBox.confirm(`确认删除选中的 ${ids.length} 条帖子？`, '提示', { type: 'warning' })
+        await modal.confirm(`确认删除选中的 ${ids.length} 条帖子？`)
     } catch {
         return
     }
@@ -165,19 +167,23 @@ async function handleBatchDelete() {
     deleting.value = true
     try {
         await deletePost({ postIds: ids })
-        ElMessage.success('删除成功')
+        proxy?.$modal?.msgSuccess?.('删除成功')
         postList.value = postList.value.filter(item => !ids.includes(item.id))
         selectedIds.value = []
         finished.value = postList.value.length < queryParams.limit
     } catch (e) {
         console.error(e)
-        ElMessage.error('删除失败')
+        proxy?.$modal?.msgError?.('删除失败')
     } finally {
         deleting.value = false
     }
 }
 
 onMounted(() => {
+    resetQuery()
+})
+
+onActivated(() => {
     resetQuery()
 })
 </script>

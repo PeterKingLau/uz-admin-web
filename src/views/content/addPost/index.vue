@@ -111,8 +111,8 @@
 </template>
 
 <script setup name="ContentPost" lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { ElMessage, ElMessageBox, type UploadUserFile } from 'element-plus'
+import { ref, reactive, computed, onMounted, watch, getCurrentInstance } from 'vue'
+import type { UploadUserFile } from 'element-plus'
 import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
@@ -197,6 +197,7 @@ const rules = {
 
 const formRef = ref()
 const submitting = ref(false)
+const { proxy } = getCurrentInstance() || {}
 
 const uploadAccept = computed(() => {
     if (form.postType === POST_TYPE.IMAGE) return 'image/*'
@@ -211,7 +212,7 @@ async function loadInterest() {
         interestTree.value = res.data || res || []
     } catch (e) {
         console.error('loadInterest error', e)
-        ElMessage.error('标签列表获取失败')
+        proxy?.$modal?.msgError?.('标签列表获取失败')
     } finally {
         interestLoading.value = false
     }
@@ -226,19 +227,19 @@ watch(
 )
 
 function handleExceed() {
-    ElMessage.warning(form.postType === POST_TYPE.IMAGE ? '最多只能上传 9 张图片' : '仅支持上传一个视频文件')
+    proxy?.$modal?.msgWarning?.(form.postType === POST_TYPE.IMAGE ? '最多只能上传 9 张图片' : '仅支持上传一个视频文件')
 }
 
 function beforeUpload(file: File) {
     if (form.postType === POST_TYPE.IMAGE) {
         if (!file.type.startsWith('image/')) {
-            ElMessage.error('请选择图片文件')
+            proxy?.$modal?.msgError?.('请选择图片文件')
             return false
         }
     }
     if (form.postType === POST_TYPE.VIDEO) {
         if (!file.type.startsWith('video/')) {
-            ElMessage.error('请选择视频文件')
+            proxy?.$modal?.msgError?.('请选择视频文件')
             return false
         }
     }
@@ -257,9 +258,7 @@ function handleSubmit() {
         if (!valid) return
 
         try {
-            await ElMessageBox.confirm('确认提交该内容吗？', '提示', {
-                type: 'warning'
-            })
+            await proxy?.$modal?.confirm?.('确认提交该内容吗？')
         } catch {
             return
         }
@@ -278,11 +277,11 @@ function handleSubmit() {
                 files
             })
 
-            ElMessage.success('发布成功')
+            proxy?.$modal?.msgSuccess?.('发布成功')
             handleReset(true)
         } catch (e) {
             console.error('addPost error', e)
-            ElMessage.error('发布失败，请稍后重试')
+            proxy?.$modal?.msgError?.('发布失败，请稍后重试')
         } finally {
             submitting.value = false
         }

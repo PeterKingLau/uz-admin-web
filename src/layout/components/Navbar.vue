@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { ElMessageBox } from 'element-plus'
+import { getCurrentInstance } from 'vue'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'
 import Hamburger from '@/components/Hamburger'
@@ -60,6 +60,7 @@ import useSettingsStore from '@/store/modules/settings'
 const appStore = useAppStore()
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
+const { proxy } = getCurrentInstance() || {}
 
 function toggleSideBar() {
     appStore.toggleSideBar()
@@ -79,11 +80,8 @@ function handleCommand(command) {
 }
 
 function logout() {
-    ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    })
+    proxy?.$modal
+        ?.confirm?.('确定注销并退出系统吗？')
         .then(() => {
             userStore.logOut().then(() => {
                 location.href = '/index'
