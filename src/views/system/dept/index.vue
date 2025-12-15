@@ -51,7 +51,7 @@
                         ><Icon icon="ep:edit"></Icon>修改</el-button
                     >
                     <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:dept:add']"><Icon icon="ep:plus"></Icon>新增</el-button>
-                    <el-button v-if="scope.row.parentId != 0" link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['system:dept:remove']"
+                    <el-button v-if="scope.row.parentId != 0" link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:dept:remove']"
                         ><Icon icon="ep:delete"></Icon>删除</el-button
                     >
                 </template>
