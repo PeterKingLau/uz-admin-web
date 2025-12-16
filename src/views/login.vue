@@ -1,30 +1,34 @@
 <template>
     <div class="login">
-        <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form">
-            <h3 class="title">用户登录</h3>
+        <div class="bg-shape shape-1"></div>
+        <div class="bg-shape shape-2"></div>
 
-            <el-form-item class="login-type-item" style="margin-bottom: 16px">
-                <el-radio-group v-model="loginForm.loginType" size="small" class="login-type-switch">
-                    <el-radio-button value="PASSWORD" label="账号密码" />
-                    <el-radio-button value="SMS" label="短信验证码" />
-                </el-radio-group>
+        <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
+            <div class="header-box">
+                <h3 class="title">欢迎回来</h3>
+                <p class="sub-title">请登录您的账户</p>
+            </div>
+
+            <el-form-item class="login-type-item">
+                <div class="login-type-switch">
+                    <div class="switch-item" :class="{ active: loginForm.loginType === 'PASSWORD' }" @click="loginForm.loginType = 'PASSWORD'">账号密码</div>
+                    <div class="switch-item" :class="{ active: loginForm.loginType === 'SMS' }" @click="loginForm.loginType = 'SMS'">短信验证码</div>
+                </div>
             </el-form-item>
 
             <el-form-item prop="username">
                 <el-input
                     v-model="loginForm.username"
                     type="text"
-                    size="large"
                     autocomplete="off"
                     :placeholder="usernamePlaceholder"
-                    :validate-event="false"
                     :maxlength="usernameMaxlength"
                     :inputmode="loginForm.loginType === 'SMS' ? 'numeric' : 'text'"
                     @input="handleUsernameInput"
                     @keyup.enter="handleLogin"
                 >
                     <template #prefix>
-                        <svg-icon icon-class="ep:user" class="el-input__icon input-icon" />
+                        <svg-icon icon-class="ep:user" class="input-icon" />
                     </template>
                 </el-input>
             </el-form-item>
@@ -33,60 +37,45 @@
                 <el-input
                     v-model="loginForm.password"
                     :type="showPassword ? 'text' : 'password'"
-                    size="large"
                     autocomplete="off"
                     placeholder="请输入您的密码"
-                    :validate-event="false"
                     @keyup.enter="handleLogin"
                 >
                     <template #prefix>
-                        <svg-icon icon-class="mdi:lock" class="el-input__icon input-icon" />
+                        <svg-icon icon-class="mdi:lock" class="input-icon" />
                     </template>
                     <template #suffix>
-                        <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="el-input__icon password-toggle" @click.stop="togglePassword" />
+                        <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="password-toggle" @click.stop="togglePassword" />
                     </template>
                 </el-input>
             </el-form-item>
 
-            <!-- 短信验证码（仅 SMS） -->
             <el-form-item v-if="loginForm.loginType === 'SMS'" prop="smsCode">
                 <div class="sms-input-group">
-                    <el-input
-                        v-model="loginForm.smsCode"
-                        maxlength="6"
-                        size="large"
-                        placeholder="短信验证码"
-                        :validate-event="false"
-                        @keyup.enter="handleLogin"
-                        class="sms-input"
-                    >
+                    <el-input v-model="loginForm.smsCode" maxlength="6" placeholder="6位验证码" @keyup.enter="handleLogin" class="sms-input">
                         <template #prefix>
-                            <svg-icon icon-class="ep:message" class="el-input__icon input-icon" />
+                            <svg-icon icon-class="ep:message" class="input-icon" />
                         </template>
                     </el-input>
 
-                    <el-button class="sms-btn" type="primary" :disabled="smsSending || smsCountdown > 0" @click="sendSms">
-                        {{ smsCountdown > 0 ? smsCountdown + 's' : '获取' }}
+                    <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
+                        {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
                     </el-button>
                 </div>
             </el-form-item>
 
-            <!-- 记住密码（仅 PASSWORD） -->
-            <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" class="remember-me"> 记住密码 </el-checkbox>
+            <div class="form-options">
+                <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" label="记住我" />
+                <router-link v-if="register" to="/register" class="register-link"> 注册账号 </router-link>
+            </div>
 
-            <el-form-item style="width: 100%; margin-bottom: 0">
-                <el-button :loading="loading" size="large" type="primary" class="login-btn" @click.prevent="handleLogin">
-                    <span v-if="!loading">登 录</span>
-                    <span v-else>登录中</span>
+            <el-form-item style="margin-bottom: 0">
+                <el-button :loading="loading" type="primary" class="login-btn" @click.prevent="handleLogin">
+                    {{ loading ? '登录中...' : '登录' }}
                 </el-button>
-
-                <div v-if="register" class="register-link">
-                    <router-link class="link-type" :to="'/register'">立即注册</router-link>
-                </div>
             </el-form-item>
         </el-form>
 
-        <!-- 底部 -->
         <div class="el-login-footer">
             <span>Copyright © 2025 All Rights Reserved.</span>
         </div>
@@ -117,7 +106,6 @@ const loginForm = ref({
     rememberMe: false
 })
 
-// 动态校验
 const activeRules = computed(() => {
     const rules = {
         username: [{ required: true, trigger: 'blur', message: usernamePlaceholder.value }]
@@ -128,7 +116,6 @@ const activeRules = computed(() => {
     }
 
     if (loginForm.value.loginType === 'SMS') {
-        // 手机号格式 + 验证码
         rules.username = [
             { required: true, message: '请输入手机号', trigger: 'blur' },
             {
@@ -150,7 +137,6 @@ const activeRules = computed(() => {
     return rules
 })
 
-// 仅在短信登录时：限制为数字、最长11位
 const usernameMaxlength = computed(() => (loginForm.value.loginType === 'SMS' ? 11 : 50))
 
 function handleUsernameInput(val) {
@@ -168,26 +154,10 @@ const loading = ref(false)
 const register = ref(false)
 const redirect = ref()
 
-// 切换类型
 watch(
     () => loginForm.value.loginType,
-    val => {
+    async val => {
         if (val === 'SMS') {
-            loginForm.value.username = ''
-            loginForm.value.password = ''
-            loginForm.value.rememberMe = false
-        } else if (val === 'PASSWORD') {
-            loginForm.value.smsCode = ''
-            smsCountdown.value = 0
-        }
-    }
-)
-
-// 切换类型时清理
-watch(
-    () => loginForm.value.loginType,
-    async () => {
-        if (loginForm.value.loginType === 'SMS') {
             loginForm.value.username = ''
             loginForm.value.password = ''
             loginForm.value.rememberMe = false
@@ -200,11 +170,9 @@ watch(
     }
 )
 
-// 短信逻辑
 const smsSending = ref(false)
 const smsCountdown = ref(0)
 
-// 发送验证码
 async function sendSms() {
     const phone = loginForm.value.username
     if (!/^1[3-9]\d{9}$/.test(phone)) {
@@ -230,7 +198,6 @@ async function sendSms() {
 }
 
 onMounted(() => {
-    // 仅在密码登录下恢复“记住密码”
     const username = Cookies.get('username')
     const password = Cookies.get('password')
     const rememberMe = Cookies.get('rememberMe')
@@ -241,30 +208,19 @@ onMounted(() => {
     }
 })
 
-const cleanUsername = val => (val || '').replace(/^[\s\u3000]+|[\s\u3000]+$/g, '')
-const cleanSmsCode = val => (val || '').replace(/[\s\u3000]+/g, '')
-
-function normalizeLoginFields() {
-    loginForm.value.username = cleanUsername(loginForm.value.username)
-
-    if (loginForm.value.loginType === 'SMS') {
-        loginForm.value.smsCode = cleanSmsCode(loginForm.value.smsCode)
-    }
-}
-
 function handleLogin() {
-    normalizeLoginFields()
+    loginForm.value.username = (loginForm.value.username || '').trim()
+    if (loginForm.value.loginType === 'SMS') {
+        loginForm.value.smsCode = (loginForm.value.smsCode || '').trim()
+    }
 
     loginRef.value.validate(valid => {
         if (!valid) return
         loading.value = true
 
-        // Cookie 只在密码登录时处理
         if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.rememberMe) {
             Cookies.set('username', loginForm.value.username, { expires: 30 })
-            Cookies.set('password', encrypt(loginForm.value.password), {
-                expires: 30
-            })
+            Cookies.set('password', encrypt(loginForm.value.password), { expires: 30 })
             Cookies.set('rememberMe', loginForm.value.rememberMe, { expires: 30 })
         } else {
             Cookies.remove('username')
@@ -274,13 +230,9 @@ function handleLogin() {
 
         const payload = {
             loginType: loginForm.value.loginType,
-            username: (loginForm.value.username || '').trim()
-        }
-        if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.password) {
-            payload.password = loginForm.value.password
-        }
-        if (loginForm.value.loginType === 'SMS' && loginForm.value.smsCode) {
-            payload.smsCode = loginForm.value.smsCode
+            username: loginForm.value.username,
+            ...(loginForm.value.loginType === 'PASSWORD' && { password: loginForm.value.password }),
+            ...(loginForm.value.loginType === 'SMS' && { smsCode: loginForm.value.smsCode })
         }
 
         userStore
@@ -298,8 +250,8 @@ function handleLogin() {
             })
     })
 }
-const showPassword = ref(false)
 
+const showPassword = ref(false)
 function togglePassword() {
     showPassword.value = !showPassword.value
 }
@@ -312,223 +264,239 @@ function togglePassword() {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    padding: 24px;
-    /* 背景：偏蓝的渐变 + 你的背景图 */
-    background-color: #e6f1ff;
+    background: linear-gradient(135deg, #f0f4f8 0%, #dbeafe 100%);
     background-image: url('../assets/images/login-background.jpg');
-    background-repeat: no-repeat;
-    background-position: center;
     background-size: cover;
+    background-position: center;
     overflow: hidden;
 
     &::before {
         content: '';
         position: absolute;
         inset: 0;
-        /* 更接近截图的柔和高光效果 */
-        background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.9), rgba(135, 182, 255, 0.25));
-        backdrop-filter: blur(3px);
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(2px);
         z-index: 0;
     }
 }
 
-.title {
-    margin: 0 auto 18px auto;
-    text-align: center;
-    color: #333;
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 2px;
+.bg-shape {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    z-index: 0;
+    opacity: 0.5;
+}
+.shape-1 {
+    width: 400px;
+    height: 400px;
+    background: #3b82f6;
+    top: -150px;
+    left: -100px;
+}
+.shape-2 {
+    width: 300px;
+    height: 300px;
+    background: #60a5fa;
+    bottom: -100px;
+    right: -50px;
+}
+
+.animate-in {
+    animation: slideUp 0.5s ease-out;
+}
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .login-form {
     position: relative;
-    z-index: 1;
-    width: 420px;
-    padding: 32px 36px 24px;
-    border-radius: 24px;
-    background: #ffffff;
+    z-index: 10;
+    width: 400px;
+    padding: 36px 40px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
     box-shadow:
-        0 18px 35px rgba(0, 0, 0, 0.12),
-        0 0 0 1px rgba(255, 255, 255, 0.9);
+        0 10px 40px -10px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 1) inset;
+}
 
-    :deep(.el-form-item) {
-        margin-bottom: 18px;
+.header-box {
+    text-align: center;
+    margin-bottom: 24px;
+
+    .title {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: #1e293b;
+        letter-spacing: 0.5px;
     }
 
-    :deep(.login-type-item .el-form-item__content) {
+    .sub-title {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #64748b;
+    }
+}
+
+.login-type-switch {
+    display: flex;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    width: 100%;
+
+    .switch-item {
+        /* 核心修复：使用flex布局强制完全居中 */
         display: flex;
         justify-content: center;
-    }
-
-    .login-type-switch {
-        display: inline-flex;
-        background: #f2f4f8;
-        border-radius: 999px;
-        padding: 3px;
-    }
-
-    .login-type-switch :deep(.el-radio-button__inner) {
-        border: none !important;
-        background: transparent;
-        box-shadow: none !important;
-        padding: 6px 20px;
-        border-radius: 999px;
-        color: #606266;
-        transition: all 0.2s ease;
+        align-items: center;
+        flex: 1;
+        /* 保持一定高度 */
+        padding: 6px 0;
         font-size: 13px;
-    }
+        /* 重置行高，防止文字自带的leading导致偏下 */
+        line-height: 1;
+        color: #64748b;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        font-weight: 500;
 
-    .login-type-switch :deep(.is-active .el-radio-button__inner) {
-        background: #409eff;
-        color: #fff !important;
-    }
+        &:hover {
+            color: #334155;
+        }
 
-    :deep(.el-input__wrapper) {
-        background-color: #f9fbff;
-        box-shadow: 0 0 0 1px #e4e7ed;
-        border-radius: 8px;
-    }
-
-    :deep(.el-input__wrapper.is-focus) {
-        box-shadow:
-            0 0 0 1px var(--el-color-primary),
-            0 0 0 3px rgba(64, 158, 255, 0.12);
-        background-color: #ffffff;
-    }
-
-    .el-input {
-        height: 40px;
-        input {
-            height: 40px;
+        &.active {
+            background: #ffffff;
+            color: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            font-weight: 600;
         }
     }
+}
 
-    .input-icon {
-        height: 40px;
-        width: 16px;
-        margin-left: 2px;
-        color: #c0c4cc;
+:deep(.el-form-item) {
+    margin-bottom: 20px;
+}
+
+:deep(.el-input__wrapper) {
+    background-color: #f8fafc;
+    box-shadow: none !important;
+    border-radius: 6px;
+    padding: 0 12px;
+    height: 38px;
+    line-height: 38px;
+    transition: all 0.2s;
+
+    &:hover {
+        background-color: #f1f5f9;
     }
 
-    .login-type-switch {
-        display: inline-flex;
-        background: #f2f4f8;
-        border-radius: 999px;
-        padding: 3px;
+    &.is-focus {
+        background-color: #ffffff;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        border: 1px solid #3b82f6;
+    }
+}
+
+:deep(.el-input__inner) {
+    height: 38px;
+    font-size: 14px;
+    color: #334155;
+}
+
+.input-icon {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-right: 6px;
+}
+
+.sms-input-group {
+    display: flex;
+    gap: 10px;
+
+    .sms-input {
+        flex: 1;
     }
 
-    .login-type-switch :deep(.el-radio-button__inner) {
-        border: none !important;
-        background: transparent;
-        box-shadow: none !important;
-        padding: 6px 20px;
-        border-radius: 999px;
-        color: #606266;
-        transition: all 0.2s ease;
+    .sms-btn {
+        height: 38px;
+        min-width: 100px;
+        border-radius: 6px;
+        padding: 0 12px;
         font-size: 13px;
     }
+}
 
-    .login-type-switch :deep(.is-active .el-radio-button__inner) {
-        background: #409eff;
-        color: #fff !important;
-    }
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: -4px;
+    margin-bottom: 20px;
 
-    .remember-me {
-        margin: 4px 0 18px 0;
+    :deep(.el-checkbox__label) {
+        color: #64748b;
         font-size: 13px;
-        color: #666;
-    }
-
-    .login-btn {
-        width: 100%;
-        margin-top: 6px;
-        border-radius: 999px;
-        font-size: 14px;
-        letter-spacing: 6px;
-    }
-
-    :deep(.el-button--primary span) {
-        letter-spacing: 6px;
     }
 
     .register-link {
-        margin-top: 8px;
-        text-align: right;
+        color: #3b82f6;
         font-size: 13px;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.login-btn {
+    width: 100%;
+    height: 38px;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 6px;
+    background: #3b82f6;
+    border: none;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 }
 
 .el-login-footer {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 40px;
-    line-height: 40px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.9);
-    font-family: Arial;
-    font-size: 12px;
-    letter-spacing: 1px;
-    z-index: 1;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-
-.password-toggle {
-    cursor: pointer;
-    font-size: 18px;
-    transition: all 0.2s ease;
-}
-
-.password-toggle:hover {
-    color: var(--el-color-primary);
-    transform: scale(1.05);
-}
-
-.sms-input-group {
-    display: flex;
-    align-items: stretch;
+    bottom: 16px;
     width: 100%;
-}
-
-.login-form :deep(.sms-input .el-input__wrapper) {
-    border-radius: 8px 0 0 8px !important;
-    box-shadow: 0 0 0 1px #e4e7ed;
-    border-right: none;
-}
-
-.login-form :deep(.sms-input .el-input__wrapper.is-focus) {
-    box-shadow:
-        0 0 0 1px var(--el-color-primary),
-        0 0 0 3px rgba(64, 158, 255, 0.12);
-}
-
-.sms-btn {
-    border-radius: 0 8px 8px 0;
-    margin-left: 0;
-    border-left: none;
-    height: 40px;
-    padding: 0 14px;
+    text-align: center;
+    color: rgba(100, 116, 139, 0.6);
     font-size: 12px;
-    letter-spacing: 0;
-    line-height: 1;
+    pointer-events: none;
 }
 
-/* 小屏适配 */
 @media (max-width: 768px) {
-    .login {
-        padding: 16px;
-        align-items: flex-start;
-    }
     .login-form {
-        width: 100%;
-        max-width: 380px;
-        margin-top: 40px;
-        padding: 26px 22px 18px;
-        box-shadow:
-            0 12px 30px rgba(0, 0, 0, 0.18),
-            0 0 0 1px rgba(255, 255, 255, 0.9);
+        width: 92%;
+        padding: 30px 24px;
     }
 }
 </style>
