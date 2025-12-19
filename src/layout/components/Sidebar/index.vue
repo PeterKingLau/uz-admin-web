@@ -6,12 +6,12 @@
             <el-menu
                 :default-active="activeMenu"
                 :collapse="isCollapse"
-                :background-color="getMenuBackground"
-                :text-color="getMenuTextColor"
+                :background-color="menuBgColor"
+                :text-color="menuTextColor"
                 :unique-opened="true"
                 :active-text-color="theme"
                 mode="vertical"
-                :class="sideTheme"
+                class="sidebar-menu"
                 @select="handleMenuSelect"
             >
                 <sidebar-item v-for="(route, index) in sidebarRouters" :key="route.path + index" :item="route" :base-path="route.path" />
@@ -42,18 +42,14 @@ const sideTheme = computed(() => settingsStore.sideTheme)
 const theme = computed(() => settingsStore.theme)
 const isCollapse = computed(() => !appStore.sidebar.opened)
 
-const getMenuBackground = computed(() => {
-    if (settingsStore.isDark) {
-        return 'var(--sidebar-bg)'
-    }
-    return sideTheme.value === 'theme-dark' ? variables.menuBg : variables.menuLightBg
+const menuBgColor = computed(() => {
+    if (settingsStore.isDark) return '#141414'
+    return sideTheme.value === 'theme-dark' ? variables.menuBg : '#ffffff'
 })
 
-const getMenuTextColor = computed(() => {
-    if (settingsStore.isDark) {
-        return 'var(--sidebar-text)'
-    }
-    return sideTheme.value === 'theme-dark' ? variables.menuText : variables.menuLightText
+const menuTextColor = computed(() => {
+    if (settingsStore.isDark) return '#bfcbd9'
+    return sideTheme.value === 'theme-dark' ? variables.menuText : '#64748b'
 })
 
 const activeMenu = computed(() => {
@@ -71,17 +67,19 @@ function handleMenuSelect() {
 </script>
 
 <style lang="scss" scoped>
-$sidebar-expand-width: 210px;
-$sidebar-collapse-width: 60px;
+$sidebar-expand-width: 220px;
+$sidebar-collapse-width: 64px;
 
 .sidebar-container {
     position: relative;
     height: 100%;
-    background-color: v-bind(getMenuBackground);
+    background-color: v-bind(menuBgColor);
+    box-shadow: 1px 0 10px rgba(0, 0, 0, 0.05);
     transition:
-        width 0.2s ease-in-out,
-        background-color 0.2s ease-in-out;
+        width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        background-color 0.3s;
     overflow: hidden;
+    z-index: 1001;
 
     &.sidebar--expand {
         width: $sidebar-expand-width;
@@ -92,52 +90,104 @@ $sidebar-collapse-width: 60px;
     }
 
     .scrollbar-wrapper {
-        background-color: v-bind(getMenuBackground);
+        height: 100%;
+        overflow-x: hidden !important;
     }
 
-    .el-menu {
+    :deep(.el-menu) {
         border: none;
         height: 100%;
         width: 100% !important;
-        transition:
-            width 0.2s ease-in-out,
-            background-color 0.2s ease-in-out;
+        background-color: transparent !important;
+    }
+}
 
-        .el-menu-item,
-        .el-sub-menu__title {
-            &:hover {
-                background-color: var(--menu-hover, rgba(0, 0, 0, 0.06)) !important;
-            }
+:deep(.sidebar--expand) {
+    .el-menu-item,
+    .el-sub-menu__title {
+        height: 48px;
+        line-height: 48px;
+        margin: 4px 10px;
+        border-radius: 8px;
+        width: auto !important;
+        padding-right: 0;
+
+        span {
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
 
-        .el-menu-item {
-            color: v-bind(getMenuTextColor);
-
-            &.is-active {
-                color: var(--menu-active-text, #409eff);
-                background-color: var(--menu-hover, rgba(0, 0, 0, 0.06)) !important;
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.04) !important;
+            color: #333 !important;
+            @media (prefers-color-scheme: dark) {
+                background-color: rgba(255, 255, 255, 0.05) !important;
+                color: #eee !important;
             }
         }
+    }
 
-        .el-sub-menu__title {
-            color: v-bind(getMenuTextColor);
+    .el-menu-item.is-active {
+        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.3);
+        font-weight: 600;
+
+        .svg-icon {
+            color: #ffffff !important;
+            fill: #ffffff !important;
         }
     }
 }
 
 :deep(.sidebar--collapse) {
-    .el-sub-menu__title span,
-    .el-menu-item span {
-        transition: opacity 0.15s ease-in-out;
-        opacity: 0;
-    }
-}
+    .el-menu-item,
+    .el-sub-menu__title {
+        height: 44px !important;
+        width: 44px !important;
+        padding: 0 !important;
+        margin: 6px auto !important;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
 
-:deep(.sidebar--expand) {
-    .el-sub-menu__title span,
-    .el-menu-item span {
-        transition: opacity 0.15s ease-in-out;
-        opacity: 1;
+        .el-sub-menu__icon-arrow,
+        span {
+            display: none;
+        }
+
+        .svg-icon,
+        .nav-icon {
+            margin-right: 0 !important;
+            font-size: 20px;
+        }
+    }
+
+    .el-menu-item.is-active {
+        background: var(--el-color-primary) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.4);
+
+        .svg-icon {
+            color: #fff !important;
+        }
+    }
+
+    .el-tooltip__trigger {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .el-sub-menu {
+        text-align: center;
+        width: 100%;
+        .el-sub-menu__title {
+            margin: 6px auto !important;
+        }
     }
 }
 </style>

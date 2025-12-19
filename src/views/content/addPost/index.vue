@@ -1,121 +1,204 @@
 <template>
     <div class="app-container">
-        <el-card shadow="hover" class="post-card">
-            <template #header>
-                <div class="card-header">
-                    <span>发布内容</span>
-                </div>
-            </template>
+        <el-row :gutter="20" class="content-row">
+            <el-col :xs="24" :sm="24" :md="14" :lg="15" :xl="16">
+                <el-card shadow="never" class="edit-card">
+                    <template #header>
+                        <div class="card-header">
+                            <span class="header-title">发布新内容</span>
+                            <span class="header-tip">请填写以下信息并上传素材</span>
+                        </div>
+                    </template>
 
-            <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" class="post-form">
-                <el-form-item label="内容类型" prop="postType">
-                    <el-radio-group v-model="form.postType">
-                        <el-radio-button :label="POST_TYPE.TEXT">纯文字</el-radio-button>
-                        <el-radio-button :label="POST_TYPE.IMAGE">图片</el-radio-button>
-                        <el-radio-button :label="POST_TYPE.VIDEO">视频</el-radio-button>
-                    </el-radio-group>
-                </el-form-item>
+                    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="post-form">
+                        <el-form-item label="内容类型" prop="postType">
+                            <el-radio-group v-model="form.postType" @change="handleTypeChange" class="type-radio-group">
+                                <el-radio-button :label="POST_TYPE.TEXT">
+                                    <Icon icon="mdi:format-text" />
+                                    <span>纯文字</span>
+                                </el-radio-button>
+                                <el-radio-button :label="POST_TYPE.IMAGE">
+                                    <Icon icon="mdi:image" />
+                                    <span>图文</span>
+                                </el-radio-button>
+                                <el-radio-button :label="POST_TYPE.VIDEO">
+                                    <Icon icon="mdi:video" />
+                                    <span>视频</span>
+                                </el-radio-button>
+                            </el-radio-group>
+                        </el-form-item>
 
-                <el-form-item label="正文内容" prop="content">
-                    <el-input
-                        v-model="form.content"
-                        type="textarea"
-                        :rows="6"
-                        placeholder="请输入内容（纯文字时必填，图文/视频时可作为说明）"
-                        maxlength="2000"
-                        show-word-limit
-                        @input="handleContentInput"
-                    />
-                </el-form-item>
+                        <el-form-item label="正文内容" prop="content">
+                            <el-input
+                                v-model="form.content"
+                                type="textarea"
+                                :rows="8"
+                                placeholder="请输入这一刻的想法..."
+                                maxlength="2000"
+                                show-word-limit
+                                @input="handleContentInput"
+                            />
+                        </el-form-item>
 
-                <el-form-item label="标签" prop="tagStr">
-                    <div class="tag-select-wrapper">
-                        <el-skeleton v-if="interestLoading" :rows="2" animated />
-                        <template v-else>
+                        <el-form-item
+                            v-if="form.postType !== POST_TYPE.TEXT"
+                            :label="form.postType === POST_TYPE.IMAGE ? '图片上传 (最多9张)' : '视频上传'"
+                            prop="files"
+                        >
+                            <el-upload
+                                ref="uploadRef"
+                                v-model:file-list="fileList"
+                                :auto-upload="false"
+                                :multiple="form.postType === POST_TYPE.IMAGE"
+                                :limit="form.postType === POST_TYPE.IMAGE ? 9 : 1"
+                                :accept="uploadAccept"
+                                :on-exceed="handleExceed"
+                                :on-change="handleFileChange"
+                                :before-upload="beforeUpload"
+                                list-type="picture-card"
+                                :class="{ 'hide-upload-btn': uploadLimitReached }"
+                            >
+                                <el-icon><Icon icon="mdi:plus" /></el-icon>
+
+                                <template #file="{ file }">
+                                    <div class="uploaded-file-wrapper">
+                                        <img v-if="form.postType === POST_TYPE.IMAGE" class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
+
+                                        <video
+                                            v-else-if="form.postType === POST_TYPE.VIDEO"
+                                            class="el-upload-list__item-thumbnail video-thumbnail"
+                                            :src="file.url"
+                                            muted
+                                            preload="metadata"
+                                        ></video>
+
+                                        <span class="el-upload-list__item-actions">
+                                            <span class="el-upload-list__item-delete" @click="handleRemove(file)">
+                                                <Icon icon="mdi:delete" />
+                                            </span>
+                                        </span>
+                                    </div>
+                                </template>
+                            </el-upload>
+                            <div class="upload-tip">
+                                {{ form.postType === POST_TYPE.IMAGE ? '建议尺寸 1:1 或 4:3，支持 JPG/PNG' : '支持 MP4 格式，建议时长不超过 1 分钟' }}
+                            </div>
+                        </el-form-item>
+
+                        <el-form-item label="关联标签" prop="tagStr">
                             <el-select
                                 v-model="selectedTagIds"
                                 multiple
                                 filterable
-                                placeholder="请选择标签"
-                                :style="{ width: '420px' }"
+                                placeholder="选择话题标签（可搜索）"
+                                style="width: 100%"
                                 clearable
-                                :disabled="!hasTagOptions"
+                                :loading="interestLoading"
+                                class="tag-select"
                             >
                                 <template v-for="cate in interestTree" :key="cate.id">
                                     <el-option-group v-if="cate.children?.length" :label="cate.name">
-                                        <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id" class="tag-option">
-                                            <el-tag size="small" type="success" effect="plain" class="tag-option__tag">
-                                                {{ child.name }}
-                                            </el-tag>
+                                        <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id" class="tag-option-item">
+                                            <el-tag :type="getTagType(child.id)" effect="plain" round>{{ child.name }}</el-tag>
                                         </el-option>
                                     </el-option-group>
                                 </template>
                             </el-select>
-                            <div v-if="!hasTagOptions" class="tag-empty-tip">暂无标签配置，可联系管理员在后台维护</div>
-                        </template>
-                    </div>
+                        </el-form-item>
 
-                    <div v-if="selectedTagIds.length" class="tag-selected-tip">
-                        已选 {{ selectedTagIds.length }} 个标签：
-                        <span class="tag-selected-text">
-                            {{ selectedTagNames.join('、') }}
-                        </span>
-                    </div>
-                    <div v-else class="tag-helper-tip">建议选择 1~3 个标签</div>
-                </el-form-item>
+                        <div class="form-actions">
+                            <el-button @click="handleReset"> <Icon icon="mdi:refresh" class="btn-icon" /> 重 置 </el-button>
+                            <el-button type="primary" :loading="submitting" @click="handleSubmit">
+                                <Icon icon="mdi:send" class="btn-icon" /> 发布内容
+                            </el-button>
+                        </div>
+                    </el-form>
+                </el-card>
+            </el-col>
 
-                <el-form-item v-if="form.postType === '2' || form.postType === '3'" label="上传文件" prop="files">
-                    <el-upload
-                        v-model:file-list="fileList"
-                        :auto-upload="false"
-                        :multiple="form.postType === '2'"
-                        :limit="form.postType === '2' ? 9 : 1"
-                        :accept="uploadAccept"
-                        :on-exceed="handleExceed"
-                        :before-upload="beforeUpload"
-                        list-type="text"
-                        class="post-upload"
-                    >
-                        <el-button type="primary">
-                            <el-icon class="el-icon--left">
-                                <Icon icon="ep:upload" />
-                            </el-icon>
-                            选择{{ form.postType === '2' ? '图片' : '视频' }}
-                        </el-button>
-                        <template #tip>
-                            <div class="el-upload__tip">
-                                <template v-if="form.postType === '2'"> 支持多张图片，建议 JPG/PNG，最多 9 张。 </template>
-                                <template v-else> 支持单个视频文件，建议 MP4。 </template>
+            <el-col :xs="24" :sm="24" :md="10" :lg="9" :xl="8">
+                <div class="preview-wrapper">
+                    <div class="preview-label">实时效果预览</div>
+                    <div class="mobile-mockup">
+                        <div class="mobile-status-bar">
+                            <span>{{ currentTime }}</span>
+                            <div class="mobile-icons">
+                                <Icon icon="mdi:signal" />
+                                <Icon icon="mdi:wifi" />
+                                <Icon icon="mdi:battery-70" />
                             </div>
-                        </template>
-                    </el-upload>
-                </el-form-item>
+                        </div>
+                        <div class="mobile-header">
+                            <Icon icon="mdi:chevron-left" class="header-icon" />
+                            <span>动态详情</span>
+                            <Icon icon="mdi:dots-horizontal" class="header-icon" />
+                        </div>
 
-                <el-form-item>
-                    <el-button type="primary" :loading="submitting" @click="handleSubmit">
-                        <el-icon class="el-icon--left">
-                            <Icon icon="ep:promotion" />
-                        </el-icon>
-                        提 交
-                    </el-button>
-                    <el-button :disabled="submitting" @click="handleReset">
-                        <el-icon class="el-icon--left">
-                            <Icon icon="ep:refresh" />
-                        </el-icon>
-                        重 置
-                    </el-button>
-                </el-form-item>
-            </el-form>
-        </el-card>
+                        <div class="mobile-body">
+                            <div class="preview-user-info">
+                                <el-avatar :size="40" :src="userAvatar" />
+                                <div class="user-meta">
+                                    <div class="user-name">{{ userNickName }}</div>
+                                    <div class="post-time">刚刚发布</div>
+                                </div>
+                            </div>
+
+                            <div class="preview-content">
+                                <div v-if="form.content" class="text-content">{{ form.content }}</div>
+                                <div v-else class="text-placeholder">在此处预览正文内容...</div>
+                            </div>
+
+                            <div class="preview-media" :class="{ 'single-mode': previewMediaList.length === 1 }">
+                                <template v-if="form.postType === POST_TYPE.IMAGE">
+                                    <div
+                                        v-for="(url, index) in previewMediaList"
+                                        :key="index"
+                                        class="preview-img-item"
+                                        :style="{ backgroundImage: `url(${url})` }"
+                                    ></div>
+                                </template>
+
+                                <template v-if="form.postType === POST_TYPE.VIDEO && previewMediaList.length">
+                                    <video :src="previewMediaList[0]" controls class="preview-video"></video>
+                                </template>
+                            </div>
+
+                            <div class="preview-tags" v-if="selectedTagNames.length">
+                                <el-tag
+                                    v-for="(tag, index) in selectedTagNames"
+                                    :key="index"
+                                    :type="getTagType(tag.id)"
+                                    effect="plain"
+                                    round
+                                    size="small"
+                                    class="preview-tag-item"
+                                >
+                                    #{{ tag.name }}
+                                </el-tag>
+                            </div>
+                        </div>
+
+                        <div class="mobile-footer">
+                            <div class="footer-input">说点什么...</div>
+                        </div>
+                    </div>
+                </div>
+            </el-col>
+        </el-row>
     </div>
 </template>
 
 <script setup name="ContentPost" lang="ts">
-import { ref, reactive, computed, onMounted, watch, getCurrentInstance } from 'vue'
-import type { UploadUserFile } from 'element-plus'
+import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick } from 'vue'
+import type { UploadUserFile, UploadFile, UploadFiles } from 'element-plus'
 import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
+import useUserStore from '@/store/modules/user'
+import { Icon } from '@iconify/vue'
+
+const { proxy } = getCurrentInstance() || {}
+const userStore = useUserStore()
 
 const form = reactive({
     postType: POST_TYPE.TEXT,
@@ -124,68 +207,73 @@ const form = reactive({
 })
 
 const fileList = ref<UploadUserFile[]>([])
-
-interface InterestChild {
-    id: number
-    name: string
-    description?: string | null
-    categoryId: number
-}
-
-interface InterestCategory {
-    id: number
-    name: string
-    code: string
-    sortOrder: number
-    children?: InterestChild[]
-}
-
-const interestTree = ref<InterestCategory[]>([])
+const uploadRef = ref()
+const submitting = ref(false)
+const previewMediaList = ref<string[]>([])
+const interestTree = ref<any[]>([])
 const interestLoading = ref(false)
-
 const selectedTagIds = ref<number[]>([])
-const hasTagOptions = computed(() => interestTree.value.some(cate => Array.isArray(cate.children) && cate.children.length > 0))
+
+const currentTime = ref('')
+let timer: ReturnType<typeof setInterval> | null = null
+
+const updateTime = () => {
+    const now = new Date()
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    currentTime.value = `${hours}:${minutes}`
+}
+
+const userAvatar = computed(() => {
+    return userStore.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+})
+
+const userNickName = computed(() => {
+    return userStore.nickName || userStore.name || '未设置昵称'
+})
+
+const uploadAccept = computed(() => {
+    if (form.postType === POST_TYPE.IMAGE) return '.jpg,.jpeg,.png,.gif'
+    if (form.postType === POST_TYPE.VIDEO) return '.mp4,.mov'
+    return ''
+})
+
+const uploadLimitReached = computed(() => {
+    if (form.postType === POST_TYPE.IMAGE) return fileList.value.length >= 9
+    if (form.postType === POST_TYPE.VIDEO) return fileList.value.length >= 1
+    return false
+})
 
 const selectedTagNames = computed(() => {
-    const names: string[] = []
+    const tags: { id: number; name: string }[] = []
     const idSet = new Set(selectedTagIds.value)
-    interestTree.value.forEach(cate => {
-        cate.children?.forEach(child => {
-            if (idSet.has(child.id)) {
-                names.push(child.name)
-            }
+    interestTree.value.forEach((cate: any) => {
+        cate.children?.forEach((child: any) => {
+            if (idSet.has(child.id)) tags.push({ id: child.id, name: child.name })
         })
     })
-    return names
+    return tags
 })
 
 const rules = {
     postType: [{ required: true, message: '请选择内容类型', trigger: 'change' }],
     content: [
         {
-            validator: (rule: any, value: string, callback: (err?: Error) => void) => {
-                if (form.postType === POST_TYPE.TEXT) {
-                    if (!value || !String(value).trim()) {
-                        callback(new Error('纯文字内容时，正文必填'))
-                    } else {
-                        callback()
-                    }
+            validator: (rule: any, value: string, callback: any) => {
+                if (form.postType === POST_TYPE.TEXT && (!value || !value.trim())) {
+                    callback(new Error('纯文字模式下，正文不能为空'))
                 } else {
                     callback()
                 }
             },
-            trigger: 'blur'
+            trigger: ['blur', 'change']
         }
     ],
     files: [
         {
-            validator: (rule: any, value: any, callback: (err?: Error) => void) => {
-                if (form.postType === POST_TYPE.IMAGE || form.postType === POST_TYPE.VIDEO) {
-                    if (!fileList.value.length) {
-                        callback(new Error(form.postType === POST_TYPE.IMAGE ? '请至少选择一张图片' : '请上传一个视频文件'))
-                    } else {
-                        callback()
-                    }
+            validator: (rule: any, value: any, callback: any) => {
+                if (form.postType !== POST_TYPE.TEXT && !fileList.value.length) {
+                    callback(new Error('请上传素材文件'))
                 } else {
                     callback()
                 }
@@ -196,26 +284,33 @@ const rules = {
 }
 
 const formRef = ref()
-const submitting = ref(false)
-const { proxy } = getCurrentInstance() || {}
 
-const uploadAccept = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return 'image/*'
-    if (form.postType === POST_TYPE.VIDEO) return 'video/*'
-    return ''
-})
+const updatePreviewMedia = () => {
+    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
+    previewMediaList.value = []
+    if (form.postType === POST_TYPE.TEXT) return
+    fileList.value.forEach(file => {
+        if (file.raw) {
+            const url = URL.createObjectURL(file.raw)
+            previewMediaList.value.push(url)
+        }
+    })
+}
 
-async function loadInterest() {
-    try {
-        interestLoading.value = true
-        const res = await getInterestAll()
-        interestTree.value = res.data || res || []
-    } catch (e) {
-        console.error('loadInterest error', e)
-        proxy?.$modal?.msgError?.('标签列表获取失败')
-    } finally {
-        interestLoading.value = false
-    }
+const handleFileChange = (uploadFile: UploadFile, uploadFiles: UploadFiles) => {
+    setTimeout(() => updatePreviewMedia(), 0)
+    if (form.postType !== POST_TYPE.TEXT) formRef.value?.validateField('files')
+}
+
+const handleRemove = (file: UploadFile) => {
+    uploadRef.value?.handleRemove(file)
+    setTimeout(() => updatePreviewMedia(), 0)
+}
+
+const handleTypeChange = () => {
+    fileList.value = []
+    previewMediaList.value = []
+    formRef.value?.clearValidate()
 }
 
 watch(
@@ -226,162 +321,410 @@ watch(
     { deep: true }
 )
 
+onMounted(() => {
+    loadInterest()
+
+    updateTime()
+    timer = setInterval(updateTime, 1000)
+})
+
+onBeforeUnmount(() => {
+    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
+    if (timer) clearInterval(timer)
+})
+
+async function loadInterest() {
+    interestLoading.value = true
+    try {
+        const res = await getInterestAll()
+        interestTree.value = res.data || res || []
+    } finally {
+        interestLoading.value = false
+    }
+}
+
 function handleExceed() {
-    proxy?.$modal?.msgWarning?.(form.postType === POST_TYPE.IMAGE ? '最多只能上传 9 张图片' : '仅支持上传一个视频文件')
+    proxy?.$modal?.msgWarning(form.postType === POST_TYPE.IMAGE ? '最多上传 9 张图片' : '仅支持 1 个视频')
 }
 
 function beforeUpload(file: File) {
-    if (form.postType === POST_TYPE.IMAGE) {
-        if (!file.type.startsWith('image/')) {
-            proxy?.$modal?.msgError?.('请选择图片文件')
-            return false
-        }
-    }
-    if (form.postType === POST_TYPE.VIDEO) {
-        if (!file.type.startsWith('video/')) {
-            proxy?.$modal?.msgError?.('请选择视频文件')
-            return false
-        }
-    }
     return true
 }
 
 function handleContentInput() {
-    if (form.postType !== '1') return
-    formRef.value?.validateField('content')
+    if (form.postType === POST_TYPE.TEXT) formRef.value?.validateField('content')
 }
 
 function handleSubmit() {
     if (!formRef.value) return
+    if (form.postType !== POST_TYPE.TEXT && fileList.value.length === 0) {
+        proxy?.$modal?.msgError(form.postType === POST_TYPE.IMAGE ? '请至少上传一张图片' : '请上传视频')
+        return
+    }
 
-    formRef.value.validate(async (valid: any) => {
+    formRef.value.validate(async (valid: boolean) => {
         if (!valid) return
-
         try {
-            await proxy?.$modal?.confirm?.('确认提交该内容吗？')
-        } catch {
-            return
-        }
-
-        submitting.value = true
-        try {
-            const files: File[] =
-                form.postType === POST_TYPE.IMAGE || form.postType === POST_TYPE.VIDEO
-                    ? fileList.value.map(item => item.raw as File | undefined).filter((f): f is File => !!f)
-                    : []
-
+            await proxy?.$modal?.confirm('确认发布该内容吗？')
+            submitting.value = true
+            const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => f.raw).filter(Boolean) as File[]) : []
             await addPost({
                 postType: form.postType,
                 content: form.content?.trim() || '',
-                tagStr: form.tagStr?.trim() || '',
+                tagStr: form.tagStr,
                 files
             })
-
-            proxy?.$modal?.msgSuccess?.('发布成功')
-            handleReset(true)
+            proxy?.$modal?.msgSuccess('发布成功')
+            handleReset()
         } catch (e) {
-            console.error('addPost error', e)
-            proxy?.$modal?.msgError?.('发布失败，请稍后重试')
+            console.error(e)
         } finally {
             submitting.value = false
         }
     })
 }
 
-function handleReset(keepType = false) {
-    const currentType = form.postType
-    form.postType = keepType ? currentType : POST_TYPE.TEXT
+function handleReset() {
+    form.postType = POST_TYPE.TEXT
     form.content = ''
     form.tagStr = ''
-    fileList.value = []
     selectedTagIds.value = []
-    formRef.value?.clearValidate()
+    fileList.value = []
+    previewMediaList.value = []
+    nextTick(() => {
+        formRef.value?.clearValidate()
+    })
 }
 
-onMounted(() => {
-    loadInterest()
-})
+const getTagType = (id: number) => {
+    const types = ['', 'success', 'warning', 'danger', 'info']
+    return types[id % types.length]
+}
 </script>
 
 <style lang="scss" scoped>
 .app-container {
-    display: flex;
-    justify-content: center;
+    padding: 20px;
+    background-color: #f5f7fa;
+    min-height: calc(100vh - 84px);
 }
 
-.post-card {
-    width: 860px;
-    max-width: 100%;
+.content-row {
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-.card-header {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    letter-spacing: 1px;
-}
+.edit-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 
-.post-form {
-    .el-form-item {
-        max-width: 800px;
-    }
+    .card-header {
+        display: flex;
+        flex-direction: column;
 
-    .el-form-item__tip {
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-        margin-left: 10px;
-
-        code {
-            background: rgba(0, 0, 0, 0.04);
-            padding: 0 3px;
-            border-radius: 3px;
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #303133;
+        }
+        .header-tip {
+            font-size: 12px;
+            color: #909399;
+            margin-top: 4px;
         }
     }
 }
 
-/* 标签区域样式 */
-.tag-select-wrapper {
-    width: 100%;
+.post-form {
+    padding: 10px 0;
+
+    .upload-tip {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 8px;
+        line-height: 1.4;
+    }
 }
 
-.tag-option {
+.type-radio-group {
+    :deep(.el-radio-button__inner) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 20px;
+
+        svg {
+            margin-right: 6px;
+            font-size: 16px;
+        }
+    }
+}
+
+.tag-select {
+    .tag-option-item {
+        display: flex;
+        align-items: center;
+    }
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ebeef5;
+
+    .el-button {
+        padding: 10px 24px;
+        display: flex;
+        align-items: center;
+
+        .btn-icon {
+            margin-right: 6px;
+            font-size: 16px;
+        }
+    }
+}
+
+.hide-upload-btn {
+    :deep(.el-upload--picture-card) {
+        display: none;
+    }
+}
+
+.uploaded-file-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+
+    img,
+    video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .el-upload-list__item-actions {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+        cursor: default;
+        text-align: center;
+        color: #fff;
+        opacity: 0;
+        font-size: 20px;
+        background-color: var(--el-overlay-color-lighter);
+        transition: opacity var(--el-transition-duration);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        .el-upload-list__item-delete {
+            position: static;
+            font-size: inherit;
+            color: inherit;
+            cursor: pointer;
+            &:hover {
+                color: var(--el-color-primary);
+            }
+        }
+    }
+}
+
+.preview-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: sticky;
+    top: 20px;
+}
+
+.preview-label {
+    font-size: 14px;
+    color: #606266;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.mobile-mockup {
+    width: 375px;
+    height: 720px;
+    background: #fff;
+    border-radius: 30px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    border: 8px solid #333;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-status-bar {
+    height: 40px;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 10;
+
+    .mobile-icons {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 14px;
+    }
+}
+
+.mobile-header {
+    height: 44px;
+    border-bottom: 1px solid #f2f2f2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 16px;
+    font-weight: 600;
+    background: #fff;
+
+    .header-icon {
+        font-size: 20px;
+        color: #333;
+    }
+}
+
+.mobile-body {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+    padding: 16px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.preview-user-info {
     display: flex;
     align-items: center;
+    margin-bottom: 12px;
+
+    .user-meta {
+        margin-left: 10px;
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        .post-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+    }
+}
+
+.preview-content {
+    margin-bottom: 12px;
+
+    .text-content {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #333;
+        white-space: pre-wrap;
+    }
+
+    .text-placeholder {
+        font-size: 14px;
+        color: #dcdfe6;
+        font-style: italic;
+    }
+}
+
+.preview-media {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+
+    &.single-mode {
+        grid-template-columns: 1fr;
+
+        .preview-img-item {
+            padding-bottom: 60%;
+            border-radius: 8px;
+        }
+        .preview-video {
+            width: 100%;
+            border-radius: 8px;
+        }
+    }
+
+    .preview-img-item {
+        width: 100%;
+        padding-bottom: 100%;
+        background-size: cover;
+        background-position: center;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    .preview-video {
+        width: 100%;
+        max-height: 300px;
+        background: #000;
+    }
+}
+
+.preview-tags {
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+
+    .preview-tag-item {
+        margin-right: 4px;
+        margin-bottom: 4px;
+    }
 }
 
-.tag-option__tag {
-    pointer-events: none;
+.mobile-footer {
+    height: 50px;
+    border-top: 1px solid #f2f2f2;
+    background: #fff;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+
+    .footer-input {
+        flex: 1;
+        height: 32px;
+        background: #f5f7fa;
+        border-radius: 16px;
+        line-height: 32px;
+        padding-left: 12px;
+        font-size: 12px;
+        color: #999;
+    }
 }
 
-.tag-option__cate {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-}
-
-.tag-selected-tip {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-}
-
-.tag-selected-text {
-    color: var(--el-color-primary);
-}
-
-.tag-helper-tip,
-.tag-empty-tip {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-}
-
-/* 上传列表 */
-.post-upload {
-    width: 100%;
-
-    :deep(.el-upload-list) {
-        margin-top: 8px;
+@media screen and (max-width: 992px) {
+    .mobile-mockup {
+        width: 100%;
+        max-width: 375px;
+        height: 600px;
     }
 }
 </style>

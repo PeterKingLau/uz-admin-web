@@ -64,8 +64,8 @@
             </el-table-column>
             <el-table-column label="标签序号" prop="sortOrder" align="center" width="100" />
             <el-table-column label="状态" prop="isActive" align="center" width="100">
-                <template #default="scope">
-                    <dict-tag :options="tag_use_type" :value="scope.row.isActive" />
+                <template #default="{ row }">
+                    <el-switch v-model="row.isActive" active-value="1" inactive-value="0" @change="handleStatusChange(row)" />
                 </template>
             </el-table-column>
             <el-table-column label="创建时间" prop="createTime" align="center" width="180">
@@ -289,6 +289,32 @@ function handleDelete(row) {
             loading.value = false
         })
         .catch(() => {})
+}
+
+/** 状态切换 */
+function handleStatusChange(row) {
+    if (!row?.id) return
+
+    const previous = row.isActive === '1' ? '0' : '1'
+    const text = row.isActive === '1' ? '启用' : '停用'
+    const payload = {
+        id: row.id,
+        name: row.name,
+        code: row.code,
+        sortOrder: row.sortOrder ?? 0,
+        isActive: row.isActive
+    }
+
+    proxy.$modal
+        ?.confirm?.(`确认${text}标签「${row.name || row.id}」吗？`)
+        .then(() => updateInterestCategory(payload))
+        .then(() => {
+            proxy.$modal?.msgSuccess && proxy.$modal.msgSuccess(`${text}成功`)
+            getList()
+        })
+        .catch(() => {
+            row.isActive = previous
+        })
 }
 
 /** 提交保存（新增/修改） */

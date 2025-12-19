@@ -9,14 +9,6 @@ export const CONTENT_AUDIT_COLUMNS = [
         fixed: 'left'
     },
     {
-        key: 'userName',
-        label: '用户名',
-        prop: 'userName',
-        width: 140,
-        fixed: 'left',
-        showOverflowTooltip: true
-    },
-    {
         key: 'nickName',
         label: '用户昵称',
         prop: 'nickName',

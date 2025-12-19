@@ -1,16 +1,14 @@
 <template>
     <div class="login">
-        <div class="bg-shape shape-1"></div>
-        <div class="bg-shape shape-2"></div>
-
         <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
             <div class="header-box">
                 <h3 class="title">欢迎回来</h3>
-                <p class="sub-title">请登录您的账户</p>
+                <p class="sub-title">请登录您的账户以继续</p>
             </div>
 
             <el-form-item class="login-type-item">
                 <div class="login-type-switch">
+                    <div class="switch-active-bar" :style="{ transform: loginForm.loginType === 'PASSWORD' ? 'translateX(0)' : 'translateX(100%)' }"></div>
                     <div class="switch-item" :class="{ active: loginForm.loginType === 'PASSWORD' }" @click="loginForm.loginType = 'PASSWORD'">账号密码</div>
                     <div class="switch-item" :class="{ active: loginForm.loginType === 'SMS' }" @click="loginForm.loginType = 'SMS'">短信验证码</div>
                 </div>
@@ -28,7 +26,7 @@
                     @keyup.enter="handleLogin"
                 >
                     <template #prefix>
-                        <svg-icon icon-class="ep:user" class="input-icon" />
+                        <Icon icon="mdi:account-outline" class="input-icon" />
                     </template>
                 </el-input>
             </el-form-item>
@@ -42,7 +40,7 @@
                     @keyup.enter="handleLogin"
                 >
                     <template #prefix>
-                        <svg-icon icon-class="mdi:lock" class="input-icon" />
+                        <Icon icon="mdi:lock-outline" class="input-icon" />
                     </template>
                     <template #suffix>
                         <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="password-toggle" @click.stop="togglePassword" />
@@ -54,10 +52,9 @@
                 <div class="sms-input-group">
                     <el-input v-model="loginForm.smsCode" maxlength="6" placeholder="6位验证码" @keyup.enter="handleLogin" class="sms-input">
                         <template #prefix>
-                            <svg-icon icon-class="ep:message" class="input-icon" />
+                            <Icon icon="mdi:message-text-outline" class="input-icon" />
                         </template>
                     </el-input>
-
                     <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
                         {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
                     </el-button>
@@ -66,12 +63,12 @@
 
             <div class="form-options">
                 <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" label="记住我" />
-                <router-link v-if="register" to="/register" class="register-link"> 注册账号 </router-link>
+                <router-link v-if="register" to="/register" class="register-link"> 注册新账号 </router-link>
             </div>
 
             <el-form-item style="margin-bottom: 0">
                 <el-button :loading="loading" type="primary" class="login-btn" @click.prevent="handleLogin">
-                    {{ loading ? '登录中...' : '登录' }}
+                    {{ loading ? '登录中...' : '立即登录' }}
                 </el-button>
             </el-form-item>
         </el-form>
@@ -264,7 +261,6 @@ function togglePassword() {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #f0f4f8 0%, #dbeafe 100%);
     background-image: url('../assets/images/login-background.jpg');
     background-size: cover;
     background-position: center;
@@ -274,41 +270,19 @@ function togglePassword() {
         content: '';
         position: absolute;
         inset: 0;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(2px);
+        background: rgba(0, 0, 0, 0.1);
         z-index: 0;
     }
 }
 
-.bg-shape {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
-    z-index: 0;
-    opacity: 0.5;
-}
-.shape-1 {
-    width: 400px;
-    height: 400px;
-    background: #3b82f6;
-    top: -150px;
-    left: -100px;
-}
-.shape-2 {
-    width: 300px;
-    height: 300px;
-    background: #60a5fa;
-    bottom: -100px;
-    right: -50px;
+.animate-in {
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.animate-in {
-    animation: slideUp 0.5s ease-out;
-}
-@keyframes slideUp {
+@keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(40px);
     }
     to {
         opacity: 1;
@@ -319,123 +293,177 @@ function togglePassword() {
 .login-form {
     position: relative;
     z-index: 10;
-    width: 400px;
-    padding: 36px 40px;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    border-radius: 12px;
+    width: 420px;
+    padding: 48px 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 24px;
     box-shadow:
-        0 10px 40px -10px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(255, 255, 255, 1) inset;
+        0 20px 40px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.05) inset;
 }
 
 .header-box {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
 
     .title {
         margin: 0;
-        font-size: 22px;
-        font-weight: 700;
+        font-size: 26px;
+        font-weight: 800;
         color: #1e293b;
-        letter-spacing: 0.5px;
+        letter-spacing: -0.5px;
     }
 
     .sub-title {
-        margin-top: 6px;
-        font-size: 13px;
+        margin-top: 8px;
+        font-size: 14px;
         color: #64748b;
     }
 }
 
 .login-type-switch {
+    position: relative;
     display: flex;
     background: #f1f5f9;
-    padding: 3px;
-    border-radius: 6px;
-    margin-bottom: 4px;
+    padding: 4px;
+    border-radius: 12px;
     width: 100%;
+    height: 44px;
+
+    .switch-active-bar {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: calc(50% - 4px);
+        height: calc(100% - 8px);
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+    }
 
     .switch-item {
-        /* 核心修复：使用flex布局强制完全居中 */
+        position: relative;
+        z-index: 2;
+        flex: 1;
         display: flex;
         justify-content: center;
         align-items: center;
-        flex: 1;
-        /* 保持一定高度 */
-        padding: 6px 0;
-        font-size: 13px;
-        /* 重置行高，防止文字自带的leading导致偏下 */
-        line-height: 1;
+        font-size: 14px;
         color: #64748b;
         cursor: pointer;
-        border-radius: 4px;
-        transition: all 0.2s ease;
+        border-radius: 8px;
+        transition: color 0.3s;
         font-weight: 500;
+        user-select: none;
 
         &:hover {
             color: #334155;
         }
 
         &.active {
-            background: #ffffff;
             color: #3b82f6;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
             font-weight: 600;
         }
     }
 }
 
 :deep(.el-form-item) {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+}
+
+:deep(.login-type-item) {
+    margin-bottom: 12px;
 }
 
 :deep(.el-input__wrapper) {
     background-color: #f8fafc;
     box-shadow: none !important;
-    border-radius: 6px;
-    padding: 0 12px;
-    height: 38px;
-    line-height: 38px;
-    transition: all 0.2s;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 16px;
+    height: 48px;
+    line-height: 48px;
+    transition: all 0.3s ease;
 
     &:hover {
-        background-color: #f1f5f9;
+        background-color: #ffffff;
+        border-color: #cbd5e1;
     }
 
     &.is-focus {
         background-color: #ffffff;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-        border: 1px solid #3b82f6;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
     }
 }
 
 :deep(.el-input__inner) {
-    height: 38px;
-    font-size: 14px;
-    color: #334155;
+    height: 48px;
+    font-size: 15px;
+    color: #1e293b;
+    font-weight: 500;
+
+    &::placeholder {
+        color: #94a3b8;
+        font-weight: 400;
+    }
 }
 
 .input-icon {
-    font-size: 16px;
+    font-size: 18px;
     color: #94a3b8;
-    margin-right: 6px;
+    margin-right: 8px;
+    transition: color 0.3s;
+}
+
+:deep(.el-input__wrapper.is-focus) .input-icon {
+    color: #3b82f6;
+}
+
+.password-toggle {
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 18px;
+    transition: color 0.2s;
+    margin-right: 8px;
+
+    &:hover {
+        color: #64748b;
+    }
 }
 
 .sms-input-group {
     display: flex;
-    gap: 10px;
+    gap: 12px;
 
     .sms-input {
         flex: 1;
     }
 
     .sms-btn {
-        height: 38px;
-        min-width: 100px;
-        border-radius: 6px;
-        padding: 0 12px;
-        font-size: 13px;
+        height: 48px;
+        padding: 0 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+        transition: all 0.2s;
+
+        &:hover:not(.is-disabled) {
+            background: #3b82f6;
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+
+        &.is-disabled {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #94a3b8;
+        }
     }
 }
 
@@ -443,60 +471,70 @@ function togglePassword() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: -4px;
-    margin-bottom: 20px;
+    margin-top: -8px;
+    margin-bottom: 28px;
+    padding: 0 4px;
 
     :deep(.el-checkbox__label) {
         color: #64748b;
-        font-size: 13px;
+        font-size: 14px;
+    }
+
+    :deep(.el-checkbox__inner) {
+        border-radius: 4px;
     }
 
     .register-link {
         color: #3b82f6;
-        font-size: 13px;
+        font-size: 14px;
         text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
 
         &:hover {
-            text-decoration: underline;
+            color: #2563eb;
         }
     }
 }
 
 .login-btn {
     width: 100%;
-    height: 38px;
-    font-size: 15px;
-    font-weight: 500;
-    border-radius: 6px;
-    background: #3b82f6;
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     border: none;
-    transition: all 0.2s;
+    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        background: #2563eb;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.5);
     }
 
     &:active {
         transform: translateY(0);
+        box-shadow: 0 5px 15px -5px rgba(59, 130, 246, 0.4);
     }
 }
 
 .el-login-footer {
     position: fixed;
-    bottom: 16px;
+    bottom: 24px;
     width: 100%;
     text-align: center;
-    color: rgba(100, 116, 139, 0.6);
-    font-size: 12px;
+    color: #64748b;
+    font-size: 13px;
     pointer-events: none;
+    z-index: 5;
 }
 
 @media (max-width: 768px) {
     .login-form {
-        width: 92%;
-        padding: 30px 24px;
+        width: 90%;
+        padding: 40px 24px;
+        margin: 0 20px;
     }
 }
 </style>

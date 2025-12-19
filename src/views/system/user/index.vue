@@ -3,16 +3,13 @@
         <el-row :gutter="20">
             <splitpanes :horizontal="appStore.device === 'mobile'" class="default-theme">
                 <!--部门数据-->
-                <pane size="16">
-                    <el-col>
+                <pane size="18" min-size="15" max-size="30">
+                    <div class="dept-wrapper">
                         <div class="head-container">
-                            <el-input v-model="deptName" placeholder="请输入部门名称" clearable style="margin-bottom: 20px">
-                                <template #prefix>
-                                    <Icon icon="ep:search" class="input-prefix-icon" />
-                                </template>
-                            </el-input>
+                            <el-input v-model="deptName" placeholder="请输入部门名称" clearable prefix-icon="Search" style="margin-bottom: 20px" />
                         </div>
-                        <div class="head-container">
+
+                        <div class="tree-container">
                             <el-tree
                                 :data="deptOptions"
                                 :props="{ label: 'label', children: 'children' }"
@@ -23,9 +20,27 @@
                                 highlight-current
                                 default-expand-all
                                 @node-click="handleNodeClick"
-                            />
+                                class="depart-tree"
+                            >
+                                <template #default="{ node, data }">
+                                    <span class="custom-tree-node">
+                                        <el-icon class="tree-icon">
+                                            <Icon
+                                                :icon="
+                                                    node.level === 1
+                                                        ? 'ep:school'
+                                                        : data.children && data.children.length > 0
+                                                          ? 'mdi:account-supervisor'
+                                                          : 'ep:user'
+                                                "
+                                            />
+                                        </el-icon>
+                                        <span class="node-label" :title="node.label">{{ node.label }}</span>
+                                    </span>
+                                </template>
+                            </el-tree>
                         </div>
-                    </el-col>
+                    </div>
                 </pane>
                 <!--用户数据-->
                 <pane size="84">
@@ -337,6 +352,7 @@ import useAppStore from '@/store/modules/app'
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from '@/api/system/user'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -708,3 +724,81 @@ onMounted(() => {
     })
 })
 </script>
+<style lang="css">
+/* 左侧容器适配 */
+.dept-wrapper {
+    height: 100%;
+    padding: 20px; /* 保持与 Ruoyi app-container 一致的内边距 */
+    background: #fff;
+    border-right: 1px solid #f0f0f0; /* 右侧加一条淡分割线 */
+    display: flex;
+    flex-direction: column;
+}
+
+/* 树容器自适应高度与滚动 */
+.tree-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-top: 5px;
+
+    /* 滚动条美化 */
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #e0e5eb;
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+}
+
+.depart-tree {
+    background: transparent;
+    color: #606266;
+    font-size: 14px;
+
+    :deep(.el-tree-node__content) {
+        height: 36px;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        transition: all 0.2s;
+
+        &:hover {
+            background-color: #f5f7fa;
+        }
+    }
+
+    :deep(.el-tree-node.is-current > .el-tree-node__content) {
+        background-color: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+        font-weight: 500;
+
+        .tree-icon {
+            color: var(--el-color-primary);
+        }
+    }
+}
+
+/* 节点内容布局 */
+.custom-tree-node {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+
+    .tree-icon {
+        margin-right: 6px;
+        font-size: 15px;
+        color: #999;
+    }
+
+    .node-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+</style>

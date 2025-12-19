@@ -1,21 +1,18 @@
 <template>
     <div class="app-container">
         <el-form :model="queryParams" ref="queryRef" v-show="showSearch" :inline="true" label-width="68px">
-            <!-- 帖子类型 -->
             <el-form-item label="帖子类型" prop="postType">
                 <el-select v-model="queryParams.postType" placeholder="请选择帖子类型" clearable style="width: 240px">
                     <el-option v-for="opt in postTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value"> </el-option>
                 </el-select>
             </el-form-item>
 
-            <!-- 审核状态 -->
             <el-form-item label="审核状态" prop="auditStatus">
                 <el-select v-model="queryParams.auditStatus" placeholder="请选择审核状态" clearable style="width: 240px">
                     <el-option v-for="opt in auditStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value"> </el-option>
                 </el-select>
             </el-form-item>
 
-            <!-- 内容状态 -->
             <el-form-item label="内容状态" prop="status">
                 <el-select v-model="queryParams.status" placeholder="请选择内容状态" clearable style="width: 240px">
                     <el-option v-for="opt in contentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value"> </el-option>
@@ -48,22 +45,18 @@
                 <EnumTag enum-type="POST_TYPE" :value="row.postType" />
             </template>
 
-            <!-- 图片/视频列 -->
             <template #media="{ row }">
                 <MediaPreview :post-type="row.postType" :media-urls="row.mediaUrls" :audit-status="row.auditStatus" :mode="AUDIT_MEDIA_MODE.CELL" />
             </template>
 
-            <!-- 内容状态列 -->
             <template #status="{ row }">
                 <EnumTag enum-type="CONTENT_STATUS" :value="row.status" />
             </template>
 
-            <!-- 审核状态列 -->
             <template #auditStatus="{ row }">
                 <EnumTag enum-type="AUDIT_STATUS" :value="row.auditStatus" />
             </template>
 
-            <!-- 操作列 -->
             <template #operations="{ row }">
                 <el-tooltip content="查看详情" placement="top">
                     <el-button link type="primary" @click="handleView(row)">

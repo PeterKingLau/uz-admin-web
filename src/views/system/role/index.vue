@@ -32,12 +32,12 @@
                 <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:role:add']"><Icon icon="ep:plus"></Icon>新增</el-button>
             </el-col>
             <el-col :span="1.5">
-                <el-button type="success" plain :disabled="single" @click="handleUpdate" v-hasPermi="['system:role:edit']"
+                <el-button type="success" plain :disabled="single || hasSuperAdmin" @click="handleUpdate" v-hasPermi="['system:role:edit']"
                     ><Icon icon="ep:edit"></Icon>修改</el-button
                 >
             </el-col>
             <el-col :span="1.5">
-                <el-button type="danger" plain :disabled="multiple" @click="handleDelete" v-hasPermi="['system:role:remove']"
+                <el-button type="danger" plain :disabled="multiple || hasSuperAdmin" @click="handleDelete" v-hasPermi="['system:role:remove']"
                     ><Icon icon="ep:delete"></Icon>删除</el-button
                 >
             </el-col>
@@ -56,7 +56,13 @@
             <el-table-column label="显示顺序" prop="roleSort" width="100" />
             <el-table-column label="状态" align="center" width="100">
                 <template #default="scope">
-                    <el-switch v-model="scope.row.status" active-value="0" inactive-value="1" @change="handleStatusChange(scope.row)"></el-switch>
+                    <el-switch
+                        v-model="scope.row.status"
+                        active-value="0"
+                        inactive-value="1"
+                        :disabled="scope.row.roleId === 1"
+                        @change="handleStatusChange(scope.row)"
+                    ></el-switch>
                 </template>
             </el-table-column>
             <el-table-column label="创建时间" align="center" prop="createTime">
@@ -192,6 +198,7 @@ const showSearch = ref(true)
 const ids = ref([])
 const single = ref(true)
 const multiple = ref(true)
+const hasSuperAdmin = ref(false)
 const total = ref(0)
 const title = ref('')
 const dateRange = ref([])
@@ -258,6 +265,10 @@ function resetQuery() {
 /** 删除按钮操作 */
 function handleDelete(row) {
     const roleIds = row.roleId || ids.value
+    if ((Array.isArray(roleIds) && roleIds.includes(1)) || roleIds === 1) {
+        proxy.$modal.msgWarning('不允许操作超级管理员')
+        return
+    }
     proxy.$modal
         .confirm('是否确认删除角色编号为"' + roleIds + '"的数据项?')
         .then(function () {
@@ -286,6 +297,7 @@ function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.roleId)
     single.value = selection.length != 1
     multiple.value = !selection.length
+    hasSuperAdmin.value = selection.some(item => item.roleId === 1)
 }
 
 /** 角色状态修改 */
@@ -374,6 +386,10 @@ function handleAdd() {
 
 /** 修改角色 */
 function handleUpdate(row) {
+    if ((row && row.roleId === 1) || (!row && ids.value.includes(1))) {
+        proxy.$modal.msgWarning('不允许操作超级管理员')
+        return
+    }
     reset()
     const roleId = row.roleId || ids.value
     const roleMenu = getRoleMenuTreeselect(roleId)
