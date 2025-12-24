@@ -48,7 +48,9 @@
             <el-table-column prop="menuName" label="菜单名称" :show-overflow-tooltip="true" width="160"></el-table-column>
             <el-table-column prop="icon" label="图标" align="center" width="100">
                 <template #default="scope">
-                    <Icon :icon="scope.row.icon" class="menu-icon" />
+                    <span class="menu-icon">
+                        <Icon v-if="scope.row.icon" :icon="scope.row.icon" />
+                    </span>
                 </template>
             </el-table-column>
 
@@ -65,7 +67,7 @@
                     <span>{{ parseTime(scope.row.createTime) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" width="210" class-name="small-padding fixed-width">
+            <el-table-column label="操作" align="center" width="260" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']">
                         <el-icon><Icon icon="ep:edit" /></el-icon>
@@ -74,6 +76,10 @@
                     <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']">
                         <el-icon><Icon icon="ep:plus" /></el-icon>
                         新增
+                    </el-button>
+                    <el-button link type="primary" @click="handleCopy(scope.row)" v-hasPermi="['system:menu:add']">
+                        <el-icon><Icon icon="ep:copy-document" /></el-icon>
+                        复制
                     </el-button>
                     <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']">
                         <el-icon><Icon icon="ep:delete" /></el-icon>
@@ -417,6 +423,19 @@ async function handleUpdate(row) {
         form.value = response.data
         open.value = true
         title.value = '修改菜单'
+    })
+}
+
+function handleCopy(row) {
+    reset()
+    getTreeselect()
+    getMenu(row.menuId).then(response => {
+        const data = { ...response.data }
+        data.menuId = undefined
+        data.menuName = data.menuName ? `${data.menuName} - 副本` : data.menuName
+        form.value = data
+        open.value = true
+        title.value = '复制菜单'
     })
 }
 

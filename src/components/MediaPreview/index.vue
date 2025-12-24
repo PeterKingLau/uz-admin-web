@@ -1,117 +1,75 @@
 <template>
     <div class="audit-media-preview">
-        <!-- 内容已删除 -->
-        <template v-if="isAuditRejected">
-            <el-tag type="danger" size="small">内容已删除</el-tag>
-        </template>
+        <div v-if="isAuditRejected" class="status-wrapper">
+            <el-tag type="danger" effect="plain" round> <Icon icon="mdi:alert-circle-outline" class="mr-1" /> 内容已删除 </el-tag>
+        </div>
 
-        <!-- 无数据 -->
-        <template v-else-if="limitedList.length === 0">
-            <el-tag type="info" size="small">无数据</el-tag>
-        </template>
+        <div v-else-if="normalizedList.length === 0" class="status-wrapper">
+            <span class="text-gray">无媒体资源</span>
+        </div>
 
-        <!-- 正常内容展示 -->
-        <template v-else>
-            <!-- 图片类型 -->
+        <div v-else class="media-content">
             <template v-if="isImagePost">
-                <el-image
-                    :src="imageList[0]"
-                    fit="cover"
-                    style="width: 120px; height: 120px; cursor: pointer"
-                    :preview-src-list="imageList"
-                    :initial-index="0"
-                    show-progress
-                    :infinite="false"
-                    preview-teleported
-                    @error="onImageError"
-                >
-                    <template #toolbar="{ actions, prev, next, setActiveItem }">
-                        <Icon @click="prev" icon="mdi:chevron-left" style="cursor: pointer" />
-                        <Icon @click="next" icon="mdi:chevron-right" style="cursor: pointer" />
-                        <Icon @click="setActiveItem(imageList.length - 1)" icon="mdi:chevron-double-right" style="cursor: pointer" />
-                        <Icon @click="actions('zoomOut')" icon="ep:zoom-out" style="cursor: pointer" />
-                        <Icon @click="actions('zoomIn', { enableTransition: false, zoomRate: 2 })" icon="ep:zoom-in" style="cursor: pointer" />
-                        <Icon @click="actions('clockwise')" icon="mdi:rotate-right" style="cursor: pointer" />
-                        <Icon @click="actions('anticlockwise')" icon="mdi:rotate-left" style="cursor: pointer" />
-                    </template>
-                </el-image>
+                <div class="image-grid">
+                    <div v-for="(img, index) in displayImages" :key="index" class="image-item" @click="openPreview(index)">
+                        <el-image :src="img" fit="cover" class="grid-img" loading="lazy">
+                            <template #error>
+                                <div class="image-error">
+                                    <Icon icon="mdi:image-off-outline" />
+                                </div>
+                            </template>
+                        </el-image>
+                        <div v-if="index === displayImages.length - 1 && remainingCount > 0" class="more-overlay">+{{ remainingCount }}</div>
+                    </div>
+                </div>
 
-                <template v-if="imageError">
-                    <Icon icon="ep:picture-filled" style="font-size: 40px; color: #ccc" />
-                </template>
+                <el-image-viewer
+                    v-if="showViewer"
+                    :url-list="imageList"
+                    :initial-index="initialIndex"
+                    :z-index="4000"
+                    :teleported="true"
+                    :show-progress="imageList.length > 1"
+                    @close="closeViewer"
+                />
             </template>
 
             <template v-else-if="isVideoPost">
-                <template v-if="isCellMode">
-                    <div class="video-thumb" style="position: relative; display: inline-block; width: 120px; height: 80px; cursor: pointer" @click="openVideo">
-                        <el-image :src="videoThumb" fit="cover" style="width: 100%; height: 100%; border-radius: 4px" />
-                        <div
-                            style="
-                                position: absolute;
-                                inset: 0;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                background: rgba(0, 0, 0, 0.25);
-                                border-radius: 4px;
-                            "
-                        >
-                            <el-icon style="font-size: 28px; color: #fff">
-                                <Icon icon="ep:video-play" />
-                            </el-icon>
-                        </div>
-                    </div>
-
-                    <el-dialog title="视频预览" v-model="videoVisible" width="720px" append-to-body :destroy-on-close="true" @close="handleVideoClose">
-                        <video v-if="videoSrc" ref="videoRef" :src="videoSrc" controls style="width: 100%; max-height: 480px; border-radius: 4px" />
-                        <template #footer>
-                            <div class="dialog-footer">
-                                <el-button @click="videoVisible = false">关 闭</el-button>
+                <div class="video-wrapper" @click="openVideo">
+                    <el-image :src="videoThumb" fit="cover" class="video-cover">
+                        <template #error>
+                            <div class="video-error-cover">
+                                <Icon icon="mdi:video-off-outline" />
                             </div>
                         </template>
-                    </el-dialog>
-                </template>
+                    </el-image>
+                    <div class="play-overlay">
+                        <Icon icon="mdi:play-circle-outline" class="play-icon" />
+                    </div>
+                </div>
 
-                <template v-else>
-                    <video v-if="videoSrc" :src="videoSrc" controls style="width: 100%; max-height: 280px; border-radius: 4px" />
-                    <span v-else>无数据</span>
-                </template>
+                <el-dialog v-model="videoVisible" title="视频预览" width="800px" append-to-body destroy-on-close @close="handleVideoClose" class="video-dialog">
+                    <div class="video-player-container">
+                        <video v-if="videoSrc" ref="videoRef" :src="videoSrc" controls autoplay class="preview-video" />
+                    </div>
+                </el-dialog>
             </template>
-
-            <!-- 默认无数据 -->
-            <template v-else>
-                <span class="text-gray-500">无数据</span>
-            </template>
-        </template>
+        </div>
     </div>
 </template>
 
 <script setup>
 import { computed, ref, getCurrentInstance } from 'vue'
 import { isExternal } from '@/utils/validate'
-
-import { POST_TYPE, AUDIT_STATUS, AUDIT_MEDIA_MODE as MODE } from '@/utils/enum'
+import { POST_TYPE, AUDIT_STATUS } from '@/utils/enum'
+import { Icon } from '@iconify/vue'
 
 const props = defineProps({
-    postType: {
-        type: String,
-        default: ''
-    },
-    mediaUrls: {
-        type: [String, Array],
-        default: () => []
-    },
-    mode: {
-        type: String
-    },
-    auditStatus: {
-        type: String,
-        default: AUDIT_STATUS.PENDING
-    }
+    postType: { type: String, default: '' },
+    mediaUrls: { type: [String, Array], default: () => [] },
+    auditStatus: { type: String, default: AUDIT_STATUS.PENDING },
+    maxDisplayCount: { type: Number, default: 3 }
 })
-
-const videoVisible = ref(false)
-const videoRef = ref(null)
 
 const { proxy } = getCurrentInstance()
 
@@ -119,78 +77,65 @@ const isAuditRejected = computed(() => props.auditStatus === AUDIT_STATUS.REJECT
 const isImagePost = computed(() => props.postType === POST_TYPE.IMAGE)
 const isVideoPost = computed(() => props.postType === POST_TYPE.VIDEO)
 
-const maxCount = 9
 const normalizedList = computed(() => {
     if (isAuditRejected.value) return []
-
     let list = props.mediaUrls
     if (!list) return []
 
-    const transformUrl = url => {
-        return !isExternal(url) && proxy?.$imgUrl ? proxy.$imgUrl(url) : url
-    }
+    const transformUrl = url => (!isExternal(url) && proxy?.$imgUrl ? proxy.$imgUrl(url) : url)
 
+    let result = []
     if (Array.isArray(list)) {
-        return list.map(transformUrl).filter(Boolean)
-    }
-
-    if (typeof list === 'string') {
+        result = list
+    } else if (typeof list === 'string') {
         const trimmed = list.trim()
-        if (!trimmed) return []
-
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             try {
-                const parsed = JSON.parse(trimmed)
-                if (Array.isArray(parsed)) {
-                    return parsed.map(transformUrl).filter(Boolean)
-                }
+                result = JSON.parse(trimmed)
             } catch {}
+        } else {
+            result = trimmed.split(',').map(s => s.trim())
         }
-
-        return trimmed
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean)
-            .map(transformUrl)
     }
-
-    return []
+    return result.filter(Boolean).map(transformUrl)
 })
 
-const limitedList = computed(() => normalizedList.value.slice(0, maxCount))
+// 所有图片列表（用于预览）
+const imageList = computed(() => (isImagePost.value ? normalizedList.value : []))
 
-const imageList = computed(() => {
-    if (!isImagePost.value) return []
-    return limitedList.value
-})
+// 列表展示的图片（最多3张）
+const displayImages = computed(() => imageList.value.slice(0, Math.max(0, props.maxDisplayCount)))
 
-const currentImageIndex = ref(0)
+// 剩余未显示的图片数量
+const remainingCount = computed(() => Math.max(0, imageList.value.length - Math.max(0, props.maxDisplayCount)))
 
-const modeValue = computed(() => props.mode || MODE.CELL)
-const isCellMode = computed(() => modeValue.value === MODE.CELL)
-
-const isPreviewMode = ref(false)
-
-// 处理图片加载失败
-const imageError = ref(false)
+// 图片预览相关
+const showViewer = ref(false)
+const initialIndex = ref(0)
 
 function openPreview(index) {
-    currentImageIndex.value = index
-    isPreviewMode.value = true
+    initialIndex.value = index
+    showViewer.value = true
 }
 
-function onImageError() {
-    imageError.value = true // 图片加载失败时设置为true
+function closeViewer() {
+    showViewer.value = false
 }
+
+// 视频相关
+const videoVisible = ref(false)
+const videoRef = ref(null)
 
 const videoThumb = computed(() => {
     if (!isVideoPost.value) return ''
-    return limitedList.value[0] || ''
+    // 如果有专门的封面图逻辑可以在这里处理，这里默认取第一张作为封面
+    return normalizedList.value[0] || ''
 })
 
 const videoSrc = computed(() => {
     if (!isVideoPost.value) return ''
-    return limitedList.value[1] || limitedList.value[0] || ''
+    // 假设第二个地址是视频，或者第一个地址就是视频（取决于你的数据结构）
+    return normalizedList.value[1] || normalizedList.value[0] || ''
 })
 
 function openVideo() {
@@ -200,22 +145,153 @@ function openVideo() {
 
 function handleVideoClose() {
     if (videoRef.value) {
-        try {
-            videoRef.value.pause()
-            videoRef.value.currentTime = 0
-        } catch (e) {}
+        videoRef.value.pause()
     }
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .audit-media-preview {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }
 
-.image-count {
-    margin-top: 4px;
-    font-size: 12px;
+.status-wrapper {
+    display: flex;
+    align-items: center;
     color: #909399;
+    font-size: 13px;
+
+    .mr-1 {
+        margin-right: 4px;
+    }
+}
+
+/* 图片九宫格样式 */
+.image-grid {
+    display: flex;
+    gap: 8px;
+
+    .image-item {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
+        overflow: hidden;
+        cursor: zoom-in;
+        border: 1px solid #eee;
+        transition: transform 0.2s;
+
+        &:hover {
+            transform: scale(1.05);
+            z-index: 1;
+        }
+
+        .grid-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .image-error {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f7fa;
+            color: #c0c4cc;
+            font-size: 24px;
+        }
+
+        .more-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            backdrop-filter: blur(2px);
+        }
+    }
+}
+
+/* 视频封面样式 */
+.video-wrapper {
+    position: relative;
+    width: 140px;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid #eee;
+
+    .video-cover {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.3s;
+    }
+
+    .video-error-cover {
+        width: 100%;
+        height: 100%;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 24px;
+    }
+
+    .play-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s;
+
+        .play-icon {
+            font-size: 32px;
+            color: rgba(255, 255, 255, 0.9);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            transition: transform 0.3s;
+        }
+    }
+
+    &:hover {
+        .video-cover {
+            transform: scale(1.05);
+        }
+        .play-overlay {
+            background: rgba(0, 0, 0, 0.1);
+            .play-icon {
+                transform: scale(1.1);
+            }
+        }
+    }
+}
+
+.video-player-container {
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+
+    .preview-video {
+        width: 100%;
+        max-height: 60vh;
+        outline: none;
+    }
+}
+
+.text-gray {
+    color: #c0c4cc;
+    font-size: 12px;
 }
 </style>

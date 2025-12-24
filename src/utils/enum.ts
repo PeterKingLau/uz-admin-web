@@ -21,11 +21,6 @@ export const PROFILE_APPLY_TYPE = {
     SIGNATURE: 'signature'
 }
 
-export const AUDIT_MEDIA_MODE = {
-    CELL: 'cell',
-    DETAIL: 'detail'
-}
-
 export const ENUM_TAG_CONFIG = {
     POST_TYPE: {
         [POST_TYPE.TEXT]: { label: '文字', type: 'info' },
@@ -56,6 +51,5 @@ export default {
     AUDIT_STATUS,
     CONTENT_STATUS,
     PROFILE_APPLY_TYPE,
-    AUDIT_MEDIA_MODE,
     ENUM_TAG_CONFIG
 }

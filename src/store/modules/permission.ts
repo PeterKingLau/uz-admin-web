@@ -48,6 +48,9 @@ const usePermissionStore = defineStore('permission', {
                     const sidebarRoutes = filterAsyncRouter(sdata)
                     const rewriteRoutes = filterAsyncRouter(rdata, false, true)
                     const defaultRoutes = filterAsyncRouter(defaultData)
+                    ensureUniqueRouteNames(rewriteRoutes)
+                    ensureUniqueRouteNames(sidebarRoutes)
+                    ensureUniqueRouteNames(defaultRoutes)
                     const asyncRoutes = filterDynamicRoutes(dynamicRoutes)
                     asyncRoutes.forEach(route => {
                         router.addRoute(route)
@@ -88,6 +91,32 @@ function filterAsyncRouter(asyncRouterMap: any[], lastRouter = false, type = fal
             delete route['redirect']
         }
         return true
+    })
+}
+
+function ensureUniqueRouteNames(routes: any[], usedNames = new Set<string>(), parentName = '') {
+    routes.forEach(route => {
+        if (route.name) {
+            const originalName = String(route.name)
+            let nextName = originalName
+            if (nextName === parentName || usedNames.has(nextName)) {
+                const pathSuffix = String(route.path || 'child')
+                    .replace(/[\/:]+/g, '_')
+                    .replace(/_+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                nextName = `${originalName}_${pathSuffix || 'child'}`
+                let index = 1
+                while (usedNames.has(nextName)) {
+                    nextName = `${originalName}_${pathSuffix || 'child'}_${index}`
+                    index += 1
+                }
+                route.name = nextName
+            }
+            usedNames.add(String(route.name))
+        }
+        if (route.children && route.children.length) {
+            ensureUniqueRouteNames(route.children, usedNames, String(route.name || parentName))
+        }
     })
 }
 

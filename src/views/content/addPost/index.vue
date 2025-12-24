@@ -397,7 +397,7 @@ function handleReset() {
 }
 
 const getTagType = (id: number) => {
-    const types = ['', 'success', 'warning', 'danger', 'info']
+    const types = ['info', 'success', 'warning', 'danger', 'primary']
     return types[id % types.length]
 }
 </script>

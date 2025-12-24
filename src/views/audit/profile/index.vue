@@ -46,7 +46,7 @@
             </template>
 
             <template #media="{ row }">
-                <MediaPreview :post-type="row.postType" :media-urls="row.mediaUrls" :audit-status="row.auditStatus" :mode="AUDIT_MEDIA_MODE.CELL" />
+                <MediaPreview :post-type="row.postType" :media-urls="row.mediaUrls" :audit-status="row.auditStatus" :max-display-count="1" />
             </template>
 
             <template #status="{ row }">
@@ -120,12 +120,7 @@
                     </div>
                 </el-descriptions-item>
                 <el-descriptions-item label="图片/视频">
-                    <MediaPreview
-                        :post-type="current.postType"
-                        :media-urls="current.mediaUrls"
-                        :audit-status="current.auditStatus"
-                        :mode="AUDIT_MEDIA_MODE.DETAIL"
-                    />
+                    <MediaPreview :post-type="current.postType" :media-urls="current.mediaUrls" :audit-status="current.auditStatus" />
                 </el-descriptions-item>
             </el-descriptions>
 
@@ -153,7 +148,7 @@ import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
 
 import { listContentAudit, auditPost } from '@/api/audit/profile/content'
 import ConfigTable from '@/components/ConfigTable/index.vue'
-import { AUDIT_STATUS, AUDIT_MEDIA_MODE } from '@/utils/enum'
+import { AUDIT_STATUS } from '@/utils/enum'
 import EnumTag from '@/components/EnumTag/index.vue'
 import { CONTENT_AUDIT_COLUMNS, CONTENT_AUDIT_TABLE_KEY } from '@/config/table/contentAuditColumns'
 import { useTableColumnStore } from '@/store/modules/tableColumn'

@@ -32,19 +32,12 @@
             </div>
             <div v-else class="feed-content feed-content--empty">（无正文内容）</div>
 
-            <div v-if="isVisible && isImage && images.length" class="feed-media-inline feed-media-inline--images">
-                <MediaPreview
-                    v-for="(img, idx) in images"
-                    :key="img + idx"
-                    :post-type="post.postType"
-                    :media-urls="[img]"
-                    :audit-status="post.auditStatus"
-                    :mode="auditMode"
-                />
+            <div v-if="isVisible && isImage && mediaList.length" class="feed-media-inline feed-media-inline--images">
+                <MediaPreview :post-type="post.postType" :media-urls="mediaList" :audit-status="post.auditStatus" />
             </div>
 
-            <div v-if="isVisible && isVideo && videos.length" class="feed-media-inline">
-                <MediaPreview :post-type="post.postType" :media-urls="[videos[0]]" :audit-status="post.auditStatus" :mode="auditMode" />
+            <div v-if="isVisible && isVideo && mediaList.length" class="feed-media-inline">
+                <MediaPreview :post-type="post.postType" :media-urls="mediaList" :audit-status="post.auditStatus" />
             </div>
 
             <div class="feed-footer">
@@ -72,10 +65,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import EnumTag from '@/components/EnumTag/index.vue'
 import MediaPreview from '@/components/MediaPreview/index.vue'
-import { isExternal } from '@/utils/validate'
 
 const props = defineProps<{
     post: any
@@ -86,7 +78,6 @@ const emit = defineEmits<{
     (e: 'select', value: boolean): void
 }>()
 
-const { proxy } = getCurrentInstance() || {}
 const rootRef = ref<HTMLElement | null>(null)
 const isVisible = ref(false)
 let observer: IntersectionObserver | null = null
@@ -104,10 +95,6 @@ const fullAvatar = (avatar: string) => {
     if (!avatar) return ''
     if (/^https?:\/\//.test(avatar)) return avatar
     return (import.meta.env.VITE_APP_BASE_API || '') + avatar
-}
-const transformUrl = (url: string) => {
-    const fn = (proxy as any)?.$imgUrl
-    return !isExternal(url) && fn ? fn(url) : url
 }
 const normalizeMediaUrls = (mediaUrls: any): string[] => {
     if (!mediaUrls) return []
@@ -127,36 +114,12 @@ const normalizeMediaUrls = (mediaUrls: any): string[] => {
     }
     return []
 }
-const isImageUrl = (url: string) => {
-    const u = String(url || '')
-        .split('?')[0]
-        .toLowerCase()
-    return /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(u)
-}
-const isVideoUrl = (url: string) => {
-    const u = String(url || '')
-        .split('?')[0]
-        .toLowerCase()
-    return /\.(mp4|webm|ogg|mov|m4v|avi|mkv)$/.test(u)
-}
-
 const isImage = computed(() => String(props.post?.postType) === '2')
 const isVideo = computed(() => String(props.post?.postType) === '3')
 
-const images = computed(() => {
-    if (!isImage.value) return []
-    const urls = normalizeMediaUrls(props.post?.mediaUrls)
-    const imgs = urls.filter(isImageUrl).map(transformUrl)
-    return imgs.length ? imgs : urls.map(transformUrl)
-})
-const videos = computed(() => {
-    if (!isVideo.value) return []
-    const urls = normalizeMediaUrls(props.post?.mediaUrls)
-    const vids = urls.filter(isVideoUrl).map(transformUrl)
-    return vids.length ? vids : urls.map(transformUrl)
-})
+const mediaList = computed(() => normalizeMediaUrls(props.post?.mediaUrls))
 
-const isTextOnly = computed(() => String(props.post?.postType) === '1' && images.value.length === 0 && videos.value.length === 0)
+const isTextOnly = computed(() => String(props.post?.postType) === '1' && mediaList.value.length === 0)
 
 function setupObserver() {
     if (isVisible.value) return

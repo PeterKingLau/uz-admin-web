@@ -2,7 +2,6 @@
     <div class="app-container">
         <el-row :gutter="20">
             <splitpanes :horizontal="appStore.device === 'mobile'" class="default-theme">
-                <!--部门数据-->
                 <pane size="18" min-size="15" max-size="30">
                     <div class="dept-wrapper">
                         <div class="head-container">
@@ -42,7 +41,7 @@
                         </div>
                     </div>
                 </pane>
-                <!--用户数据-->
+
                 <pane size="84">
                     <el-col>
                         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
@@ -206,7 +205,6 @@
             </splitpanes>
         </el-row>
 
-        <!-- 添加或修改用户配置对话框 -->
         <el-dialog :title="title" v-model="open" width="600px" append-to-body>
             <el-form :model="form" :rules="rules" ref="userRef" label-width="80px">
                 <el-row>
@@ -312,7 +310,6 @@
             </template>
         </el-dialog>
 
-        <!-- 用户导入对话框 -->
         <el-dialog :title="upload.title" v-model="upload.open" width="400px" append-to-body>
             <el-upload
                 ref="uploadRef"
@@ -375,22 +372,16 @@ const enabledDeptOptions = ref(undefined)
 const initPassword = ref(undefined)
 const postOptions = ref([])
 const roleOptions = ref([])
-/*** 用户导入参数 */
+
 const upload = reactive({
-    // 是否显示弹出层（用户导入）
     open: false,
-    // 弹出层标题（用户导入）
     title: '',
-    // 是否禁用上传
     isUploading: false,
-    // 是否更新已经存在的用户数据
     updateSupport: 0,
-    // 设置上传的请求头部
     headers: { Authorization: 'Bearer ' + getToken() },
-    // 上传的地址
     url: import.meta.env.VITE_APP_BASE_API + '/system/user/importData'
 })
-// 列显隐信息
+
 const columns = ref([
     { key: 0, label: `用户编号`, visible: true },
     { key: 1, label: `用户名称`, visible: true },
@@ -455,18 +446,15 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 通过条件过滤节点  */
 const filterNode = (value, data) => {
     if (!value) return true
     return data.label.indexOf(value) !== -1
 }
 
-/** 根据名称筛选部门树 */
 watch(deptName, val => {
     proxy.$refs['deptTreeRef'].filter(val)
 })
 
-/** 查询用户列表 */
 function getList() {
     loading.value = true
     listUser(proxy.addDateRange(queryParams.value, dateRange.value)).then(res => {
@@ -476,7 +464,6 @@ function getList() {
     })
 }
 
-/** 查询部门下拉树结构 */
 function getDeptTree() {
     deptTreeSelect().then(response => {
         deptOptions.value = response.data
@@ -484,7 +471,6 @@ function getDeptTree() {
     })
 }
 
-/** 过滤禁用的部门 */
 function filterDisabledDept(deptList) {
     return deptList.filter(dept => {
         if (dept.disabled) {
@@ -497,19 +483,16 @@ function filterDisabledDept(deptList) {
     })
 }
 
-/** 节点单击事件 */
 function handleNodeClick(data) {
     queryParams.value.deptId = data.id
     handleQuery()
 }
 
-/** 搜索按钮操作 */
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
 function resetQuery() {
     dateRange.value = []
     proxy.resetForm('queryRef')
@@ -518,7 +501,6 @@ function resetQuery() {
     handleQuery()
 }
 
-/** 删除按钮操作 */
 function handleDelete(row) {
     const userIds = row.userId || ids.value
     proxy.$modal
@@ -533,7 +515,6 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 导出按钮操作 */
 function handleExport() {
     proxy.download(
         'system/user/export',
@@ -544,7 +525,6 @@ function handleExport() {
     )
 }
 
-/** 用户状态修改  */
 function handleStatusChange(row) {
     let text = row.status === '0' ? '启用' : '停用'
     proxy.$modal
@@ -560,7 +540,6 @@ function handleStatusChange(row) {
         })
 }
 
-/** 更多操作 */
 function handleCommand(command, row) {
     switch (command) {
         case 'handleResetPwd':
@@ -574,13 +553,11 @@ function handleCommand(command, row) {
     }
 }
 
-/** 跳转角色分配 */
 function handleAuthRole(row) {
     const userId = row.userId
     router.push('/system/user-auth/role/' + userId)
 }
 
-/** 重置密码按钮操作 */
 function handleResetPwd(row) {
     proxy
         .$prompt('请输入"' + row.userName + '"的新密码', '提示', {
@@ -603,30 +580,25 @@ function handleResetPwd(row) {
         .catch(() => {})
 }
 
-/** 选择条数  */
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.userId)
     single.value = selection.length != 1
     multiple.value = !selection.length
 }
 
-/** 导入按钮操作 */
 function handleImport() {
     upload.title = '用户导入'
     upload.open = true
 }
 
-/** 下载模板操作 */
 function importTemplate() {
     proxy.download('system/user/importTemplate', {}, `user_template_${new Date().getTime()}.xlsx`)
 }
 
-/**文件上传中处理 */
 const handleFileUploadProgress = (event, file, fileList) => {
     upload.isUploading = true
 }
 
-/** 文件上传成功处理 */
 const handleFileSuccess = (response, file, fileList) => {
     upload.open = false
     upload.isUploading = false
@@ -637,12 +609,10 @@ const handleFileSuccess = (response, file, fileList) => {
     getList()
 }
 
-/** 提交上传文件 */
 function submitFileForm() {
     proxy.$refs['uploadRef'].submit()
 }
 
-/** 重置操作表单 */
 function reset() {
     form.value = {
         userId: undefined,
@@ -661,13 +631,11 @@ function reset() {
     proxy.resetForm('userRef')
 }
 
-/** 取消按钮 */
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 新增按钮操作 */
 function handleAdd() {
     reset()
     getUser().then(response => {
@@ -679,7 +647,6 @@ function handleAdd() {
     })
 }
 
-/** 修改按钮操作 */
 function handleUpdate(row) {
     reset()
     const userId = row.userId || ids.value
@@ -695,7 +662,6 @@ function handleUpdate(row) {
     })
 }
 
-/** 提交按钮 */
 function submitForm() {
     proxy.$refs['userRef'].validate(valid => {
         if (valid) {
@@ -725,28 +691,25 @@ onMounted(() => {
 })
 </script>
 <style lang="css">
-/* 左侧容器适配 */
 .dept-wrapper {
     height: 100%;
-    padding: 20px; /* 保持与 Ruoyi app-container 一致的内边距 */
-    background: #fff;
-    border-right: 1px solid #f0f0f0; /* 右侧加一条淡分割线 */
+    padding: 20px;
+    background: var(--el-bg-color-overlay, #fff);
+    border-right: 1px solid var(--el-border-color-light, #f0f0f0);
     display: flex;
     flex-direction: column;
 }
 
-/* 树容器自适应高度与滚动 */
 .tree-container {
     flex: 1;
     overflow-y: auto;
     margin-top: 5px;
 
-    /* 滚动条美化 */
     &::-webkit-scrollbar {
         width: 4px;
     }
     &::-webkit-scrollbar-thumb {
-        background: #e0e5eb;
+        background: var(--el-border-color, #e0e5eb);
         border-radius: 4px;
     }
     &::-webkit-scrollbar-track {
@@ -756,7 +719,7 @@ onMounted(() => {
 
 .depart-tree {
     background: transparent;
-    color: #606266;
+    color: var(--el-text-color-regular, #606266);
     font-size: 14px;
 
     :deep(.el-tree-node__content) {
@@ -766,7 +729,7 @@ onMounted(() => {
         transition: all 0.2s;
 
         &:hover {
-            background-color: #f5f7fa;
+            background-color: var(--el-fill-color-light, #f5f7fa);
         }
     }
 
@@ -781,7 +744,6 @@ onMounted(() => {
     }
 }
 
-/* 节点内容布局 */
 .custom-tree-node {
     display: flex;
     align-items: center;
@@ -791,7 +753,7 @@ onMounted(() => {
     .tree-icon {
         margin-right: 6px;
         font-size: 15px;
-        color: #999;
+        color: var(--el-text-color-regular, #999);
     }
 
     .node-label {

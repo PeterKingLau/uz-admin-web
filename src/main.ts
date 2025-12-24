@@ -42,11 +42,18 @@ import MediaPreview from '@/components/MediaPreview/index.vue'
 // 字典标签组件
 import DictTag from '@/components/DictTag/index.vue'
 
-import { Icon } from '@iconify/vue'
+import { Icon, addCollection } from '@iconify/vue/dist/offline'
+import type { IconifyJSON } from '@iconify/types'
+import mdiIcons from '@iconify-json/mdi/icons.json'
+import epIcons from '@iconify-json/ep/icons.json'
+import simpleIcons from '@iconify-json/simple-icons/icons.json'
+
+addCollection(mdiIcons as IconifyJSON)
+addCollection(epIcons as IconifyJSON)
+addCollection(simpleIcons as IconifyJSON)
 
 const app = createApp(App)
 
-// 全局方法挂载
 app.config.globalProperties.useDict = useDict
 app.config.globalProperties.download = download
 app.config.globalProperties.parseTime = parseTime
@@ -57,7 +64,6 @@ app.config.globalProperties.getConfigKey = getConfigKey
 app.config.globalProperties.selectDictLabel = selectDictLabel
 app.config.globalProperties.selectDictLabels = selectDictLabels
 
-// 全局组件挂载
 app.component('DictTag', DictTag)
 app.component('Pagination', Pagination)
 app.component('FileUpload', FileUpload)
@@ -75,11 +81,9 @@ app.component('Icon', Icon)
 
 directive(app)
 
-// 使用element-plus 并且设置全局的大小
 const cookieSize = Cookies.get('size') as ComponentSize | undefined
 const elementSize: ComponentSize = cookieSize ?? 'default'
 
-// 使用 element-plus 并且设置全局的大小
 app.use(ElementPlus, {
     locale,
     size: elementSize

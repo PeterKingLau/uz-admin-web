@@ -24,7 +24,6 @@
             :key="item.id"
             :post="item"
             :checked="selectedIds?.includes(item.id)"
-            :audit-mode="AUDIT_MEDIA_MODE.DETAIL"
             @select="val => emit('select', { id: item.id, checked: val })"
         />
 
@@ -42,7 +41,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import FeedItem from './FeedItem.vue'
-import { AUDIT_MEDIA_MODE } from '@/utils/enum'
 
 const props = defineProps<{
     posts: any[]

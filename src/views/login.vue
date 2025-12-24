@@ -86,6 +86,7 @@ import Cookies from 'js-cookie'
 import { encrypt, decrypt } from '@/utils/jsencrypt'
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
+import { Icon } from '@iconify/vue'
 
 const title = import.meta.env.VITE_APP_TITLE
 const userStore = useUserStore()
@@ -261,6 +262,7 @@ function togglePassword() {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    // 请确保该路径下有背景图片，否则背景是白色的
     background-image: url('../assets/images/login-background.jpg');
     background-size: cover;
     background-position: center;
@@ -270,7 +272,12 @@ function togglePassword() {
         content: '';
         position: absolute;
         inset: 0;
-        background: rgba(0, 0, 0, 0.1);
+        // 【修改点】这里将纯黑色的 rgba(0,0,0,0.1) 修改为带有蓝色倾向的深色。
+        // 使用深蓝灰色 (Slate tone) 会比纯黑看起来更高级，且与整体蓝色调融合。
+        // 你可以根据背景图的实际情况微调透明度（0.2 ~ 0.4 之间通常效果不错）
+        background: rgba(30, 41, 59, 0.25);
+        // 或者使用一个微妙的渐变，效果会更现代：
+        // background: linear-gradient(to bottom, rgba(30, 41, 59, 0.3), rgba(30, 41, 59, 0.1));
         z-index: 0;
     }
 }
@@ -298,7 +305,7 @@ function togglePassword() {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 24px;
     box-shadow:
-        0 20px 40px rgba(0, 0, 0, 0.08),
+        0 25px 50px -12px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(0, 0, 0, 0.05) inset;
 }
 
@@ -524,10 +531,11 @@ function togglePassword() {
     bottom: 24px;
     width: 100%;
     text-align: center;
-    color: #64748b;
+    color: #ffffff;
     font-size: 13px;
     pointer-events: none;
     z-index: 5;
+    opacity: 0.8;
 }
 
 @media (max-width: 768px) {
