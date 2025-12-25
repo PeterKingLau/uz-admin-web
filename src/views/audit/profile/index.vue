@@ -66,6 +66,14 @@
                     </el-button>
                 </el-tooltip>
 
+                <el-tooltip content="删除" placement="top">
+                    <el-button link type="danger" @click="handleDelete(row)">
+                        <el-icon>
+                            <Icon icon="ep:delete" />
+                        </el-icon>
+                    </el-button>
+                </el-tooltip>
+
                 <template v-if="row.auditStatus === AUDIT_STATUS.PENDING">
                     <el-tooltip content="通过" placement="top">
                         <el-button link type="success" @click="handleApprove(row)">
@@ -147,6 +155,7 @@
 import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
 
 import { listContentAudit, auditPost } from '@/api/audit/profile/content'
+import { deletePost } from '@/api/content/post'
 import ConfigTable from '@/components/ConfigTable/index.vue'
 import { AUDIT_STATUS } from '@/utils/enum'
 import EnumTag from '@/components/EnumTag/index.vue'
@@ -280,6 +289,21 @@ function submitReject() {
                 current.value.auditStatus = AUDIT_STATUS.REJECTED
                 current.value.reason = rejectForm.reason
             }
+        })
+        .catch(() => {})
+}
+
+function handleDelete(row) {
+    if (!row?.id) return
+    proxy.$modal
+        .confirm('确认删除该内容吗？')
+        .then(() => deletePost({ postIds: [row.id] }))
+        .then(() => {
+            proxy.$modal?.msgSuccess && proxy.$modal.msgSuccess('删除成功')
+            if (openDetail.value && current.value?.id === row.id) {
+                openDetail.value = false
+            }
+            getList()
         })
         .catch(() => {})
 }

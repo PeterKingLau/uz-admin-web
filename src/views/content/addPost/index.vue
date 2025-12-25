@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="app-container">
         <el-row :gutter="20" class="content-row">
             <el-col :xs="24" :sm="24" :md="14" :lg="15" :xl="16">
@@ -63,7 +63,6 @@
                                 <template #file="{ file }">
                                     <div class="uploaded-file-wrapper">
                                         <img v-if="form.postType === POST_TYPE.IMAGE" class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
-
                                         <video
                                             v-else-if="form.postType === POST_TYPE.VIDEO"
                                             class="el-upload-list__item-thumbnail video-thumbnail"
@@ -107,7 +106,7 @@
                         </el-form-item>
 
                         <div class="form-actions">
-                            <el-button @click="handleReset"> <Icon icon="mdi:refresh" class="btn-icon" /> 重 置 </el-button>
+                            <el-button @click="handleReset(false)"> <Icon icon="mdi:refresh" class="btn-icon" /> 重 置 </el-button>
                             <el-button type="primary" :loading="submitting" @click="handleSubmit">
                                 <Icon icon="mdi:send" class="btn-icon" /> 发布内容
                             </el-button>
@@ -190,24 +189,28 @@
 
 <script setup name="ContentPost" lang="ts">
 import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick } from 'vue'
-import type { UploadUserFile, UploadFile, UploadFiles } from 'element-plus'
+import type { UploadUserFile, UploadFile, UploadFiles, FormInstance } from 'element-plus'
 import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
 import { Icon } from '@iconify/vue'
+import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const { proxy } = getCurrentInstance() || {}
 const userStore = useUserStore()
 
-const form = reactive({
+const initialForm = {
     postType: POST_TYPE.TEXT,
     content: '',
     tagStr: ''
-})
+}
 
+const form = reactive({ ...initialForm })
+
+const formRef = ref<FormInstance>()
 const fileList = ref<UploadUserFile[]>([])
-const uploadRef = ref()
+const uploadRef = ref<any>()
 const submitting = ref(false)
 const previewMediaList = ref<string[]>([])
 const interestTree = ref<any[]>([])
@@ -225,7 +228,7 @@ const updateTime = () => {
 }
 
 const userAvatar = computed(() => {
-    return userStore.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+    return userStore.avatar || defaultAvatar
 })
 
 const userNickName = computed(() => {
@@ -260,11 +263,8 @@ const rules = {
     content: [
         {
             validator: (rule: any, value: string, callback: any) => {
-                if (form.postType === POST_TYPE.TEXT && (!value || !value.trim())) {
-                    callback(new Error('纯文字模式下，正文不能为空'))
-                } else {
-                    callback()
-                }
+                if (form.postType === POST_TYPE.TEXT && (!value || !value.trim())) callback(new Error('纯文字模式下，正文不能为空'))
+                else callback()
             },
             trigger: ['blur', 'change']
         }
@@ -272,44 +272,39 @@ const rules = {
     files: [
         {
             validator: (rule: any, value: any, callback: any) => {
-                if (form.postType !== POST_TYPE.TEXT && !fileList.value.length) {
-                    callback(new Error('请上传素材文件'))
-                } else {
-                    callback()
-                }
+                if (form.postType !== POST_TYPE.TEXT && !fileList.value.length) callback(new Error('请上传素材文件'))
+                else callback()
             },
             trigger: 'change'
         }
     ]
 }
 
-const formRef = ref()
-
 const updatePreviewMedia = () => {
     previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
     previewMediaList.value = []
     if (form.postType === POST_TYPE.TEXT) return
     fileList.value.forEach(file => {
-        if (file.raw) {
-            const url = URL.createObjectURL(file.raw)
-            previewMediaList.value.push(url)
-        }
+        if (file.raw) previewMediaList.value.push(URL.createObjectURL(file.raw))
     })
 }
 
 const handleFileChange = (uploadFile: UploadFile, uploadFiles: UploadFiles) => {
     setTimeout(() => updatePreviewMedia(), 0)
-    if (form.postType !== POST_TYPE.TEXT) formRef.value?.validateField('files')
+    if (form.postType !== POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('files'))
 }
 
 const handleRemove = (file: UploadFile) => {
     uploadRef.value?.handleRemove(file)
     setTimeout(() => updatePreviewMedia(), 0)
+    nextTick(() => formRef.value?.validateField('files'))
 }
 
-const handleTypeChange = () => {
+const handleTypeChange = async () => {
     fileList.value = []
-    previewMediaList.value = []
+    uploadRef.value?.clearFiles?.()
+    updatePreviewMedia()
+    await nextTick()
     formRef.value?.clearValidate()
 }
 
@@ -317,13 +312,13 @@ watch(
     () => selectedTagIds.value,
     ids => {
         form.tagStr = ids.join(',')
+        nextTick(() => formRef.value?.clearValidate(['tagStr']))
     },
     { deep: true }
 )
 
 onMounted(() => {
     loadInterest()
-
     updateTime()
     timer = setInterval(updateTime, 1000)
 })
@@ -337,7 +332,7 @@ async function loadInterest() {
     interestLoading.value = true
     try {
         const res = await getInterestAll()
-        interestTree.value = res.data || res || []
+        interestTree.value = (res as any).data || res || []
     } finally {
         interestLoading.value = false
     }
@@ -352,48 +347,63 @@ function beforeUpload(file: File) {
 }
 
 function handleContentInput() {
-    if (form.postType === POST_TYPE.TEXT) formRef.value?.validateField('content')
+    if (form.postType === POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('content'))
+    else nextTick(() => formRef.value?.clearValidate(['content']))
 }
 
-function handleSubmit() {
+async function handleSubmit() {
     if (!formRef.value) return
+
     if (form.postType !== POST_TYPE.TEXT && fileList.value.length === 0) {
         proxy?.$modal?.msgError(form.postType === POST_TYPE.IMAGE ? '请至少上传一张图片' : '请上传视频')
         return
     }
 
-    formRef.value.validate(async (valid: boolean) => {
-        if (!valid) return
-        try {
-            await proxy?.$modal?.confirm('确认发布该内容吗？')
-            submitting.value = true
-            const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => f.raw).filter(Boolean) as File[]) : []
-            await addPost({
-                postType: form.postType,
-                content: form.content?.trim() || '',
-                tagStr: form.tagStr,
-                files
-            })
-            proxy?.$modal?.msgSuccess('发布成功')
-            handleReset()
-        } catch (e) {
-            console.error(e)
-        } finally {
-            submitting.value = false
-        }
-    })
+    const ok = await formRef.value.validate().catch(() => false)
+    if (!ok) return
+
+    try {
+        await proxy?.$modal?.confirm('确认发布该内容吗？')
+    } catch {
+        return
+    }
+
+    submitting.value = true
+    try {
+        const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => f.raw).filter(Boolean) as File[]) : []
+        await addPost({
+            postType: form.postType,
+            content: form.content?.trim() || '',
+            tagStr: form.tagStr,
+            files
+        })
+        proxy?.$modal?.msgSuccess('发布成功')
+        await handleReset(true)
+    } catch (e) {
+        console.error(e)
+    } finally {
+        submitting.value = false
+    }
 }
 
-function handleReset() {
-    form.postType = POST_TYPE.TEXT
-    form.content = ''
-    form.tagStr = ''
-    selectedTagIds.value = []
-    fileList.value = []
+async function handleReset(afterSubmit = false) {
+    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
     previewMediaList.value = []
-    nextTick(() => {
-        formRef.value?.clearValidate()
-    })
+    fileList.value = []
+    uploadRef.value?.clearFiles?.()
+    selectedTagIds.value = []
+
+    if (formRef.value?.resetFields) {
+        formRef.value.resetFields()
+    }
+
+    Object.assign(form, initialForm)
+
+    await nextTick()
+    formRef.value?.clearValidate()
+
+    await nextTick()
+    updatePreviewMedia()
 }
 
 const getTagType = (id: number) => {
