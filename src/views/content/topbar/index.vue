@@ -32,7 +32,7 @@
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
 
-        <ConfigTable :columns="columns" :data="topbarList" :loading="loading" :table-props="{ border: true }" @selection-change="handleSelectionChange">
+        <ConfigTable :columns="columns" :data="topbarList" :loading="loading" :table-props="{ border: false }" @selection-change="handleSelectionChange">
             <template #status="{ row }">
                 <el-switch
                     v-model="row.isActive"

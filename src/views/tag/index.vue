@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="app-container">
         <!-- 查询条件 -->
         <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" label-width="68px">
