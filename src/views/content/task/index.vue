@@ -27,7 +27,8 @@
                 </div>
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
             </div>
-            <el-table v-loading="loading" :data="questionList" @selection-change="handleSelectionChange" header-cell-class-name="table-header-cell">
+
+            <el-table v-loading="loading" :data="displayQuestionList" @selection-change="handleSelectionChange" header-cell-class-name="table-header-cell">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column label="题目内容" align="left" prop="title" min-width="200" show-overflow-tooltip>
                     <template #default="{ row }">
@@ -152,12 +153,18 @@
         </el-dialog>
 
         <el-dialog title="批量导入题目" v-model="batchOpen" width="600px" append-to-body class="custom-dialog">
-            <el-alert title="格式提示：每行一题" type="info" :closable="false" show-icon class="mb-3" />
-            <el-input v-model="batchText" type="textarea" :rows="10" placeholder="例如：&#10;1. 题目内容一...&#10;2. 题目内容二..." />
+            <el-alert
+                title="格式提示：支持多模块(标题行=moduleCode)，每题可带A/B/C选项与分值；排序为全局自增"
+                type="info"
+                :closable="false"
+                show-icon
+                class="mb-3"
+            />
+            <el-input v-model="batchText" type="textarea" :rows="12" placeholder="例如：&#10;情绪稳定性&#10;问题...?&#10;A. ... (分值:2)&#10;B. ... (分值:1)" />
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="batchOpen = false">取 消</el-button>
-                    <el-button type="primary" :loading="batchLoading" @click="submitBatch">开始生成</el-button>
+                    <el-button type="primary" :loading="batchLoading" @click="submitBatch">开始导入</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -181,9 +188,9 @@
 </template>
 
 <script setup name="AssessmentQuestionList" lang="ts">
-import { getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
-import { parseTime } from '@/utils/ruoyi'
+import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
 import { Icon } from '@iconify/vue'
+import { parseTime } from '@/utils/ruoyi'
 import {
     addAssessmentQuestion,
     deleteAssessmentQuestion,
@@ -225,6 +232,8 @@ const selectedRows = ref<AssessmentQuestionItem[]>([])
 const single = ref(true)
 const multiple = ref(true)
 
+const serverPaginationOk = ref(true)
+
 const data = reactive({
     queryParams: {
         pageNum: 1,
@@ -262,25 +271,36 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
+const displayQuestionList = computed(() => {
+    const pageNum = Number(queryParams.value.pageNum || 1)
+    const pageSize = Number(queryParams.value.pageSize || 10)
+    const rows = questionList.value || []
+    if (serverPaginationOk.value) return rows
+    const start = (pageNum - 1) * pageSize
+    const end = start + pageSize
+    return rows.slice(start, end)
+})
+
 function getQuestionTitle(row: AssessmentQuestionItem) {
-    return row.title || row.questionTitle || row.name || row.questionName || row.content || '-'
+    return (row as any).title || (row as any).questionTitle || (row as any).name || (row as any).questionName || (row as any).content || '-'
 }
 
 function getQuestionType(row: AssessmentQuestionItem) {
-    const val = row.typeName || row.questionTypeName || row.type || row.questionType
+    const val = (row as any).typeName || (row as any).questionTypeName || (row as any).type || (row as any).questionType
     if (val === 'ABILITY') return '能力题'
     if (val === 'NORMAL') return '普通题'
     return val || '-'
 }
 
 function getQuestionLevel(row: AssessmentQuestionItem) {
-    return row.difficultyName || row.levelName || row.difficulty || row.level || '-'
+    return (row as any).difficultyName || (row as any).levelName || (row as any).difficulty || (row as any).level || '-'
 }
 
 function getQuestionScore(row: AssessmentQuestionItem) {
-    if (row.score !== undefined && row.score !== null) return row.score
-    if (row.points !== undefined && row.points !== null) return row.points
-    if (row.point !== undefined && row.point !== null) return row.point
+    const anyRow: any = row
+    if (anyRow.score !== undefined && anyRow.score !== null) return anyRow.score
+    if (anyRow.points !== undefined && anyRow.points !== null) return anyRow.points
+    if (anyRow.point !== undefined && anyRow.point !== null) return anyRow.point
     return '-'
 }
 
@@ -289,13 +309,31 @@ function formatTimeCell(val: any) {
     return parseTime(val)
 }
 
-async function getList() {
+async function getList(pagination?: { page?: number; limit?: number }) {
+    const pageNum = Number(pagination?.page ?? queryParams.value.pageNum ?? 1)
+    const pageSize = Number(pagination?.limit ?? queryParams.value.pageSize ?? 10)
+    queryParams.value.pageNum = Number.isFinite(pageNum) && pageNum > 0 ? pageNum : 1
+    queryParams.value.pageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 10
+
+    if (!serverPaginationOk.value && pagination) return
+
     loading.value = true
     try {
-        const res = await listAssessmentQuestions(queryParams.value)
-        const rows = parseAssessmentQuestionRows(res)
+        const res = await listAssessmentQuestions({
+            ...queryParams.value,
+            pageNum: queryParams.value.pageNum,
+            pageSize: queryParams.value.pageSize
+        } as any)
+
+        const rows = parseAssessmentQuestionRows(res) || []
         questionList.value = rows
-        total.value = (res as any)?.total ?? (res as any)?.data?.total ?? rows.length
+
+        const resTotal = (res as any)?.total ?? (res as any)?.data?.total
+        const pageSizeNow = Number(queryParams.value.pageSize || 10)
+
+        serverPaginationOk.value = !(rows.length > pageSizeNow)
+
+        total.value = Number.isFinite(Number(resTotal)) ? Number(resTotal) : rows.length
     } catch (error) {
         console.error(error)
         proxy?.$modal?.msgError?.('获取题目列表失败')
@@ -306,6 +344,7 @@ async function getList() {
 
 function handleQuery() {
     queryParams.value.pageNum = 1
+    serverPaginationOk.value = true
     getList()
 }
 
@@ -316,7 +355,7 @@ function resetQuery() {
 
 function handleSelectionChange(selection: AssessmentQuestionItem[]) {
     selectedRows.value = selection
-    ids.value = selection.map(item => item.id).filter(Boolean)
+    ids.value = selection.map(item => (item as any).id).filter(Boolean)
     single.value = selection.length !== 1
     multiple.value = !selection.length
 }
@@ -334,6 +373,11 @@ function resetFormData() {
     proxy?.resetForm?.('formRef')
 }
 
+function resetOptions() {
+    formOptions.value = []
+    removedOptionIds.value = []
+}
+
 function handleAdd() {
     resetFormData()
     resetOptions()
@@ -342,28 +386,24 @@ function handleAdd() {
 }
 
 function handleEdit(row: AssessmentQuestionItem) {
-    if (!row?.id) {
+    const anyRow: any = row
+    if (!anyRow?.id) {
         proxy?.$modal?.msgWarning?.('未找到要修改的题目')
         return
     }
     resetFormData()
     form.value = {
-        id: row.id,
-        moduleCode: row.moduleCode || '',
-        type: row.type || '',
-        content: row.content || row.title || row.questionContent || '',
-        questionType: String(row.questionType ?? row.questionTypeCode ?? '1'),
-        correctAnswer: row.correctAnswer || row.answer || '',
-        sortOrder: Number(row.sortOrder ?? row.sort ?? 0)
+        id: anyRow.id,
+        moduleCode: anyRow.moduleCode || '',
+        type: anyRow.type || '',
+        content: anyRow.content || anyRow.title || anyRow.questionContent || '',
+        questionType: String(anyRow.questionType ?? anyRow.questionTypeCode ?? '1'),
+        correctAnswer: anyRow.correctAnswer || anyRow.answer || '',
+        sortOrder: Number(anyRow.sortOrder ?? anyRow.sort ?? 0)
     }
     dialogTitle.value = '修改题目'
     open.value = true
-    loadOptions(row.id)
-}
-
-function resetOptions() {
-    formOptions.value = []
-    removedOptionIds.value = []
+    loadOptions(anyRow.id)
 }
 
 function handleAddOption() {
@@ -373,13 +413,12 @@ function handleAddOption() {
         optionKey: '',
         scoreValue: 0,
         sortOrder: formOptions.value.length + 1
-    })
+    } as any)
 }
 
 function handleRemoveOption(index: number, row: AssessmentOptionItem) {
-    if (row?.id) {
-        removedOptionIds.value.push(row.id)
-    }
+    const anyRow: any = row
+    if (anyRow?.id) removedOptionIds.value.push(anyRow.id)
     formOptions.value.splice(index, 1)
 }
 
@@ -389,17 +428,19 @@ function handleBatchOptionOpen() {
 }
 
 function parseOptionBatchLines(text: string) {
-    const lines = text
+    const lines = (text || '')
         .split(/\r?\n/)
         .map(line => line.trim())
         .filter(Boolean)
+
     return lines.map((line, index) => {
-        const match = line.match(/^\s*([A-D])[\.\s、)]*\s*(.+?)\s*$/i)
+        const match = line.match(/^\s*([A-F])[\.\s、)]*\s*(.+?)\s*$/i)
         const optionKey = (match?.[1] || String.fromCharCode(65 + index)).toUpperCase()
         const rawContent = match?.[2] || line
-        const scoreMatch = rawContent.match(/[\(（]\s*分值[:：]\s*([-\d.]+)\s*[\)）]/)
+        const scoreMatch = rawContent.match(/[\(（]\s*分值\s*[:：]\s*([-\d.]+)\s*[\)）]/)
         const scoreValue = scoreMatch?.[1] ? Number(scoreMatch[1]) : 0
-        const content = rawContent.replace(/[\(（]\s*分值[:：]\s*[-\d.]+\s*[\)）]/, '').trim()
+        const content = rawContent.replace(/[\(（]\s*分值\s*[:：]\s*[-\d.]+\s*[\)）]/, '').trim()
+
         return {
             optionKey,
             content,
@@ -411,7 +452,6 @@ function parseOptionBatchLines(text: string) {
 
 function pickQuestionId(res: any): number | undefined {
     const id = res?.id ?? res?.data?.id ?? res?.data?.questionId ?? res?.questionId ?? res?.data
-
     const n = Number(id)
     return Number.isFinite(n) && n > 0 ? n : undefined
 }
@@ -422,13 +462,13 @@ function submitBatchOptions() {
         proxy?.$modal?.msgWarning?.('请输入选项文本')
         return
     }
-    formOptions.value = formOptions.value.concat(items)
+    formOptions.value = formOptions.value.concat(items as any)
     batchOptionOpen.value = false
 }
 
 function validateOptions() {
     if (!formOptions.value.length) return true
-    for (const opt of formOptions.value) {
+    for (const opt of formOptions.value as any[]) {
         if (!opt.content || !opt.optionKey) {
             proxy?.$modal?.msgWarning?.('请补全选项内容和标识')
             return false
@@ -439,8 +479,8 @@ function validateOptions() {
 
 async function loadOptions(questionId: number) {
     try {
-        const res = await listAssessmentOptions({ questionId })
-        formOptions.value = parseAssessmentOptionRows(res)
+        const res = await listAssessmentOptions({ questionId } as any)
+        formOptions.value = parseAssessmentOptionRows(res) as any
         removedOptionIds.value = []
     } catch (error) {
         console.error(error)
@@ -451,14 +491,14 @@ async function loadOptions(questionId: number) {
 }
 
 async function saveOptions(questionId: number) {
-    if (!validateOptions()) {
-        throw new Error('invalid options')
-    }
+    if (!validateOptions()) throw new Error('invalid options')
+
     if (removedOptionIds.value.length) {
-        await deleteAssessmentOption(removedOptionIds.value.join(','))
+        await deleteAssessmentOption(removedOptionIds.value.join(',') as any)
         removedOptionIds.value = []
     }
-    for (const opt of formOptions.value) {
+
+    for (const opt of formOptions.value as any[]) {
         if (opt.id) {
             await updateAssessmentOption({
                 id: Number(opt.id),
@@ -466,7 +506,7 @@ async function saveOptions(questionId: number) {
                 optionKey: opt.optionKey,
                 scoreValue: Number(opt.scoreValue ?? 0),
                 sortOrder: Number(opt.sortOrder ?? 0)
-            })
+            } as any)
         } else {
             await addAssessmentOption({
                 questionId,
@@ -474,14 +514,14 @@ async function saveOptions(questionId: number) {
                 optionKey: opt.optionKey,
                 scoreValue: Number(opt.scoreValue ?? 0),
                 sortOrder: Number(opt.sortOrder ?? 0)
-            })
+            } as any)
         }
     }
 }
 
 function handleDelete(row?: AssessmentQuestionItem) {
     const targetRows = row ? [row] : selectedRows.value
-    const targetIds = targetRows.map(item => item.id).filter(Boolean)
+    const targetIds = targetRows.map((item: any) => item.id).filter(Boolean)
 
     if (!targetIds.length) {
         proxy?.$modal?.msgWarning?.('请先选择要删除的题目')
@@ -490,14 +530,167 @@ function handleDelete(row?: AssessmentQuestionItem) {
 
     const names = targetRows.map(item => getQuestionTitle(item)).join('、')
     const tip = row ? `确认删除题目「${names}」吗？` : `确认删除选中的 ${targetIds.length} 题吗？`
+
     proxy?.$modal
         ?.confirm?.(tip)
-        .then(() => deleteAssessmentQuestion(targetIds.join(',')))
+        .then(() => deleteAssessmentQuestion(targetIds.join(',') as any))
         .then(() => {
             proxy?.$modal?.msgSuccess?.('删除成功')
+            serverPaginationOk.value = true
             getList()
         })
         .catch(() => {})
+}
+
+type BatchOption = { optionKey: string; content: string; scoreValue: number }
+type BatchFlatItem = { moduleCode: string; content: string; options: BatchOption[] }
+
+function normalizeLinesExpanded(text: string) {
+    const rawLines = (text || '')
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(Boolean)
+
+    const result: string[] = []
+    for (const line of rawLines) {
+        const qCount = (line.match(/[？?]/g) || []).length
+        if (qCount <= 1) {
+            result.push(line)
+            continue
+        }
+        const parts = line
+            .split(/(?<=[？?])\s*/g)
+            .map(s => s.trim())
+            .filter(Boolean)
+        if (parts.length >= 2) result.push(...parts)
+        else result.push(line)
+    }
+    return result
+}
+
+function isOptionLine(line: string) {
+    return /^[A-F][\.\s、)]/i.test(line)
+}
+
+function isQuestionLine(line: string) {
+    if (/[？?]/.test(line)) return true
+    if (/[：:]\s*$/.test(line)) return true
+    return false
+}
+
+function isHeadingLine(line: string) {
+    if (!line) return false
+    if (isOptionLine(line)) return false
+    if (isQuestionLine(line)) return false
+    if (/分值\s*[:：]/.test(line)) return false
+    if (/^\d+[\.\s、]/.test(line)) return false
+    if (/[。,.，:：;；!！\(\)（）]/.test(line)) return false
+    if (line.length > 20) return false
+    return true
+}
+
+function parseOptionLine(line: string, fallbackKey: string) {
+    const match = line.match(/^\s*([A-F])[\.\s、)]*\s*(.+?)\s*$/i)
+    const optionKey = (match?.[1] || fallbackKey).toUpperCase()
+    const raw = match?.[2] || line
+
+    const scoreMatch = raw.match(/[\(（]\s*分值\s*[:：]\s*([-\d.]+)\s*[\)）]/)
+    const scoreValue = scoreMatch?.[1] ? Number(scoreMatch[1]) : 0
+    const content = raw.replace(/[\(（]\s*分值\s*[:：]\s*[-\d.]+\s*[\)）]/, '').trim()
+
+    return {
+        optionKey,
+        content,
+        scoreValue: Number.isFinite(scoreValue) ? scoreValue : 0
+    }
+}
+
+function parseBatchFlatItems(text: string): BatchFlatItem[] {
+    const lines = normalizeLinesExpanded(text)
+    if (!lines.length) return []
+
+    const items: BatchFlatItem[] = []
+    let currentModule = ''
+    let current: BatchFlatItem | null = null
+
+    const flush = () => {
+        if (!current) return
+        if (!currentModule) return
+        if ((current.content || '').trim().length === 0) {
+            current = null
+            return
+        }
+        current.moduleCode = currentModule
+        items.push(current)
+        current = null
+    }
+
+    const setModule = (m: string) => {
+        flush()
+        currentModule = m.trim()
+    }
+
+    if (isHeadingLine(lines[0])) setModule(lines[0])
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+
+        if (isHeadingLine(line)) {
+            const next = lines[i + 1] || ''
+            if (isQuestionLine(next) || isOptionLine(next)) {
+                setModule(line)
+                continue
+            }
+        }
+
+        if (!currentModule) {
+            if (isHeadingLine(line)) setModule(line)
+            continue
+        }
+
+        if (isQuestionLine(line)) {
+            if (current && current.options.length) flush()
+            if (!current) current = { moduleCode: currentModule, content: line, options: [] }
+            else if (!current.options.length) current.content = `${current.content} ${line}`.trim()
+            else current = { moduleCode: currentModule, content: line, options: [] }
+            continue
+        }
+
+        if (isOptionLine(line)) {
+            if (!current) current = { moduleCode: currentModule, content: '', options: [] }
+            const fallbackKey = String.fromCharCode(65 + (current.options.length || 0))
+            current.options.push(parseOptionLine(line, fallbackKey))
+            continue
+        }
+
+        if (!current) current = { moduleCode: currentModule, content: line, options: [] }
+        else current.content = `${current.content} ${line}`.trim()
+    }
+
+    flush()
+    return items
+}
+
+async function getGlobalMaxSortOrderSafe(): Promise<number> {
+    let pageNum = 1
+    const pageSize = 200
+    let maxSort = 0
+
+    while (true) {
+        const res = await listAssessmentQuestions({ pageNum, pageSize } as any)
+        const rows = parseAssessmentQuestionRows(res) || []
+        if (!rows.length) break
+
+        for (const r of rows as any[]) {
+            const v = Number(r.sortOrder ?? r.sort ?? 0)
+            if (Number.isFinite(v)) maxSort = Math.max(maxSort, v)
+        }
+
+        if (rows.length < pageSize) break
+        pageNum += 1
+        if (pageNum > 500) break
+    }
+    return maxSort
 }
 
 function handleBatchOpen() {
@@ -505,132 +698,33 @@ function handleBatchOpen() {
     batchOpen.value = true
 }
 
-function parseBatchQuestions(text: string) {
-    return text
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(Boolean)
-}
-
-function parseBatchQuestionsWithOptions(text: string) {
-    const lines = text
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(Boolean)
-
-    if (!lines.length) return { moduleCode: undefined, items: [] as any[] }
-
-    const isQuestionLine = (line: string) => /^(?:●\s*)?题\s*\d+\s*[：:]/.test(line) || /[？?]$/.test(line)
-    const isOptionLine = (line: string) => /^[A-F][\.\s、)]/i.test(line)
-
-    let moduleCode: string | undefined
-    let startIndex = 0
-    if (!isQuestionLine(lines[0]) && !isOptionLine(lines[0])) {
-        moduleCode = lines[0]
-        startIndex = 1
-    }
-
-    const items: Array<{ content: string; options: Array<{ optionKey: string; content: string; scoreValue: number }> }> = []
-    let current: { content: string; options: Array<{ optionKey: string; content: string; scoreValue: number }> } | null = null
-
-    for (let i = startIndex; i < lines.length; i += 1) {
-        const line = lines[i]
-        if (isQuestionLine(line)) {
-            if (current) items.push(current)
-            const content = line.replace(/^(?:●\s*)?题\s*\d+\s*[：:]\s*/, '')
-            current = { content, options: [] }
-            continue
-        }
-
-        if (!current) {
-            current = { content: line, options: [] }
-            continue
-        }
-
-        if (isOptionLine(line)) {
-            const match = line.match(/^\s*([A-F])[\.\s、)]*\s*(.+?)\s*$/i)
-            const optionKey = (match?.[1] || '').toUpperCase()
-            const rawContent = match?.[2] || line
-            const scoreMatch = rawContent.match(/[\(（]\s*分值[:：]\s*([-\d.]+)\s*[\)）]/)
-            const scoreValue = scoreMatch?.[1] ? Number(scoreMatch[1]) : 0
-            const content = rawContent.replace(/[\(（]\s*分值[:：]\s*[-\d.]+\s*[\)）]/, '').trim()
-            current.options.push({
-                optionKey: optionKey || String.fromCharCode(65 + current.options.length),
-                content,
-                scoreValue: Number.isFinite(scoreValue) ? scoreValue : 0
-            })
-        } else {
-            current.content = `${current.content} ${line}`.trim()
-        }
-    }
-
-    if (current) items.push(current)
-
-    return { moduleCode, items }
-}
-
-async function getMaxQuestionSortOrder(moduleCode: string | undefined): Promise<number> {
-    if (!moduleCode) return 0
-
-    const res = await listAssessmentQuestions({
-        pageNum: 1,
-        pageSize: 1,
-        moduleCode,
-        orderByColumn: 'sortOrder',
-        isAsc: 'desc'
-    } as any)
-
-    const rows = parseAssessmentQuestionRows(res) || []
-    return rows.length ? Number((rows[0] as any).sortOrder || 0) : 0
-}
-
-async function getMaxOptionSortOrder(questionId: number): Promise<number> {
-    try {
-        const res = await listAssessmentOptions({
-            questionId,
-            pageNum: 1,
-            pageSize: 1,
-            orderByColumn: 'sortOrder',
-            isAsc: 'desc'
-        } as any)
-
-        const rows = res?.rows || res?.data || []
-        return rows.length ? Number(rows[0].sortOrder || 0) : 0
-    } catch {
-        return 0
-    }
-}
-
 async function submitBatch() {
-    const { moduleCode, items } = parseBatchQuestionsWithOptions(batchText.value || '')
+    const items = parseBatchFlatItems(batchText.value || '')
     if (!items.length) {
-        proxy?.$modal?.msgWarning?.('请输入题目列表')
+        proxy?.$modal?.msgWarning?.('未识别到可导入内容：请确保存在模块标题(moduleCode)与题目/选项')
         return
     }
 
     batchLoading.value = true
     try {
-        let sortOrder = 1
+        let sortOrder = (await getGlobalMaxSortOrderSafe()) + 1
 
-        for (const item of items) {
+        for (const it of items) {
             const res = await addAssessmentQuestion({
-                moduleCode: moduleCode || form.value.moduleCode || undefined,
+                moduleCode: it.moduleCode,
                 type: 'NORMAL',
-                content: item.content,
+                content: it.content,
                 questionType: '1',
                 correctAnswer: undefined,
                 sortOrder
             } as any)
 
             const newId = pickQuestionId(res)
-            if (!newId) {
-                console.error('[batch] addAssessmentQuestion response =', res)
-                throw new Error(`批量导入失败：新增题目成功但未返回ID，题目内容：${item.content}`)
-            }
+            if (!newId) throw new Error(`批量导入失败：新增题目成功但未返回ID，题目内容：${it.content}`)
 
-            if (item.options?.length) {
+            if (it.options?.length) {
                 let optionSort = 1
-                for (const opt of item.options) {
+                for (const opt of it.options) {
                     await addAssessmentOption({
                         questionId: Number(newId),
                         content: opt.content,
@@ -645,12 +739,14 @@ async function submitBatch() {
             sortOrder += 1
         }
 
-        proxy?.$modal?.msgSuccess?.('批量生成成功')
+        proxy?.$modal?.msgSuccess?.('批量导入成功')
         batchOpen.value = false
-        getList()
+        serverPaginationOk.value = true
+        queryParams.value.pageNum = 1
+        await getList()
     } catch (error: any) {
         console.error(error)
-        proxy?.$modal?.msgError?.(error?.message || '批量生成失败')
+        proxy?.$modal?.msgError?.(error?.message || '批量导入失败')
     } finally {
         batchLoading.value = false
     }
@@ -662,7 +758,7 @@ function submitForm() {
         if (!valid) return
         submitLoading.value = true
         try {
-            const payload = {
+            const payload: any = {
                 id: form.value.id,
                 moduleCode: form.value.moduleCode || undefined,
                 type: form.value.type || undefined,
@@ -671,22 +767,24 @@ function submitForm() {
                 correctAnswer: form.value.correctAnswer || undefined,
                 sortOrder: Number(form.value.sortOrder ?? 0)
             }
+
             if (form.value.id) {
-                await updateAssessmentQuestion(payload as any)
+                await updateAssessmentQuestion(payload)
                 await saveOptions(Number(form.value.id))
                 proxy?.$modal?.msgSuccess?.('修改成功')
             } else {
-                const res = await addAssessmentQuestion(payload as any)
-                const newId = (res as any)?.id ?? (res as any)?.data?.id ?? (res as any)?.data?.questionId ?? (res as any)?.questionId
-                if (!newId) {
-                    throw new Error('missing question id')
-                }
+                const res = await addAssessmentQuestion(payload)
+                const newId = pickQuestionId(res)
+                if (!newId) throw new Error('missing question id')
                 await saveOptions(Number(newId))
                 proxy?.$modal?.msgSuccess?.('新增成功')
             }
+
             open.value = false
             resetOptions()
-            getList()
+            serverPaginationOk.value = true
+            queryParams.value.pageNum = 1
+            await getList()
         } catch (error) {
             console.error(error)
             proxy?.$modal?.msgError?.(form.value.id ? '修改失败' : '新增失败')
@@ -746,7 +844,6 @@ onMounted(() => {
     padding-top: 16px;
 }
 
-/* 选项区域美化 */
 .option-section {
     margin-top: 20px;
     border: 1px solid var(--el-border-color-lighter);
@@ -815,10 +912,6 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-}
-
-.mb-3 {
-    margin-bottom: 12px;
 }
 
 :deep(.el-radio-button__inner) {
