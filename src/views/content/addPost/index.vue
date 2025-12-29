@@ -195,6 +195,7 @@
                                         indicator-position="none"
                                         height="375px"
                                         arrow="always"
+                                        class="media-carousel"
                                     >
                                         <el-carousel-item v-for="(url, index) in previewMediaList" :key="index">
                                             <div class="carousel-img" :style="{ backgroundImage: `url(${url})` }"></div>
@@ -934,10 +935,35 @@ html.dark .screen-content {
         background-position: center;
     }
 
+    :deep(.media-carousel) {
+        background: #000;
+    }
+
+    :deep(.media-carousel .el-carousel__container) {
+        background: #000;
+    }
+
+    html.dark & {
+        :deep(.media-carousel),
+        :deep(.media-carousel .el-carousel__container),
+        .video-preview {
+            background: #000;
+        }
+    }
+
     .video-preview video {
         width: 100%;
-        max-height: 400px;
+        height: 100%;
+        object-fit: contain;
         display: block;
+    }
+
+    .video-preview {
+        height: 375px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
     }
 
     .indicator-dots {
