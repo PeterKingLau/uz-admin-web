@@ -1,152 +1,158 @@
 <template>
     <div class="app-container">
-        <el-form :model="queryParams" ref="queryRef" v-show="showSearch" :inline="true" label-width="68px">
-            <el-form-item label="资料类型" prop="applyType">
-                <el-select v-model="queryParams.applyType" placeholder="请选择资料类型" clearable style="width: 180px">
-                    <el-option v-for="item in apply_type" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-            </el-form-item>
+        <el-card shadow="never" class="search-wrapper">
+            <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch">
+                <el-form-item label="资料类型" prop="applyType">
+                    <el-select v-model="queryParams.applyType" placeholder="全部类型" clearable style="width: 200px">
+                        <el-option v-for="item in apply_type" :key="item.value" :label="item.label" :value="item.value" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="审核状态" prop="auditStatus">
+                    <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable style="width: 200px">
+                        <el-option label="待审核" :value="AUDIT_STATUS.PENDING" />
+                        <el-option label="通过" :value="AUDIT_STATUS.APPROVED" />
+                        <el-option label="驳回" :value="AUDIT_STATUS.REJECTED" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
+                    <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
+                </el-form-item>
+            </el-form>
+        </el-card>
 
-            <el-form-item label="审核状态" prop="auditStatus">
-                <el-select v-model="queryParams.auditStatus" placeholder="请选择审核状态" clearable style="width: 240px">
-                    <el-option label="待审核" :value="AUDIT_STATUS.PENDING" />
-                    <el-option label="通过" :value="AUDIT_STATUS.APPROVED" />
-                    <el-option label="驳回" :value="AUDIT_STATUS.REJECTED" />
-                </el-select>
-            </el-form-item>
-
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery">
-                    <el-icon><Icon icon="ep:search" /></el-icon>搜索
-                </el-button>
-                <el-button @click="resetQuery">
-                    <el-icon><Icon icon="ep:refresh" /></el-icon>
-                    重置
-                </el-button>
-            </el-form-item>
-        </el-form>
-
-        <el-row :gutter="10" class="mb8">
-            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
-        </el-row>
-
-        <ConfigTable :loading="loading" :data="auditList" :columns="columns" :table-props="{}" @selection-change="handleSelectionChange">
-            <template #applyType="{ row }">
-                <EnumTag enum-type="PROFILE_APPLY_TYPE" :value="row.applyType" :fallback-label="row.applyTypeDesc || row.applyType" />
-            </template>
-            <template #oldValue="{ row }">
-                <template v-if="row.applyType === 'avatar'">
-                    <AvatarPreview :src="row.oldValue" :size="40" />
-                </template>
-                <template v-else>
-                    <span class="truncate">
-                        {{ row.oldValue }}
-                    </span>
-                </template>
+        <el-card shadow="never" class="table-wrapper">
+            <template #header>
+                <div class="table-header">
+                    <span class="header-title">审核列表</span>
+                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                </div>
             </template>
 
-            <template #newValue="{ row }">
-                <template v-if="row.applyType === 'avatar'">
-                    <AvatarPreview :src="row.newValue" :size="40" :deleted="row.auditStatus === AUDIT_STATUS.REJECTED" />
-                </template>
-                <template v-else>
-                    {{ row.newValue }}
-                </template>
-            </template>
+            <el-table v-loading="loading" :data="auditList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" align="center" />
 
-            <template #auditStatus="{ row }">
-                <EnumTag enum-type="AUDIT_STATUS" :value="row.auditStatus" />
-            </template>
+                <el-table-column label="申请人" min-width="140" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        <div>{{ row.nickName }}</div>
+                        <div class="sub-text">{{ row.userName }}</div>
+                    </template>
+                </el-table-column>
 
-            <!-- 审核备注：仅驳回时显示 -->
-            <template #auditRemark="{ row }">
-                <span v-if="row.auditStatus === AUDIT_STATUS.REJECTED">
-                    {{ row.auditRemark || '无' }}
-                </span>
-            </template>
+                <el-table-column label="资料类型" align="center" width="120">
+                    <template #default="{ row }">
+                        <EnumTag enum-type="PROFILE_APPLY_TYPE" :value="row.applyType" :fallback-label="row.applyTypeDesc || row.applyType" />
+                    </template>
+                </el-table-column>
 
-            <!-- 操作列 -->
-            <template #operations="{ row }">
-                <el-tooltip content="查看详情" placement="top">
-                    <el-button link type="primary" @click="handleView(row)">
-                        <el-icon>
-                            <Icon icon="ep:view" :size="20" />
-                        </el-icon>
-                    </el-button>
-                </el-tooltip>
+                <el-table-column label="原数据" min-width="150" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        <template v-if="row.applyType === 'avatar'">
+                            <AvatarPreview :src="row.oldValue" :size="36" />
+                        </template>
+                        <template v-else>
+                            <span class="text-content">{{ row.oldValue || '-' }}</span>
+                        </template>
+                    </template>
+                </el-table-column>
 
-                <el-tooltip v-if="row.auditStatus === AUDIT_STATUS.PENDING" content="通过" placement="top">
-                    <el-button link type="success" @click="handleApprove(row)">
-                        <el-icon>
-                            <Icon icon="mdi:check-circle-outline" :size="20" />
-                        </el-icon>
-                    </el-button>
-                </el-tooltip>
+                <el-table-column label="新数据" min-width="150" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        <template v-if="row.applyType === 'avatar'">
+                            <AvatarPreview :src="row.newValue" :size="36" :deleted="row.auditStatus === AUDIT_STATUS.REJECTED" />
+                        </template>
+                        <template v-else>
+                            <span class="text-content highlight">{{ row.newValue }}</span>
+                        </template>
+                    </template>
+                </el-table-column>
 
-                <el-tooltip v-if="row.auditStatus === AUDIT_STATUS.PENDING" content="驳回" placement="top">
-                    <el-button link type="danger" @click="openRejectDialog(row)">
-                        <el-icon>
-                            <Icon icon="ep:close" :size="20" />
-                        </el-icon>
-                    </el-button>
-                </el-tooltip>
-            </template>
-        </ConfigTable>
+                <el-table-column label="状态" align="center" width="100">
+                    <template #default="{ row }">
+                        <EnumTag enum-type="AUDIT_STATUS" :value="row.auditStatus" />
+                    </template>
+                </el-table-column>
 
-        <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+                <el-table-column label="申请时间" prop="applyTime" width="160" align="center">
+                    <template #default="{ row }">
+                        <div class="time-cell">
+                            <span>{{ row.applyTime }}</span>
+                        </div>
+                    </template>
+                </el-table-column>
 
-        <!-- 详情对话框 -->
-        <el-dialog title="个人资料变更详情" v-model="openDetail" width="700px" append-to-body>
-            <el-descriptions :column="2" border class="mb8">
-                <el-descriptions-item label="用户名">
-                    {{ current?.userName }}
-                </el-descriptions-item>
-                <el-descriptions-item label="昵称">
-                    {{ current?.nickName }}
-                </el-descriptions-item>
+                <el-table-column label="操作" align="center" width="160" fixed="right">
+                    <template #default="{ row }">
+                        <el-tooltip content="查看详情" placement="top">
+                            <el-button link type="primary" @click="handleView(row)">
+                                <Icon icon="mdi:eye-outline" class="op-icon" />
+                            </el-button>
+                        </el-tooltip>
+
+                        <template v-if="row.auditStatus === AUDIT_STATUS.PENDING">
+                            <el-divider direction="vertical" />
+                            <el-tooltip content="通过" placement="top">
+                                <el-button link type="success" @click="handleApprove(row)">
+                                    <Icon icon="mdi:check-circle-outline" class="op-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-divider direction="vertical" />
+                            <el-tooltip content="驳回" placement="top">
+                                <el-button link type="danger" @click="openRejectDialog(row)">
+                                    <Icon icon="mdi:close-circle-outline" class="op-icon" />
+                                </el-button>
+                            </el-tooltip>
+                        </template>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div class="pagination-container">
+                <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+            </div>
+        </el-card>
+
+        <el-dialog title="审核详情" v-model="openDetail" width="700px" append-to-body class="custom-dialog">
+            <el-descriptions :column="2" border class="detail-desc">
+                <el-descriptions-item label="用户名">{{ current?.userName }}</el-descriptions-item>
+                <el-descriptions-item label="用户昵称">{{ current?.nickName }}</el-descriptions-item>
                 <el-descriptions-item label="资料类型">
-                    <EnumTag enum-type="PROFILE_APPLY_TYPE" :value="current?.applyType" :fallback-label="current?.applyTypeDesc || current?.applyType" />
+                    <EnumTag enum-type="PROFILE_APPLY_TYPE" :value="current?.applyType" />
                 </el-descriptions-item>
-
-                <el-descriptions-item label="申请时间">
-                    {{ current?.applyTime }}
-                </el-descriptions-item>
-
                 <el-descriptions-item label="审核状态">
-                    <EnumTag enum-type="AUDIT_STATUS" :value="current?.auditStatus" fallback-label="未知状态" />
+                    <EnumTag enum-type="AUDIT_STATUS" :value="current?.auditStatus" />
                 </el-descriptions-item>
-
-                <el-descriptions-item label="审核人">
-                    {{ current?.auditBy }}
-                </el-descriptions-item>
-                <el-descriptions-item label="审核时间">
-                    {{ current?.auditTime }}
-                </el-descriptions-item>
+                <el-descriptions-item label="申请时间">{{ current?.applyTime }}</el-descriptions-item>
+                <el-descriptions-item label="审核时间">{{ current?.auditTime || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="审核备注" :span="2">{{ current?.auditRemark || '-' }}</el-descriptions-item>
             </el-descriptions>
 
-            <el-descriptions :column="1" border>
-                <el-descriptions-item label="原数据">
-                    <template v-if="current?.applyType === 'avatar'">
-                        <AvatarPreview :src="current?.oldValue" :size="80" />
-                    </template>
-                    <template v-else>
-                        {{ current?.oldValue }}
-                    </template>
-                </el-descriptions-item>
-
-                <el-descriptions-item label="新数据">
-                    <template v-if="current?.applyType === 'avatar'">
-                        <AvatarPreview :src="current?.newValue" :size="80" :deleted="current?.auditStatus === AUDIT_STATUS.REJECTED" />
-                    </template>
-                    <template v-else>
-                        {{ current?.newValue }}
-                    </template>
-                </el-descriptions-item>
-
-                <el-descriptions-item label="审核备注">
-                    {{ current?.auditRemark }}
-                </el-descriptions-item>
-            </el-descriptions>
+            <div class="compare-section">
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <div class="compare-card old">
+                            <div class="card-title">变更前 (原数据)</div>
+                            <div class="card-content">
+                                <template v-if="current?.applyType === 'avatar'">
+                                    <AvatarPreview :src="current?.oldValue" :size="100" />
+                                </template>
+                                <div v-else class="text-val">{{ current?.oldValue || '无' }}</div>
+                            </div>
+                        </div>
+                    </el-col>
+                    <el-col :span="12">
+                        <div class="compare-card new">
+                            <div class="card-title">变更后 (新数据)</div>
+                            <div class="card-content">
+                                <template v-if="current?.applyType === 'avatar'">
+                                    <AvatarPreview :src="current?.newValue" :size="100" :deleted="current?.auditStatus === AUDIT_STATUS.REJECTED" />
+                                </template>
+                                <div v-else class="text-val highlight">{{ current?.newValue }}</div>
+                            </div>
+                        </div>
+                    </el-col>
+                </el-row>
+            </div>
 
             <template #footer>
                 <div class="dialog-footer">
@@ -155,12 +161,16 @@
             </template>
         </el-dialog>
 
-        <el-dialog title="驳回原因" v-model="openReject" width="420px" append-to-body>
-            <el-input v-model="rejectForm.auditRemark" type="textarea" :rows="4" placeholder="请输入驳回原因" />
+        <el-dialog title="驳回申请" v-model="openReject" width="400px" append-to-body class="custom-dialog">
+            <el-form :model="rejectForm" label-position="top">
+                <el-form-item label="请输入驳回原因">
+                    <el-input v-model="rejectForm.auditRemark" type="textarea" :rows="4" placeholder="例如：头像包含违规内容..." resize="none" />
+                </el-form-item>
+            </el-form>
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="openReject = false">取 消</el-button>
-                    <el-button type="danger" @click="submitReject">确 定</el-button>
+                    <el-button type="danger" @click="submitReject">确认驳回</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -168,15 +178,12 @@
 </template>
 
 <script setup name="ProfileAudit">
-import { ref, reactive, onMounted, getCurrentInstance, computed } from 'vue'
-
+import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { listUserAuditDetail, auditUserAvatar } from '@/api/audit/person/person'
 import AvatarPreview from '@/components/AvatarPreview/index.vue'
-import ConfigTable from '@/components/ConfigTable/index.vue'
 import EnumTag from '@/components/EnumTag/index.vue'
 import { AUDIT_STATUS } from '@/utils/enum'
-import { PROFILE_AUDIT_TABLE_KEY, PROFILE_AUDIT_COLUMNS } from '@/config/table/profileAuditColumns'
-import { useTableColumnStore } from '@/store/modules/tableColumn'
+import { Icon } from '@iconify/vue'
 
 const { proxy } = getCurrentInstance()
 const { apply_type } = proxy.useDict('apply_type')
@@ -185,7 +192,6 @@ const loading = ref(false)
 const showSearch = ref(true)
 const total = ref(0)
 const auditList = ref([])
-
 const ids = ref([])
 const dateRange = ref([])
 
@@ -205,32 +211,19 @@ const queryParams = reactive({
     auditStatus: AUDIT_STATUS.PENDING
 })
 
-const tableColumnStore = useTableColumnStore()
-
-const baseColumnMap = computed(() => {
-    const map = new Map()
-    PROFILE_AUDIT_COLUMNS.forEach(col => {
-        map.set(col.key, col)
-    })
-    return map
-})
-
-const columns = computed(() => {
-    const keys = tableColumnStore.getEnabledKeys(PROFILE_AUDIT_TABLE_KEY) || PROFILE_AUDIT_COLUMNS.map(c => c.key)
-
-    const map = baseColumnMap.value
-    return keys.map(key => map.get(key)).filter(Boolean)
-})
-
 function getList() {
     loading.value = true
     const query = proxy.addDateRange ? proxy.addDateRange(queryParams, dateRange.value) : queryParams
 
-    listUserAuditDetail(query).then(res => {
-        auditList.value = res.rows || []
-        total.value = res.total || 0
-        loading.value = false
-    })
+    listUserAuditDetail(query)
+        .then(res => {
+            auditList.value = res.rows || []
+            total.value = res.total || 0
+            loading.value = false
+        })
+        .catch(() => {
+            loading.value = false
+        })
 }
 
 function handleQuery() {
@@ -257,59 +250,188 @@ function handleView(row) {
 }
 
 function handleApprove(row) {
-    const id = row.id
-    if (!id) return
-
+    if (!row.id) return
     proxy.$modal
-        ?.confirm?.('确认通过该资料变更吗？')
+        .confirm('确认通过该资料变更申请吗？')
         .then(() => {
             return auditUserAvatar({
-                id,
+                id: row.id,
                 auditStatus: AUDIT_STATUS.APPROVED,
-                auditRemark: row.auditRemark || ''
+                auditRemark: '审核通过'
             })
         })
         .then(() => {
-            proxy.$modal?.msgSuccess && proxy.$modal.msgSuccess('审核通过')
+            proxy.$modal.msgSuccess('操作成功')
             getList()
+            if (openDetail.value && current.value?.id === row.id) {
+                openDetail.value = false
+            }
         })
-        .catch(() => {})
 }
 
 function openRejectDialog(row) {
     rejectTarget.value = row
-    rejectForm.auditRemark = row.auditRemark || ''
+    rejectForm.auditRemark = ''
     openReject.value = true
 }
 
 function submitReject() {
-    const remark = rejectForm.auditRemark?.trim()
-    const target = rejectTarget.value
-
-    if (!target || !target.id) {
-        proxy.$modal?.msgError && proxy.$modal.msgError('未找到要驳回的记录')
+    if (!rejectForm.auditRemark?.trim()) {
+        proxy.$modal.msgWarning('请填写驳回原因')
         return
     }
-
-    if (!remark) {
-        proxy?.$modal?.msgWarning?.('请填写驳回原因')
-        return
-    }
-
     auditUserAvatar({
-        id: target.id,
+        id: rejectTarget.value.id,
         auditStatus: AUDIT_STATUS.REJECTED,
-        auditRemark: remark
+        auditRemark: rejectForm.auditRemark
+    }).then(() => {
+        proxy.$modal.msgSuccess('操作成功')
+        openReject.value = false
+        getList()
+        if (openDetail.value && current.value?.id === rejectTarget.value.id) {
+            openDetail.value = false
+        }
     })
-        .then(() => {
-            proxy.$modal?.msgSuccess && proxy.$modal.msgSuccess('已驳回')
-            openReject.value = false
-            getList()
-        })
-        .catch(() => {})
 }
 
 onMounted(() => {
     getList()
 })
 </script>
+
+<style scoped lang="scss">
+.search-wrapper {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.04);
+
+    :deep(.el-card__body) {
+        padding: 18px 18px 0 18px;
+    }
+
+    :deep(.el-form-item) {
+        margin-bottom: 18px;
+    }
+}
+
+.table-wrapper {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.04);
+
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .header-title {
+            font-weight: 600;
+            color: #303133;
+            font-size: 16px;
+        }
+    }
+}
+
+.btn-icon {
+    margin-right: 4px;
+    font-size: 16px;
+}
+
+:deep(.table-header-cell) {
+    background-color: #f8fafd !important;
+    color: #606266;
+    font-weight: 600;
+    height: 50px;
+}
+
+.sub-text {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 2px;
+}
+
+.op-icon {
+    font-size: 18px;
+}
+
+.text-content {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.highlight {
+        color: var(--el-color-primary);
+        font-weight: 500;
+    }
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 16px;
+}
+
+/* 详情弹窗样式 */
+.detail-desc {
+    margin-bottom: 20px;
+}
+
+.compare-section {
+    margin-top: 20px;
+
+    .compare-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 16px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: 1px solid transparent;
+
+        &.new {
+            border-color: var(--el-color-primary-light-8);
+
+            .card-title {
+                color: var(--el-color-primary);
+            }
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #606266;
+            margin-bottom: 16px;
+        }
+
+        .card-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 100px;
+
+            .text-val {
+                font-size: 16px;
+                color: #303133;
+                word-break: break-all;
+                text-align: center;
+
+                &.highlight {
+                    color: var(--el-color-primary);
+                    font-weight: 600;
+                }
+            }
+        }
+    }
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+</style>

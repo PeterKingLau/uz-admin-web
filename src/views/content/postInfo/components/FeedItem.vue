@@ -1,63 +1,69 @@
 <template>
-    <div ref="rootRef" class="feed-item">
-        <div class="select-box">
-            <el-checkbox :model-value="checked" @change="$emit('select', $event)" />
-        </div>
-        <div class="feed-type-indicator" :class="`type-${String(post.postType)}`">
-            <Icon :icon="typeIcon" />
-            <span>{{ typeText }}</span>
+    <div ref="rootRef" class="feed-item" :class="{ 'is-checked': checked }" @click="$emit('select', !checked)">
+        <div class="feed-left">
+            <div class="select-box" @click.stop>
+                <el-checkbox :model-value="checked" @change="$emit('select', $event)" />
+            </div>
+            <div class="type-indicator" :class="post.postType">
+                <Icon :icon="typeIcon" class="type-icon" />
+                <span class="type-text">{{ typeText }}</span>
+            </div>
         </div>
 
         <div class="feed-body">
-            <div class="feed-top">
-                <div class="user-block">
-                    <el-avatar :size="32" :src="fullAvatar(post.avatar)" class="avatar">
-                        {{ post.nickName?.slice(0, 1) || 'U' }}
+            <div class="feed-header">
+                <div class="user-info">
+                    <el-avatar :size="36" :src="fullAvatar(post.avatar)" class="avatar">
+                        {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
                     </el-avatar>
-                    <div class="user-meta">
-                        <div class="name-line">
-                            <span class="name">{{ post.nickName || '未知用户' }}</span>
-                            <span class="time">{{ post.createTime || '-' }}</span>
+                    <div class="meta">
+                        <div class="top-row">
+                            <span class="username">{{ post.nickName || '未知用户' }}</span>
                         </div>
+                        <div class="time">{{ post.createTime || '-' }}</div>
                     </div>
                 </div>
 
-                <div class="type-tags">
-                    <EnumTag enum-type="POST_TYPE" :value="post.postType" />
+                <div class="header-actions">
+                    <el-tag :type="getStatusType(post.auditStatus)" size="small" effect="light" class="audit-tag">
+                        {{ getAuditStatusName(post.auditStatus) }}
+                    </el-tag>
+
+                    <el-tooltip content="删除该条" placement="top">
+                        <div class="delete-btn" @click.stop="handleDelete">
+                            <Icon icon="mdi:trash-can-outline" />
+                        </div>
+                    </el-tooltip>
                 </div>
             </div>
 
-            <div v-if="post.content" class="feed-content" :class="{ 'feed-content--center': isTextOnly }">
-                {{ post.content }}
-            </div>
-            <div v-else class="feed-content feed-content--empty">（无正文内容）</div>
+            <div class="feed-content-wrapper">
+                <div v-if="post.content" class="feed-text">
+                    {{ post.content }}
+                </div>
+                <div v-else class="feed-text empty">（无正文内容）</div>
 
-            <div v-if="isVisible && isImage && mediaList.length" class="feed-media-inline feed-media-inline--images">
-                <MediaPreview :post-type="post.postType" :media-urls="mediaList" :audit-status="post.auditStatus" />
-            </div>
-
-            <div v-if="isVisible && isVideo && mediaList.length" class="feed-media-inline">
-                <MediaPreview :post-type="post.postType" :media-urls="mediaList" :audit-status="post.auditStatus" />
+                <div v-if="isVisible && mediaList.length" class="feed-media" @click.stop>
+                    <MediaPreview :post-type="post.postType" :media-urls="mediaList" :audit-status="post.auditStatus" />
+                </div>
             </div>
 
             <div class="feed-footer">
-                <div class="stats">
-                    <div class="stat">
-                        <Icon icon="mdi:thumb-up-outline" />
-                        <span>{{ post.likeCount ?? 0 }}</span>
-                    </div>
-                    <div class="stat">
-                        <Icon icon="mdi:comment-outline" />
-                        <span>{{ post.commentCount ?? 0 }}</span>
-                    </div>
-                    <div class="stat">
-                        <Icon icon="mdi:share-variant-outline" />
-                        <span>{{ post.repostCount ?? 0 }}</span>
-                    </div>
-                    <div class="stat">
-                        <Icon :icon="(post.bookmarkCount ?? 0) > 0 ? 'mdi:bookmark' : 'mdi:bookmark-outline'" />
-                        <span>{{ post.bookmarkCount ?? 0 }}</span>
-                    </div>
+                <div class="stat-item">
+                    <Icon icon="mdi:thumb-up-outline" />
+                    <span>{{ post.likeCount ?? 0 }}</span>
+                </div>
+                <div class="stat-item">
+                    <Icon icon="mdi:comment-outline" />
+                    <span>{{ post.commentCount ?? 0 }}</span>
+                </div>
+                <div class="stat-item">
+                    <Icon icon="mdi:share-variant-outline" />
+                    <span>{{ post.repostCount ?? 0 }}</span>
+                </div>
+                <div class="stat-item">
+                    <Icon :icon="(post.bookmarkCount ?? 0) > 0 ? 'mdi:bookmark' : 'mdi:bookmark-outline'" />
+                    <span>{{ post.bookmarkCount ?? 0 }}</span>
                 </div>
             </div>
         </div>
@@ -66,16 +72,18 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import EnumTag from '@/components/EnumTag/index.vue'
+import { Icon } from '@iconify/vue'
 import MediaPreview from '@/components/MediaPreview/index.vue'
+import { AUDIT_STATUS, ENUM_TAG_CONFIG } from '@/utils/enum'
 
 const props = defineProps<{
     post: any
     checked?: boolean
-    auditMode?: string | number
 }>()
+
 const emit = defineEmits<{
     (e: 'select', value: boolean): void
+    (e: 'delete', id: number | string): void
 }>()
 
 const rootRef = ref<HTMLElement | null>(null)
@@ -84,42 +92,63 @@ let observer: IntersectionObserver | null = null
 
 const typeText = computed(() => {
     const t = String(props.post?.postType)
-    return t === '1' ? '文字' : t === '2' ? '图片' : '视频'
+    return t === '1' ? '文字' : t === '2' ? '图文' : '视频'
 })
+
 const typeIcon = computed(() => {
     const t = String(props.post?.postType)
-    return t === '1' ? 'ep:document' : t === '2' ? 'ep:picture' : 'ep:video-camera'
+    return t === '1' ? 'mdi:format-text' : t === '2' ? 'mdi:image' : 'mdi:video'
 })
+
+const isVideoType = computed(() => String(props.post?.postType) === '3')
 
 const fullAvatar = (avatar: string) => {
     if (!avatar) return ''
     if (/^https?:\/\//.test(avatar)) return avatar
     return (import.meta.env.VITE_APP_BASE_API || '') + avatar
 }
+
 const normalizeMediaUrls = (mediaUrls: any): string[] => {
     if (!mediaUrls) return []
     if (Array.isArray(mediaUrls)) return mediaUrls
     if (typeof mediaUrls === 'string') {
-        const s = mediaUrls.trim()
-        if (!s) return []
-        if (s.startsWith('[')) {
-            try {
-                const arr = JSON.parse(s)
-                return Array.isArray(arr) ? arr : []
-            } catch {
-                return []
-            }
+        try {
+            const arr = JSON.parse(mediaUrls)
+            return Array.isArray(arr) ? arr : [mediaUrls]
+        } catch {
+            return [mediaUrls]
         }
-        return [s]
     }
     return []
 }
-const isImage = computed(() => String(props.post?.postType) === '2')
-const isVideo = computed(() => String(props.post?.postType) === '3')
 
 const mediaList = computed(() => normalizeMediaUrls(props.post?.mediaUrls))
 
-const isTextOnly = computed(() => String(props.post?.postType) === '1' && mediaList.value.length === 0)
+const auditStatusAlias: Record<string, string> = {
+    PENDING: AUDIT_STATUS.PENDING,
+    APPROVED: AUDIT_STATUS.APPROVED,
+    REJECTED: AUDIT_STATUS.REJECTED
+}
+
+function resolveAuditStatusKey(status: string) {
+    const key = String(status ?? '')
+    if (ENUM_TAG_CONFIG.AUDIT_STATUS[key]) return key
+    return auditStatusAlias[key] || key
+}
+
+function getStatusType(status: string) {
+    const key = resolveAuditStatusKey(status)
+    return ENUM_TAG_CONFIG.AUDIT_STATUS[key]?.type || 'warning'
+}
+
+function getAuditStatusName(status: string) {
+    const key = resolveAuditStatusKey(status)
+    return ENUM_TAG_CONFIG.AUDIT_STATUS[key]?.label || status
+}
+
+function handleDelete() {
+    emit('delete', props.post.id)
+}
 
 function setupObserver() {
     if (isVisible.value) return
@@ -128,31 +157,21 @@ function setupObserver() {
         isVisible.value = true
         return
     }
-
     observer?.disconnect()
     observer = new IntersectionObserver(
         entries => {
-            const entry = entries?.[0]
-            if (entry?.isIntersecting) {
+            if (entries[0]?.isIntersecting) {
                 isVisible.value = true
                 observer?.disconnect()
-                observer = null
             }
         },
-        { rootMargin: '200px 0px', threshold: 0 }
+        { rootMargin: '200px 0px' }
     )
     observer.observe(el)
 }
 
-onMounted(() => {
-    setupObserver()
-})
-
-onBeforeUnmount(() => {
-    observer?.disconnect()
-    observer = null
-})
-
+onMounted(setupObserver)
+onBeforeUnmount(() => observer?.disconnect())
 watch(
     () => props.post?.id,
     async () => {
@@ -166,192 +185,169 @@ watch(
 <style scoped lang="scss">
 .feed-item {
     display: flex;
-    gap: 12px;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 10px;
-    padding: 10px;
-    transition:
-        box-shadow 0.15s ease,
-        transform 0.15s ease;
-    background: #fff;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
+    transition: all 0.2s ease;
+    cursor: pointer;
 
     &:hover {
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
-        transform: translateY(-1px);
+        background-color: var(--el-bg-color);
+        border-color: var(--el-border-color-darker);
+        box-shadow: var(--el-box-shadow-light);
+    }
+
+    &.is-checked {
+        border-color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+
+        html.dark & {
+            background-color: rgba(64, 158, 255, 0.1);
+        }
+
+        .feed-media {
+            background-color: transparent;
+        }
+
+        .type-indicator {
+            background-color: transparent;
+        }
     }
 }
 
-.select-box {
-    display: flex;
-    align-items: flex-start;
-    padding-top: 4px;
-}
-
-.feed-type-indicator {
-    width: 64px;
-    min-width: 64px;
-    height: 220px;
-    border-radius: 10px;
-    background: var(--el-fill-color-lighter);
+.feed-left {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: var(--el-text-color-secondary);
-    font-size: 12px;
-    flex-shrink: 0;
+    gap: 12px;
+    min-width: 48px;
 
-    :deep(svg) {
-        font-size: 20px;
+    .type-indicator {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--el-fill-color-light);
+        color: var(--el-text-color-regular);
+        font-size: 12px;
+
+        .type-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
     }
 }
 
 .feed-body {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    gap: 12px;
 }
 
-.feed-top {
+.feed-header {
     display: flex;
+    justify-content: space-between;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-}
 
-.user-block {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-
-    .avatar {
-        flex-shrink: 0;
-    }
-}
-.user-meta {
-    min-width: 0;
-
-    .name-line {
+    .user-info {
         display: flex;
-        align-items: baseline;
-        gap: 10px;
-        min-width: 0;
-
-        .name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--el-text-color-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 260px;
-        }
-        .time {
-            font-size: 12px;
-            color: var(--el-text-color-secondary);
-            white-space: nowrap;
-        }
-    }
-}
-
-.type-tags {
-    display: flex;
-    align-items: center;
-
-    :deep(.el-tag) {
-        transform: scale(0.9);
-        transform-origin: right top;
-    }
-}
-
-.feed-content {
-    margin-top: 8px;
-    padding: 10px 10px;
-    background: #fbfcff;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    border-radius: 10px;
-
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--el-text-color-primary);
-
-    display: -webkit-box;
-    line-clamp: 3;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-}
-
-.feed-content--center {
-    min-height: 120px;
-    line-clamp: 3;
-    -webkit-line-clamp: 3;
-}
-
-.feed-content--empty {
-    color: var(--el-text-color-secondary);
-    font-style: italic;
-}
-
-.feed-media-inline {
-    margin-top: 10px;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--el-fill-color-lighter);
-}
-
-.feed-media-inline--images {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-}
-
-.feed-footer {
-    margin-top: auto;
-    padding-top: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.stats {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    color: var(--el-text-color-secondary);
-    font-size: 13px;
-
-    .stat {
-        display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
 
-        :deep(svg) {
+        .meta {
+            display: flex;
+            flex-direction: column;
+
+            .top-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+
+                .username {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: var(--el-text-color-primary);
+                }
+            }
+
+            .time {
+                font-size: 12px;
+                color: var(--el-text-color-secondary);
+                margin-top: 2px;
+            }
+        }
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .delete-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            color: var(--el-text-color-secondary);
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: var(--el-color-danger-light-9);
+                color: var(--el-color-danger);
+            }
+
             font-size: 18px;
         }
     }
 }
 
-@media (max-width: 900px) {
-    .feed-item {
-        flex-direction: column;
+.feed-content-wrapper {
+    .feed-text {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--el-text-color-regular);
+        margin-bottom: 12px;
+        white-space: pre-wrap;
+
+        &.empty {
+            color: var(--el-text-color-placeholder);
+            font-style: italic;
+        }
     }
 
-    .feed-type-indicator {
-        width: 100%;
-        min-width: 0;
-        height: 56px;
-        flex-direction: row;
-        justify-content: flex-start;
-        padding: 0 12px;
+    .feed-media {
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: var(--el-fill-color-lighter);
     }
+}
 
-    .user-meta .name-line .name {
-        max-width: 60vw;
+.feed-footer {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding-top: 12px;
+    border-top: 1px solid var(--el-border-color-lighter);
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+
+        &:hover {
+            color: var(--el-color-primary);
+        }
     }
 }
 </style>

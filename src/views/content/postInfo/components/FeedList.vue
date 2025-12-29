@@ -5,12 +5,16 @@
         <el-skeleton animated :count="6">
             <template #template>
                 <div class="feed-item--skeleton">
-                    <div class="type-skeleton"></div>
+                    <div class="header-skeleton">
+                        <el-skeleton-item variant="circle" style="width: 40px; height: 40px" />
+                        <div class="meta-skeleton">
+                            <el-skeleton-item variant="text" style="width: 30%" />
+                            <el-skeleton-item variant="text" style="width: 50%; margin-top: 6px" />
+                        </div>
+                    </div>
                     <div class="body-skeleton">
-                        <el-skeleton-item variant="text" style="width: 40%" />
+                        <el-skeleton-item variant="text" style="width: 90%" />
                         <el-skeleton-item variant="text" style="width: 70%; margin-top: 8px" />
-                        <el-skeleton-item variant="text" style="width: 55%; margin-top: 6px" />
-                        <el-skeleton-item variant="text" style="width: 85%; margin-top: 10px" />
                         <div class="media-skeleton"></div>
                     </div>
                 </div>
@@ -25,12 +29,13 @@
             :post="item"
             :checked="selectedIds?.includes(item.id)"
             @select="val => emit('select', { id: item.id, checked: val })"
+            @delete="val => emit('delete', val)"
         />
 
         <div v-if="posts.length" class="load-more">
-            <div ref="sentinel" style="height: 1px; width: 1px"></div>
+            <div ref="sentinel" class="sentinel"></div>
 
-            <el-button v-if="!finished" :loading="loadingMore" size="small" @click="$emit('load-more')">
+            <el-button v-if="!finished" :loading="loadingMore" text bg size="small" @click="$emit('load-more')">
                 {{ loadingMore ? '加载中...' : '加载更多' }}
             </el-button>
             <span v-else class="finished">已无更多数据</span>
@@ -49,9 +54,11 @@ const props = defineProps<{
     finished: boolean
     selectedIds?: Array<string | number>
 }>()
+
 const emit = defineEmits<{
     (e: 'load-more'): void
     (e: 'select', payload: { id: string | number; checked: boolean }): void
+    (e: 'delete', id: string | number): void
 }>()
 
 const sentinel = ref<HTMLElement | null>(null)
@@ -69,6 +76,7 @@ const setup = () => {
     teardown()
     const el = sentinel.value
     if (!el) return
+
     io = new IntersectionObserver(
         entries => {
             const entry = entries?.[0]
@@ -102,53 +110,65 @@ watch(
 .feed-skeleton {
     padding: 4px 0;
 }
-.feed-item--skeleton {
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 10px;
-    padding: 10px;
-    display: flex;
-    gap: 12px;
-    margin-bottom: 10px;
 
-    .type-skeleton {
-        width: 64px;
-        min-width: 64px;
-        height: 220px;
-        border-radius: 10px;
-        background: var(--el-fill-color-lighter);
-        flex-shrink: 0;
+.feed-item--skeleton {
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+
+    .header-skeleton {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+
+        .meta-skeleton {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
     }
 
     .body-skeleton {
-        flex: 1;
-        padding-top: 4px;
-        min-width: 0;
-    }
-
-    .media-skeleton {
-        margin-top: 10px;
-        width: 100%;
-        height: 180px;
-        border-radius: 10px;
-        background: var(--el-fill-color-lighter);
+        .media-skeleton {
+            margin-top: 16px;
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            background: var(--el-fill-color-light);
+        }
     }
 }
 
 .feed-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .load-more {
-    margin-top: 6px;
+    margin-top: 8px;
     display: flex;
-    justify-content: center;
-    padding: 8px 0 2px;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0 20px;
+    position: relative;
+
+    .sentinel {
+        position: absolute;
+        top: -100px;
+        height: 1px;
+        width: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
 
     .finished {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--el-text-color-secondary);
+        padding: 8px 0;
     }
 }
 </style>

@@ -1,184 +1,249 @@
 ﻿<template>
     <div class="app-container">
-        <el-row :gutter="20" class="content-row">
+        <el-row :gutter="40" class="content-row">
             <el-col :xs="24" :sm="24" :md="14" :lg="15" :xl="16">
-                <el-card shadow="never" class="edit-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span class="header-title">发布新内容</span>
-                            <span class="header-tip">请填写以下信息并上传素材</span>
+                <div class="edit-section">
+                    <div class="section-header">
+                        <div class="title-group">
+                            <h2>发布新动态</h2>
+                            <p>分享生活，记录精彩瞬间</p>
                         </div>
-                    </template>
+                        <el-button link type="primary" @click="handleReset(false)"> <Icon icon="mdi:refresh" class="mr-1" /> 重置内容 </el-button>
+                    </div>
 
-                    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="post-form">
-                        <el-form-item label="内容类型" prop="postType">
-                            <el-radio-group v-model="form.postType" @change="handleTypeChange" class="type-radio-group">
-                                <el-radio-button :label="POST_TYPE.TEXT">
-                                    <Icon icon="mdi:format-text" />
-                                    <span>纯文字</span>
-                                </el-radio-button>
-                                <el-radio-button :label="POST_TYPE.IMAGE">
-                                    <Icon icon="mdi:image" />
-                                    <span>图文</span>
-                                </el-radio-button>
-                                <el-radio-button :label="POST_TYPE.VIDEO">
-                                    <Icon icon="mdi:video" />
-                                    <span>视频</span>
-                                </el-radio-button>
-                            </el-radio-group>
-                        </el-form-item>
-
-                        <el-form-item label="正文内容" prop="content">
-                            <el-input
-                                v-model="form.content"
-                                type="textarea"
-                                :rows="8"
-                                placeholder="请输入这一刻的想法..."
-                                maxlength="2000"
-                                show-word-limit
-                                @input="handleContentInput"
-                            />
-                        </el-form-item>
-
-                        <el-form-item
-                            v-if="form.postType !== POST_TYPE.TEXT"
-                            :label="form.postType === POST_TYPE.IMAGE ? '图片上传 (最多9张)' : '视频上传'"
-                            prop="files"
-                        >
-                            <el-upload
-                                ref="uploadRef"
-                                v-model:file-list="fileList"
-                                :auto-upload="false"
-                                :multiple="form.postType === POST_TYPE.IMAGE"
-                                :limit="form.postType === POST_TYPE.IMAGE ? 9 : 1"
-                                :accept="uploadAccept"
-                                :on-exceed="handleExceed"
-                                :on-change="handleFileChange"
-                                :before-upload="beforeUpload"
-                                list-type="picture-card"
-                                :class="{ 'hide-upload-btn': uploadLimitReached }"
-                            >
-                                <el-icon><Icon icon="mdi:plus" /></el-icon>
-
-                                <template #file="{ file }">
-                                    <div class="uploaded-file-wrapper">
-                                        <img v-if="form.postType === POST_TYPE.IMAGE" class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
-                                        <video
-                                            v-else-if="form.postType === POST_TYPE.VIDEO"
-                                            class="el-upload-list__item-thumbnail video-thumbnail"
-                                            :src="file.url"
-                                            muted
-                                            preload="metadata"
-                                        ></video>
-
-                                        <span class="el-upload-list__item-actions">
-                                            <span class="el-upload-list__item-delete" @click="handleRemove(file)">
-                                                <Icon icon="mdi:delete" />
-                                            </span>
-                                        </span>
+                    <el-card shadow="hover" class="form-card">
+                        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="post-form">
+                            <el-form-item label="选择发布类型" prop="postType" class="type-form-item">
+                                <div class="type-grid">
+                                    <div
+                                        v-for="type in [
+                                            { label: POST_TYPE.TEXT, icon: 'mdi:format-text', text: '纯文字', desc: '记录心情与想法' },
+                                            { label: POST_TYPE.IMAGE, icon: 'mdi:image-outline', text: '图文', desc: '分享美好图片' },
+                                            { label: POST_TYPE.VIDEO, icon: 'mdi:video-outline', text: '视频', desc: '记录动态影像' }
+                                        ]"
+                                        :key="type.label"
+                                        class="type-card"
+                                        :class="{ active: form.postType === type.label }"
+                                        @click="
+                                            () => {
+                                                form.postType = type.label
+                                                handleTypeChange()
+                                            }
+                                        "
+                                    >
+                                        <div class="icon-box">
+                                            <Icon :icon="type.icon" />
+                                        </div>
+                                        <div class="info-box">
+                                            <span class="type-name">{{ type.text }}</span>
+                                            <span class="type-desc">{{ type.desc }}</span>
+                                        </div>
+                                        <div class="check-mark" v-if="form.postType === type.label">
+                                            <Icon icon="mdi:check-circle" />
+                                        </div>
                                     </div>
-                                </template>
-                            </el-upload>
-                            <div class="upload-tip">
-                                {{ form.postType === POST_TYPE.IMAGE ? '建议尺寸 1:1 或 4:3，支持 JPG/PNG' : '支持 MP4 格式，建议时长不超过 1 分钟' }}
+                                </div>
+                                <el-radio-group v-model="form.postType" v-show="false"></el-radio-group>
+                            </el-form-item>
+
+                            <el-form-item label="正文内容" prop="content">
+                                <div class="input-wrapper">
+                                    <el-input
+                                        v-model="form.content"
+                                        type="textarea"
+                                        :rows="8"
+                                        placeholder="写点什么吧..."
+                                        maxlength="2000"
+                                        show-word-limit
+                                        resize="none"
+                                        @input="handleContentInput"
+                                        class="custom-textarea"
+                                    />
+                                </div>
+                            </el-form-item>
+
+                            <transition name="el-fade-in">
+                                <el-form-item
+                                    v-if="form.postType !== POST_TYPE.TEXT"
+                                    :label="form.postType === POST_TYPE.IMAGE ? '上传图片' : '上传视频'"
+                                    prop="files"
+                                >
+                                    <div class="upload-container">
+                                        <el-upload
+                                            ref="uploadRef"
+                                            v-model:file-list="fileList"
+                                            :auto-upload="false"
+                                            :multiple="form.postType === POST_TYPE.IMAGE"
+                                            :limit="form.postType === POST_TYPE.IMAGE ? 9 : 1"
+                                            :accept="uploadAccept"
+                                            :on-exceed="handleExceed"
+                                            :on-change="handleFileChange"
+                                            :before-upload="beforeUpload"
+                                            list-type="picture-card"
+                                            class="custom-upload"
+                                            :class="{ 'hide-upload-trigger': uploadLimitReached }"
+                                        >
+                                            <div class="upload-trigger-content">
+                                                <div class="icon-wrapper">
+                                                    <Icon icon="mdi:cloud-upload-outline" />
+                                                </div>
+                                                <div class="text-wrapper">
+                                                    <span class="primary-text">点击或拖拽上传</span>
+                                                    <span class="secondary-text">
+                                                        {{
+                                                            form.postType === POST_TYPE.IMAGE
+                                                                ? '支持 JPG/PNG，最多9张，单张不超过 5MB'
+                                                                : '支持 MP4/MOV，建议时长 1 分钟以内'
+                                                        }}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <template #file="{ file }">
+                                                <div class="uploaded-file-wrapper">
+                                                    <img v-if="form.postType === POST_TYPE.IMAGE" class="thumbnail" :src="file.url" alt="" />
+                                                    <video
+                                                        v-else-if="form.postType === POST_TYPE.VIDEO"
+                                                        class="thumbnail video-thumbnail"
+                                                        :src="file.url"
+                                                        muted
+                                                        preload="metadata"
+                                                    ></video>
+                                                    <div class="overlay">
+                                                        <span class="delete-btn" @click.stop="handleRemove(file)">
+                                                            <Icon icon="mdi:trash-can-outline" />
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </el-upload>
+                                    </div>
+                                </el-form-item>
+                            </transition>
+
+                            <el-form-item label="添加话题" prop="tagStr">
+                                <el-select
+                                    v-model="selectedTagIds"
+                                    multiple
+                                    filterable
+                                    placeholder="搜索或选择话题标签..."
+                                    style="width: 100%"
+                                    clearable
+                                    :loading="interestLoading"
+                                    class="custom-select"
+                                    tag-type="primary"
+                                >
+                                    <template #prefix>
+                                        <Icon icon="mdi:pound" />
+                                    </template>
+                                    <template v-for="cate in interestTree" :key="cate.id">
+                                        <el-option-group v-if="cate.children?.length" :label="cate.name">
+                                            <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id">
+                                                <span class="hash-symbol">#</span> {{ child.name }}
+                                            </el-option>
+                                        </el-option-group>
+                                    </template>
+                                </el-select>
+                            </el-form-item>
+
+                            <div class="form-footer">
+                                <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit" class="submit-btn">
+                                    <Icon icon="mdi:send-outline" class="btn-icon" /> 立即发布
+                                </el-button>
                             </div>
-                        </el-form-item>
-
-                        <el-form-item label="关联标签" prop="tagStr">
-                            <el-select
-                                v-model="selectedTagIds"
-                                multiple
-                                filterable
-                                placeholder="选择话题标签（可搜索）"
-                                style="width: 100%"
-                                clearable
-                                :loading="interestLoading"
-                                class="tag-select"
-                            >
-                                <template v-for="cate in interestTree" :key="cate.id">
-                                    <el-option-group v-if="cate.children?.length" :label="cate.name">
-                                        <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id" class="tag-option-item">
-                                            <el-tag :type="getTagType(child.id)" effect="plain" round>{{ child.name }}</el-tag>
-                                        </el-option>
-                                    </el-option-group>
-                                </template>
-                            </el-select>
-                        </el-form-item>
-
-                        <div class="form-actions">
-                            <el-button @click="handleReset(false)"> <Icon icon="mdi:refresh" class="btn-icon" /> 重 置 </el-button>
-                            <el-button type="primary" :loading="submitting" @click="handleSubmit">
-                                <Icon icon="mdi:send" class="btn-icon" /> 发布内容
-                            </el-button>
-                        </div>
-                    </el-form>
-                </el-card>
+                        </el-form>
+                    </el-card>
+                </div>
             </el-col>
 
             <el-col :xs="24" :sm="24" :md="10" :lg="9" :xl="8">
-                <div class="preview-wrapper">
-                    <div class="preview-label">实时效果预览</div>
-                    <div class="mobile-mockup">
-                        <div class="mobile-status-bar">
-                            <span>{{ currentTime }}</span>
-                            <div class="mobile-icons">
-                                <Icon icon="mdi:signal" />
-                                <Icon icon="mdi:wifi" />
-                                <Icon icon="mdi:battery-70" />
-                            </div>
-                        </div>
-                        <div class="mobile-header">
-                            <Icon icon="mdi:chevron-left" class="header-icon" />
-                            <span>动态详情</span>
-                            <Icon icon="mdi:dots-horizontal" class="header-icon" />
-                        </div>
+                <div class="preview-sticky-wrapper">
+                    <div class="preview-header">
+                        <span class="label">实时预览</span>
+                    </div>
 
-                        <div class="mobile-body">
-                            <div class="preview-user-info">
-                                <el-avatar :size="40" :src="userAvatar" />
-                                <div class="user-meta">
-                                    <div class="user-name">{{ userNickName }}</div>
-                                    <div class="post-time">刚刚发布</div>
+                    <div class="mobile-frame">
+                        <div class="notch"></div>
+                        <div class="side-btn volume-up"></div>
+                        <div class="side-btn volume-down"></div>
+                        <div class="side-btn power"></div>
+
+                        <div class="screen-content">
+                            <div class="status-bar">
+                                <span class="time">{{ currentTime }}</span>
+                                <div class="status-icons">
+                                    <Icon icon="mdi:signal-cellular-3" />
+                                    <Icon icon="mdi:wifi" />
+                                    <Icon icon="mdi:battery-70" />
                                 </div>
                             </div>
 
-                            <div class="preview-content">
-                                <div v-if="form.content" class="text-content">{{ form.content }}</div>
-                                <div v-else class="text-placeholder">在此处预览正文内容...</div>
+                            <div class="app-nav">
+                                <Icon icon="mdi:chevron-left" class="nav-icon" />
+                                <div class="user-brief">
+                                    <el-avatar :size="32" :src="userAvatar" />
+                                    <span class="username">{{ userNickName }}</span>
+                                </div>
+                                <Icon icon="mdi:dots-horizontal" class="nav-icon" />
                             </div>
 
-                            <div class="preview-media" :class="{ 'single-mode': previewMediaList.length === 1 }">
-                                <template v-if="form.postType === POST_TYPE.IMAGE">
-                                    <div
-                                        v-for="(url, index) in previewMediaList"
-                                        :key="index"
-                                        class="preview-img-item"
-                                        :style="{ backgroundImage: `url(${url})` }"
-                                    ></div>
-                                </template>
+                            <div class="scroll-area">
+                                <div class="media-area" v-if="form.postType !== POST_TYPE.TEXT && previewMediaList.length">
+                                    <el-carousel
+                                        v-if="form.postType === POST_TYPE.IMAGE"
+                                        :autoplay="false"
+                                        indicator-position="none"
+                                        height="375px"
+                                        arrow="always"
+                                    >
+                                        <el-carousel-item v-for="(url, index) in previewMediaList" :key="index">
+                                            <div class="carousel-img" :style="{ backgroundImage: `url(${url})` }"></div>
+                                        </el-carousel-item>
+                                        <div class="indicator-dots" v-if="previewMediaList.length > 1">
+                                            <span v-for="(_, i) in previewMediaList" :key="i" class="dot" :class="{ active: i === 0 }"></span>
+                                        </div>
+                                    </el-carousel>
 
-                                <template v-if="form.postType === POST_TYPE.VIDEO && previewMediaList.length">
-                                    <video :src="previewMediaList[0]" controls class="preview-video"></video>
-                                </template>
+                                    <div v-else-if="form.postType === POST_TYPE.VIDEO" class="video-preview">
+                                        <video :src="previewMediaList[0]" controls></video>
+                                    </div>
+                                </div>
+
+                                <div class="content-body">
+                                    <h1 class="post-title" v-if="form.content">{{ form.content.slice(0, 20) }}{{ form.content.length > 20 ? '...' : '' }}</h1>
+                                    <p class="post-text" :class="{ placeholder: !form.content }">
+                                        {{ form.content || '填写正文内容，记录当下的想法...' }}
+                                    </p>
+
+                                    <div class="tags-row" v-if="selectedTagNames.length">
+                                        <span v-for="(tag, index) in selectedTagNames" :key="index" class="hash-tag"> #{{ tag.name }} </span>
+                                    </div>
+
+                                    <div class="meta-row">
+                                        <span class="date">刚刚</span>
+                                        <span class="location">四川 · 成都</span>
+                                    </div>
+                                </div>
+
+                                <el-divider class="mock-divider" />
+
+                                <div class="mock-comments">
+                                    <div class="comment-count">共 0 条评论</div>
+                                    <div class="empty-comment">
+                                        <Icon icon="mdi:sofa-outline" />
+                                        <span>快来坐沙发~</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="preview-tags" v-if="selectedTagNames.length">
-                                <el-tag
-                                    v-for="(tag, index) in selectedTagNames"
-                                    :key="index"
-                                    :type="getTagType(tag.id)"
-                                    effect="plain"
-                                    round
-                                    size="small"
-                                    class="preview-tag-item"
-                                >
-                                    #{{ tag.name }}
-                                </el-tag>
+                            <div class="app-tabbar">
+                                <div class="input-fake">说点什么...</div>
+                                <div class="action-icons">
+                                    <div class="icon-item"><Icon icon="mdi:heart-outline" /><span class="count">0</span></div>
+                                    <div class="icon-item"><Icon icon="mdi:star-outline" /><span class="count">0</span></div>
+                                    <div class="icon-item"><Icon icon="mdi:comment-outline" /><span class="count">0</span></div>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="mobile-footer">
-                            <div class="footer-input">说点什么...</div>
                         </div>
                     </div>
                 </div>
@@ -405,336 +470,636 @@ async function handleReset(afterSubmit = false) {
     await nextTick()
     updatePreviewMedia()
 }
-
-const getTagType = (id: number) => {
-    const types = ['info', 'success', 'warning', 'danger', 'primary']
-    return types[id % types.length]
-}
 </script>
 
 <style lang="scss" scoped>
-.app-container {
-    padding: 20px;
-    background-color: #f5f7fa;
-    min-height: calc(100vh - 84px);
-}
-
 .content-row {
-    max-width: 1400px;
+    max-width: 1440px;
     margin: 0 auto;
 }
 
-.edit-card {
-    border-radius: 8px;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-
-    .card-header {
+.edit-section {
+    .section-header {
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 24px;
 
-        .header-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #303133;
-        }
-        .header-tip {
-            font-size: 12px;
-            color: #909399;
-            margin-top: 4px;
+        .title-group {
+            h2 {
+                font-size: 24px;
+                color: var(--el-text-color-primary);
+                margin: 0 0 8px 0;
+                font-weight: 700;
+            }
+            p {
+                color: var(--el-text-color-secondary);
+                margin: 0;
+                font-size: 14px;
+            }
         }
     }
 }
 
-.post-form {
-    padding: 10px 0;
+.form-card {
+    border-radius: 16px;
+    border: 1px solid var(--el-border-color-light);
+    box-shadow: var(--el-box-shadow-light);
+    overflow: hidden;
+    background-color: var(--el-bg-color-overlay);
 
-    .upload-tip {
-        font-size: 12px;
-        color: #909399;
-        margin-top: 8px;
-        line-height: 1.4;
+    :deep(.el-card__body) {
+        padding: 32px;
     }
 }
 
-.type-radio-group {
-    :deep(.el-radio-button__inner) {
+.type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 8px;
+
+    .type-card {
+        border: 2px solid var(--el-border-color);
+        border-radius: 12px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--el-bg-color);
+
+        &:hover {
+            border-color: var(--el-color-primary-light-5);
+            background: var(--el-color-primary-light-9);
+            html.dark & {
+                background: var(--el-color-primary-light-9);
+                background-color: rgba(64, 158, 255, 0.15);
+            }
+        }
+
+        &.active {
+            border-color: var(--el-color-primary);
+            background: var(--el-color-primary-light-9);
+
+            html.dark & {
+                background-color: rgba(64, 158, 255, 0.15);
+            }
+
+            .icon-box {
+                background: var(--el-color-primary);
+                color: #fff;
+            }
+
+            .type-name {
+                color: var(--el-color-primary);
+                font-weight: 700;
+            }
+        }
+
+        .icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--el-fill-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--el-text-color-regular);
+            transition: all 0.3s ease;
+        }
+
+        .info-box {
+            display: flex;
+            flex-direction: column;
+
+            .type-name {
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--el-text-color-primary);
+                margin-bottom: 2px;
+            }
+
+            .type-desc {
+                font-size: 11px;
+                color: var(--el-text-color-secondary);
+            }
+        }
+
+        .check-mark {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: var(--el-color-primary);
+            font-size: 16px;
+        }
+    }
+}
+
+.custom-textarea {
+    :deep(.el-textarea__inner) {
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 15px;
+        line-height: 1.6;
+        border: 1px solid var(--el-border-color);
+        background: var(--el-fill-color-light);
+        color: var(--el-text-color-primary);
+        box-shadow: none;
+        transition: all 0.3s;
+
+        &:focus {
+            background: var(--el-bg-color-overlay);
+            border-color: var(--el-color-primary);
+            box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+        }
+    }
+}
+
+.upload-container {
+    width: 100%;
+}
+
+.custom-upload {
+    :deep(.el-upload--picture-card) {
+        width: 100%;
+        height: auto;
+        min-height: 140px;
+        border: 2px dashed var(--el-border-color);
+        border-radius: 12px;
+        background-color: var(--el-fill-color-lighter);
+        line-height: normal;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 8px 20px;
+        transition: var(--el-transition-duration);
+        margin: 0;
 
-        svg {
-            margin-right: 6px;
-            font-size: 16px;
+        &:hover {
+            border-color: var(--el-color-primary);
+            background-color: var(--el-color-primary-light-9);
+            html.dark & {
+                background-color: rgba(64, 158, 255, 0.1);
+            }
+        }
+    }
+
+    &.hide-upload-trigger {
+        :deep(.el-upload--picture-card) {
+            display: none;
+        }
+    }
+
+    :deep(.el-upload-list--picture-card) {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+
+        .el-upload-list__item {
+            width: 100%;
+            height: 100px;
+            margin: 0;
+            border: none;
+            border-radius: 8px;
+            overflow: hidden;
         }
     }
 }
 
-.tag-select {
-    .tag-option-item {
-        display: flex;
-        align-items: center;
-    }
-}
-
-.form-actions {
+.upload-trigger-content {
     display: flex;
-    justify-content: flex-end;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #ebeef5;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    gap: 12px;
+    width: 100%;
 
-    .el-button {
-        padding: 10px 24px;
+    .icon-wrapper {
+        font-size: 40px;
+        color: var(--el-text-color-secondary);
+        transition: transform 0.3s;
+    }
+
+    .text-wrapper {
         display: flex;
+        flex-direction: column;
         align-items: center;
+        gap: 6px;
+        line-height: 1.5;
 
-        .btn-icon {
-            margin-right: 6px;
-            font-size: 16px;
+        .primary-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--el-text-color-primary);
+        }
+
+        .secondary-text {
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
         }
     }
 }
 
-.hide-upload-btn {
-    :deep(.el-upload--picture-card) {
-        display: none;
-    }
+:deep(.el-upload--picture-card:hover) .icon-wrapper {
+    color: var(--el-color-primary);
+    transform: translateY(-4px);
 }
 
 .uploaded-file-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    border-radius: 8px;
     overflow: hidden;
+    background: #000;
 
-    img,
-    video {
+    .thumbnail {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        display: block;
     }
 
-    .el-upload-list__item-actions {
+    .overlay {
         position: absolute;
-        width: 100%;
-        height: 100%;
-        left: 0;
-        top: 0;
-        cursor: default;
-        text-align: center;
-        color: #fff;
-        opacity: 0;
-        font-size: 20px;
-        background-color: var(--el-overlay-color-lighter);
-        transition: opacity var(--el-transition-duration);
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
         display: flex;
-        justify-content: center;
         align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    &:hover .overlay {
+        opacity: 1;
+    }
+
+    .delete-btn {
+        color: #fff;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        transition: all 0.2s;
 
         &:hover {
-            opacity: 1;
-        }
-
-        .el-upload-list__item-delete {
-            position: static;
-            font-size: inherit;
-            color: inherit;
-            cursor: pointer;
-            &:hover {
-                color: var(--el-color-primary);
-            }
+            background: rgba(255, 255, 255, 0.2);
+            color: #f56c6c;
         }
     }
 }
 
-.preview-wrapper {
+.form-footer {
+    margin-top: 40px;
+    display: flex;
+    justify-content: flex-end;
+
+    .submit-btn {
+        padding: 12px 36px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: var(--el-box-shadow);
+
+        .btn-icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+    }
+}
+
+.preview-sticky-wrapper {
+    position: sticky;
+    top: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: sticky;
-    top: 20px;
 }
 
-.preview-label {
-    font-size: 14px;
-    color: #606266;
-    margin-bottom: 12px;
-    font-weight: 500;
+.preview-header {
+    width: 320px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .label {
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        font-size: 16px;
+    }
 }
 
-.mobile-mockup {
-    width: 375px;
-    height: 720px;
+.mobile-frame {
+    width: 320px;
+    height: 650px;
     background: #fff;
-    border-radius: 30px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-    border: 8px solid #333;
+    border-radius: 44px;
+    box-shadow:
+        0 0 0 8px #2d2d2d,
+        0 0 0 10px #4a4a4a,
+        0 20px 40px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
+    z-index: 1;
+    transition: background-color 0.3s;
+}
+
+html.dark .mobile-frame {
+    background: #1a1a1a;
+    box-shadow:
+        0 0 0 8px #121212,
+        0 0 0 9px #333,
+        0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-frame {
+    .notch {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 30px;
+        background: #000;
+        border-radius: 15px;
+        z-index: 20;
+    }
+
+    .side-btn {
+        position: absolute;
+        background: #2d2d2d;
+        border-radius: 2px 0 0 2px;
+    }
+    .volume-up {
+        width: 3px;
+        height: 40px;
+        left: -11px;
+        top: 120px;
+    }
+    .volume-down {
+        width: 3px;
+        height: 40px;
+        left: -11px;
+        top: 170px;
+    }
+    .power {
+        width: 3px;
+        height: 60px;
+        right: -11px;
+        top: 150px;
+        border-radius: 0 2px 2px 0;
+    }
+}
+
+.screen-content {
+    height: 100%;
     display: flex;
     flex-direction: column;
+    background: #fff;
+    color: #333;
+    transition:
+        background-color 0.3s,
+        color 0.3s;
 }
 
-.mobile-status-bar {
-    height: 40px;
-    background: #fff;
+html.dark .screen-content {
+    background: #121212;
+    color: #e5eaf3;
+}
+
+.status-bar {
+    height: 48px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
+    align-items: flex-end;
+    padding: 0 24px 8px;
     font-size: 12px;
     font-weight: 600;
-    z-index: 10;
 
-    .mobile-icons {
+    .status-icons {
         display: flex;
         gap: 6px;
-        align-items: center;
-        font-size: 14px;
     }
 }
 
-.mobile-header {
+.app-nav {
     height: 44px;
-    border-bottom: 1px solid #f2f2f2;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     padding: 0 16px;
-    font-size: 16px;
-    font-weight: 600;
-    background: #fff;
 
-    .header-icon {
-        font-size: 20px;
-        color: #333;
+    .nav-icon {
+        font-size: 24px;
+        color: inherit;
+    }
+
+    .user-brief {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
     }
 }
 
-.mobile-body {
+.scroll-area {
     flex: 1;
     overflow-y: auto;
-    background: #fff;
-    padding: 16px;
-
     &::-webkit-scrollbar {
         display: none;
     }
 }
 
-.preview-user-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
+.media-area {
+    width: 100%;
+    background: #f8f8f8;
+    position: relative;
 
-    .user-meta {
-        margin-left: 10px;
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-        }
-        .post-time {
-            font-size: 11px;
-            color: #999;
-            margin-top: 2px;
-        }
-    }
-}
-
-.preview-content {
-    margin-bottom: 12px;
-
-    .text-content {
-        font-size: 15px;
-        line-height: 1.6;
-        color: #333;
-        white-space: pre-wrap;
-    }
-
-    .text-placeholder {
-        font-size: 14px;
-        color: #dcdfe6;
-        font-style: italic;
-    }
-}
-
-.preview-media {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    margin-bottom: 12px;
-
-    &.single-mode {
-        grid-template-columns: 1fr;
-
-        .preview-img-item {
-            padding-bottom: 60%;
-            border-radius: 8px;
-        }
-        .preview-video {
-            width: 100%;
-            border-radius: 8px;
-        }
-    }
-
-    .preview-img-item {
-        width: 100%;
-        padding-bottom: 100%;
-        background-size: cover;
-        background-position: center;
-        background-color: #f5f5f5;
-        border-radius: 4px;
-    }
-
-    .preview-video {
-        width: 100%;
-        max-height: 300px;
+    html.dark & {
         background: #000;
     }
-}
 
-.preview-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    .carousel-img {
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+    }
 
-    .preview-tag-item {
-        margin-right: 4px;
-        margin-bottom: 4px;
+    .video-preview video {
+        width: 100%;
+        max-height: 400px;
+        display: block;
+    }
+
+    .indicator-dots {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        z-index: 5;
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            &.active {
+                background: #fff;
+            }
+        }
     }
 }
 
-.mobile-footer {
-    height: 50px;
-    border-top: 1px solid #f2f2f2;
-    background: #fff;
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
+.content-body {
+    padding: 16px;
 
-    .footer-input {
-        flex: 1;
-        height: 32px;
-        background: #f5f7fa;
-        border-radius: 16px;
-        line-height: 32px;
-        padding-left: 12px;
+    .post-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px;
+        line-height: 1.4;
+    }
+
+    .post-text {
+        font-size: 15px;
+        line-height: 1.6;
+        color: inherit;
+        white-space: pre-wrap;
+        margin: 0 0 12px;
+
+        &.placeholder {
+            color: #ccc;
+            font-style: italic;
+            html.dark & {
+                color: #666;
+            }
+        }
+    }
+
+    .tags-row {
+        margin-bottom: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+
+        .hash-tag {
+            color: #13386c;
+            font-size: 14px;
+            html.dark & {
+                color: #409eff;
+            }
+        }
+    }
+
+    .meta-row {
         font-size: 12px;
         color: #999;
+        display: flex;
+        justify-content: space-between;
+        html.dark & {
+            color: #666;
+        }
+    }
+}
+
+.mock-divider {
+    margin: 8px 0;
+    border-color: #f5f5f5;
+    html.dark & {
+        border-color: #333;
+    }
+}
+
+.mock-comments {
+    padding: 0 16px 20px;
+
+    .comment-count {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 16px;
+    }
+
+    .empty-comment {
+        height: 100px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #ccc;
+        font-size: 13px;
+        gap: 8px;
+        html.dark & {
+            color: #555;
+        }
+
+        .iconify {
+            font-size: 32px;
+        }
+    }
+}
+
+.app-tabbar {
+    height: 50px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: #fff;
+    transition: all 0.3s;
+
+    html.dark & {
+        background: #121212;
+        border-color: #333;
+    }
+
+    .input-fake {
+        flex: 1;
+        height: 34px;
+        background: #f5f5f5;
+        border-radius: 17px;
+        padding-left: 16px;
+        font-size: 13px;
+        color: #999;
+        line-height: 34px;
+        margin-right: 16px;
+
+        html.dark & {
+            background: #2c2c2c;
+            color: #666;
+        }
+    }
+
+    .action-icons {
+        display: flex;
+        gap: 20px;
+        color: inherit;
+        font-size: 22px;
+
+        .icon-item {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            .count {
+                font-size: 12px;
+            }
+        }
     }
 }
 
 @media screen and (max-width: 992px) {
-    .mobile-mockup {
-        width: 100%;
-        max-width: 375px;
-        height: 600px;
+    .type-grid {
+        grid-template-columns: 1fr;
     }
 }
 </style>
