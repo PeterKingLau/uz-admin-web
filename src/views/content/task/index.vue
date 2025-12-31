@@ -199,24 +199,20 @@
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
 import { Icon } from '@iconify/vue'
 import { parseTime } from '@/utils/ruoyi'
-import {
-    addAssessmentQuestion,
-    deleteAssessmentQuestion,
-    listAssessmentQuestions,
-    parseAssessmentQuestionRows,
-    updateAssessmentQuestion,
-    type AssessmentQuestionItem
-} from '@/api/content/assessmentQuestion'
-import {
-    addAssessmentOption,
-    deleteAssessmentOption,
-    listAssessmentOptions,
-    parseAssessmentOptionRows,
-    updateAssessmentOption,
-    type AssessmentOptionItem
-} from '@/api/content/assessmentOption'
+import type { AssessmentQuestionItem } from '@/api/content/assessmentQuestion'
+import type { AssessmentOptionItem } from '@/api/content/assessmentOption'
 
 const { proxy } = getCurrentInstance() as any
+
+const loadQuestionApi = (() => {
+    let cache: Promise<typeof import('@/api/content/assessmentQuestion')> | null = null
+    return () => (cache ??= import('@/api/content/assessmentQuestion'))
+})()
+
+const loadOptionApi = (() => {
+    let cache: Promise<typeof import('@/api/content/assessmentOption')> | null = null
+    return () => (cache ??= import('@/api/content/assessmentOption'))
+})()
 
 const loading = ref(false)
 const showSearch = ref(true)
@@ -327,6 +323,7 @@ async function getList(pagination?: { page?: number; limit?: number }) {
 
     loading.value = true
     try {
+        const { listAssessmentQuestions, parseAssessmentQuestionRows } = await loadQuestionApi()
         const res = await listAssessmentQuestions({
             ...queryParams.value,
             pageNum: queryParams.value.pageNum,
@@ -496,6 +493,7 @@ function validateOptions() {
 
 async function loadOptions(questionId: number) {
     try {
+        const { listAssessmentOptions, parseAssessmentOptionRows } = await loadOptionApi()
         const res = await listAssessmentOptions({ questionId } as any)
         formOptions.value = parseAssessmentOptionRows(res) as any
         removedOptionIds.value = []
@@ -509,6 +507,8 @@ async function loadOptions(questionId: number) {
 
 async function saveOptions(questionId: number) {
     if (!validateOptions()) throw new Error('invalid options')
+
+    const { addAssessmentOption, deleteAssessmentOption, updateAssessmentOption } = await loadOptionApi()
 
     if (removedOptionIds.value.length) {
         await deleteAssessmentOption(removedOptionIds.value.join(',') as any)
@@ -550,7 +550,10 @@ function handleDelete(row?: AssessmentQuestionItem) {
 
     proxy?.$modal
         ?.confirm?.(tip)
-        .then(() => deleteAssessmentQuestion(targetIds.join(',') as any))
+        .then(async () => {
+            const { deleteAssessmentQuestion } = await loadQuestionApi()
+            return deleteAssessmentQuestion(targetIds.join(',') as any)
+        })
         .then(() => {
             proxy?.$modal?.msgSuccess?.('删除成功')
             serverPaginationOk.value = true
@@ -705,6 +708,7 @@ async function getGlobalMaxSortOrderSafe(): Promise<number> {
     let pageNum = 1
     const pageSize = 200
     let maxSort = 0
+    const { listAssessmentQuestions, parseAssessmentQuestionRows } = await loadQuestionApi()
 
     while (true) {
         const res = await listAssessmentQuestions({ pageNum, pageSize } as any)
@@ -737,6 +741,8 @@ async function submitBatch() {
 
     batchLoading.value = true
     try {
+        const { addAssessmentQuestion } = await loadQuestionApi()
+        const { addAssessmentOption } = await loadOptionApi()
         let sortOrder = (await getGlobalMaxSortOrderSafe()) + 1
 
         for (const it of items) {
@@ -813,6 +819,7 @@ async function fetchAllQuestions(): Promise<AssessmentQuestionItem[]> {
     const allRows: AssessmentQuestionItem[] = []
     let pageNum = 1
     const pageSize = 200
+    const { listAssessmentQuestions, parseAssessmentQuestionRows } = await loadQuestionApi()
 
     while (true) {
         const res = await listAssessmentQuestions({ ...queryParams.value, pageNum, pageSize } as any)
@@ -836,6 +843,7 @@ async function handleBatchExport() {
 
         const optionCache = new Map<number, AssessmentOptionItem[]>()
         const items: BatchFlatItem[] = []
+        const { listAssessmentOptions, parseAssessmentOptionRows } = await loadOptionApi()
         for (const row of rows as any[]) {
             const questionId = Number(row.id)
             if (!Number.isFinite(questionId)) continue
@@ -877,6 +885,7 @@ function submitForm() {
         if (!valid) return
         submitLoading.value = true
         try {
+            const { addAssessmentQuestion, updateAssessmentQuestion } = await loadQuestionApi()
             const payload: any = {
                 id: form.value.id,
                 moduleCode: form.value.moduleCode || undefined,
