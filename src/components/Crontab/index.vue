@@ -45,15 +45,15 @@
 
             <div class="cron-actions">
                 <el-button type="primary" @click="submitFill">
-                    <Icon icon="ep:check" class="btn-icon" />
+                    <Icon icon="ep:check" class="mr-1 align-middle" />
                     <span>确定</span>
                 </el-button>
                 <el-button type="warning" @click="clearCron">
-                    <Icon icon="ep:refresh-right" class="btn-icon" />
+                    <Icon icon="ep:refresh-right" class="mr-1 align-middle" />
                     <span>重置</span>
                 </el-button>
                 <el-button @click="hidePopup">
-                    <Icon icon="ep:close" class="btn-icon" />
+                    <Icon icon="ep:close" class="mr-1 align-middle" />
                     <span>取消</span>
                 </el-button>
             </div>
@@ -286,9 +286,5 @@ onMounted(() => {
     justify-content: center;
     gap: 12px;
 
-    .btn-icon {
-        margin-right: 4px;
-        vertical-align: middle;
-    }
 }
 </style>

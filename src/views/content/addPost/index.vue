@@ -8,7 +8,7 @@
                             <h2>发布新动态</h2>
                             <p>分享生活，记录精彩瞬间</p>
                         </div>
-                        <el-button link type="primary" @click="handleReset(false)"> <Icon icon="mdi:refresh" class="mr-1" /> 重置内容 </el-button>
+                                <el-button link type="primary" @click="handleReset(false)"> <Icon icon="mdi:refresh" class="mr-1" /> 重置内容 </el-button>
                     </div>
 
                     <el-card shadow="hover" class="form-card">
@@ -148,7 +148,7 @@
 
                             <div class="form-footer">
                                 <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit" class="submit-btn">
-                                    <Icon icon="mdi:send-outline" class="btn-icon" /> 立即发布
+                                    <Icon icon="mdi:send-outline" class="mr-2 text-[18px]" /> 立即发布
                                 </el-button>
                             </div>
                         </el-form>
@@ -768,10 +768,6 @@ async function handleReset(afterSubmit = false) {
         font-size: 16px;
         box-shadow: var(--el-box-shadow);
 
-        .btn-icon {
-            margin-right: 8px;
-            font-size: 18px;
-        }
     }
 }
 

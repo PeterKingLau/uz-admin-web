@@ -1,11 +1,12 @@
 <template>
-    <div class="avatar-preview">
-        <el-tag v-if="deleted" type="danger" size="small">内容已删除</el-tag>
+    <div class="inline-flex items-center justify-center shrink-0">
+        <el-tag v-if="deleted" type="danger" size="small" class="rounded-full px-3">内容已删除</el-tag>
 
         <el-image
             v-else-if="finalSrc && !imageError"
             :src="finalSrc"
-            :style="imageStyle"
+            :style="dynamicSize"
+            class="rounded-full object-cover cursor-pointer border border-gray-200"
             fit="cover"
             :preview-src-list="previewList"
             :preview-teleported="true"
@@ -13,10 +14,12 @@
         />
 
         <template v-if="imageError && finalSrc">
-            <Icon icon="mdi:account-off" style="font-size: 40px; color: #100d0d" />
+            <div :style="dynamicSize" class="rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                <Icon icon="mdi:account-off" class="text-xl" />
+            </div>
         </template>
 
-        <span v-if="!finalSrc">无</span>
+        <span v-if="!finalSrc" class="text-gray-400 text-xs">无</span>
     </div>
 </template>
 
@@ -30,7 +33,7 @@ const props = defineProps({
     },
     size: {
         type: Number,
-        default: 40 // 列表 40，详情传 80
+        default: 40
     },
     deleted: {
         type: Boolean,
@@ -40,7 +43,7 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance() || {}
 
-const imageError = ref(false) // 用于跟踪图片是否加载失败
+const imageError = ref(false)
 
 const finalSrc = computed(() => {
     if (!props.src) return ''
@@ -51,23 +54,12 @@ const previewList = computed(() => {
     return finalSrc.value ? [finalSrc.value] : []
 })
 
-const imageStyle = computed(() => ({
+const dynamicSize = computed(() => ({
     width: `${props.size}px`,
-    height: `${props.size}px`,
-    borderRadius: '50%',
-    cursor: 'pointer'
+    height: `${props.size}px`
 }))
 
-// 图片加载错误处理
 function onImageError() {
-    imageError.value = true // 图片加载失败时设置为 true
+    imageError.value = true
 }
 </script>
-
-<style scoped>
-.avatar-preview {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>

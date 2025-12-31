@@ -4,7 +4,7 @@
             <div class="header-left">
                 <span class="page-title">内容管理</span>
                 <span class="page-subtitle" v-if="postList.length">
-                    共 <span class="count">{{ postList.length }}</span> 条动态
+                    共 <span class="count">{{ totalDisplay }}</span> 条动态
                 </span>
             </div>
 
@@ -57,7 +57,7 @@
 </template>
 
 <script setup name="ContentList" lang="ts">
-import { ref, reactive, onMounted, onActivated, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, getCurrentInstance } from 'vue'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
 import { deletePost, listPostByApp } from '@/api/content/post'
@@ -87,6 +87,9 @@ const loadingMore = ref(false)
 const finished = ref(false)
 const deleting = ref(false)
 const selectedIds = ref<Array<number | string>>([])
+const totalCount = ref<number | null>(null)
+
+const totalDisplay = computed(() => totalCount.value ?? postList.value.length)
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
 
@@ -108,6 +111,12 @@ async function fetchList(isLoadMore = false) {
         const res = await listPostByApp(params)
         const list = (res as any)?.rows || (res as any)?.data || res || []
         const records = Array.isArray(list) ? list : []
+        const resTotal = (res as any)?.total ?? (res as any)?.data?.total ?? (res as any)?.count
+        if (Number.isFinite(Number(resTotal))) {
+            totalCount.value = Number(resTotal)
+        } else if (!isLoadMore) {
+            totalCount.value = null
+        }
 
         if (!isLoadMore) postList.value = records
         else postList.value = postList.value.concat(records)
@@ -133,6 +142,7 @@ function handleQuery() {
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
     selectedIds.value = []
+    totalCount.value = null
     fetchList(false)
 }
 
@@ -145,6 +155,7 @@ function resetQuery() {
     queryParams.lastCreateTime = undefined
     finished.value = false
     selectedIds.value = []
+    totalCount.value = null
     fetchList(false)
 }
 
@@ -188,6 +199,9 @@ async function handleDeleteConfirm(ids: Array<string | number>) {
 
         postList.value = postList.value.filter(item => !ids.includes(item.id))
         selectedIds.value = selectedIds.value.filter(id => !ids.includes(id))
+        if (totalCount.value !== null) {
+            totalCount.value = Math.max(0, totalCount.value - ids.length)
+        }
 
         if (postList.value.length < 5 && !finished.value) {
             loadMore()

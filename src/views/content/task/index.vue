@@ -9,20 +9,20 @@
                 </el-input>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
-                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1 text-[16px]" /> 搜索 </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1 text-[16px]" /> 重置 </el-button>
             </el-form-item>
         </el-form>
 
         <div class="table-wrapper">
             <div class="table-header">
                 <div class="left-tools">
-                    <el-button type="primary" plain @click="handleAdd"> <Icon icon="mdi:plus" class="btn-icon" /> 新增题目 </el-button>
+                    <el-button type="primary" plain @click="handleAdd"> <Icon icon="mdi:plus" class="mr-1 text-[16px]" /> 新增题目 </el-button>
                     <el-button type="success" plain @click="handleBatchOpen">
-                        <Icon icon="mdi:file-document-plus-outline" class="btn-icon" /> 批量导入
+                        <Icon icon="mdi:file-document-plus-outline" class="mr-1 text-[16px]" /> 批量导入
                     </el-button>
                     <el-button type="danger" plain :disabled="!ids.length" @click="handleDelete()">
-                        <Icon icon="mdi:trash-can-outline" class="btn-icon" /> 批量删除
+                        <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" /> 批量删除
                     </el-button>
                 </div>
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
@@ -61,8 +61,10 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center" width="180" fixed="right">
                     <template #default="{ row }">
-                        <el-button link type="primary" @click="handleEdit(row)"> <Icon icon="mdi:pencil" class="btn-icon" /> 修改 </el-button>
-                        <el-button link type="danger" @click="handleDelete(row)"> <Icon icon="mdi:trash-can-outline" class="btn-icon" /> 删除 </el-button>
+                        <el-button link type="primary" @click="handleEdit(row)"> <Icon icon="mdi:pencil" class="mr-1 text-[16px]" /> 修改 </el-button>
+                        <el-button link type="danger" @click="handleDelete(row)">
+                            <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" /> 删除
+                        </el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -378,10 +380,19 @@ function resetOptions() {
     removedOptionIds.value = []
 }
 
-function handleAdd() {
+async function handleAdd() {
     resetFormData()
     resetOptions()
     dialogTitle.value = '新增题目'
+
+    try {
+        const maxSort = await getGlobalMaxSortOrderSafe()
+        form.value.sortOrder = maxSort + 1
+    } catch (e) {
+        console.error(e)
+        form.value.sortOrder = 1
+    }
+
     open.value = true
 }
 
@@ -812,11 +823,6 @@ onMounted(() => {
             gap: 10px;
         }
     }
-}
-
-.btn-icon {
-    margin-right: 4px;
-    font-size: 16px;
 }
 
 :deep(.table-header-cell) {

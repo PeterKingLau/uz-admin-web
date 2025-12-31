@@ -162,9 +162,6 @@ function handleVideoClose() {
     color: #909399;
     font-size: 13px;
 
-    .mr-1 {
-        margin-right: 4px;
-    }
 }
 
 /* 图片九宫格样式 */

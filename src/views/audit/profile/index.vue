@@ -1,44 +1,50 @@
 <template>
     <div class="app-container">
-        <el-card shadow="never" class="search-wrapper">
-            <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch">
-                <el-form-item label="帖子类型" prop="postType">
-                    <el-select v-model="queryParams.postType" placeholder="全部类型" clearable style="width: 180px">
-                        <el-option v-for="opt in postTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="审核状态" prop="auditStatus">
-                    <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable style="width: 180px">
-                        <el-option v-for="opt in auditStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="内容状态" prop="status">
-                    <el-select v-model="queryParams.status" placeholder="全部状态" clearable style="width: 180px">
-                        <el-option v-for="opt in contentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
-                    <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
-                </el-form-item>
-            </el-form>
-        </el-card>
+        <el-card shadow="never" class="main-card">
+            <div class="toolbar-section">
+                <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch" class="search-form">
+                    <el-form-item label="帖子类型" prop="postType">
+                        <el-select v-model="queryParams.postType" placeholder="全部类型" clearable class="search-input">
+                            <el-option v-for="opt in postTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="审核状态" prop="auditStatus">
+                        <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable class="search-input">
+                            <el-option v-for="opt in auditStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="内容状态" prop="status">
+                        <el-select v-model="queryParams.status" placeholder="全部状态" clearable class="search-input">
+                            <el-option v-for="opt in contentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
+                        <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
 
-        <el-card shadow="never" class="table-wrapper">
-            <template #header>
-                <div class="table-header">
-                    <span class="header-title">审核列表</span>
+            <el-divider class="section-divider" />
+
+            <div class="table-header-wrapper">
+                <div class="left-panel">
+                    <span class="section-title">审核列表</span>
+                </div>
+                <div class="right-panel">
                     <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
                 </div>
-            </template>
+            </div>
 
-            <el-table v-loading="loading" :data="contentList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
+            <el-table v-loading="loading" :data="contentList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange" border>
                 <el-table-column type="selection" width="50" align="center" />
 
                 <el-table-column label="发布人" min-width="140" show-overflow-tooltip>
                     <template #default="{ row }">
-                        <div>{{ row.nickName }}</div>
-                        <div class="sub-text">{{ row.userName }}</div>
+                        <div class="user-info">
+                            <div class="nickname">{{ row.nickName }}</div>
+                            <div class="username text-secondary">{{ row.userName }}</div>
+                        </div>
                     </template>
                 </el-table-column>
 
@@ -50,7 +56,7 @@
 
                 <el-table-column label="内容预览" min-width="240" show-overflow-tooltip>
                     <template #default="{ row }">
-                        <div class="content-preview">{{ row.content }}</div>
+                        <div class="content-preview text-content">{{ row.content }}</div>
                     </template>
                 </el-table-column>
 
@@ -74,31 +80,33 @@
 
                 <el-table-column label="操作" align="center" width="180" fixed="right">
                     <template #default="{ row }">
-                        <el-tooltip content="查看详情" placement="top">
-                            <el-button link type="primary" @click="handleView(row)">
-                                <Icon icon="mdi:eye-outline" class="op-icon" />
-                            </el-button>
-                        </el-tooltip>
-
-                        <el-tooltip content="删除" placement="top">
-                            <el-button link type="danger" @click="handleDelete(row)">
-                                <Icon icon="mdi:trash-can-outline" class="op-icon" />
-                            </el-button>
-                        </el-tooltip>
-
-                        <template v-if="row.auditStatus === AUDIT_STATUS.PENDING">
-                            <el-divider direction="vertical" />
-                            <el-tooltip content="通过" placement="top">
-                                <el-button link type="success" @click="handleApprove(row)">
-                                    <Icon icon="mdi:check-circle-outline" class="op-icon" />
+                        <div class="operation-group">
+                            <el-tooltip content="查看详情" placement="top">
+                                <el-button link type="primary" @click="handleView(row)">
+                                    <Icon icon="mdi:eye-outline" class="op-icon" />
                                 </el-button>
                             </el-tooltip>
-                            <el-tooltip content="驳回" placement="top">
-                                <el-button link type="danger" @click="openRejectDialog(row)">
-                                    <Icon icon="mdi:close-circle-outline" class="op-icon" />
+
+                            <el-tooltip content="删除" placement="top">
+                                <el-button link type="danger" @click="handleDelete(row)">
+                                    <Icon icon="mdi:trash-can-outline" class="op-icon" />
                                 </el-button>
                             </el-tooltip>
-                        </template>
+
+                            <template v-if="row.auditStatus === AUDIT_STATUS.PENDING">
+                                <el-divider direction="vertical" />
+                                <el-tooltip content="通过" placement="top">
+                                    <el-button link type="success" @click="handleApprove(row)">
+                                        <Icon icon="mdi:check-circle-outline" class="op-icon" />
+                                    </el-button>
+                                </el-tooltip>
+                                <el-tooltip content="驳回" placement="top">
+                                    <el-button link type="danger" @click="openRejectDialog(row)">
+                                        <Icon icon="mdi:close-circle-outline" class="op-icon" />
+                                    </el-button>
+                                </el-tooltip>
+                            </template>
+                        </div>
                     </template>
                 </el-table-column>
             </el-table>
@@ -108,8 +116,8 @@
             </div>
         </el-card>
 
-        <el-dialog title="内容详情" v-model="openDetail" width="600px" append-to-body class="custom-dialog">
-            <el-descriptions :column="2" border class="detail-desc" size="small">
+        <el-dialog title="内容详情" v-model="openDetail" width="650px" append-to-body class="custom-dialog">
+            <el-descriptions :column="2" border class="detail-desc">
                 <el-descriptions-item label="用户名">{{ current?.userName }}</el-descriptions-item>
                 <el-descriptions-item label="昵称">{{ current?.nickName }}</el-descriptions-item>
                 <el-descriptions-item label="类型">
@@ -124,14 +132,22 @@
                 <el-descriptions-item label="审核理由">{{ current?.reason || '-' }}</el-descriptions-item>
             </el-descriptions>
 
-            <div class="detail-content">
-                <div class="section-title">正文内容</div>
-                <div class="content-text">{{ current?.content }}</div>
+            <div class="detail-section">
+                <div class="section-header">
+                    <Icon icon="mdi:format-text" class="section-icon" />
+                    <span>正文内容</span>
+                </div>
+                <div class="content-box">{{ current?.content || '（无正文内容）' }}</div>
             </div>
 
-            <div class="detail-media">
-                <div class="section-title">媒体资源</div>
-                <MediaPreview v-if="current" :post-type="current.postType" :media-urls="current.mediaUrls" :audit-status="current.auditStatus" />
+            <div class="detail-section" v-if="current?.mediaUrls && current.mediaUrls.length">
+                <div class="section-header">
+                    <Icon icon="mdi:image-multiple-outline" class="section-icon" />
+                    <span>媒体资源</span>
+                </div>
+                <div class="media-box">
+                    <MediaPreview :post-type="current.postType" :media-urls="current.mediaUrls" :audit-status="current.auditStatus" />
+                </div>
             </div>
 
             <template #footer>
@@ -141,10 +157,10 @@
             </template>
         </el-dialog>
 
-        <el-dialog title="驳回原因" v-model="openReject" width="400px" append-to-body class="custom-dialog">
+        <el-dialog title="驳回原因" v-model="openReject" width="420px" append-to-body>
             <el-form :model="rejectForm" label-position="top">
                 <el-form-item label="请输入驳回原因">
-                    <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="例如：内容违规..." resize="none" />
+                    <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="例如：内容包含违规信息..." resize="none" />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -163,7 +179,7 @@ import { listContentAudit, auditPost } from '@/api/audit/profile/content'
 import { deletePost } from '@/api/content/post'
 import { AUDIT_STATUS } from '@/utils/enum'
 import EnumTag from '@/components/EnumTag/index.vue'
-import MediaPreview from '@/components/MediaPreview/index.vue' // 假设路径，需确认
+import MediaPreview from '@/components/MediaPreview/index.vue'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
 
 const { proxy } = getCurrentInstance()
@@ -298,108 +314,151 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.search-wrapper {
-    border-radius: 4px;
+.main-card {
+    border-radius: 8px;
     border: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 
-    :deep(.el-form-item) {
-        margin-bottom: 16px;
-        margin-right: 12px; /* 减少表单项间距 */
+    :deep(.el-card__body) {
+        padding: 20px;
     }
 }
 
-.table-wrapper {
-    border-radius: 4px;
-    border: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 8px; /* 头部与表格的间距 */
-
-        .header-title {
-            font-weight: 600;
-            color: #303133;
-            font-size: 18px;
+.toolbar-section {
+    .search-form {
+        .el-form-item {
+            margin-bottom: 0;
+            margin-right: 16px;
         }
     }
+    .search-input {
+        width: 180px;
+    }
+    .btn-icon {
+        margin-right: 4px;
+        font-size: 16px;
+        vertical-align: -2px;
+    }
 }
 
-.btn-icon {
-    margin-right: 4px;
-    font-size: 14px;
+.section-divider {
+    margin: 18px 0;
+    border-color: #f0f2f5;
+}
+
+.table-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #303133;
+        position: relative;
+        padding-left: 12px;
+        line-height: 1;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 16px;
+            background-color: var(--el-color-primary);
+            border-radius: 2px;
+        }
+    }
 }
 
 :deep(.table-header-cell) {
     background-color: #f8fafd !important;
     color: #606266;
     font-weight: 600;
-    height: 44px; /* 稍微减小表头高度 */
-    padding: 8px 0;
+    height: 48px;
 }
 
-.sub-text {
-    font-size: 12px;
+.user-info {
+    .nickname {
+        font-size: 14px;
+        color: #303133;
+    }
+    .username {
+        font-size: 12px;
+        margin-top: 2px;
+    }
+}
+
+.text-secondary {
     color: #909399;
-    margin-top: 2px;
 }
 
-.op-icon {
-    font-size: 16px;
-}
-
-.content-preview {
-    font-size: 13px;
+.text-content {
     color: #606266;
-    line-height: 1.4;
+    font-size: 13px;
+}
+
+.operation-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    .op-icon {
+        font-size: 18px;
+    }
 }
 
 .pagination-container {
     display: flex;
     justify-content: flex-end;
-    padding-top: 12px;
+    margin-top: 20px;
 }
 
-/* 详情弹窗 */
 .detail-desc {
-    margin-bottom: 16px;
-
+    margin-bottom: 24px;
     :deep(.el-descriptions__cell) {
-        padding: 8px 12px;
+        padding: 12px 16px;
     }
 }
 
-.section-title {
-    font-weight: 600;
-    font-size: 14px;
-    color: #303133;
-    margin-bottom: 8px;
-    border-left: 3px solid var(--el-color-primary);
-    padding-left: 8px;
-    line-height: 1;
-}
+.detail-section {
+    margin-bottom: 20px;
 
-.content-text {
-    background: #f9f9f9;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 13px;
-    color: #555;
-    line-height: 1.6;
-    margin-bottom: 16px;
-    white-space: pre-wrap;
-}
+    .section-header {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: #303133;
+        margin-bottom: 10px;
 
-.detail-media {
-    margin-bottom: 0;
+        .section-icon {
+            font-size: 18px;
+            color: var(--el-color-primary);
+            margin-right: 6px;
+        }
+    }
+
+    .content-box {
+        background: #f9f9f9;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #555;
+        border: 1px solid #eee;
+    }
+
+    .media-box {
+        margin-top: 8px;
+    }
 }
 
 .dialog-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 12px;
 }
 </style>
