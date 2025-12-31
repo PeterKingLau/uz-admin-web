@@ -21,6 +21,7 @@
                     <el-button type="success" plain @click="handleBatchOpen">
                         <Icon icon="mdi:file-document-plus-outline" class="mr-1 text-[16px]" /> 批量导入
                     </el-button>
+                    <el-button type="info" plain @click="handleBatchExport"> <Icon icon="mdi:download" class="mr-1 text-[16px]" /> 批量导出 </el-button>
                     <el-button type="danger" plain :disabled="!ids.length" @click="handleDelete()">
                         <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" /> 批量删除
                     </el-button>
@@ -156,13 +157,18 @@
 
         <el-dialog title="批量导入题目" v-model="batchOpen" width="600px" append-to-body class="custom-dialog">
             <el-alert
-                title="格式提示：支持多模块(标题行=moduleCode)，每题可带A/B/C选项与分值；排序为全局自增"
+                title="格式提示：支持多模块(标题行=moduleCode)，题目行可含【能力题】或【普通题】；每题可带A/B/C选项与分值；排序为全局自增"
                 type="info"
                 :closable="false"
                 show-icon
                 class="mb-3"
             />
-            <el-input v-model="batchText" type="textarea" :rows="12" placeholder="例如：&#10;情绪稳定性&#10;问题...?&#10;A. ... (分值:2)&#10;B. ... (分值:1)" />
+            <el-input
+                v-model="batchText"
+                type="textarea"
+                :rows="12"
+                placeholder="例如：&#10;情绪稳定性&#10;【能力题】问题...?&#10;A. ... (分值:2)&#10;B. ... (分值:1)"
+            />
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="batchOpen = false">取 消</el-button>
@@ -554,7 +560,7 @@ function handleDelete(row?: AssessmentQuestionItem) {
 }
 
 type BatchOption = { optionKey: string; content: string; scoreValue: number }
-type BatchFlatItem = { moduleCode: string; content: string; options: BatchOption[] }
+type BatchFlatItem = { moduleCode: string; content: string; options: BatchOption[]; type: 'ABILITY' | 'NORMAL' }
 
 function normalizeLinesExpanded(text: string) {
     const rawLines = (text || '')
@@ -616,6 +622,14 @@ function parseOptionLine(line: string, fallbackKey: string) {
     }
 }
 
+function parseQuestionTypeFromLine(line: string): { type?: 'ABILITY' | 'NORMAL'; content: string } {
+    const tagMatch = line.match(/【\s*(能力题|普通题)\s*】/i)
+    const tag = tagMatch?.[1]
+    const type = tag === '能力题' ? 'ABILITY' : tag === '普通题' ? 'NORMAL' : undefined
+    const content = line.replace(/【\s*(能力题|普通题)\s*】/gi, '').trim()
+    return { type, content }
+}
+
 function parseBatchFlatItems(text: string): BatchFlatItem[] {
     const lines = normalizeLinesExpanded(text)
     if (!lines.length) return []
@@ -661,21 +675,26 @@ function parseBatchFlatItems(text: string): BatchFlatItem[] {
 
         if (isQuestionLine(line)) {
             if (current && current.options.length) flush()
-            if (!current) current = { moduleCode: currentModule, content: line, options: [] }
-            else if (!current.options.length) current.content = `${current.content} ${line}`.trim()
-            else current = { moduleCode: currentModule, content: line, options: [] }
+            const parsed = parseQuestionTypeFromLine(line)
+            const questionLine = parsed.content || line
+            const questionType: 'ABILITY' | 'NORMAL' = parsed.type || 'NORMAL'
+            if (!current) current = { moduleCode: currentModule, content: questionLine, options: [], type: questionType }
+            else if (!current.options.length) current.content = `${current.content} ${questionLine}`.trim()
+            else current = { moduleCode: currentModule, content: questionLine, options: [], type: questionType }
             continue
         }
 
         if (isOptionLine(line)) {
-            if (!current) current = { moduleCode: currentModule, content: '', options: [] }
+            if (!current) current = { moduleCode: currentModule, content: '', options: [], type: 'NORMAL' }
             const fallbackKey = String.fromCharCode(65 + (current.options.length || 0))
             current.options.push(parseOptionLine(line, fallbackKey))
             continue
         }
 
-        if (!current) current = { moduleCode: currentModule, content: line, options: [] }
-        else current.content = `${current.content} ${line}`.trim()
+        if (!current) {
+            const parsed = parseQuestionTypeFromLine(line)
+            current = { moduleCode: currentModule, content: parsed.content || line, options: [], type: parsed.type || 'NORMAL' }
+        } else current.content = `${current.content} ${line}`.trim()
     }
 
     flush()
@@ -723,7 +742,7 @@ async function submitBatch() {
         for (const it of items) {
             const res = await addAssessmentQuestion({
                 moduleCode: it.moduleCode,
-                type: 'NORMAL',
+                type: it.type || 'NORMAL',
                 content: it.content,
                 questionType: '1',
                 correctAnswer: undefined,
@@ -758,6 +777,95 @@ async function submitBatch() {
     } catch (error: any) {
         console.error(error)
         proxy?.$modal?.msgError?.(error?.message || '批量导入失败')
+    } finally {
+        batchLoading.value = false
+    }
+}
+
+function formatBatchExport(items: BatchFlatItem[]) {
+    const lines: string[] = []
+    let currentModule = ''
+    for (const item of items) {
+        if (item.moduleCode !== currentModule) {
+            currentModule = item.moduleCode
+            lines.push(currentModule)
+        }
+        const typeTag = item.type === 'ABILITY' ? '【能力题】' : '【普通题】'
+        lines.push(`${typeTag}${item.content}`)
+        for (const opt of item.options || []) {
+            const score = Number(opt.scoreValue ?? 0)
+            lines.push(`${opt.optionKey}. ${opt.content} (分值:${score})`)
+        }
+        lines.push('')
+    }
+    return lines.join('\n').trim()
+}
+
+function getQuestionTypeCode(row: AssessmentQuestionItem): 'ABILITY' | 'NORMAL' {
+    const val = (row as any).typeName || (row as any).questionTypeName || (row as any).type || (row as any).questionType
+    if (val === 'ABILITY' || val === 'NORMAL') return val
+    if (val === '能力题') return 'ABILITY'
+    if (val === '普通题') return 'NORMAL'
+    return 'NORMAL'
+}
+
+async function fetchAllQuestions(): Promise<AssessmentQuestionItem[]> {
+    const allRows: AssessmentQuestionItem[] = []
+    let pageNum = 1
+    const pageSize = 200
+
+    while (true) {
+        const res = await listAssessmentQuestions({ ...queryParams.value, pageNum, pageSize } as any)
+        const rows = parseAssessmentQuestionRows(res) || []
+        allRows.push(...rows)
+        if (rows.length < pageSize) break
+        pageNum += 1
+        if (pageNum > 500) break
+    }
+    return allRows
+}
+
+async function handleBatchExport() {
+    batchLoading.value = true
+    try {
+        const rows = await fetchAllQuestions()
+        if (!rows.length) {
+            proxy?.$modal?.msgWarning?.('暂无可导出的题目')
+            return
+        }
+
+        const optionCache = new Map<number, AssessmentOptionItem[]>()
+        const items: BatchFlatItem[] = []
+        for (const row of rows as any[]) {
+            const questionId = Number(row.id)
+            if (!Number.isFinite(questionId)) continue
+
+            let options = optionCache.get(questionId)
+            if (!options) {
+                const res = await listAssessmentOptions({ questionId } as any)
+                options = (parseAssessmentOptionRows(res) || []) as AssessmentOptionItem[]
+                optionCache.set(questionId, options)
+            }
+
+            items.push({
+                moduleCode: row.moduleCode || '',
+                content: row.content || row.title || row.questionContent || '',
+                type: getQuestionTypeCode(row),
+                options: (options || []).map(opt => ({
+                    optionKey: (opt as any).optionKey || '',
+                    content: (opt as any).content || '',
+                    scoreValue: Number((opt as any).scoreValue ?? 0)
+                }))
+            })
+        }
+
+        const exportText = formatBatchExport(items)
+        batchText.value = exportText
+        batchOpen.value = true
+        proxy?.$modal?.msgSuccess?.('已生成导出文本，可直接复制用于批量导入')
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('批量导出失败')
     } finally {
         batchLoading.value = false
     }
@@ -826,22 +934,22 @@ onMounted(() => {
 }
 
 :deep(.table-header-cell) {
-    background-color: #f8fafd !important;
-    color: #606266;
+    background-color: var(--el-fill-color-light) !important;
+    color: var(--el-text-color-regular);
     font-weight: 600;
     height: 50px;
 }
 
 .row-title {
     font-weight: 500;
-    color: #303133;
+    color: var(--el-text-color-primary);
 }
 
 .time-cell {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #909399;
+    color: var(--el-text-color-secondary);
 }
 
 .pagination-container {
@@ -866,7 +974,7 @@ onMounted(() => {
         .title {
             font-weight: 600;
             font-size: 14px;
-            color: #606266;
+            color: var(--el-text-color-regular);
             border-left: 3px solid var(--el-color-primary);
             padding-left: 8px;
         }
@@ -881,7 +989,7 @@ onMounted(() => {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: #fff;
+            background: var(--el-bg-color);
             padding: 8px 12px;
             border-radius: 6px;
             border: 1px solid var(--el-border-color-lighter);
@@ -905,7 +1013,7 @@ onMounted(() => {
 
         .empty-options {
             text-align: center;
-            color: #909399;
+            color: var(--el-text-color-secondary);
             padding: 20px;
             font-size: 13px;
             border: 1px dashed var(--el-border-color-lighter);
