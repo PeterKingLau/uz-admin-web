@@ -47,10 +47,12 @@ import type { IconifyJSON } from '@iconify/types'
 import mdiIcons from '@iconify-json/mdi/icons.json'
 import epIcons from '@iconify-json/ep/icons.json'
 import simpleIcons from '@iconify-json/simple-icons/icons.json'
+import materialSymbols from '@iconify-json/material-symbols/icons.json'
 
 addCollection(mdiIcons as IconifyJSON)
 addCollection(epIcons as IconifyJSON)
 addCollection(simpleIcons as IconifyJSON)
+addCollection(materialSymbols as IconifyJSON)
 
 const app = createApp(App)
 

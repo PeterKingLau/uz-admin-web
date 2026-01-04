@@ -392,7 +392,7 @@ function toggleExpandAll() {
 
 async function handleUpdate(row) {
     reset()
-    await getTreeselect()
+    getTreeselect()
     getMenu(row.menuId).then(response => {
         form.value = response.data
         open.value = true

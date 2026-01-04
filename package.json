@@ -15,6 +15,7 @@
     },
     "dependencies": {
         "@element-plus/icons-vue": "^2.3.2",
+        "@iconify-json/material-symbols": "^1.2.50",
         "@iconify-json/simple-icons": "^1.2.59",
         "@iconify/vue": "^5.0.0",
         "@vueup/vue-quill": "^1.2.0",

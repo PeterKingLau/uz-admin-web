@@ -259,11 +259,12 @@ function handleScroll() {
 
     .tags-view-wrapper {
         .tags-view-item {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             position: relative;
             cursor: pointer;
             height: 26px;
-            line-height: 26px;
+            line-height: 1;
             border: 1px solid var(--tags-item-border, #d8dce5);
             color: var(--tags-item-text, #495060);
             background: var(--tags-item-bg, #fff);
@@ -271,6 +272,7 @@ function handleScroll() {
             font-size: 12px;
             margin-left: 5px;
             margin-top: 4px;
+            gap: 4px;
 
             &:first-of-type {
                 margin-left: 15px;
@@ -334,10 +336,15 @@ function handleScroll() {
 //reset element css of el-icon-close
 .tags-view-wrapper {
     .tags-view-item {
+        svg {
+            display: inline-flex;
+            align-items: center;
+        }
+
         .el-icon-close {
             width: 16px;
             height: 16px;
-            vertical-align: 2px;
+            vertical-align: middle;
             border-radius: 50%;
             text-align: center;
             transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
