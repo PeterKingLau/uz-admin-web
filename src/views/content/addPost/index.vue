@@ -8,7 +8,7 @@
                             <h2>发布新动态</h2>
                             <p>分享生活，记录精彩瞬间</p>
                         </div>
-                                <el-button link type="primary" @click="handleReset(false)"> <Icon icon="mdi:refresh" class="mr-1" /> 重置内容 </el-button>
+                        <el-button link type="primary" @click="handleReset(false)"> <Icon icon="mdi:refresh" class="mr-1" /> 重置内容 </el-button>
                     </div>
 
                     <el-card shadow="hover" class="form-card">
@@ -81,7 +81,10 @@
                                             :before-upload="beforeUpload"
                                             list-type="picture-card"
                                             class="custom-upload"
-                                            :class="{ 'hide-upload-trigger': uploadLimitReached }"
+                                            :class="{
+                                                'hide-upload-trigger': uploadLimitReached,
+                                                'is-empty': fileList.length === 0
+                                            }"
                                         >
                                             <div class="upload-trigger-content">
                                                 <div class="icon-wrapper">
@@ -260,7 +263,6 @@ import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
-import { Icon } from '@iconify/vue'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const { proxy } = getCurrentInstance() || {}
@@ -472,7 +474,6 @@ async function handleReset(afterSubmit = false) {
     updatePreviewMedia()
 }
 </script>
-
 <style lang="scss" scoped>
 .content-row {
     max-width: 1440px;
@@ -530,28 +531,20 @@ async function handleReset(afterSubmit = false) {
         display: flex;
         align-items: center;
         gap: 12px;
-        background: var(--el-bg-color);
+        background-color: var(--el-bg-color);
 
         &:hover {
             border-color: var(--el-color-primary-light-5);
-            background: var(--el-color-primary-light-9);
-            html.dark & {
-                background: var(--el-color-primary-light-9);
-                background-color: rgba(64, 158, 255, 0.15);
-            }
+            background-color: var(--el-fill-color-light);
         }
 
         &.active {
             border-color: var(--el-color-primary);
-            background: var(--el-color-primary-light-9);
-
-            html.dark & {
-                background-color: rgba(64, 158, 255, 0.15);
-            }
+            background-color: var(--el-color-primary-light-9);
 
             .icon-box {
                 background: var(--el-color-primary);
-                color: #fff;
+                color: var(--el-color-white);
             }
 
             .type-name {
@@ -607,13 +600,17 @@ async function handleReset(afterSubmit = false) {
         font-size: 15px;
         line-height: 1.6;
         border: 1px solid var(--el-border-color);
-        background: var(--el-fill-color-light);
+        background-color: var(--el-fill-color);
         color: var(--el-text-color-primary);
         box-shadow: none;
         transition: all 0.3s;
 
+        &::placeholder {
+            color: var(--el-text-color-placeholder);
+        }
+
         &:focus {
-            background: var(--el-bg-color-overlay);
+            background-color: var(--el-bg-color);
             border-color: var(--el-color-primary);
             box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
         }
@@ -625,48 +622,93 @@ async function handleReset(afterSubmit = false) {
 }
 
 .custom-upload {
-    :deep(.el-upload--picture-card) {
-        width: 100%;
-        height: auto;
-        min-height: 140px;
-        border: 2px dashed var(--el-border-color);
-        border-radius: 12px;
-        background-color: var(--el-fill-color-lighter);
-        line-height: normal;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--el-transition-duration);
-        margin: 0;
+    width: 100%;
+    display: inline-block;
 
-        &:hover {
-            border-color: var(--el-color-primary);
-            background-color: var(--el-color-primary-light-9);
-            html.dark & {
-                background-color: rgba(64, 158, 255, 0.1);
+    &.is-empty {
+        :deep(.el-upload--picture-card) {
+            width: 100%;
+            height: 180px;
+            border: 2px dashed var(--el-border-color);
+            background-color: var(--el-fill-color-lighter);
+            border-radius: 12px;
+            transition: all 0.3s;
+
+            &:hover {
+                border-color: var(--el-color-primary);
+                background-color: var(--el-color-primary-light-9);
             }
+        }
+        .upload-trigger-content {
+            flex-direction: column;
+            padding: 32px 0;
+            gap: 12px;
+            .icon-wrapper {
+                font-size: 40px;
+            }
+            .primary-text {
+                font-size: 15px;
+            }
+            .secondary-text {
+                display: block;
+            }
+        }
+    }
+
+    &:not(.is-empty) {
+        :deep(.el-upload--picture-card) {
+            width: 110px;
+            height: 110px;
+            margin: 0 8px 8px 0;
+            border: 1px dashed var(--el-border-color);
+            border-radius: 8px;
+            background-color: var(--el-fill-color-lighter);
+            vertical-align: top;
+            transition: all 0.3s;
+
+            &:hover {
+                border-color: var(--el-color-primary);
+                color: var(--el-color-primary);
+            }
+        }
+
+        .upload-trigger-content {
+            padding: 0;
+            justify-content: center;
+            gap: 4px;
+
+            .icon-wrapper {
+                font-size: 24px;
+                color: var(--el-text-color-secondary);
+            }
+            .primary-text {
+                font-size: 12px;
+                color: var(--el-text-color-regular);
+                margin: 0;
+            }
+            .secondary-text {
+                display: none;
+            }
+        }
+    }
+
+    :deep(.el-upload-list--picture-card) {
+        display: inline;
+
+        .el-upload-list__item {
+            width: 110px;
+            height: 110px;
+            margin: 0 8px 8px 0;
+            border-radius: 8px;
+            border: none;
+            overflow: hidden;
+            vertical-align: top;
         }
     }
 
     &.hide-upload-trigger {
         :deep(.el-upload--picture-card) {
             display: none;
-        }
-    }
-
-    :deep(.el-upload-list--picture-card) {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 12px;
-        margin-top: 16px;
-
-        .el-upload-list__item {
-            width: 100%;
-            height: 100px;
-            margin: 0;
-            border: none;
-            border-radius: 8px;
-            overflow: hidden;
         }
     }
 }
@@ -676,12 +718,10 @@ async function handleReset(afterSubmit = false) {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 32px 0;
-    gap: 12px;
     width: 100%;
+    height: 100%;
 
     .icon-wrapper {
-        font-size: 40px;
         color: var(--el-text-color-secondary);
         transition: transform 0.3s;
     }
@@ -690,11 +730,10 @@ async function handleReset(afterSubmit = false) {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        text-align: center;
         line-height: 1.5;
 
         .primary-text {
-            font-size: 15px;
             font-weight: 500;
             color: var(--el-text-color-primary);
         }
@@ -702,22 +741,21 @@ async function handleReset(afterSubmit = false) {
         .secondary-text {
             font-size: 12px;
             color: var(--el-text-color-secondary);
+            margin-top: 4px;
         }
     }
 }
 
 :deep(.el-upload--picture-card:hover) .icon-wrapper {
     color: var(--el-color-primary);
-    transform: translateY(-4px);
+    transform: translateY(-2px);
 }
 
 .uploaded-file-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #000;
+    background: var(--el-fill-color-dark);
 
     .thumbnail {
         width: 100%;
@@ -729,7 +767,7 @@ async function handleReset(afterSubmit = false) {
     .overlay {
         position: absolute;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: var(--el-overlay-color-lighter);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -742,16 +780,16 @@ async function handleReset(afterSubmit = false) {
     }
 
     .delete-btn {
-        color: #fff;
-        font-size: 22px;
+        color: var(--el-color-white);
+        font-size: 20px;
         cursor: pointer;
         padding: 8px;
         border-radius: 50%;
         transition: all 0.2s;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: #f56c6c;
+            background: var(--el-fill-color-light);
+            color: var(--el-color-danger);
         }
     }
 }
@@ -767,7 +805,6 @@ async function handleReset(afterSubmit = false) {
         font-weight: 600;
         font-size: 16px;
         box-shadow: var(--el-box-shadow);
-
     }
 }
 
@@ -796,24 +833,16 @@ async function handleReset(afterSubmit = false) {
 .mobile-frame {
     width: 320px;
     height: 650px;
-    background: #fff;
+    background: var(--el-bg-color);
     border-radius: 44px;
     box-shadow:
-        0 0 0 8px #2d2d2d,
-        0 0 0 10px #4a4a4a,
-        0 20px 40px rgba(0, 0, 0, 0.2);
+        0 0 0 8px var(--el-border-color-darker),
+        0 0 0 10px var(--el-text-color-disabled),
+        0 20px 40px var(--el-box-shadow-dark);
     position: relative;
     overflow: hidden;
     z-index: 1;
     transition: background-color 0.3s;
-}
-
-html.dark .mobile-frame {
-    background: #1a1a1a;
-    box-shadow:
-        0 0 0 8px #121212,
-        0 0 0 9px #333,
-        0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-frame {
@@ -824,14 +853,14 @@ html.dark .mobile-frame {
         transform: translateX(-50%);
         width: 100px;
         height: 30px;
-        background: #000;
+        background: var(--el-text-color-primary);
         border-radius: 15px;
         z-index: 20;
     }
 
     .side-btn {
         position: absolute;
-        background: #2d2d2d;
+        background: var(--el-border-color-darker);
         border-radius: 2px 0 0 2px;
     }
     .volume-up {
@@ -859,16 +888,11 @@ html.dark .mobile-frame {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #fff;
-    color: #333;
+    background: var(--el-bg-color);
+    color: var(--el-text-color-primary);
     transition:
         background-color 0.3s,
         color 0.3s;
-}
-
-html.dark .screen-content {
-    background: #121212;
-    color: #e5eaf3;
 }
 
 .status-bar {
@@ -917,12 +941,8 @@ html.dark .screen-content {
 
 .media-area {
     width: 100%;
-    background: #f8f8f8;
+    background: var(--el-fill-color-dark);
     position: relative;
-
-    html.dark & {
-        background: #000;
-    }
 
     .carousel-img {
         width: 100%;
@@ -932,19 +952,11 @@ html.dark .screen-content {
     }
 
     :deep(.media-carousel) {
-        background: #000;
+        background: var(--el-fill-color-darker);
     }
 
     :deep(.media-carousel .el-carousel__container) {
-        background: #000;
-    }
-
-    html.dark & {
-        :deep(.media-carousel),
-        :deep(.media-carousel .el-carousel__container),
-        .video-preview {
-            background: #000;
-        }
+        background: var(--el-fill-color-darker);
     }
 
     .video-preview video {
@@ -959,7 +971,7 @@ html.dark .screen-content {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #000;
+        background: var(--el-fill-color-darker);
     }
 
     .indicator-dots {
@@ -975,9 +987,9 @@ html.dark .screen-content {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.4);
+            background: var(--el-fill-color);
             &.active {
-                background: #fff;
+                background: var(--el-color-white);
             }
         }
     }
@@ -991,6 +1003,7 @@ html.dark .screen-content {
         font-weight: 600;
         margin: 0 0 8px;
         line-height: 1.4;
+        color: var(--el-text-color-primary);
     }
 
     .post-text {
@@ -1001,11 +1014,8 @@ html.dark .screen-content {
         margin: 0 0 12px;
 
         &.placeholder {
-            color: #ccc;
+            color: var(--el-text-color-placeholder);
             font-style: italic;
-            html.dark & {
-                color: #666;
-            }
         }
     }
 
@@ -1016,31 +1026,22 @@ html.dark .screen-content {
         gap: 6px;
 
         .hash-tag {
-            color: #13386c;
+            color: var(--el-color-primary);
             font-size: 14px;
-            html.dark & {
-                color: #409eff;
-            }
         }
     }
 
     .meta-row {
         font-size: 12px;
-        color: #999;
+        color: var(--el-text-color-secondary);
         display: flex;
         justify-content: space-between;
-        html.dark & {
-            color: #666;
-        }
     }
 }
 
 .mock-divider {
     margin: 8px 0;
-    border-color: #f5f5f5;
-    html.dark & {
-        border-color: #333;
-    }
+    border-color: var(--el-border-color-lighter);
 }
 
 .mock-comments {
@@ -1048,7 +1049,7 @@ html.dark .screen-content {
 
     .comment-count {
         font-size: 13px;
-        color: #666;
+        color: var(--el-text-color-secondary);
         margin-bottom: 16px;
     }
 
@@ -1058,12 +1059,9 @@ html.dark .screen-content {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        color: #ccc;
+        color: var(--el-text-color-placeholder);
         font-size: 13px;
         gap: 8px;
-        html.dark & {
-            color: #555;
-        }
 
         .iconify {
             font-size: 32px;
@@ -1073,33 +1071,23 @@ html.dark .screen-content {
 
 .app-tabbar {
     height: 50px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--el-border-color-lighter);
     display: flex;
     align-items: center;
     padding: 0 16px;
-    background: #fff;
+    background: var(--el-bg-color);
     transition: all 0.3s;
-
-    html.dark & {
-        background: #121212;
-        border-color: #333;
-    }
 
     .input-fake {
         flex: 1;
         height: 34px;
-        background: #f5f5f5;
+        background: var(--el-fill-color);
         border-radius: 17px;
         padding-left: 16px;
         font-size: 13px;
-        color: #999;
+        color: var(--el-text-color-secondary);
         line-height: 34px;
         margin-right: 16px;
-
-        html.dark & {
-            background: #2c2c2c;
-            color: #666;
-        }
     }
 
     .action-icons {

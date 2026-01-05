@@ -43,16 +43,6 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="难度" align="center" width="100">
-                    <template #default="{ row }">
-                        <span>{{ getQuestionLevel(row) }}</span>
-                    </template>
-                </el-table-column>
-                <el-table-column label="分值" align="center" width="80">
-                    <template #default="{ row }">
-                        <span>{{ getQuestionScore(row) }}</span>
-                    </template>
-                </el-table-column>
                 <el-table-column label="更新时间" align="center" width="160">
                     <template #default="{ row }">
                         <div class="time-cell">
