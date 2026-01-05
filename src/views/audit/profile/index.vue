@@ -314,71 +314,10 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.main-card {
-    border-radius: 8px;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-
-    :deep(.el-card__body) {
-        padding: 20px;
-    }
-}
-
 .toolbar-section {
-    .search-form {
-        .el-form-item {
-            margin-bottom: 0;
-            margin-right: 16px;
-        }
-    }
     .search-input {
         width: 180px;
     }
-    .btn-icon {
-        margin-right: 4px;
-        font-size: 16px;
-        vertical-align: -2px;
-    }
-}
-
-.section-divider {
-    margin: 18px 0;
-    border-color: #f0f2f5;
-}
-
-.table-header-wrapper {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .section-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #303133;
-        position: relative;
-        padding-left: 12px;
-        line-height: 1;
-
-        &::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 16px;
-            background-color: var(--el-color-primary);
-            border-radius: 2px;
-        }
-    }
-}
-
-:deep(.table-header-cell) {
-    background-color: #f8fafd !important;
-    color: #606266;
-    font-weight: 600;
-    height: 48px;
 }
 
 .user-info {
@@ -392,28 +331,9 @@ onMounted(() => {
     }
 }
 
-.text-secondary {
-    color: #909399;
-}
-
 .text-content {
     color: #606266;
     font-size: 13px;
-}
-
-.operation-group {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    .op-icon {
-        font-size: 18px;
-    }
-}
-
-.pagination-container {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
 }
 
 .detail-desc {

@@ -824,6 +824,7 @@ async function fetchAllQuestions(): Promise<AssessmentQuestionItem[]> {
 
 async function handleBatchExport() {
     batchLoading.value = true
+    proxy?.$modal?.loading?.('正在生成导出内容，请稍候...')
     try {
         const rows = await fetchAllQuestions()
         if (!rows.length) {
@@ -865,6 +866,7 @@ async function handleBatchExport() {
         console.error(error)
         proxy?.$modal?.msgError?.('批量导出失败')
     } finally {
+        proxy?.$modal?.closeLoading?.()
         batchLoading.value = false
     }
 }
@@ -930,13 +932,6 @@ onMounted(() => {
             gap: 10px;
         }
     }
-}
-
-:deep(.table-header-cell) {
-    background-color: var(--el-fill-color-light) !important;
-    color: var(--el-text-color-regular);
-    font-weight: 600;
-    height: 50px;
 }
 
 .row-title {
@@ -1025,11 +1020,5 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-}
-
-:deep(.el-radio-button__inner) {
-    display: flex;
-    align-items: center;
-    padding: 8px 16px;
 }
 </style>

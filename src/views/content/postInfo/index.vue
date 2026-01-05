@@ -1,15 +1,17 @@
 <template>
     <div class="app-container content-feed-page">
-        <div class="page-header">
-            <div class="header-left">
-                <span class="page-title">内容管理</span>
-                <span class="page-subtitle" v-if="postList.length">
-                    共 <span class="count">{{ totalDisplay }}</span> 条动态
-                </span>
-            </div>
+        <div class="page-header-wrapper">
+            <div class="header-content">
+                <div class="left-section">
+                    <div class="title-block">
+                        <span class="main-title">内容列表</span>
+                        <span class="sub-info" v-if="totalCount !== null">
+                            共 <span class="highlight">{{ totalCount }}</span> 条数据
+                        </span>
+                    </div>
+                </div>
 
-            <div class="header-right">
-                <div class="search-container">
+                <div class="right-section">
                     <ContentQueryForm
                         ref="queryFormRef"
                         :query-params="queryParams"
@@ -18,27 +20,22 @@
                         @submit="handleQuery"
                         @reset="resetQuery"
                     />
-                </div>
 
-                <transition name="el-fade-in-linear">
-                    <div class="action-wrapper" v-if="selectedIds.length">
-                        <el-divider direction="vertical" class="header-divider" />
-
-                        <div class="batch-actions">
-                            <span class="selection-text">已选 {{ selectedIds.length }}</span>
-                            <el-divider direction="vertical" class="action-divider" />
-                            <el-button type="danger" link @click="handleBatchDelete" :loading="deleting">
-                                <Icon icon="mdi:trash-can-outline" style="margin-right: 4px" /> 删除
-                            </el-button>
-                            <el-button link type="info" @click="selectedIds = []">取消</el-button>
-                        </div>
+                    <div class="batch-action-bar" v-if="selectedIds.length > 0">
+                        <span class="selected-count">已选 {{ selectedIds.length }} 项</span>
+                        <el-button type="danger" link @click="handleBatchDelete" :loading="deleting">
+                            <Icon icon="mdi:trash-can-outline" class="mr-1" />
+                            批量删除
+                        </el-button>
+                        <el-button link @click="selectedIds = []">取消选择</el-button>
                     </div>
-                </transition>
+                </div>
             </div>
         </div>
 
-        <div class="feed-wrapper">
+        <div class="feed-list-container" v-loading="loading && !loadingMore">
             <FeedList
+                v-if="postList.length > 0"
                 :posts="postList"
                 :loading="loading"
                 :loading-more="loadingMore"
@@ -49,15 +46,13 @@
                 @delete="handleSingleDelete"
             />
 
-            <div v-if="!loading && !postList.length" class="empty-wrapper">
-                <el-empty description="暂无内容" :image-size="120" />
-            </div>
+            <el-empty v-else description="暂无内容" :image-size="100" />
         </div>
     </div>
 </template>
 
 <script setup name="ContentList" lang="ts">
-import { ref, reactive, computed, onMounted, onActivated, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, onActivated, getCurrentInstance } from 'vue'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
 import { deletePost, listPostByApp } from '@/api/content/post'
@@ -89,8 +84,6 @@ const deleting = ref(false)
 const selectedIds = ref<Array<number | string>>([])
 const totalCount = ref<number | null>(null)
 
-const totalDisplay = computed(() => totalCount.value ?? postList.value.length)
-
 const postTypeOptions = useEnumOptions('POST_TYPE')
 
 async function fetchList(isLoadMore = false) {
@@ -112,6 +105,7 @@ async function fetchList(isLoadMore = false) {
         const list = (res as any)?.rows || (res as any)?.data || res || []
         const records = Array.isArray(list) ? list : []
         const resTotal = (res as any)?.total ?? (res as any)?.data?.total ?? (res as any)?.count
+
         if (Number.isFinite(Number(resTotal))) {
             totalCount.value = Number(resTotal)
         } else if (!isLoadMore) {
@@ -165,8 +159,7 @@ function loadMore() {
 }
 
 function handleSelect(payload: { id: string | number; checked: boolean }) {
-    const id = payload.id
-    const checked = payload.checked
+    const { id, checked } = payload
     if (checked) {
         if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
     } else {
@@ -225,177 +218,99 @@ onActivated(() => {
 
 <style scoped lang="scss">
 .content-feed-page {
-    padding: 20px;
-    background-color: var(--el-bg-color-page);
-    min-height: calc(100vh - 84px);
-    display: flex;
-    flex-direction: column;
+    padding: 0;
+    background-color: transparent;
 }
 
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--el-bg-color-overlay);
-    padding: 12px 20px;
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color-light);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    margin-bottom: 16px;
-    box-shadow: var(--el-box-shadow-light);
+.page-header-wrapper {
+    background-color: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-light);
+    padding: 16px 24px;
+    margin-bottom: 20px;
 
-    backdrop-filter: saturate(180%) blur(20px);
-    background-color: rgba(var(--el-bg-color-overlay-rgb, 255, 255, 255), 0.9);
-
-    .header-left {
+    .header-content {
         display: flex;
-        align-items: baseline;
-        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
 
-        .page-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-        }
+    .left-section {
+        .title-block {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
 
-        .page-subtitle {
-            font-size: 13px;
-            color: var(--el-text-color-secondary);
-            .count {
-                color: var(--el-color-primary);
+            .main-title {
+                font-size: 18px;
                 font-weight: 600;
-                margin: 0 2px;
+                color: var(--el-text-color-primary);
+            }
+
+            .sub-info {
+                font-size: 13px;
+                color: var(--el-text-color-secondary);
+
+                .highlight {
+                    color: var(--el-color-primary);
+                    font-weight: 600;
+                    margin: 0 2px;
+                }
             }
         }
     }
 
-    .header-right {
+    .right-section {
         display: flex;
         align-items: center;
         gap: 16px;
 
-        .search-container {
+        .batch-action-bar {
             display: flex;
             align-items: center;
+            gap: 12px;
+            padding-left: 16px;
+            border-left: 1px solid var(--el-border-color);
 
-            :deep(.el-form-item) {
-                margin-bottom: 0;
-                margin-right: 12px;
-                &:last-child {
-                    margin-right: 0;
-                }
-            }
-        }
-
-        .action-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .header-divider {
-            height: 18px;
-            border-color: var(--el-border-color);
-            margin: 0;
-        }
-
-        .batch-actions {
-            height: 32px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--el-color-danger-light-9);
-            border: 1px solid var(--el-color-danger-light-8);
-            border-radius: 4px;
-            padding: 0 12px;
-            box-sizing: border-box;
-
-            .selection-text {
+            .selected-count {
                 font-size: 13px;
-                color: var(--el-color-danger);
-                font-weight: 500;
-                line-height: 1;
-            }
-
-            .action-divider {
-                border-color: var(--el-color-danger-light-5);
-                margin: 0 4px;
-                height: 14px;
-            }
-
-            :deep(.el-button) {
-                padding: 0;
-                height: auto;
-                min-height: auto;
-                line-height: 1;
-
-                span {
-                    display: flex;
-                    align-items: center;
-                }
+                color: var(--el-text-color-secondary);
             }
         }
     }
 }
 
-.feed-wrapper {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-.empty-wrapper {
-    padding: 60px 0;
-    display: flex;
-    justify-content: center;
-    background-color: var(--el-bg-color-overlay);
-    border-radius: 8px;
-    border: 1px dashed var(--el-border-color-lighter);
-}
-
-html.dark {
-    .page-header {
-        background-color: rgba(29, 30, 31, 0.85);
-        box-shadow: none;
-    }
-    .batch-actions {
-        background-color: rgba(245, 108, 108, 0.2);
-        border-color: rgba(245, 108, 108, 0.3);
-    }
+.feed-list-container {
+    padding: 0 24px 24px;
+    min-height: 200px;
 }
 
 @media screen and (max-width: 768px) {
-    .page-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-        position: static;
+    .page-header-wrapper {
+        padding: 12px 16px;
 
-        .header-right {
+        .header-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .right-section {
             flex-direction: column;
             align-items: stretch;
 
-            .search-container {
-                width: 100%;
-                overflow-x: auto;
-                padding-bottom: 4px;
-                :deep(.el-form--inline) {
-                    display: flex;
-                    flex-wrap: nowrap;
-                }
-            }
-
-            .action-wrapper {
+            .batch-action-bar {
+                padding-left: 0;
+                border-left: none;
+                border-top: 1px solid var(--el-border-color-lighter);
+                padding-top: 12px;
                 justify-content: space-between;
-                width: 100%;
-            }
-
-            .header-divider {
-                display: none;
             }
         }
+    }
+
+    .feed-list-container {
+        padding: 0 12px 12px;
     }
 }
 </style>

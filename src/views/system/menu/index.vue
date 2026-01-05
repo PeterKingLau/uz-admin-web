@@ -476,18 +476,6 @@ getList()
     }
 }
 
-.btn-icon {
-    margin-right: 4px;
-    font-size: 16px;
-}
-
-:deep(.table-header-cell) {
-    background-color: #f8fafd !important;
-    color: #606266;
-    font-weight: 600;
-    height: 50px;
-}
-
 .dialog-footer {
     display: flex;
     justify-content: flex-end;

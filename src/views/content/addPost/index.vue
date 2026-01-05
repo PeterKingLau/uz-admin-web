@@ -88,9 +88,9 @@
                                         >
                                             <div class="upload-trigger-content">
                                                 <div class="icon-wrapper">
-                                                    <Icon icon="mdi:cloud-upload-outline" />
+                                                    <Icon :icon="fileList.length === 0 ? 'mdi:cloud-upload-outline' : 'mdi:plus'" />
                                                 </div>
-                                                <div class="text-wrapper">
+                                                <div class="text-wrapper" v-if="fileList.length === 0">
                                                     <span class="primary-text">点击或拖拽上传</span>
                                                     <span class="secondary-text">
                                                         {{
@@ -263,6 +263,7 @@ import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
+import { Icon } from '@iconify/vue'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const { proxy } = getCurrentInstance() || {}
@@ -474,6 +475,7 @@ async function handleReset(afterSubmit = false) {
     updatePreviewMedia()
 }
 </script>
+
 <style lang="scss" scoped>
 .content-row {
     max-width: 1440px;
@@ -600,7 +602,7 @@ async function handleReset(afterSubmit = false) {
         font-size: 15px;
         line-height: 1.6;
         border: 1px solid var(--el-border-color);
-        background-color: var(--el-fill-color);
+        background-color: var(--el-input-bg-color, var(--el-fill-color-blank));
         color: var(--el-text-color-primary);
         box-shadow: none;
         transition: all 0.3s;
@@ -665,6 +667,7 @@ async function handleReset(afterSubmit = false) {
             background-color: var(--el-fill-color-lighter);
             vertical-align: top;
             transition: all 0.3s;
+            display: inline-flex;
 
             &:hover {
                 border-color: var(--el-color-primary);
@@ -694,6 +697,7 @@ async function handleReset(afterSubmit = false) {
 
     :deep(.el-upload-list--picture-card) {
         display: inline;
+        vertical-align: top;
 
         .el-upload-list__item {
             width: 110px;
@@ -702,6 +706,7 @@ async function handleReset(afterSubmit = false) {
             border-radius: 8px;
             border: none;
             overflow: hidden;
+            display: inline-flex;
             vertical-align: top;
         }
     }
@@ -836,9 +841,9 @@ async function handleReset(afterSubmit = false) {
     background: var(--el-bg-color);
     border-radius: 44px;
     box-shadow:
-        0 0 0 8px var(--el-border-color-darker),
-        0 0 0 10px var(--el-text-color-disabled),
-        0 20px 40px var(--el-box-shadow-dark);
+        0 0 0 8px #1f1f1f,
+        0 0 0 10px #000000,
+        0 20px 40px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -853,14 +858,14 @@ async function handleReset(afterSubmit = false) {
         transform: translateX(-50%);
         width: 100px;
         height: 30px;
-        background: var(--el-text-color-primary);
+        background: #000;
         border-radius: 15px;
         z-index: 20;
     }
 
     .side-btn {
         position: absolute;
-        background: var(--el-border-color-darker);
+        background: #1f1f1f;
         border-radius: 2px 0 0 2px;
     }
     .volume-up {

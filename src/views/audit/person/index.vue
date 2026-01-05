@@ -343,76 +343,11 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-/* 一体化主卡片 */
-.main-card {
-    border-radius: 8px;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-
-    :deep(.el-card__body) {
-        padding: 20px;
-    }
-}
-
 /* 1. 搜索区域 */
 .search-section {
-    .search-form {
-        .el-form-item {
-            margin-bottom: 0;
-            margin-right: 16px;
-        }
-    }
     .search-input {
         width: 200px;
     }
-    .btn-icon {
-        margin-right: 4px;
-        font-size: 16px;
-        vertical-align: -2px;
-    }
-}
-
-.section-divider {
-    margin: 18px 0;
-    border-color: #f0f2f5;
-}
-
-/* 2. 工具栏 */
-.table-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .section-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #303133;
-        position: relative;
-        padding-left: 12px;
-        line-height: 1;
-
-        // 左侧蓝色装饰条
-        &::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 16px;
-            background-color: var(--el-color-primary);
-            border-radius: 2px;
-        }
-    }
-}
-
-/* 3. 表格样式优化 */
-:deep(.table-header-cell) {
-    background-color: #f8fafd !important;
-    color: #606266;
-    font-weight: 600;
-    height: 48px;
 }
 
 .user-info {
@@ -441,10 +376,6 @@ onMounted(() => {
     font-size: 14px;
 }
 
-/* 文本辅助色 */
-.text-secondary {
-    color: #909399;
-}
 .text-placeholder {
     color: #c0c4cc;
     font-style: italic;
@@ -454,21 +385,6 @@ onMounted(() => {
 }
 .font-medium {
     font-weight: 500;
-}
-
-.operation-group {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    .op-icon {
-        font-size: 18px;
-    }
-}
-
-.pagination-container {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
 }
 
 /* 4. 详情弹窗内部样式 */

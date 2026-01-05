@@ -91,11 +91,12 @@
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
         <!-- 添加或修改角色配置对话框 -->
-        <el-dialog :title="title" v-model="open" width="500px" append-to-body>
-            <el-form ref="roleRef" :model="form" :rules="rules" label-width="100px">
+        <el-dialog :title="title" v-model="open" width="600px" append-to-body class="role-dialog">
+            <el-form ref="roleRef" :model="form" :rules="rules" label-width="100px" class="custom-form">
                 <el-form-item label="角色名称" prop="roleName">
                     <el-input v-model="form.roleName" placeholder="请输入角色名称" />
                 </el-form-item>
+
                 <el-form-item prop="roleKey">
                     <template #label>
                         <span>
@@ -107,33 +108,49 @@
                     </template>
                     <el-input v-model="form.roleKey" placeholder="请输入权限字符" />
                 </el-form-item>
-                <el-form-item label="角色顺序" prop="roleSort">
-                    <el-input-number v-model="form.roleSort" controls-position="right" :min="0" />
-                </el-form-item>
-                <el-form-item label="状态">
-                    <el-radio-group v-model="form.status">
-                        <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
-                    </el-radio-group>
-                </el-form-item>
+
+                <el-row>
+                    <el-col :span="12">
+                        <el-form-item label="角色顺序" prop="roleSort">
+                            <el-input-number v-model="form.roleSort" controls-position="right" :min="0" style="width: 100%" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="状态" prop="status">
+                            <el-radio-group v-model="form.status">
+                                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label }}</el-radio>
+                            </el-radio-group>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+
                 <el-form-item label="菜单权限">
-                    <el-checkbox v-model="menuExpand" @change="handleCheckedTreeExpand($event, 'menu')">展开/折叠</el-checkbox>
-                    <el-checkbox v-model="menuNodeAll" @change="handleCheckedTreeNodeAll($event, 'menu')">全选/全不选</el-checkbox>
-                    <el-checkbox v-model="form.menuCheckStrictly" @change="handleCheckedTreeConnect($event, 'menu')">父子联动</el-checkbox>
-                    <el-tree
-                        class="tree-border"
-                        :data="menuOptions"
-                        show-checkbox
-                        ref="menuRef"
-                        node-key="id"
-                        :check-strictly="!form.menuCheckStrictly"
-                        empty-text="加载中，请稍候"
-                        :props="{ label: 'label', children: 'children' }"
-                    ></el-tree>
+                    <div class="permission-container">
+                        <div class="tree-header">
+                            <el-checkbox v-model="menuExpand" @change="handleCheckedTreeExpand($event, 'menu')">展开/折叠</el-checkbox>
+                            <el-checkbox v-model="menuNodeAll" @change="handleCheckedTreeNodeAll($event, 'menu')">全选/全不选</el-checkbox>
+                            <el-checkbox v-model="form.menuCheckStrictly" @change="handleCheckedTreeConnect($event, 'menu')">父子联动</el-checkbox>
+                        </div>
+                        <div class="tree-content">
+                            <el-tree
+                                class="tree-border"
+                                :data="menuOptions"
+                                show-checkbox
+                                ref="menuRef"
+                                node-key="id"
+                                :check-strictly="!form.menuCheckStrictly"
+                                empty-text="加载中，请稍候"
+                                :props="{ label: 'label', children: 'children' }"
+                            ></el-tree>
+                        </div>
+                    </div>
                 </el-form-item>
+
                 <el-form-item label="备注">
-                    <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
+                    <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" :rows="3"></el-input>
                 </el-form-item>
             </el-form>
+
             <template #footer>
                 <div class="dialog-footer">
                     <el-button type="primary" @click="submitForm">确 定</el-button>
