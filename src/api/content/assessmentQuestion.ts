@@ -18,6 +18,24 @@ export interface AssessmentQuestionListParams {
     title?: string
 }
 
+export interface DimensionNode {
+    id?: number
+    pid?: number
+    category?: string
+    dimensionCode?: string
+    dimensionName?: string
+    sortOrder?: number
+    isActive?: string
+    children?: DimensionNode[]
+}
+
+export interface DimensionTreeResponse {
+    code?: number
+    msg?: string
+    data?: DimensionNode[] | Record<string, any>
+    rows?: DimensionNode[]
+}
+
 export interface AddAssessmentQuestionPayload {
     moduleCode?: string
     type?: string
@@ -25,6 +43,7 @@ export interface AddAssessmentQuestionPayload {
     questionType: string
     correctAnswer?: string
     sortOrder: number
+    status?: string
 }
 
 export interface UpdateAssessmentQuestionPayload extends AddAssessmentQuestionPayload {
@@ -74,7 +93,25 @@ export function deleteAssessmentQuestion(ids: string | number) {
     })
 }
 
+/**
+ * 查询维度树
+ */
+export function getDimensionTree() {
+    return request<DimensionTreeResponse>({
+        url: '/content/assessmentQuestion/getDimensionTree',
+        method: 'get'
+    })
+}
+
 export function parseAssessmentQuestionRows(payload: AssessmentQuestionResponse | any): AssessmentQuestionItem[] {
+    const rows = payload?.rows ?? payload?.data ?? payload
+    if (Array.isArray(rows)) return rows
+    if (Array.isArray(rows?.records)) return rows.records
+    if (Array.isArray(rows?.list)) return rows.list
+    return []
+}
+
+export function parseDimensionTree(payload: DimensionTreeResponse | any): DimensionNode[] {
     const rows = payload?.rows ?? payload?.data ?? payload
     if (Array.isArray(rows)) return rows
     if (Array.isArray(rows?.records)) return rows.records

@@ -31,6 +31,11 @@
 
             <el-table v-loading="loading" :data="displayQuestionList" @selection-change="handleSelectionChange" header-cell-class-name="table-header-cell">
                 <el-table-column type="selection" width="55" align="center" />
+                <el-table-column label="所属模块" align="center" prop="moduleCode" min-width="140" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        <span>{{ getModuleName(row.moduleCode) }}</span>
+                    </template>
+                </el-table-column>
                 <el-table-column label="题目内容" align="left" prop="title" min-width="200" show-overflow-tooltip>
                     <template #default="{ row }">
                         <span class="row-title">{{ getQuestionTitle(row) }}</span>
@@ -41,6 +46,21 @@
                         <el-tag :type="getQuestionType(row) === '能力题' ? 'warning' : 'info'" effect="plain">
                             {{ getQuestionType(row) }}
                         </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="题目类型" align="center" width="100">
+                    <template #default="{ row }">
+                        <el-tag effect="plain" type="info">{{ getQuestionMode(row) }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="排序" align="center" width="80">
+                    <template #default="{ row }">
+                        <span>{{ row.sortOrder ?? '-' }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态" align="center" width="90">
+                    <template #default="{ row }">
+                        <el-switch v-model="row.status" :active-value="'0'" :inactive-value="'1'" @change="handleStatusChange(row, $event)" />
                     </template>
                 </el-table-column>
                 <el-table-column label="更新时间" align="center" width="160">
@@ -70,7 +90,32 @@
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="所属模块" prop="moduleCode">
-                            <el-input v-model="form.moduleCode" placeholder="请输入所属模块" />
+                            <el-tree-select
+                                :key="treeSelectKey"
+                                v-model="form.moduleCode"
+                                :data="dimensionTree"
+                                :props="{ value: 'dimensionCode', label: 'dimensionName', children: 'children', disabled: 'disabled' }"
+                                value-key="dimensionCode"
+                                node-key="dimensionCode"
+                                placeholder="请选择所属模块"
+                                clearable
+                                check-strictly
+                                :loading="dimensionLoading"
+                                style="width: 100%"
+                                :expand-on-click-node="false"
+                                highlight-current
+                                :current-node-key="form.moduleCode"
+                                default-expand-all
+                            >
+                                <template #default="{ node, data }">
+                                    <div class="custom-tree-node" :class="{ 'is-leaf': !data.children || data.children.length === 0 }">
+                                        <Icon v-if="data.children && data.children.length > 0" icon="mdi:folder-outline" class="mr-1 text-gray-400" />
+                                        <Icon v-else icon="mdi:file-document-outline" class="mr-1 text-primary" />
+                                        <span>{{ node.label }}</span>
+                                        <span v-if="!data.children || data.children.length === 0" class="select-tag">可选</span>
+                                    </div>
+                                </template>
+                            </el-tree-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
@@ -89,8 +134,8 @@
                     <el-col :span="12">
                         <el-form-item label="选择题型" prop="questionType">
                             <el-radio-group v-model="form.questionType">
-                                <el-radio-button label="1">单选题</el-radio-button>
-                                <el-radio-button label="2">多选题</el-radio-button>
+                                <el-radio-button value="1">单选题</el-radio-button>
+                                <el-radio-button value="2">多选题</el-radio-button>
                             </el-radio-group>
                         </el-form-item>
                     </el-col>
@@ -124,9 +169,6 @@
                                 <el-input v-model="item.content" placeholder="选项描述" />
                             </div>
                             <div class="option-meta">
-                                <el-select v-model="item.optionKey" placeholder="标识" style="width: 80px">
-                                    <el-option v-for="k in ['A', 'B', 'C', 'D', 'E', 'F']" :key="k" :label="k" :value="k" />
-                                </el-select>
                                 <el-input-number v-model="item.scoreValue" :min="0" controls-position="right" style="width: 100px" placeholder="分值" />
                                 <el-button type="danger" circle plain @click="handleRemoveOption(index, item)">
                                     <Icon icon="mdi:close" />
@@ -147,18 +189,13 @@
 
         <el-dialog title="批量导入题目" v-model="batchOpen" width="600px" append-to-body class="custom-dialog">
             <el-alert
-                title="格式提示：支持多模块(标题行=moduleCode)，题目行可含【能力题】或【普通题】；每题可带A/B/C选项与分值；排序为全局自增"
+                title="格式提示：支持多模块(标题行=moduleCode)，每题可带A/B/C选项与分值；排序为全局自增"
                 type="info"
                 :closable="false"
                 show-icon
                 class="mb-3"
             />
-            <el-input
-                v-model="batchText"
-                type="textarea"
-                :rows="12"
-                placeholder="例如：&#10;情绪稳定性&#10;【能力题】问题...?&#10;A. ... (分值:2)&#10;B. ... (分值:1)"
-            />
+            <el-input v-model="batchText" type="textarea" :rows="12" placeholder="例如：&#10;情绪稳定性&#10;问题...?&#10;A. ... (分值:2)&#10;B. ... (分值:1)" />
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="batchOpen = false">取 消</el-button>
@@ -187,9 +224,8 @@
 
 <script setup name="AssessmentQuestionList" lang="ts">
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
-import { Icon } from '@iconify/vue'
 import { parseTime } from '@/utils/ruoyi'
-import type { AssessmentQuestionItem } from '@/api/content/assessmentQuestion'
+import type { AssessmentQuestionItem, DimensionNode } from '@/api/content/assessmentQuestion'
 import type { AssessmentOptionItem } from '@/api/content/assessmentOption'
 
 const { proxy } = getCurrentInstance() as any
@@ -207,11 +243,16 @@ const loadOptionApi = (() => {
 const loading = ref(false)
 const showSearch = ref(true)
 const total = ref(0)
+type DimensionNodeWithDisabled = DimensionNode & { disabled?: boolean; children?: DimensionNodeWithDisabled[] }
+
 const questionList = ref<AssessmentQuestionItem[]>([])
+const dimensionTree = ref<DimensionNodeWithDisabled[]>([])
+const dimensionLoading = ref(false)
 const queryRef = ref()
 const formRef = ref()
 const open = ref(false)
 const dialogTitle = ref('新增题目')
+const treeSelectKey = ref(0)
 const submitLoading = ref(false)
 const formOptions = ref<AssessmentOptionItem[]>([])
 const removedOptionIds = ref<(string | number)[]>([])
@@ -244,6 +285,7 @@ const data = reactive({
         sortOrder: 0
     },
     rules: {
+        moduleCode: [{ required: true, message: '所属模块不能为空', trigger: 'change' }],
         type: [{ required: true, message: '类型不能为空', trigger: 'change' }],
         content: [{ required: true, message: '题目内容不能为空', trigger: 'blur' }],
         questionType: [{ required: true, message: '题型不能为空', trigger: 'change' }],
@@ -264,6 +306,34 @@ const data = reactive({
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+const dimensionNameMap = computed(() => {
+    const map = new Map<string, string>()
+    const walk = (nodes: DimensionNodeWithDisabled[]) => {
+        for (const node of nodes) {
+            const code = node.dimensionCode ?? ''
+            const name = node.dimensionName ?? ''
+            if (code) map.set(String(code), String(name))
+            if (node.children && node.children.length) walk(node.children)
+        }
+    }
+    walk(dimensionTree.value)
+    return map
+})
+
+const dimensionCodeMap = computed(() => {
+    const map = new Map<string, string>()
+    const walk = (nodes: DimensionNodeWithDisabled[]) => {
+        for (const node of nodes) {
+            const name = node.dimensionName ?? ''
+            const code = node.dimensionCode ?? ''
+            if (name && code) map.set(String(name), String(code))
+            if (node.children && node.children.length) walk(node.children)
+        }
+    }
+    walk(dimensionTree.value)
+    return map
+})
 
 const displayQuestionList = computed(() => {
     const pageNum = Number(queryParams.value.pageNum || 1)
@@ -286,21 +356,103 @@ function getQuestionType(row: AssessmentQuestionItem) {
     return val || '-'
 }
 
-function getQuestionLevel(row: AssessmentQuestionItem) {
-    return (row as any).difficultyName || (row as any).levelName || (row as any).difficulty || (row as any).level || '-'
+function getQuestionMode(row: AssessmentQuestionItem) {
+    const val = String((row as any).questionType ?? '')
+    if (val === '1') return '单选题'
+    if (val === '2') return '多选题'
+    return val ? val : '-'
 }
 
-function getQuestionScore(row: AssessmentQuestionItem) {
+function getModuleName(code: string | number | undefined | null) {
+    if (code === undefined || code === null || code === '') return '-'
+    const key = String(code)
+    return dimensionNameMap.value.get(key) || key
+}
+
+function getModuleCodeFromInput(input: string) {
+    const key = String(input || '').trim()
+    if (!key) return ''
+    return dimensionCodeMap.value.get(key) || key
+}
+
+function getStatusLabel(row: AssessmentQuestionItem) {
+    const val = String((row as any).status ?? '')
+    if (val === '0') return '启用'
+    if (val === '1') return '停用'
+    return val ? val : '-'
+}
+
+async function handleStatusChange(row: AssessmentQuestionItem, value: string | number | boolean) {
     const anyRow: any = row
-    if (anyRow.score !== undefined && anyRow.score !== null) return anyRow.score
-    if (anyRow.points !== undefined && anyRow.points !== null) return anyRow.points
-    if (anyRow.point !== undefined && anyRow.point !== null) return anyRow.point
-    return '-'
+    const prev = String(anyRow.status ?? '')
+    anyRow.status = String(value)
+    if (!anyRow?.id) {
+        anyRow.status = prev
+        proxy?.$modal?.msgWarning?.('未找到要更新的题目')
+        return
+    }
+    try {
+        const { updateAssessmentQuestion } = await loadQuestionApi()
+        await updateAssessmentQuestion({
+            id: Number(anyRow.id),
+            moduleCode: anyRow.moduleCode || undefined,
+            type: anyRow.type || undefined,
+            content: anyRow.content || anyRow.title || anyRow.questionContent || '',
+            questionType: String(anyRow.questionType ?? anyRow.questionTypeCode ?? '1'),
+            correctAnswer: anyRow.correctAnswer || anyRow.answer || undefined,
+            sortOrder: Number(anyRow.sortOrder ?? anyRow.sort ?? 0),
+            status: anyRow.status
+        } as any)
+        const statusText = String(anyRow.status) === '0' ? '启用' : '禁用'
+        proxy?.$modal?.msgSuccess?.(`${statusText}成功`)
+    } catch (error) {
+        anyRow.status = prev
+        const statusText = String(value) === '0' ? '启用' : '禁用'
+        proxy?.$modal?.msgError?.(`${statusText}失败`)
+    }
 }
 
 function formatTimeCell(val: any) {
     if (!val) return ''
     return parseTime(val)
+}
+
+function disableParentNodes(nodes: DimensionNodeWithDisabled[]): DimensionNodeWithDisabled[] {
+    return nodes.map(node => {
+        if (node.children && node.children.length > 0) {
+            return {
+                ...node,
+                disabled: true,
+                children: disableParentNodes(node.children)
+            }
+        }
+        return {
+            ...node,
+            disabled: false
+        }
+    })
+}
+
+async function loadDimensionTree() {
+    dimensionLoading.value = true
+    try {
+        const { getDimensionTree, parseDimensionTree } = await loadQuestionApi()
+        const res = await getDimensionTree()
+        const rawTree = parseDimensionTree(res)
+        dimensionTree.value = disableParentNodes(rawTree)
+    } catch (error) {
+        console.error(error)
+        dimensionTree.value = []
+        proxy?.$modal?.msgWarning?.('获取所属模块失败')
+    } finally {
+        dimensionLoading.value = false
+    }
+}
+
+async function ensureDimensionTreeReady() {
+    if (dimensionTree.value.length) return true
+    await loadDimensionTree()
+    return dimensionTree.value.length > 0
 }
 
 async function getList(pagination?: { page?: number; limit?: number }) {
@@ -376,7 +528,12 @@ function resetOptions() {
 async function handleAdd() {
     resetFormData()
     resetOptions()
+    treeSelectKey.value += 1
     dialogTitle.value = '新增题目'
+
+    if (dimensionTree.value.length === 0) {
+        await loadDimensionTree()
+    }
 
     try {
         const maxSort = await getGlobalMaxSortOrderSafe()
@@ -396,6 +553,10 @@ function handleEdit(row: AssessmentQuestionItem) {
         return
     }
     resetFormData()
+    if (dimensionTree.value.length === 0) {
+        loadDimensionTree()
+    }
+
     form.value = {
         id: anyRow.id,
         moduleCode: anyRow.moduleCode || '',
@@ -414,7 +575,7 @@ function handleAddOption() {
     formOptions.value.push({
         id: undefined,
         content: '',
-        optionKey: '',
+        optionKey: String.fromCharCode(65 + formOptions.value.length),
         scoreValue: 0,
         sortOrder: formOptions.value.length + 1
     } as any)
@@ -473,8 +634,8 @@ function submitBatchOptions() {
 function validateOptions() {
     if (!formOptions.value.length) return true
     for (const opt of formOptions.value as any[]) {
-        if (!opt.content || !opt.optionKey) {
-            proxy?.$modal?.msgWarning?.('请补全选项内容和标识')
+        if (!opt.content) {
+            proxy?.$modal?.msgWarning?.('请补全选项内容')
             return false
         }
     }
@@ -505,22 +666,24 @@ async function saveOptions(questionId: number) {
         removedOptionIds.value = []
     }
 
-    for (const opt of formOptions.value as any[]) {
+    for (let index = 0; index < formOptions.value.length; index += 1) {
+        const opt: any = formOptions.value[index]
+        const optionKey = String.fromCharCode(65 + index)
         if (opt.id) {
             await updateAssessmentOption({
                 id: Number(opt.id),
                 content: opt.content,
-                optionKey: opt.optionKey,
+                optionKey,
                 scoreValue: Number(opt.scoreValue ?? 0),
-                sortOrder: Number(opt.sortOrder ?? 0)
+                sortOrder: Number(opt.sortOrder ?? index + 1)
             } as any)
         } else {
             await addAssessmentOption({
                 questionId,
                 content: opt.content,
-                optionKey: opt.optionKey,
+                optionKey,
                 scoreValue: Number(opt.scoreValue ?? 0),
-                sortOrder: Number(opt.sortOrder ?? 0)
+                sortOrder: Number(opt.sortOrder ?? index + 1)
             } as any)
         }
     }
@@ -555,6 +718,32 @@ function handleDelete(row?: AssessmentQuestionItem) {
 type BatchOption = { optionKey: string; content: string; scoreValue: number }
 type BatchFlatItem = { moduleCode: string; content: string; options: BatchOption[]; type: 'ABILITY' | 'NORMAL' }
 
+function splitInlineOptions(line: string) {
+    const parts: string[] = []
+    const re = /([A-F])[\.\s、\)）]\s*/gi
+    let match: RegExpExecArray | null = null
+    const indices: { idx: number; key: string }[] = []
+
+    while ((match = re.exec(line)) !== null) {
+        indices.push({ idx: match.index, key: match[1] })
+    }
+
+    if (!indices.length) return [line]
+
+    if (indices[0].idx > 0) {
+        const head = line.slice(0, indices[0].idx).trim()
+        if (head) parts.push(head)
+    }
+
+    for (let i = 0; i < indices.length; i++) {
+        const start = indices[i].idx
+        const end = i + 1 < indices.length ? indices[i + 1].idx : line.length
+        const seg = line.slice(start, end).trim()
+        if (seg) parts.push(seg)
+    }
+    return parts
+}
+
 function normalizeLinesExpanded(text: string) {
     const rawLines = (text || '')
         .split(/\r?\n/)
@@ -562,24 +751,64 @@ function normalizeLinesExpanded(text: string) {
         .filter(Boolean)
 
     const result: string[] = []
-    for (const line of rawLines) {
+
+    const splitByTypeTag = (line: string) => {
+        const parts = line
+            .split(/(?=【\s*(能力题|普通题)\s*】)/g)
+            .map(s => s.trim())
+            .filter(Boolean)
+        return parts.length ? parts : [line]
+    }
+
+    const splitByQuestionMark = (line: string) => {
         const qCount = (line.match(/[？?]/g) || []).length
-        if (qCount <= 1) {
-            result.push(line)
-            continue
-        }
+        if (qCount <= 1) return [line]
         const parts = line
             .split(/(?<=[？?])\s*/g)
             .map(s => s.trim())
             .filter(Boolean)
-        if (parts.length >= 2) result.push(...parts)
-        else result.push(line)
+        return parts.length ? parts : [line]
     }
+
+    const splitInlineOptions = (line: string) => {
+        const parts: string[] = []
+        const re = /([A-F])[\.\s、\)）]\s*/gi
+        let match: RegExpExecArray | null = null
+        const indices: { idx: number }[] = []
+
+        while ((match = re.exec(line)) !== null) indices.push({ idx: match.index })
+        if (!indices.length) return [line]
+
+        if (indices[0].idx > 0) {
+            const head = line.slice(0, indices[0].idx).trim()
+            if (head) parts.push(head)
+        }
+
+        for (let i = 0; i < indices.length; i++) {
+            const start = indices[i].idx
+            const end = i + 1 < indices.length ? indices[i + 1].idx : line.length
+            const seg = line.slice(start, end).trim()
+            if (seg) parts.push(seg)
+        }
+        return parts
+    }
+
+    for (const raw of rawLines) {
+        const tagParts = splitByTypeTag(raw)
+        for (const p1 of tagParts) {
+            const qParts = splitByQuestionMark(p1)
+            for (const p2 of qParts) {
+                const optParts = splitInlineOptions(p2)
+                result.push(...optParts)
+            }
+        }
+    }
+
     return result
 }
 
 function isOptionLine(line: string) {
-    return /^[A-F][\.\s、)]/i.test(line)
+    return /^[A-F][\.\s、\)）]/i.test(line)
 }
 
 function isQuestionLine(line: string) {
@@ -633,19 +862,29 @@ function parseBatchFlatItems(text: string): BatchFlatItem[] {
 
     const flush = () => {
         if (!current) return
-        if (!currentModule) return
-        if ((current.content || '').trim().length === 0) {
+        if (!currentModule) {
+            current = null
+            return
+        }
+        const content = (current.content || '').trim()
+        if (!content) {
             current = null
             return
         }
         current.moduleCode = currentModule
+        if (current.options?.length) {
+            current.options = current.options.map((o, idx) => ({
+                ...o,
+                optionKey: (o.optionKey || String.fromCharCode(65 + idx)).toUpperCase()
+            }))
+        }
         items.push(current)
         current = null
     }
 
     const setModule = (m: string) => {
         flush()
-        currentModule = m.trim()
+        currentModule = getModuleCodeFromInput(m)
     }
 
     if (isHeadingLine(lines[0])) setModule(lines[0])
@@ -667,18 +906,27 @@ function parseBatchFlatItems(text: string): BatchFlatItem[] {
         }
 
         if (isQuestionLine(line)) {
-            if (current && current.options.length) flush()
             const parsed = parseQuestionTypeFromLine(line)
             const questionLine = parsed.content || line
             const questionType: 'ABILITY' | 'NORMAL' = parsed.type || 'NORMAL'
-            if (!current) current = { moduleCode: currentModule, content: questionLine, options: [], type: questionType }
-            else if (!current.options.length) current.content = `${current.content} ${questionLine}`.trim()
-            else current = { moduleCode: currentModule, content: questionLine, options: [], type: questionType }
+
+            if (current && (current.content || '').trim()) {
+                flush()
+            }
+
+            current = {
+                moduleCode: currentModule,
+                content: questionLine,
+                options: [],
+                type: questionType
+            }
             continue
         }
 
         if (isOptionLine(line)) {
-            if (!current) current = { moduleCode: currentModule, content: '', options: [], type: 'NORMAL' }
+            if (!current) {
+                current = { moduleCode: currentModule, content: '', options: [], type: 'NORMAL' }
+            }
             const fallbackKey = String.fromCharCode(65 + (current.options.length || 0))
             current.options.push(parseOptionLine(line, fallbackKey))
             continue
@@ -687,7 +935,9 @@ function parseBatchFlatItems(text: string): BatchFlatItem[] {
         if (!current) {
             const parsed = parseQuestionTypeFromLine(line)
             current = { moduleCode: currentModule, content: parsed.content || line, options: [], type: parsed.type || 'NORMAL' }
-        } else current.content = `${current.content} ${line}`.trim()
+        } else {
+            current.content = `${current.content} ${line}`.trim()
+        }
     }
 
     flush()
@@ -723,6 +973,12 @@ function handleBatchOpen() {
 }
 
 async function submitBatch() {
+    const treeReady = await ensureDimensionTreeReady()
+    if (!treeReady) {
+        proxy?.$modal?.msgError?.('所属模块加载失败，无法完成模块映射')
+        return
+    }
+
     const items = parseBatchFlatItems(batchText.value || '')
     if (!items.length) {
         proxy?.$modal?.msgWarning?.('未识别到可导入内容：请确保存在模块标题(moduleCode)与题目/选项')
@@ -782,8 +1038,9 @@ function formatBatchExport(items: BatchFlatItem[]) {
     const lines: string[] = []
     let currentModule = ''
     for (const item of items) {
-        if (item.moduleCode !== currentModule) {
-            currentModule = item.moduleCode
+        const moduleName = getModuleName(item.moduleCode || '')
+        if (moduleName !== currentModule) {
+            currentModule = moduleName
             lines.push(currentModule)
         }
         const typeTag = item.type === 'ABILITY' ? '【能力题】' : '【普通题】'
@@ -916,6 +1173,7 @@ function submitForm() {
 
 onMounted(() => {
     getList()
+    loadDimensionTree()
 })
 </script>
 
@@ -944,12 +1202,6 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     color: var(--el-text-color-secondary);
-}
-
-.pagination-container {
-    display: flex;
-    justify-content: flex-end;
-    padding-top: 16px;
 }
 
 .option-section {
@@ -998,6 +1250,11 @@ onMounted(() => {
                 flex: 1;
             }
 
+            .option-index {
+                display: flex;
+                align-items: center;
+            }
+
             .option-meta {
                 display: flex;
                 align-items: center;
@@ -1016,9 +1273,23 @@ onMounted(() => {
     }
 }
 
-.dialog-footer {
+.custom-tree-node {
     display: flex;
-    justify-content: flex-end;
-    gap: 8px;
+    align-items: center;
+    width: 100%;
+
+    &.is-leaf {
+        font-weight: bold;
+        color: var(--el-color-primary);
+    }
+
+    .select-tag {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
+        padding: 0 4px;
+        border-radius: 4px;
+    }
 }
 </style>
