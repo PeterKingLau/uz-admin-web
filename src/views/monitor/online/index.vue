@@ -117,16 +117,3 @@ function handleForceLogout(row) {
 
 getList()
 </script>
-
-<style scoped lang="scss">
-.pagination-container {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-}
-
-/* 覆盖表格的一些默认样式，更精致 */
-:deep(.el-table__header) {
-    font-weight: 500;
-}
-</style>
