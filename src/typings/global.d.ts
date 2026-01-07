@@ -3,6 +3,7 @@ import cache from '@/plugins/cache'
 import modal from '@/plugins/modal'
 import tab from '@/plugins/tab'
 import download from '@/plugins/download'
+import { getImgUrl } from '@/utils/img'
 import { useDict } from '@/utils/dict'
 import { download as utilsDownload } from '@/utils/request'
 import { addDateRange, handleTree, parseTime, resetForm, selectDictLabel, selectDictLabels } from '@/utils/ruoyi'
@@ -28,6 +29,8 @@ declare module 'vue' {
         $modal: typeof modal
         // 下载文件
         $download: typeof download
+        // 图片路径处理
+        $imgUrl: typeof getImgUrl
     }
 }
 

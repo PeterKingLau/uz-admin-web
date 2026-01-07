@@ -17,24 +17,29 @@
             :headers="headers"
             :file-list="fileList"
             :on-preview="handlePictureCardPreview"
-            :class="{ hide: fileList.length >= limit }"
+            :class="{ hide: fileList.length >= limit, 'is-disabled': disabled }"
         >
-            <el-icon class="avatar-uploader-icon"><plus /></el-icon>
+            <el-icon class="avatar-uploader-icon"><Icon icon="ep:plus" /></el-icon>
         </el-upload>
-        <!-- 上传提示 -->
-        <div class="el-upload__tip" v-if="showTip && !disabled">
-            请上传
-            <template v-if="fileSize">
-                大小不超过 <b style="color: #f56c6c">{{ fileSize }}MB</b>
-            </template>
-            <template v-if="fileType">
-                格式为 <b style="color: #f56c6c">{{ fileType.join('/') }}</b>
-            </template>
-            的文件
+
+        <div class="custom-upload-tip" v-if="showTip && !disabled">
+            <div class="tip-icon">
+                <Icon icon="mdi:information-slab-circle-outline" width="18" />
+            </div>
+            <div class="tip-content">
+                <span>请上传</span>
+                <template v-if="fileSize">
+                    大小不超过 <span class="highlight">{{ fileSize }}MB</span>
+                </template>
+                <template v-if="fileType">
+                    格式为 <span class="highlight">{{ fileType.join('/') }}</span>
+                </template>
+                的文件
+            </div>
         </div>
 
-        <el-dialog v-model="dialogVisible" title="预览" width="800px" append-to-body>
-            <img :src="dialogImageUrl" style="display: block; max-width: 100%; margin: 0 auto" />
+        <el-dialog v-model="dialogVisible" title="预览" width="800px" append-to-body class="custom-dialog">
+            <img :src="dialogImageUrl" style="display: block; max-width: 100%; margin: 0 auto; border-radius: 4px" />
         </el-dialog>
     </div>
 </template>
@@ -46,41 +51,33 @@ import Sortable from 'sortablejs'
 
 const props = defineProps({
     modelValue: [String, Object, Array],
-    // 上传接口地址
     action: {
         type: String,
         default: '/common/upload'
     },
-    // 上传携带的参数
     data: {
         type: Object
     },
-    // 图片数量限制
     limit: {
         type: Number,
         default: 5
     },
-    // 大小限制(MB)
     fileSize: {
         type: Number,
         default: 5
     },
-    // 文件类型, 例如['png', 'jpg', 'jpeg']
     fileType: {
         type: Array,
         default: () => ['png', 'jpg', 'jpeg']
     },
-    // 是否显示提示
     isShowTip: {
         type: Boolean,
         default: true
     },
-    // 禁用组件（仅查看图片）
     disabled: {
         type: Boolean,
         default: false
     },
-    // 拖动排序
     drag: {
         type: Boolean,
         default: true
@@ -94,7 +91,7 @@ const uploadList = ref([])
 const dialogImageUrl = ref('')
 const dialogVisible = ref(false)
 const baseUrl = import.meta.env.VITE_APP_BASE_API
-const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action) // 上传的图片服务器地址
+const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
@@ -103,9 +100,7 @@ watch(
     () => props.modelValue,
     val => {
         if (val) {
-            // 首先将值转为数组
             const list = Array.isArray(val) ? val : props.modelValue.split(',')
-            // 然后将数组转为对象数组
             fileList.value = list.map(item => {
                 if (typeof item === 'string') {
                     if (item.indexOf(baseUrl) === -1 && !isExternal(item)) {
@@ -124,7 +119,6 @@ watch(
     { deep: true, immediate: true }
 )
 
-// 上传前loading加载
 function handleBeforeUpload(file) {
     let isImg = false
     if (props.fileType.length) {
@@ -159,12 +153,10 @@ function handleBeforeUpload(file) {
     number.value++
 }
 
-// 文件个数超出
 function handleExceed() {
     proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
 }
 
-// 上传成功回调
 function handleUploadSuccess(res, file) {
     if (res.code === 200) {
         uploadList.value.push({ name: res.fileName, url: res.fileName })
@@ -178,7 +170,6 @@ function handleUploadSuccess(res, file) {
     }
 }
 
-// 删除图片
 function handleDelete(file) {
     const findex = fileList.value.map(f => f.name).indexOf(file.name)
     if (findex > -1 && uploadList.value.length === number.value) {
@@ -188,7 +179,6 @@ function handleDelete(file) {
     }
 }
 
-// 上传结束处理
 function uploadedSuccessfully() {
     if (number.value > 0 && uploadList.value.length === number.value) {
         fileList.value = fileList.value.filter(f => f.url !== undefined).concat(uploadList.value)
@@ -199,19 +189,16 @@ function uploadedSuccessfully() {
     }
 }
 
-// 上传失败
 function handleUploadError() {
     proxy.$modal.msgError('上传图片失败')
     proxy.$modal.closeLoading()
 }
 
-// 预览
 function handlePictureCardPreview(file) {
     dialogImageUrl.value = file.url
     dialogVisible.value = true
 }
 
-// 对象转成指定字符串分隔
 function listToString(list, separator) {
     let strs = ''
     separator = separator || ','
@@ -223,30 +210,115 @@ function listToString(list, separator) {
     return strs != '' ? strs.substr(0, strs.length - 1) : ''
 }
 
-// 初始化拖拽排序
 onMounted(() => {
     if (props.drag && !props.disabled) {
         nextTick(() => {
             const element = proxy.$refs.imageUpload?.$el?.querySelector('.el-upload-list')
-            Sortable.create(element, {
-                onEnd: evt => {
-                    const movedItem = fileList.value.splice(evt.oldIndex, 1)[0]
-                    fileList.value.splice(evt.newIndex, 0, movedItem)
-                    emit('update:modelValue', listToString(fileList.value))
-                }
-            })
+            if (element) {
+                Sortable.create(element, {
+                    ghostClass: 'sortable-ghost',
+                    animation: 150,
+                    onEnd: evt => {
+                        const movedItem = fileList.value.splice(evt.oldIndex, 1)[0]
+                        fileList.value.splice(evt.newIndex, 0, movedItem)
+                        emit('update:modelValue', listToString(fileList.value))
+                    }
+                })
+            }
         })
     }
 })
 </script>
 
 <style scoped lang="scss">
-// .el-upload--picture-card 控制加号部分
-:deep(.hide .el-upload--picture-card) {
-    display: none;
+.component-upload-image {
+    :deep(.el-upload--picture-card) {
+        border-radius: 8px;
+        border: 1px dashed var(--el-border-color);
+        background-color: var(--el-fill-color-blank);
+        transition: all 0.3s;
+        width: 120px;
+        height: 120px;
+        line-height: 128px;
+
+        &:hover {
+            border-color: var(--el-color-primary);
+            background-color: var(--el-color-primary-light-9);
+            color: var(--el-color-primary);
+        }
+    }
+
+    :deep(.el-upload-list--picture-card .el-upload-list__item) {
+        border-radius: 8px;
+        border: 1px solid var(--el-border-color-light);
+        width: 120px;
+        height: 120px;
+        margin: 0 8px 8px 0;
+        transition: all 0.3s;
+
+        &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+    }
+
+    :deep(.hide .el-upload--picture-card) {
+        display: none;
+    }
+
+    :deep(.is-disabled .el-upload--picture-card) {
+        display: none !important;
+    }
+
+    .avatar-uploader-icon {
+        font-size: 24px;
+        color: #8c939d;
+        transition: color 0.3s;
+    }
+
+    :deep(.el-upload--picture-card:hover .avatar-uploader-icon) {
+        color: var(--el-color-primary);
+    }
 }
 
-:deep(.el-upload.el-upload--picture-card.is-disabled) {
-    display: none !important;
+.custom-upload-tip {
+    margin-top: 10px;
+    padding: 10px 16px;
+    background-color: var(--el-color-primary-light-9);
+    border-left: 4px solid var(--el-color-primary);
+    border-radius: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    transition: all 0.3s;
+
+    .tip-icon {
+        color: var(--el-color-primary);
+        display: flex;
+        align-items: center;
+        height: 20px;
+    }
+
+    .tip-content {
+        font-size: 13px;
+        line-height: 20px;
+        color: var(--el-text-color-regular);
+        flex: 1;
+
+        .highlight {
+            color: var(--el-color-danger);
+            font-weight: 600;
+            margin: 0 4px;
+            background-color: rgba(255, 255, 255, 0.5);
+            padding: 0 4px;
+            border-radius: 2px;
+        }
+    }
+}
+
+.sortable-ghost {
+    opacity: 0.6;
+    background: var(--el-color-primary-light-8) !important;
+    border: 1px dashed var(--el-color-primary) !important;
 }
 </style>

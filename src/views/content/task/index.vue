@@ -26,7 +26,7 @@
                         <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" /> 批量删除
                     </el-button>
                 </div>
-                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="resetQuery" />
             </div>
 
             <el-table v-loading="loading" :data="displayQuestionList" @selection-change="handleSelectionChange" header-cell-class-name="table-header-cell">
@@ -816,13 +816,15 @@ function isQuestionLine(line: string) {
 
 function isHeadingLine(line: string) {
     if (!line) return false
-    if (isOptionLine(line)) return false
-    if (isQuestionLine(line)) return false
-    if (/分值\s*[:：]/.test(line)) return false
-    if (/^\d+[\.\s、]/.test(line)) return false
-    if (/[。,.，:：;；!！\(\)（）]/.test(line)) return false
-    if (line.length > 20) return false
-    return true
+    const rules: Array<(input: string) => boolean> = [
+        isOptionLine,
+        isQuestionLine,
+        input => /分值\s*[:：]/.test(input),
+        input => /^\d+[\.\s、]/.test(input),
+        input => /[。,.，:：;；!！\(\)（）]/.test(input),
+        input => input.length > 20
+    ]
+    return !rules.some(rule => rule(line))
 }
 
 function parseOptionLine(line: string, fallbackKey: string) {
@@ -1155,7 +1157,9 @@ function submitForm() {
             open.value = false
             resetOptions()
             serverPaginationOk.value = true
-            queryParams.value.pageNum = 1
+            if (!form.value.id) {
+                queryParams.value.pageNum = 1
+            }
             await getList()
         } catch (error) {
             console.error(error)

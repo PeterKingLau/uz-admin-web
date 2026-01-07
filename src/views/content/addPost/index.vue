@@ -63,65 +63,16 @@
                             </el-form-item>
 
                             <transition name="el-fade-in">
-                                <el-form-item
-                                    v-if="form.postType !== POST_TYPE.TEXT"
-                                    :label="form.postType === POST_TYPE.IMAGE ? '上传图片' : '上传视频'"
-                                    prop="files"
-                                >
-                                    <div class="upload-container">
-                                        <el-upload
-                                            ref="uploadRef"
-                                            v-model:file-list="fileList"
-                                            :auto-upload="false"
-                                            :multiple="form.postType === POST_TYPE.IMAGE"
-                                            :limit="form.postType === POST_TYPE.IMAGE ? 9 : 1"
-                                            :accept="uploadAccept"
-                                            :on-exceed="handleExceed"
-                                            :on-change="handleFileChange"
-                                            :before-upload="beforeUpload"
-                                            list-type="picture-card"
-                                            class="custom-upload"
-                                            :class="{
-                                                'hide-upload-trigger': uploadLimitReached,
-                                                'is-empty': fileList.length === 0
-                                            }"
-                                        >
-                                            <div class="upload-trigger-content">
-                                                <div class="icon-wrapper">
-                                                    <Icon :icon="fileList.length === 0 ? 'mdi:cloud-upload-outline' : 'mdi:plus'" />
-                                                </div>
-                                                <div class="text-wrapper" v-if="fileList.length === 0">
-                                                    <span class="primary-text">点击或拖拽上传</span>
-                                                    <span class="secondary-text">
-                                                        {{
-                                                            form.postType === POST_TYPE.IMAGE
-                                                                ? '支持 JPG/PNG，最多9张，单张不超过 5MB'
-                                                                : '支持 MP4/MOV，建议时长 1 分钟以内'
-                                                        }}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <template #file="{ file }">
-                                                <div class="uploaded-file-wrapper">
-                                                    <img v-if="form.postType === POST_TYPE.IMAGE" class="thumbnail" :src="file.url" alt="" />
-                                                    <video
-                                                        v-else-if="form.postType === POST_TYPE.VIDEO"
-                                                        class="thumbnail video-thumbnail"
-                                                        :src="file.url"
-                                                        muted
-                                                        preload="metadata"
-                                                    ></video>
-                                                    <div class="overlay">
-                                                        <span class="delete-btn" @click.stop="handleRemove(file)">
-                                                            <Icon icon="mdi:trash-can-outline" />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </el-upload>
-                                    </div>
-                                </el-form-item>
+                                <template v-if="form.postType === POST_TYPE.IMAGE">
+                                    <el-form-item label="上传图片" prop="files">
+                                        <ImageUpload v-model="imageUrls" :limit="9" :file-size="5" :file-type="['png', 'jpg', 'jpeg', 'gif']" />
+                                    </el-form-item>
+                                </template>
+                                <template v-else-if="form.postType === POST_TYPE.VIDEO">
+                                    <el-form-item label="上传视频" prop="files">
+                                        <FileUpload v-model="videoUrls" :limit="1" :file-size="0" :file-type="['mp4', 'mov']" />
+                                    </el-form-item>
+                                </template>
                             </transition>
 
                             <el-form-item label="添加话题" prop="tagStr">
@@ -258,7 +209,7 @@
 
 <script setup name="ContentPost" lang="ts">
 import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick } from 'vue'
-import type { UploadUserFile, UploadFile, UploadFiles, FormInstance } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
@@ -278,10 +229,9 @@ const initialForm = {
 const form = reactive({ ...initialForm })
 
 const formRef = ref<FormInstance>()
-const fileList = ref<UploadUserFile[]>([])
-const uploadRef = ref<any>()
+const imageUrls = ref('')
+const videoUrls = ref('')
 const submitting = ref(false)
-const previewMediaList = ref<string[]>([])
 const interestTree = ref<any[]>([])
 const interestLoading = ref(false)
 const selectedTagIds = ref<number[]>([])
@@ -304,16 +254,30 @@ const userNickName = computed(() => {
     return userStore.nickName || userStore.name || '未设置昵称'
 })
 
-const uploadAccept = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return '.jpg,.jpeg,.png,.gif'
-    if (form.postType === POST_TYPE.VIDEO) return '.mp4,.mov'
-    return ''
-})
+const baseApi = import.meta.env.VITE_APP_BASE_API || ''
 
-const uploadLimitReached = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return fileList.value.length >= 9
-    if (form.postType === POST_TYPE.VIDEO) return fileList.value.length >= 1
-    return false
+const parseMediaUrls = (value: string | string[]) => {
+    if (!value) return []
+    const list = Array.isArray(value) ? value : value.split(',')
+    return list.map(item => String(item).trim()).filter(Boolean)
+}
+
+const resolveMediaUrl = (url: string) => {
+    if (!url) return ''
+    if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
+    if (proxy?.$imgUrl) return proxy.$imgUrl(url)
+    if (!baseApi) return url
+    return url.startsWith(baseApi) ? url : `${baseApi}${url}`
+}
+
+const imageUrlList = computed(() => parseMediaUrls(imageUrls.value))
+const videoUrlList = computed(() => parseMediaUrls(videoUrls.value))
+const imagePreviewList = computed(() => imageUrlList.value.map(resolveMediaUrl))
+const videoPreviewList = computed(() => videoUrlList.value.map(resolveMediaUrl))
+const previewMediaList = computed(() => {
+    if (form.postType === POST_TYPE.IMAGE) return imagePreviewList.value
+    if (form.postType === POST_TYPE.VIDEO) return videoPreviewList.value
+    return []
 })
 
 const selectedTagNames = computed(() => {
@@ -341,7 +305,12 @@ const rules = {
     files: [
         {
             validator: (rule: any, value: any, callback: any) => {
-                if (form.postType !== POST_TYPE.TEXT && !fileList.value.length) callback(new Error('请上传素材文件'))
+                if (form.postType === POST_TYPE.TEXT) {
+                    callback()
+                    return
+                }
+                const hasFiles = form.postType === POST_TYPE.IMAGE ? imageUrlList.value.length > 0 : videoUrlList.value.length > 0
+                if (!hasFiles) callback(new Error('请上传素材文件'))
                 else callback()
             },
             trigger: 'change'
@@ -349,30 +318,9 @@ const rules = {
     ]
 }
 
-const updatePreviewMedia = () => {
-    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
-    previewMediaList.value = []
-    if (form.postType === POST_TYPE.TEXT) return
-    fileList.value.forEach(file => {
-        if (file.raw) previewMediaList.value.push(URL.createObjectURL(file.raw))
-    })
-}
-
-const handleFileChange = (uploadFile: UploadFile, uploadFiles: UploadFiles) => {
-    setTimeout(() => updatePreviewMedia(), 0)
-    if (form.postType !== POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('files'))
-}
-
-const handleRemove = (file: UploadFile) => {
-    uploadRef.value?.handleRemove(file)
-    setTimeout(() => updatePreviewMedia(), 0)
-    nextTick(() => formRef.value?.validateField('files'))
-}
-
 const handleTypeChange = async () => {
-    fileList.value = []
-    uploadRef.value?.clearFiles?.()
-    updatePreviewMedia()
+    imageUrls.value = ''
+    videoUrls.value = ''
     await nextTick()
     formRef.value?.clearValidate()
 }
@@ -386,6 +334,20 @@ watch(
     { deep: true }
 )
 
+watch(
+    () => imageUrls.value,
+    () => {
+        if (form.postType === POST_TYPE.IMAGE) nextTick(() => formRef.value?.validateField('files'))
+    }
+)
+
+watch(
+    () => videoUrls.value,
+    () => {
+        if (form.postType === POST_TYPE.VIDEO) nextTick(() => formRef.value?.validateField('files'))
+    }
+)
+
 onMounted(() => {
     loadInterest()
     updateTime()
@@ -393,7 +355,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
     if (timer) clearInterval(timer)
 })
 
@@ -407,14 +368,6 @@ async function loadInterest() {
     }
 }
 
-function handleExceed() {
-    proxy?.$modal?.msgWarning(form.postType === POST_TYPE.IMAGE ? '最多上传 9 张图片' : '仅支持 1 个视频')
-}
-
-function beforeUpload(file: File) {
-    return true
-}
-
 function handleContentInput() {
     if (form.postType === POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('content'))
     else nextTick(() => formRef.value?.clearValidate(['content']))
@@ -423,8 +376,12 @@ function handleContentInput() {
 async function handleSubmit() {
     if (!formRef.value) return
 
-    if (form.postType !== POST_TYPE.TEXT && fileList.value.length === 0) {
-        proxy?.$modal?.msgError(form.postType === POST_TYPE.IMAGE ? '请至少上传一张图片' : '请上传视频')
+    if (form.postType === POST_TYPE.IMAGE && imageUrlList.value.length === 0) {
+        proxy?.$modal?.msgError('请至少上传一张图片')
+        return
+    }
+    if (form.postType === POST_TYPE.VIDEO && videoUrlList.value.length === 0) {
+        proxy?.$modal?.msgError('请上传视频')
         return
     }
 
@@ -439,12 +396,12 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
-        const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => f.raw).filter(Boolean) as File[]) : []
+        const mediaUrls = form.postType === POST_TYPE.IMAGE ? imageUrls.value : form.postType === POST_TYPE.VIDEO ? videoUrls.value : ''
         await addPost({
             postType: form.postType,
             content: form.content?.trim() || '',
             tagStr: form.tagStr,
-            files
+            mediaUrls
         })
         proxy?.$modal?.msgSuccess('发布成功')
         await handleReset(true)
@@ -456,10 +413,8 @@ async function handleSubmit() {
 }
 
 async function handleReset(afterSubmit = false) {
-    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
-    previewMediaList.value = []
-    fileList.value = []
-    uploadRef.value?.clearFiles?.()
+    imageUrls.value = ''
+    videoUrls.value = ''
     selectedTagIds.value = []
 
     if (formRef.value?.resetFields) {
@@ -470,9 +425,6 @@ async function handleReset(afterSubmit = false) {
 
     await nextTick()
     formRef.value?.clearValidate()
-
-    await nextTick()
-    updatePreviewMedia()
 }
 </script>
 

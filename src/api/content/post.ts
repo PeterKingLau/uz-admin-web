@@ -5,6 +5,7 @@ export interface AddPostPayload {
     content: string
     tagStr?: string
     files?: File[]
+    mediaUrls?: string
 }
 
 export function addPost(data: AddPostPayload) {
@@ -13,6 +14,9 @@ export function addPost(data: AddPostPayload) {
     formData.append('postType', data.postType)
     formData.append('content', data.content || '')
     formData.append('tagStr', data.tagStr || '')
+    if (data.mediaUrls) {
+        formData.append('mediaUrls', data.mediaUrls)
+    }
 
     data.files?.forEach(file => {
         formData.append('files', file)
