@@ -39,9 +39,12 @@ let message = computed(() => {
     width: 1200px;
     padding: 0 50px;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
     .pic-404 {
         position: relative;
-        float: left;
         width: 600px;
         overflow: hidden;
         &__parent {
@@ -152,15 +155,16 @@ let message = computed(() => {
     }
     .bullshit {
         position: relative;
-        float: left;
         width: 300px;
         padding: 30px 0;
         overflow: hidden;
+        margin-left: 50px;
+
         &__oops {
             font-size: 32px;
             font-weight: bold;
             line-height: 40px;
-            color: #1482f0;
+            color: var(--el-color-primary);
             opacity: 0;
             margin-bottom: 20px;
             animation-name: slideUp;
@@ -170,7 +174,7 @@ let message = computed(() => {
         &__headline {
             font-size: 20px;
             line-height: 24px;
-            color: #222;
+            color: var(--el-text-color-primary);
             font-weight: bold;
             opacity: 0;
             margin-bottom: 10px;
@@ -182,7 +186,7 @@ let message = computed(() => {
         &__info {
             font-size: 13px;
             line-height: 21px;
-            color: grey;
+            color: var(--el-text-color-secondary);
             opacity: 0;
             margin-bottom: 30px;
             animation-name: slideUp;
@@ -192,10 +196,9 @@ let message = computed(() => {
         }
         &__return-home {
             display: block;
-            float: left;
             width: 110px;
             height: 36px;
-            background: #1482f0;
+            background: var(--el-color-primary);
             border-radius: 100px;
             text-align: center;
             color: #ffffff;
@@ -207,6 +210,11 @@ let message = computed(() => {
             animation-duration: 0.5s;
             animation-delay: 0.3s;
             animation-fill-mode: forwards;
+            transition: background-color 0.3s;
+
+            &:hover {
+                background-color: var(--el-color-primary-light-3);
+            }
         }
         @keyframes slideUp {
             0% {

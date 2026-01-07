@@ -188,13 +188,7 @@
         </el-dialog>
 
         <el-dialog title="批量导入题目" v-model="batchOpen" width="600px" append-to-body class="custom-dialog">
-            <el-alert
-                title="格式提示：支持多模块(标题行=moduleCode)，每题可带A/B/C选项与分值；排序为全局自增"
-                type="info"
-                :closable="false"
-                show-icon
-                class="mb-3"
-            />
+            <el-alert title="格式提示：支持多模块属性(标题行)，每题带上A/B/C选项与分值" type="info" :closable="false" show-icon class="mb-3" />
             <el-input v-model="batchText" type="textarea" :rows="12" placeholder="例如：&#10;情绪稳定性&#10;问题...?&#10;A. ... (分值:2)&#10;B. ... (分值:1)" />
             <template #footer>
                 <div class="dialog-footer">
@@ -812,8 +806,11 @@ function isOptionLine(line: string) {
 }
 
 function isQuestionLine(line: string) {
+    if (!line) return false
+    if (/【\s*(能力题|普通题)\s*】/i.test(line)) return true
     if (/[？?]/.test(line)) return true
     if (/[：:]\s*$/.test(line)) return true
+    if (/[（(]\s*[\d\s]*\s*[）)]/.test(line)) return true
     return false
 }
 
@@ -910,9 +907,7 @@ function parseBatchFlatItems(text: string): BatchFlatItem[] {
             const questionLine = parsed.content || line
             const questionType: 'ABILITY' | 'NORMAL' = parsed.type || 'NORMAL'
 
-            if (current && (current.content || '').trim()) {
-                flush()
-            }
+            if (current && ((current.content || '').trim().length > 0 || current.options.length > 0)) flush()
 
             current = {
                 moduleCode: currentModule,
