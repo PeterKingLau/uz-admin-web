@@ -81,7 +81,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         children: [
             {
                 path: 'index/:id(\\d+)',
-                component: () => import('@/views/tag/data.vue'),
+                component: () => import('@/views/configuration/tag/data.vue'),
                 name: 'TagData',
                 meta: { title: '标签数据', activeMenu: '/configuration/tag' }
             }

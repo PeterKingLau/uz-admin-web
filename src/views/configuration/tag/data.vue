@@ -16,7 +16,7 @@
             </el-form-item>
         </el-form>
 
-        <el-row :gutter="10" class="mb8">
+        <el-row :gutter="10" class="mb-8">
             <el-col :span="1.5">
                 <el-button type="primary" plain @click="handleAdd"><Icon icon="ep:plus" />新增</el-button>
             </el-col>
