@@ -1,3 +1,8 @@
+/* * Mixins
+ * 公用混合宏定义
+ */
+
+// 清除浮动
 @mixin clearfix {
     &:after {
         content: '';
@@ -6,53 +11,70 @@
     }
 }
 
+// 滚动条样式 (已优化：支持暗黑模式)
+// 使用 var(--el-...) 变量，使其能自动适应黑白主题
 @mixin scrollBar {
+    // 滚动条轨道
     &::-webkit-scrollbar-track-piece {
-        background: #d3dce6;
+        background-color: transparent; // 轨道透明，看起来更现代
     }
 
+    // 滚动条整体宽高
     &::-webkit-scrollbar {
         width: 6px;
+        height: 6px;
     }
 
+    // 滚动条滑块
     &::-webkit-scrollbar-thumb {
-        background: #99a9bf;
+        background: var(--el-border-color-darker, #99a9bf); // 使用变量，默认回退到原色
         border-radius: 20px;
+
+        &:hover {
+            background: var(--el-text-color-secondary, #7f8c8d); // 悬停加深
+        }
     }
 }
 
+// 铺满父容器
 @mixin relative {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
+// 百分比宽度居中
 @mixin pct($pct) {
     width: #{$pct};
     position: relative;
     margin: 0 auto;
 }
 
+// CSS 三角形生成器
+// 参数: 宽度, 高度, 颜色, 方向 (up, down, left, right)
 @mixin triangle($width, $height, $color, $direction) {
-    $width: $width/2;
+    // 兼容性优化: 使用乘法代替除法，避免新版 Sass 报除法废弃警告
+    $width: $width * 0.5;
+
     $color-border-style: $height solid $color;
     $transparent-border-style: $width solid transparent;
+
     height: 0;
     width: 0;
 
-    @if $direction==up {
+    @if $direction == up {
         border-bottom: $color-border-style;
         border-left: $transparent-border-style;
         border-right: $transparent-border-style;
-    } @else if $direction==right {
+    } @else if $direction == right {
         border-left: $color-border-style;
         border-top: $transparent-border-style;
         border-bottom: $transparent-border-style;
-    } @else if $direction==down {
+    } @else if $direction == down {
         border-top: $color-border-style;
         border-left: $transparent-border-style;
         border-right: $transparent-border-style;
-    } @else if $direction==left {
+    } @else if $direction == left {
         border-right: $color-border-style;
         border-top: $transparent-border-style;
         border-bottom: $transparent-border-style;

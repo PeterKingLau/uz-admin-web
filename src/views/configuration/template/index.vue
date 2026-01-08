@@ -1,19 +1,5 @@
 <template>
-    <div class="app-container">
-        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
-            <el-form-item :label="textMap.templateCode" prop="code">
-                <el-input v-model="queryParams.code" :placeholder="textMap.templateCodePlaceholder" clearable style="width: 220px" @keyup.enter="handleQuery">
-                    <template #prefix>
-                        <Icon icon="mdi:code-tags" />
-                    </template>
-                </el-input>
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1" /> {{ textMap.search }} </el-button>
-                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1" /> {{ textMap.reset }} </el-button>
-            </el-form-item>
-        </el-form>
-
+    <div class="app-container template-manage">
         <div class="table-wrapper">
             <div class="table-header">
                 <div class="left-tools">
@@ -22,7 +8,7 @@
                         <Icon icon="mdi:trash-can-outline" class="mr-1" /> {{ textMap.delete }}
                     </el-button>
                 </div>
-                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :search="false" />
             </div>
 
             <el-table v-loading="loading" :data="templateList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
@@ -79,14 +65,16 @@
 
         <el-drawer v-model="open" :title="dialogTitle" direction="rtl" size="640px" append-to-body destroy-on-close class="modern-drawer">
             <div class="drawer-content">
-                <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="top" class="drawer-form">
+                <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" label-position="top">
                     <el-row :gutter="24">
                         <el-col :span="12">
                             <el-form-item :label="textMap.interestType" prop="interestType">
                                 <el-select v-model="form.interestType" :placeholder="textMap.interestTypePlaceholder" style="width: 100%">
                                     <el-option v-for="(label, value) in interestMap" :key="value" :label="label" :value="value">
-                                        <span style="float: left">{{ label }}</span>
-                                        <span style="float: right; color: var(--el-text-color-secondary); font-size: 12px">{{ value }}</span>
+                                        <div class="option-flex">
+                                            <span>{{ label }}</span>
+                                            <span class="option-code">{{ value }}</span>
+                                        </div>
                                     </el-option>
                                 </el-select>
                             </el-form-item>
@@ -170,12 +158,42 @@
                         </el-col>
 
                         <el-col :span="24" class="form-section-title">
-                            <span>其他</span>
+                            <span>其他信息</span>
                         </el-col>
 
                         <el-col :span="24">
-                            <el-form-item :label="textMap.representative" prop="representative">
-                                <el-input v-model="form.representative" :placeholder="textMap.representativePlaceholder" />
+                            <el-form-item :label="textMap.representative" prop="representativeList" class="representative-form-item">
+                                <div class="representative-container">
+                                    <div v-for="(item, index) in form.representativeList" :key="index" class="representative-card">
+                                        <div class="card-header">
+                                            <span class="index-badge">{{ index + 1 }}</span>
+                                            <el-button link type="danger" @click="removeRepresentative(index)">
+                                                <Icon icon="mdi:close" />
+                                            </el-button>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="left-inputs">
+                                                <el-input v-model="item.name" placeholder="人物姓名" class="mb-2">
+                                                    <template #prefix><Icon icon="mdi:account" /></template>
+                                                </el-input>
+                                                <el-input v-model="item.description" placeholder="简短描述/头衔" type="textarea" :rows="2" resize="none" />
+                                            </div>
+                                            <div class="right-upload">
+                                                <ImageUpload
+                                                    v-model="item.image"
+                                                    :limit="1"
+                                                    :is-show-tip="false"
+                                                    class="mini-upload"
+                                                    :file-type="['png', 'jpg', 'jpeg']"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <el-button type="primary" plain class="add-btn" @click="addRepresentative">
+                                        <Icon icon="mdi:plus" class="mr-1" /> 添加代表人物
+                                    </el-button>
+                                </div>
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -197,7 +215,6 @@ import { parseTime } from '@/utils/ruoyi'
 import { addTemplate, updateTemplate, deleteTemplate, listTemplates, parseTemplateRows, type TemplateItem } from '@/api/configuration/template'
 import { getDimensionTree, parseDimensionTree, type DimensionNode } from '@/api/content/assessmentQuestion'
 import { textMap } from './constants'
-import { Icon } from '@iconify/vue'
 
 const { proxy } = getCurrentInstance() as any
 
@@ -248,6 +265,7 @@ const staticPersonalityMap: Record<string, string> = {
 }
 
 type DimensionOption = { label: string; value: string }
+type RepresentativeItem = { name: string; description: string; image: string }
 
 const VALUE_KEYWORDS = ['value', 'values', '价值', '价值观']
 const PERSONALITY_KEYWORDS = ['personality', 'trait', '人格', '特质']
@@ -256,6 +274,7 @@ const data = reactive({
     queryParams: {
         pageNum: 1,
         pageSize: 10,
+        name: '',
         code: ''
     },
     form: {
@@ -269,7 +288,7 @@ const data = reactive({
         valueDesc: '',
         personalityDesc: '',
         comprehensiveDesc: '',
-        representative: ''
+        representativeList: [] as RepresentativeItem[]
     },
     rules: {
         interestType: [{ required: true, message: textMap.interestTypePlaceholder, trigger: 'change' }],
@@ -280,8 +299,7 @@ const data = reactive({
         abilityDesc: [{ required: true, message: textMap.abilityDescPlaceholder, trigger: 'blur' }],
         valueDesc: [{ required: true, message: textMap.valueDescPlaceholder, trigger: 'blur' }],
         personalityDesc: [{ required: true, message: textMap.personalityDescPlaceholder, trigger: 'blur' }],
-        comprehensiveDesc: [{ required: false, message: textMap.comprehensiveDescPlaceholder, trigger: 'blur' }],
-        representative: [{ required: false, message: textMap.representativePlaceholder, trigger: 'blur' }]
+        comprehensiveDesc: [{ required: false, message: textMap.comprehensiveDescPlaceholder, trigger: 'blur' }]
     }
 })
 
@@ -395,13 +413,17 @@ function withCurrentOption(options: DimensionOption[], currentValue: string | nu
     return [...options, { label, value }]
 }
 
-function getTemplateCode(row: TemplateItem) {
-    return row.id || '-'
-}
-
 function formatTimeCell(val: any) {
     if (!val) return ''
     return parseTime(val)
+}
+
+function addRepresentative() {
+    form.value.representativeList.push({ name: '', description: '', image: '' })
+}
+
+function removeRepresentative(index: number) {
+    form.value.representativeList.splice(index, 1)
 }
 
 async function loadDimensionTree() {
@@ -424,6 +446,7 @@ async function getList() {
         const res = await listTemplates({
             pageNum: queryParams.value.pageNum,
             pageSize: queryParams.value.pageSize,
+            name: queryParams.value.name || undefined,
             code: queryParams.value.code || undefined
         })
         const rows = parseTemplateRows(res) || []
@@ -436,11 +459,6 @@ async function getList() {
     } finally {
         loading.value = false
     }
-}
-
-function handleQuery() {
-    queryParams.value.pageNum = 1
-    getList()
 }
 
 function resetQuery() {
@@ -464,7 +482,7 @@ function resetForm() {
         valueDesc: '',
         personalityDesc: '',
         comprehensiveDesc: '',
-        representative: ''
+        representativeList: []
     })
 }
 
@@ -496,7 +514,13 @@ function handleEdit(row: TemplateItem) {
         valueDesc: row.valueDesc ?? '',
         personalityDesc: row.personalityDesc ?? '',
         comprehensiveDesc: row.comprehensiveDesc ?? '',
-        representative: row.representative ?? ''
+        representativeList: Array.isArray(row.representativeList)
+            ? row.representativeList.map((item: any) => ({
+                  name: item?.name ?? '',
+                  description: item?.description ?? '',
+                  image: item?.image ?? ''
+              }))
+            : []
     })
     open.value = true
 }
@@ -541,7 +565,13 @@ function submitForm() {
                 valueDesc: String(form.value.valueDesc || '').trim(),
                 personalityDesc: String(form.value.personalityDesc || '').trim(),
                 comprehensiveDesc: String(form.value.comprehensiveDesc || '').trim(),
-                representative: String(form.value.representative || '').trim()
+                representativeList: (form.value.representativeList || [])
+                    .map(item => ({
+                        name: String(item?.name || '').trim(),
+                        description: String(item?.description || '').trim(),
+                        image: String(item?.image || '').trim()
+                    }))
+                    .filter(item => item.name || item.description || item.image)
             }
             if (currentEditId.value) {
                 await updateTemplate({ id: currentEditId.value, ...payload })
@@ -569,140 +599,8 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.table-wrapper {
-    background-color: var(--el-bg-color);
-    border-radius: 4px;
-    padding: 20px;
-
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 16px;
-
-        .left-tools {
-            display: flex;
-            gap: 12px;
-        }
-    }
-}
-
-:deep(.table-header-cell) {
-    background-color: var(--el-fill-color-light) !important;
-    color: var(--el-text-color-primary);
-    font-weight: 600;
-    height: 48px;
-}
-
-.row-title {
-    font-weight: 500;
-    color: var(--el-color-primary);
-}
-
-.row-code {
-    font-family: 'JetBrains Mono', Consolas, monospace;
-    color: var(--el-text-color-regular);
-    background-color: var(--el-fill-color-lighter);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.time-cell {
-    color: var(--el-text-color-secondary);
-    font-size: 13px;
-    font-feature-settings: 'tnum';
-}
-
-.pagination-container {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 24px;
-}
-
-:deep(.modern-drawer) {
-    .el-drawer__header {
-        position: relative;
-        padding: 20px 24px;
-        margin-bottom: 0;
-        border-bottom: 1px solid var(--el-border-color-lighter);
-
-        .el-drawer__title {
-            padding-left: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--el-text-color-primary);
-
-            &::before {
-                content: '';
-                position: absolute;
-                left: 24px;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 4px;
-                height: 18px;
-                background-color: var(--el-color-primary);
-                border-radius: 2px;
-            }
-        }
-    }
-
-    .el-drawer__body {
-        padding: 0;
-        overflow: hidden;
-        background-color: var(--el-bg-color);
-    }
-
-    .el-drawer__footer {
-        border-top: 1px solid var(--el-border-color-lighter);
-        padding: 16px 24px;
-        background-color: var(--el-bg-color);
-    }
-}
-
-.drawer-content {
-    padding: 24px;
-    height: calc(100vh - 135px);
-    overflow-y: auto;
-}
-
-.form-section-title {
-    margin: 20px 0 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px dashed var(--el-border-color);
-    span {
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--el-text-color-primary);
-        display: flex;
-        align-items: center;
-
-        &::before {
-            content: '';
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: var(--el-color-primary);
-            margin-right: 8px;
-            opacity: 0.6;
-        }
-    }
-
-    &:first-child {
-        margin-top: 0;
-    }
-}
-
-.drawer-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-
-    .btn-cancel,
-    .btn-submit {
-        min-width: 88px;
-        border-radius: 4px;
-    }
+// 仅保留无法复用的局部微调样式
+.representative-form-item {
+    margin-bottom: 0;
 }
 </style>

@@ -1,14 +1,52 @@
 @import './variables.module.scss';
 @import './mixin.scss';
 @import './transition.scss';
-@import './element-ui.scss';
-@import './sidebar.scss';
-@import './btn.scss';
-@import './primary.scss';
 
-body {
+// ===============================================
+// 1. 全局主题变量定义 (CSS Variables)
+// ===============================================
+:root {
+    /* 亮色模式默认值 */
+    --sidebar-bg: #{$menuBg};
+    --sidebar-text: #{$menuText};
+    --menu-hover: #{$menuHover};
+    --menu-active-text: #{$menuActiveText};
+
+    --navbar-bg: #ffffff;
+    --navbar-text: #334155;
+    --navbar-hover: #f1f5f9;
+
+    --app-bg: #ffffff; // 整体背景
+    --app-text: #303133; // 整体文字
+}
+
+// 暗黑模式映射
+html.dark {
+    --app-bg: #1a1b1e;
+    --app-text: #e1e3e5;
+
+    --sidebar-bg: #141517;
+    --sidebar-text: #a6a7ab;
+    --menu-hover: #2c2e33;
+    --menu-active-text: #5c7cfa;
+
+    --navbar-bg: #1a1b1e;
+    --navbar-text: #e1e3e5;
+    --navbar-hover: #25262b;
+}
+
+// ===============================================
+// 2. 全局重置 (Reset)
+// ===============================================
+html,
+body,
+#app {
     height: 100%;
     margin: 0;
+    box-sizing: border-box;
+}
+
+body {
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -20,19 +58,11 @@ body {
         Microsoft YaHei,
         Arial,
         sans-serif;
-}
-
-label {
-    font-weight: 700;
-}
-
-html {
-    height: 100%;
-    box-sizing: border-box;
-}
-
-#app {
-    height: 100%;
+    background-color: var(--el-bg-color, #fff); // 适配 Element Plus 变量
+    color: var(--el-text-color-primary, #303133);
+    transition:
+        background-color 0.3s,
+        color 0.3s;
 }
 
 *,
@@ -41,17 +71,8 @@ html {
     box-sizing: inherit;
 }
 
-.no-padding {
-    padding: 0px !important;
-}
-
-.padding-content {
-    padding: 4px 0;
-}
-
-a:focus,
-a:active {
-    outline: none;
+label {
+    font-weight: 700;
 }
 
 a,
@@ -60,38 +81,70 @@ a:hover {
     cursor: pointer;
     color: inherit;
     text-decoration: none;
+    outline: none;
 }
 
 div:focus {
     outline: none;
 }
 
+// 链接样式 - 使用主色调变量
+.link-type,
+.link-type:focus {
+    color: $blue; // 使用 variables 中的变量
+    cursor: pointer;
+    &:hover {
+        color: $light-blue;
+    }
+}
+
+// ===============================================
+// 3. 通用工具类 (Utilities)
+// ===============================================
+
+// 自动生成间距类: .mt5, .pr10, .pb20 等
+// 替代了原文件中的 .pr-5 等手动写法
+$directions: (
+    t: top,
+    r: right,
+    b: bottom,
+    l: left
+);
+@each $size in $spacings {
+    @each $key, $dir in $directions {
+        .p#{$key}#{$size} {
+            padding-#{$dir}: #{$size}px !important;
+        }
+        .m#{$key}#{$size} {
+            margin-#{$dir}: #{$size}px !important;
+        }
+    }
+}
+
+.no-padding {
+    padding: 0px !important;
+}
+.padding-content {
+    padding: 4px 0;
+}
+
 .fr {
     float: right;
 }
-
 .fl {
     float: left;
 }
-
-.pr-5 {
-    padding-right: 5px;
-}
-
-.pl-5 {
-    padding-left: 5px;
-}
-
 .block {
     display: block;
 }
-
+.inlineBlock {
+    display: inline-block;
+} // 修正原代码 block 错误
 .pointer {
     cursor: pointer;
 }
-
-.inlineBlock {
-    display: block;
+.text-center {
+    text-align: center;
 }
 
 .clearfix {
@@ -105,32 +158,37 @@ div:focus {
     }
 }
 
+// ===============================================
+// 4. 全局组件样式
+// ===============================================
+
+// 侧边提示块 (Aside) - 现代化改造
 aside {
-    background: #eef1f6;
+    background: var(--el-color-primary-light-9); // 使用 Element 浅色背景变量
     padding: 8px 24px;
     margin-bottom: 20px;
-    border-radius: 2px;
+    border-radius: 4px; // 圆角稍微大一点
     display: block;
     line-height: 32px;
     font-size: 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-    color: #2c3e50;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    color: var(--el-text-color-primary);
+    border-left: 5px solid var(--el-color-primary); // 左侧加个强调条
 
     a {
-        color: #337ab7;
+        color: var(--el-color-primary);
         cursor: pointer;
-
+        font-weight: 500;
         &:hover {
-            color: rgb(32, 160, 255);
+            color: var(--el-color-primary-light-3);
         }
     }
 }
 
-//main-container全局样式
+// 主容器
 .app-container {
     padding: 20px;
+    background-color: var(--el-bg-color); // 确保暗黑模式下背景正确
+    min-height: 100%;
 }
 
 .components-container {
@@ -138,10 +196,7 @@ aside {
     position: relative;
 }
 
-.text-center {
-    text-align: center;
-}
-
+// 顶部子导航 (保留了你的渐变，但做了变量优化)
 .sub-navbar {
     height: 50px;
     line-height: 50px;
@@ -150,38 +205,99 @@ aside {
     text-align: right;
     padding-right: 20px;
     transition: 600ms ease position;
-    background: linear-gradient(90deg, rgba(32, 182, 249, 1) 0%, rgba(32, 182, 249, 1) 0%, rgba(33, 120, 241, 1) 100%, rgba(33, 120, 241, 1) 100%);
+    background: linear-gradient(90deg, $blue 0%, $light-blue 100%); // 使用 SCSS 变量
+    border-radius: 4px; // 稍微加点圆角更现代
 
     .subtitle {
         font-size: 20px;
         color: #fff;
     }
 
-    &.draft {
-        background: #d0d0d0;
-    }
-
+    &.draft,
     &.deleted {
         background: #d0d0d0;
     }
 }
 
-.link-type,
-.link-type:focus {
-    color: #337ab7;
-    cursor: pointer;
-
-    &:hover {
-        color: rgb(32, 160, 255);
-    }
-}
-
 .filter-container {
     padding-bottom: 10px;
-
     .filter-item {
         display: inline-block;
         vertical-align: middle;
         margin-bottom: 10px;
     }
 }
+
+// ===============================================
+// 5. 强制修复 Tab栏 (TagsView) 的暗黑模式
+//    (添加到 index.scss 底部以确保覆盖优先级)
+// ===============================================
+html.dark {
+    // 整个标签栏容器
+    .tags-view-container {
+        background-color: #141414 !important; // 背景变黑
+        border-bottom: 1px solid #363637 !important; // 底部边框变深灰
+
+        // 标签页签滚动区域
+        .tags-view-wrapper {
+            .tags-view-item {
+                background-color: #1d1e1f !important; // 未选中标签：深灰背景
+                color: #a3a6ad !important; // 未选中标签：灰字
+                border: 1px solid #363637 !important; // 边框
+
+                // 鼠标悬停
+                &:hover {
+                    background-color: #262727 !important;
+                    color: #fff !important;
+                }
+
+                // 选中状态 (Active)
+                &.active {
+                    background-color: rgba(59, 130, 246, 0.15) !important; // 选中时：微透蓝背景
+                    color: #5c7cfa !important; // 选中时：亮蓝色文字
+                    border-color: #5c7cfa !important; // 选中时：亮蓝色边框
+
+                    // 选中状态前的小圆点
+                    &::before {
+                        background-color: #5c7cfa !important;
+                    }
+                }
+
+                // 关闭图标 (x)
+                .el-icon-close {
+                    color: #a3a6ad !important;
+                    &:hover {
+                        background-color: #ef4444 !important; // 红色背景
+                        color: #fff !important;
+                    }
+                }
+            }
+        }
+    }
+
+    // 右键菜单 (Context Menu) - 如果有的话
+    .contextmenu {
+        background-color: #1d1e1f !important;
+        border: 1px solid #363637 !important;
+        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3) !important;
+
+        li {
+            color: #e5eaf3 !important;
+            &:hover {
+                background-color: rgba(59, 130, 246, 0.15) !important;
+                color: #5c7cfa !important;
+            }
+        }
+    }
+}
+// ===============================================
+// 5. 模块引入 (顺序很重要)
+// ===============================================
+// Element Plus 覆盖样式
+@import './element-ui.scss';
+// 侧边栏样式
+@import './sidebar.scss';
+// 按钮样式
+@import './btn.scss';
+// 业务特定布局
+@import './primary.scss';

@@ -5,6 +5,7 @@
             :disabled="disabled"
             :action="uploadImgUrl"
             list-type="picture-card"
+            :accept="accept"
             :on-success="handleUploadSuccess"
             :before-upload="handleBeforeUpload"
             :data="data"
@@ -94,6 +95,12 @@ const baseUrl = import.meta.env.VITE_APP_BASE_API
 const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
+const accept = computed(() => {
+    if (props.fileType?.length) {
+        return props.fileType.map(type => (String(type).startsWith('.') ? String(type) : `.${type}`)).join(',')
+    }
+    return 'image/*'
+})
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 
 watch(
@@ -122,12 +129,14 @@ watch(
 function handleBeforeUpload(file) {
     let isImg = false
     if (props.fileType.length) {
+        const types = props.fileType.map(type => String(type).toLowerCase())
         let fileExtension = ''
         if (file.name.lastIndexOf('.') > -1) {
-            fileExtension = file.name.slice(file.name.lastIndexOf('.') + 1)
+            fileExtension = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()
         }
-        isImg = props.fileType.some(type => {
-            if (file.type.indexOf(type) > -1) return true
+        const mime = String(file.type || '').toLowerCase()
+        isImg = types.some(type => {
+            if (mime.indexOf(type) > -1) return true
             if (fileExtension && fileExtension.indexOf(type) > -1) return true
             return false
         })

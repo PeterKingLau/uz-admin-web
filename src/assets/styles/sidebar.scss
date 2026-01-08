@@ -1,9 +1,13 @@
+@import './variables.module.scss';
+@import './mixin.scss';
+
 #app {
     .main-container {
         min-height: 100%;
         transition: margin-left 0.28s;
         margin-left: $base-sidebar-width;
         position: relative;
+        background-color: var(--el-bg-color-page); // 确保内容区背景随主题变化
     }
 
     .sidebarHide {
@@ -13,6 +17,7 @@
     .sidebar-container {
         transition: width 0.28s;
         width: $base-sidebar-width !important;
+        background-color: var(--sidebar-bg); // 使用 CSS 变量
         height: 100%;
         position: fixed;
         font-size: 0px;
@@ -21,8 +26,7 @@
         left: 0;
         z-index: 1001;
         overflow: hidden;
-        -webkit-box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
-        box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.1);
+        box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35); // 默认阴影
 
         // reset element-ui css
         .horizontal-collapse-transition {
@@ -62,15 +66,50 @@
 
         .svg-icon {
             margin-right: 16px;
+            fill: currentColor; // 让图标颜色跟随文字
         }
 
+        // ---------------------------
+        // 菜单样式重构 (适配 CSS 变量)
+        // ---------------------------
         .el-menu {
             border: none;
             height: 100%;
             width: 100% !important;
+            background-color: var(--sidebar-bg) !important; // 关键：背景透明或使用变量
         }
 
+        // 菜单项文字颜色
         .el-menu-item,
+        .el-sub-menu__title {
+            color: var(--sidebar-text) !important;
+
+            i {
+                color: inherit;
+            } // 图标跟随文字颜色
+
+            &:hover {
+                background-color: var(--menu-hover) !important;
+            }
+        }
+
+        // 激活状态
+        .el-menu-item.is-active {
+            color: var(--menu-active-text) !important;
+            background-color: var(--menu-hover) !important;
+
+            // 可选：添加左侧高亮条
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background-color: var(--menu-active-text);
+            }
+        }
+
         .menu-title {
             overflow: hidden !important;
             text-overflow: ellipsis !important;
@@ -81,37 +120,20 @@
             display: inline-block !important;
         }
 
-        // menu hover
-        .sub-menu-title-noDropdown,
-        .el-sub-menu__title {
-            &:hover {
-                background-color: rgba(0, 0, 0, 0.06) !important;
-            }
-        }
-
-        & .theme-dark .is-active > .el-sub-menu__title {
-            color: $base-menu-color-active !important;
-        }
-
-        & .nest-menu .el-sub-menu > .el-sub-menu__title,
-        & .el-sub-menu .el-menu-item {
+        // 子菜单背景修正
+        .el-sub-menu .el-menu-item {
             min-width: $base-sidebar-width !important;
+            background-color: var(--sidebar-bg); // 默认背景
 
             &:hover {
-                background-color: rgba(0, 0, 0, 0.06) !important;
-            }
-        }
-
-        & .theme-dark .nest-menu .el-sub-menu > .el-sub-menu__title,
-        & .theme-dark .el-sub-menu .el-menu-item {
-            background-color: $base-sub-menu-background;
-
-            &:hover {
-                background-color: $base-sub-menu-hover !important;
+                background-color: var(--menu-hover) !important;
             }
         }
     }
 
+    // ---------------------------
+    // 折叠状态 (Collapse)
+    // ---------------------------
     .hideSidebar {
         .sidebar-container {
             width: 54px !important;
@@ -127,7 +149,6 @@
 
             .el-tooltip {
                 padding: 0 !important;
-
                 .svg-icon {
                     margin-left: 20px;
                 }
@@ -139,7 +160,6 @@
 
             & > .el-sub-menu__title {
                 padding: 0 !important;
-
                 .svg-icon {
                     margin-left: 20px;
                 }
@@ -200,7 +220,7 @@
     }
 }
 
-// when menu collapsed
+// when menu collapsed (弹出菜单样式)
 .el-menu--vertical {
     & > .el-menu {
         .svg-icon {
@@ -211,27 +231,76 @@
     .nest-menu .el-sub-menu > .el-sub-menu__title,
     .el-menu-item {
         &:hover {
-            // you can use $sub-menuHover
-            background-color: rgba(0, 0, 0, 0.06) !important;
+            background-color: var(--menu-hover) !important;
+        }
+    }
+}
+
+// ===============================================
+// 暗黑模式布局修复 (Dark Mode Layout Fixes)
+// ===============================================
+html.dark {
+    #app .sidebar-container {
+        box-shadow: none;
+        border-right: 1px solid #363637;
+
+        // 滚动条颜色变暗
+        .el-scrollbar__thumb {
+            background-color: #4c4d4f;
         }
     }
 
-    // the scroll bar appears when the sub-menu is too long
-    > .el-menu--popup {
-        max-height: 100vh;
-        overflow-y: auto;
+    // 1. 顶部导航栏 (Navbar)
+    .navbar {
+        background: #141414 !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid #363637;
 
-        &::-webkit-scrollbar-track-piece {
-            background: #d3dce6;
+        .hamburger-container {
+            cursor: pointer;
+            &:hover {
+                background: rgba(0, 0, 0, 0.025);
+            }
+            svg {
+                fill: #e5eaf3 !important;
+            } // 汉堡图标变白
         }
 
-        &::-webkit-scrollbar {
-            width: 6px;
+        .right-menu {
+            .right-menu-item {
+                color: #e5eaf3;
+                &:hover {
+                    background-color: rgba(255, 255, 255, 0.05);
+                }
+            }
         }
 
-        &::-webkit-scrollbar-thumb {
-            background: #99a9bf;
-            border-radius: 20px;
+        .el-breadcrumb__inner {
+            color: #a3a6ad !important;
+            &.is-link:hover {
+                color: var(--el-color-primary) !important;
+            }
+        }
+        .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+            color: #e5eaf3 !important;
+        }
+    }
+
+    // 2. 内容区背景
+    .app-main {
+        background-color: #0a0a0a; // 页面最深色背景
+    }
+
+    // 3. 弹出菜单背景 (Collapse 模式下)
+    .el-menu--popup {
+        background-color: var(--sidebar-bg) !important;
+        .el-menu-item,
+        .el-sub-menu__title {
+            background-color: var(--sidebar-bg) !important;
+            color: var(--sidebar-text) !important;
+            &:hover {
+                background-color: var(--menu-hover) !important;
+            }
         }
     }
 }

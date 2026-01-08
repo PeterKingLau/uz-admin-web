@@ -1,13 +1,20 @@
 ﻿<template>
-    <div class="app-container">
-        <!-- 查询条件 -->
-        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" label-width="68px">
+    <div class="app-container tag-manage">
+        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
             <el-form-item label="标签名称" prop="name">
-                <el-input v-model="queryParams.name" placeholder="请输入标签名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.name" placeholder="请输入标签名称" clearable style="width: 240px" @keyup.enter="handleQuery">
+                    <template #prefix>
+                        <Icon icon="mdi:magnify" />
+                    </template>
+                </el-input>
             </el-form-item>
 
             <el-form-item label="标签编码" prop="code">
-                <el-input v-model="queryParams.code" placeholder="请输入标签编码" clearable style="width: 240px" @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.code" placeholder="请输入标签编码" clearable style="width: 240px" @keyup.enter="handleQuery">
+                    <template #prefix>
+                        <Icon icon="mdi:code-tags" />
+                    </template>
+                </el-input>
             </el-form-item>
 
             <el-form-item label="启用状态" prop="isActive">
@@ -18,114 +25,123 @@
 
             <el-form-item>
                 <el-button type="primary" @click="handleQuery">
-                    <el-icon><Icon icon="ep:search" /></el-icon>
+                    <Icon icon="mdi:magnify" class="mr-1" />
                     搜索
                 </el-button>
                 <el-button @click="resetQuery">
-                    <el-icon><Icon icon="ep:refresh" /></el-icon>
+                    <Icon icon="mdi:refresh" class="mr-1" />
                     重置
                 </el-button>
             </el-form-item>
         </el-form>
 
-        <el-row :gutter="10" class="mb8">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd">
-                    <el-icon><Icon icon="ep:plus" /></el-icon>
-                    新增
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="success" plain :disabled="single" @click="handleUpdate">
-                    <el-icon><Icon icon="ep:edit" /></el-icon>
-                    修改
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="danger" plain :disabled="multiple" @click="handleDelete()">
-                    <el-icon><Icon icon="ep:delete" /></el-icon>
-                    删除
-                </el-button>
-            </el-col>
-            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-        </el-row>
-
-        <!-- 列表 -->
-        <el-table v-loading="loading" :data="categoryList" @selection-change="handleSelectionChange">
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="标签编号" prop="id" align="center" width="80" />
-            <el-table-column label="标签名称" prop="name" align="center" :show-overflow-tooltip="true" />
-            <el-table-column label="标签编码" prop="code" align="center" :show-overflow-tooltip="true">
-                <template #default="scope">
-                    <router-link :to="`/configuration/tag-data/index/${scope.row.id}`" class="link-type">
-                        <span>{{ scope.row.code }}</span>
-                    </router-link>
-                </template>
-            </el-table-column>
-            <el-table-column label="标签序号" prop="sortOrder" align="center" width="100" />
-            <el-table-column label="状态" prop="isActive" align="center" width="100">
-                <template #default="{ row }">
-                    <el-switch v-model="row.isActive" active-value="1" inactive-value="0" @change="handleStatusChange(row)" />
-                </template>
-            </el-table-column>
-            <el-table-column label="创建时间" prop="createTime" align="center" width="180">
-                <template #default="{ row }">
-                    <span>{{ formatTimeCell(row.createTime) }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="更新时间" prop="updateTime" align="center" width="180">
-                <template #default="{ row }">
-                    <span>{{ formatTimeCell(row.updateTime) }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width operation-column">
-                <template #default="{ row }">
-                    <el-button link type="primary" @click="handleEdit(row)">
-                        <el-icon><Icon icon="ep:edit" /></el-icon>
-                        修改
+        <div class="table-wrapper">
+            <div class="table-header">
+                <div class="left-tools">
+                    <el-button type="primary" plain @click="handleAdd">
+                        <Icon icon="mdi:plus" class="mr-1" />
+                        新增
                     </el-button>
-                    <el-button link type="danger" @click="handleDelete(row)">
-                        <el-icon><Icon icon="ep:delete" /></el-icon>
+                    <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleDelete()">
+                        <Icon icon="mdi:trash-can-outline" class="mr-1" />
                         删除
                     </el-button>
-                </template>
-            </el-table-column>
-        </el-table>
+                </div>
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+            </div>
 
-        <!-- 编辑/新增弹窗 -->
-        <el-dialog v-model="editDialogVisible" :title="dialogTitle" width="460px" append-to-body>
-            <el-form ref="editFormRef" :model="editForm" :rules="rules" label-width="90px">
-                <el-form-item label="标签名称" prop="name">
-                    <el-input v-model="editForm.name" placeholder="请输入标签名称" />
-                </el-form-item>
-                <el-form-item label="标签编码" prop="code">
-                    <el-input v-model="editForm.code" placeholder="请输入标签编码" />
-                </el-form-item>
-                <el-form-item label="排序" prop="sortOrder">
-                    <el-input-number v-model="editForm.sortOrder" :min="0" />
-                </el-form-item>
-                <el-form-item label="状态" prop="isActive">
-                    <el-radio-group v-model="editForm.isActive">
-                        <el-radio label="1">启用</el-radio>
-                        <el-radio label="0">停用</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-form>
+            <el-table v-loading="loading" :data="categoryList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="55" align="center" />
+                <el-table-column label="标签编号" prop="id" align="center" width="80" />
+                <el-table-column label="标签名称" prop="name" align="left" :show-overflow-tooltip="true">
+                    <template #default="{ row }">
+                        <span class="row-title">{{ row.name }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="标签编码" prop="code" align="center" :show-overflow-tooltip="true">
+                    <template #default="scope">
+                        <router-link :to="`/configuration/tag-data/index/${scope.row.id}`" class="link-type">
+                            <span class="row-code">{{ scope.row.code }}</span>
+                        </router-link>
+                    </template>
+                </el-table-column>
+                <el-table-column label="标签序号" prop="sortOrder" align="center" width="100" />
+                <el-table-column label="状态" prop="isActive" align="center" width="100">
+                    <template #default="{ row }">
+                        <el-switch v-model="row.isActive" active-value="1" inactive-value="0" @change="handleStatusChange(row)" />
+                    </template>
+                </el-table-column>
+                <el-table-column label="创建时间" prop="createTime" align="center" width="180">
+                    <template #default="{ row }">
+                        <span class="time-cell">{{ formatTimeCell(row.createTime) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="更新时间" prop="updateTime" align="center" width="180">
+                    <template #default="{ row }">
+                        <span class="time-cell">{{ formatTimeCell(row.updateTime) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" align="center" width="160" fixed="right">
+                    <template #default="{ row }">
+                        <el-button link type="primary" @click="handleEdit(row)">
+                            <Icon icon="mdi:pencil-outline" class="mr-1" />
+                            修改
+                        </el-button>
+                        <el-button link type="danger" @click="handleDelete(row)">
+                            <Icon icon="mdi:trash-can-outline" class="mr-1" />
+                            删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div class="pagination-container">
+                <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+            </div>
+        </div>
+
+        <el-drawer v-model="editDialogVisible" :title="dialogTitle" direction="rtl" size="500px" append-to-body destroy-on-close class="modern-drawer">
+            <div class="drawer-content">
+                <el-form ref="editFormRef" :model="editForm" :rules="rules" label-width="100px" label-position="top" class="drawer-form">
+                    <el-row :gutter="24">
+                        <el-col :span="24">
+                            <el-form-item label="标签名称" prop="name">
+                                <el-input v-model="editForm.name" placeholder="请输入标签名称" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="24">
+                            <el-form-item label="标签编码" prop="code">
+                                <el-input v-model="editForm.code" placeholder="请输入标签编码" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="排序" prop="sortOrder">
+                                <el-input-number v-model="editForm.sortOrder" :min="0" controls-position="right" style="width: 100%" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="状态" prop="isActive">
+                                <el-radio-group v-model="editForm.isActive">
+                                    <el-radio label="1">启用</el-radio>
+                                    <el-radio label="0">停用</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+            </div>
             <template #footer>
-                <div class="dialog-footer">
-                    <el-button @click="editDialogVisible = false">取消</el-button>
-                    <el-button type="primary" :loading="submitLoading" @click="submitEdit">确定</el-button>
+                <div class="drawer-footer">
+                    <el-button @click="editDialogVisible = false" class="btn-cancel">取消</el-button>
+                    <el-button type="primary" :loading="submitLoading" @click="submitEdit" class="btn-submit">确定</el-button>
                 </div>
             </template>
-        </el-dialog>
-
-        <!-- 分页 -->
-        <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+        </el-drawer>
     </div>
 </template>
 
 <script setup name="InterestCategory">
-import { ref, reactive, toRefs, getCurrentInstance, onMounted } from 'vue'
+import { ref, reactive, toRefs, getCurrentInstance, onMounted, computed } from 'vue'
 import { parseTime } from '@/utils/ruoyi'
 import { addInterestCategory, deleteInterestCategory, listInterestCategory, updateInterestCategory } from '@/api/configuration/tag'
 
@@ -144,6 +160,8 @@ const editDialogVisible = ref(false)
 const dialogTitle = ref('新增标签')
 const submitLoading = ref(false)
 const editFormRef = ref()
+
+const selectedIds = computed(() => selectedRows.value.map(item => item.id).filter(Boolean))
 
 const data = reactive({
     queryParams: {
@@ -170,7 +188,6 @@ const data = reactive({
 
 const { queryParams, editForm, rules } = toRefs(data)
 
-/** 查询列表 */
 function getList() {
     loading.value = true
 
@@ -192,13 +209,11 @@ function getList() {
         })
 }
 
-/** 搜索 */
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置 */
 function resetQuery() {
     proxy.resetForm?.('queryRef')
     queryParams.value.pageNum = 1
@@ -209,7 +224,6 @@ function resetQuery() {
     getList()
 }
 
-/** 多选框选中数据 */
 function handleSelectionChange(selection) {
     selectedRows.value = selection
     ids.value = selection.map(item => item.id)
@@ -228,23 +242,12 @@ function resetEditForm() {
     })
 }
 
-/** 新增 */
 function handleAdd() {
     dialogTitle.value = '新增标签'
     resetEditForm()
     editDialogVisible.value = true
 }
 
-/** 修改-根据选择 */
-function handleUpdate() {
-    if (single.value || !selectedRows.value.length) {
-        proxy.$modal?.msgWarning && proxy.$modal.msgWarning('请选择一条要修改的数据')
-        return
-    }
-    handleEdit(selectedRows.value[0])
-}
-
-/** 修改-行内 */
 function handleEdit(row) {
     if (!row?.id) {
         proxy.$modal?.msgError && proxy.$modal.msgError('未找到要修改的标签')
@@ -263,7 +266,6 @@ function handleEdit(row) {
     editDialogVisible.value = true
 }
 
-/** 删除 */
 function handleDelete(row) {
     const targetRows = row ? [row] : selectedRows.value
     const targetIds = targetRows.map(item => item.id).filter(Boolean)
@@ -290,7 +292,6 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 状态切换 */
 function handleStatusChange(row) {
     if (!row?.id) return
 
@@ -316,7 +317,6 @@ function handleStatusChange(row) {
         })
 }
 
-/** 提交保存（新增/修改） */
 function submitEdit() {
     if (!editFormRef.value) return
 
@@ -339,7 +339,6 @@ function submitEdit() {
     })
 }
 
-/** 单元格时间格式化（防止空值报错） */
 function formatTimeCell(val) {
     if (!val) return ''
     return parseTime(val)
@@ -349,13 +348,3 @@ onMounted(() => {
     getList()
 })
 </script>
-
-<style scoped>
-.operation-column .cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    white-space: nowrap;
-}
-</style>

@@ -1,26 +1,37 @@
-// 优化后的基础色板 - 更加明亮通透
-$blue: #3b82f6; // 更现代的宝蓝
+// ===============================================
+// 1. SCSS 变量定义 (供编译使用)
+// ===============================================
+
+// 间距配置 (用于 index.scss 循环)
+$spacings: 5, 8, 10, 20;
+
+// 自定义青色变量 (用于 btn.scss，解决报错的关键)
+$color-cyan: #20b2aa;
+$color-cyan-hover: #48d1cc;
+
+// 优化后的基础色板 (用于 pan-btn 映射)
+$blue: #3b82f6;
 $light-blue: #60a5fa;
-$red: #ef4444; // 更有警示感的红
+$red: #ef4444;
 $pink: #f472b6;
-$green: #10b981; // 翡翠绿，比原版显得更干净
+$green: #10b981;
 $tiffany: #2dd4bf;
-$yellow: #f59e0b; // 琥珀黄
+$yellow: #f59e0b;
 $panGreen: #10b981;
 
-// 侧边栏（深色模式下的侧边栏）- 使用 Slate 900 色系，高级感强
-$menuBg: #0f172a; // 深邃的蓝黑色，比原来的 #202633 更沉稳
-$menuHover: #1e293b; // hover 时稍微变亮
-$menuText: #94a3b8; // 并不是纯白，而是高级灰，降低视觉疲劳
-$menuActiveText: #ffffff; // 激活时高亮纯白
+// 侧边栏颜色
+$menuBg: #0f172a;
+$menuHover: #1e293b;
+$menuText: #94a3b8;
+$menuActiveText: #ffffff;
 
-// 浅色主题 theme-light (保持清爽)
+// 浅色主题
 $menuLightBg: #ffffff;
 $menuLightHover: #f1f5f9;
 $menuLightText: #334155;
 $menuLightActiveText: #3b82f6;
 
-// 基础布局变量
+// 布局尺寸
 $base-sidebar-width: 200px;
 $sideBarWidth: 200px;
 
@@ -28,16 +39,29 @@ $sideBarWidth: 200px;
 $base-menu-color: $menuText;
 $base-menu-color-active: $menuActiveText;
 $base-menu-background: $menuBg;
-$base-sub-menu-background: #020617; // 子菜单更深一点，增加层次感
+$base-sub-menu-background: #020617;
 $base-sub-menu-hover: $menuHover;
 
-// 组件变量 - 覆盖 Element Plus 默认色
-$--color-primary: #3b82f6; // 替换原本的 #409EFF，更鲜亮
+// Element Plus 覆盖色
+$--color-primary: #3b82f6;
 $--color-success: #10b981;
 $--color-warning: #f59e0b;
 $--color-danger: #ef4444;
 $--color-info: #64748b;
 
+// 文本功能色映射 (如果你在 index.scss 里使用了 .text-navy 等类)
+$text-colors: (
+    navy: #1ab394,
+    success: #1c84c6,
+    secondary: #909399,
+    info: #23c6c8,
+    warning: #f8ac59,
+    danger: #ed5565,
+    muted: #888888,
+    primary: inherit
+);
+
+// JS 导出 (供 JS 读取变量)
 :export {
     menuText: $menuText;
     menuActiveText: $menuActiveText;
@@ -61,155 +85,4 @@ $--color-info: #64748b;
     colorWarning: $--color-warning;
     colorDanger: $--color-danger;
     colorInfo: $--color-info;
-}
-
-// ===============================================
-// 2. CSS 变量定义
-// ===============================================
-:root {
-    /* 亮色模式布局 */
-    --sidebar-bg: #{$menuBg};
-    --sidebar-text: #{$menuText};
-    --menu-hover: #{$menuHover};
-    --menu-active-text: #{$menuActiveText};
-
-    --navbar-bg: #ffffff;
-    --navbar-text: #334155;
-
-    --splitpanes-default-bg: #f8fafc; // 背景不再是死白，带一点点灰
-}
-
-// ===============================================
-// 3. 暗黑模式优化 (Dark Mode)
-// ===============================================
-html.dark {
-    // 1级背景 (最底层)
-    --el-bg-color: #1a1b1e;
-    // 2级背景 (浮层/表格/卡片)
-    --el-bg-color-overlay: #25262b;
-
-    --el-text-color-primary: #e1e3e5;
-    --el-text-color-regular: #a6a7ab;
-    --el-border-color: #2c2e33;
-    --el-border-color-light: #2c2e33;
-
-    /* 侧边栏 - 暗黑模式下保持一致或微调 */
-    --sidebar-bg: #141517;
-    --sidebar-text: #a6a7ab;
-    --menu-hover: #2c2e33;
-    --menu-active-text: #5c7cfa; // 暗黑模式下用稍柔和的蓝
-
-    /* 顶部导航栏 */
-    --navbar-bg: #1a1b1e;
-    --navbar-text: #e1e3e5;
-    --navbar-hover: #25262b;
-
-    /* 标签栏 */
-    --tags-bg: #141517;
-    --tags-item-bg: #25262b;
-    --tags-item-border: #2c2e33;
-    --tags-item-text: #909296;
-    --tags-item-hover: #2c2e33;
-    --tags-close-hover: #f03e3e;
-
-    /* splitpanes */
-    --splitpanes-bg: #1a1b1e;
-    --splitpanes-border: #2c2e33;
-    --splitpanes-splitter-bg: #141517;
-    --splitpanes-splitter-hover-bg: #373a40;
-
-    /* blockquote */
-    --blockquote-bg: #25262b;
-    --blockquote-border: #373a40;
-    --blockquote-text: #909296;
-
-    --cron-border: #373a40;
-
-    --splitpanes-default-bg: #1a1b1e;
-
-    /* 侧边栏菜单覆盖 */
-    .sidebar-container {
-        .el-menu-item,
-        .menu-title {
-            color: var(--sidebar-text);
-        }
-        // 选中状态背景优化
-        .el-menu-item.is-active {
-            background-color: var(--menu-hover);
-            color: var(--menu-active-text);
-            border-right: 2px solid var(--menu-active-text); // 加个右边框指示条，更现代
-        }
-
-        & .theme-dark .nest-menu .el-sub-menu > .el-sub-menu__title,
-        & .theme-dark .el-sub-menu .el-menu-item {
-            background-color: var(--sidebar-bg) !important;
-            &:hover {
-                background-color: var(--menu-hover) !important;
-            }
-        }
-    }
-
-    /* 顶部栏菜单覆盖 */
-    .el-menu--horizontal {
-        .el-menu-item {
-            &:not(.is-disabled) {
-                &:hover,
-                &:focus {
-                    background-color: var(--navbar-hover) !important;
-                    color: #ffffff;
-                }
-            }
-        }
-    }
-
-    /* 表格样式覆盖 - 更加扁平化 */
-    .el-table {
-        --el-table-header-bg-color: #25262b !important;
-        --el-table-header-text-color: #e1e3e5 !important;
-        --el-table-border-color: #2c2e33 !important;
-        --el-table-row-hover-bg-color: #2c2e33 !important;
-        background-color: transparent !important;
-
-        .el-table__header-wrapper,
-        .el-table__fixed-header-wrapper {
-            th {
-                background-color: #25262b !important;
-                color: #c1c2c5;
-                font-weight: 600;
-            }
-        }
-        tr {
-            background-color: transparent !important;
-        }
-    }
-
-    /* 树组件 */
-    .el-tree {
-        background: transparent;
-        color: var(--el-text-color-regular);
-        .el-tree-node.is-current > .el-tree-node__content {
-            background-color: rgba(59, 130, 246, 0.15) !important; // 使用透明主色
-            color: #5c7cfa;
-        }
-        .el-tree-node__content:hover {
-            background-color: var(--menu-hover);
-        }
-    }
-
-    /* 下拉菜单 */
-    .el-dropdown-menu__item:not(.is-disabled):focus,
-    .el-dropdown-menu__item:not(.is-disabled):hover {
-        background-color: var(--menu-hover) !important;
-        color: #fff;
-    }
-
-    blockquote {
-        background-color: var(--blockquote-bg) !important;
-        border-left: 4px solid var(--el-color-primary) !important; // 使用主色做边框
-        color: var(--blockquote-text) !important;
-    }
-
-    .popup-result .title {
-        background: var(--cron-border);
-    }
 }

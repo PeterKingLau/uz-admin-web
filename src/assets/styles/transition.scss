@@ -1,24 +1,30 @@
 // global transition css
 
-/* fade */
+/* ===============================================
+ * 1. Fade (纯淡入淡出)
+ * 用于简单的显隐切换
+ * =============================================== */
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.28s;
 }
 
-.fade-enter,
-.fade-leave-active {
+.fade-enter-from, // Vue 3 写法: .v-enter -> .v-enter-from
+.fade-leave-to {
     opacity: 0;
 }
 
-/* fade-transform */
-.fade-transform--move,
+/* ===============================================
+ * 2. Fade Transform (位移淡入淡出)
+ * 通常用于 main-content 页面路由切换
+ * =============================================== */
 .fade-transform-leave-active,
 .fade-transform-enter-active {
     transition: all 0.5s;
 }
 
-.fade-transform-enter {
+.fade-transform-enter-from {
+    // Vue 3 写法
     opacity: 0;
     transform: translateX(-30px);
 }
@@ -28,13 +34,16 @@
     transform: translateX(30px);
 }
 
-/* breadcrumb transition */
+/* ===============================================
+ * 3. Breadcrumb (面包屑列表动画)
+ * 用于 <transition-group>
+ * =============================================== */
 .breadcrumb-enter-active,
 .breadcrumb-leave-active {
     transition: all 0.5s;
 }
 
-.breadcrumb-enter,
+.breadcrumb-enter-from, // Vue 3 写法
 .breadcrumb-leave-active {
     opacity: 0;
     transform: translateX(20px);
@@ -46,4 +55,19 @@
 
 .breadcrumb-leave-active {
     position: absolute;
+}
+
+/* ===============================================
+ * 4. Popup / Dialog 辅助动画 (可选)
+ * 如果某些自定义弹窗需要从底部滑出
+ * =============================================== */
+.slide-bottom-enter-active,
+.slide-bottom-leave-active {
+    transition: all 0.3s ease-out;
+}
+
+.slide-bottom-enter-from,
+.slide-bottom-leave-to {
+    opacity: 0;
+    transform: translateY(20px);
 }

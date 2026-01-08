@@ -1,10 +1,204 @@
-// cover some element-ui styles
+@import './variables.module.scss';
 
+// ===============================================
+// 1. 基础组件样式优化 & 美化 (Modern Styling)
+// ===============================================
+
+// Dialog 美化 (保留了您的 transform 修复)
+.el-dialog {
+    transform: none; // 修复模糊/定位问题
+    left: 0;
+    position: relative;
+    margin: 0 auto;
+    border-radius: 8px; // 新增：圆角
+    box-shadow: var(--el-box-shadow); // 新增：阴影
+
+    &:not(.is-fullscreen) {
+        margin-top: 6vh !important;
+    }
+}
+
+.el-dialog.scrollbar .el-dialog__body {
+    overflow: auto;
+    overflow-x: hidden;
+    max-height: 70vh;
+    padding: 10px 20px 20px;
+}
+
+// Table 表格美化
+.el-table {
+    --el-table-header-bg-color: var(--el-fill-color-light);
+    --el-table-header-text-color: var(--el-text-color-primary);
+
+    .el-table__header-wrapper,
+    .el-table__fixed-header-wrapper {
+        th {
+            word-break: break-word;
+            background-color: var(--el-table-header-bg-color) !important;
+            color: var(--el-table-header-text-color);
+            height: 44px !important; // 稍微增加表头高度
+            font-size: 13px;
+            font-weight: 600;
+        }
+    }
+
+    .el-table__body-wrapper {
+        .el-button [class*='el-icon-'] + span {
+            margin-left: 4px;
+        }
+    }
+
+    // 表格内的下拉链接
+    .el-dropdown-link {
+        cursor: pointer;
+        color: var(--el-color-primary);
+        margin-left: 10px;
+        font-size: 12px;
+    }
+}
+
+// 独立的表头样式类 (用于 header-cell-class-name)
+.table-header-cell {
+    background-color: var(--el-fill-color-light) !important;
+    color: var(--el-text-color-regular);
+    font-weight: 600;
+    height: 50px;
+}
+
+// 表单标签加粗
+.el-form .el-form-item__label {
+    font-weight: 600; // 调整为600，比700柔和一点，但依然突出
+    color: var(--el-text-color-regular);
+}
+
+// 搜索栏紧凑布局
+.search-form .el-form-item {
+    margin-bottom: 0;
+    margin-right: 16px;
+}
+
+// ===============================================
+// 2. 自定义业务组件 (Custom Components)
+// ===============================================
+
+// Modern Drawer (新版抽屉样式)
+.modern-drawer {
+    .el-drawer__header {
+        position: relative;
+        padding: 16px 24px;
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--el-border-color-light);
+
+        .el-drawer__title {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--el-text-color-primary);
+            padding-left: 12px;
+
+            &::before {
+                content: '';
+                position: absolute;
+                left: 24px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 4px;
+                height: 16px;
+                background-color: var(--el-color-primary);
+                border-radius: 2px;
+            }
+        }
+    }
+
+    .el-drawer__body {
+        padding: 0;
+        background-color: var(--el-bg-color);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .drawer-content {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    .el-drawer__footer {
+        border-top: 1px solid var(--el-border-color-light);
+        padding: 16px 24px;
+        background-color: var(--el-bg-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    // 表单分块标题
+    .form-section-title {
+        margin: 24px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed var(--el-border-color);
+        display: flex;
+        align-items: center;
+
+        span {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--el-text-color-primary);
+            display: flex;
+            align-items: center;
+
+            &::before {
+                content: '';
+                display: inline-block;
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background-color: var(--el-color-primary);
+                margin-right: 8px;
+                opacity: 0.8;
+            }
+        }
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+}
+
+// Cyan Button (青色按钮)
+$cyan-color: #20b2aa;
+$cyan-hover: mix(#fff, $cyan-color, 15%);
+
+.el-button--cyan {
+    background-color: $cyan-color;
+    border-color: $cyan-color;
+    color: #ffffff;
+
+    &:hover,
+    &:focus {
+        background: $cyan-hover;
+        border-color: $cyan-hover;
+        color: #ffffff;
+    }
+
+    &:active,
+    &.is-active {
+        background: mix(#000, $cyan-color, 10%);
+        border-color: mix(#000, $cyan-color, 10%);
+        color: #ffffff;
+    }
+}
+
+// ===============================================
+// 3. 原始功能性修复 (Legacy & Functional Fixes)
+// ===============================================
+
+// 面包屑字体修正
 .el-breadcrumb__inner,
 .el-breadcrumb__inner a {
     font-weight: 400 !important;
 }
 
+// Upload 控件修复
 .el-upload {
     input[type='file'] {
         display: none !important;
@@ -15,6 +209,17 @@
     display: none;
 }
 
+.upload-container {
+    .el-upload {
+        width: 100%;
+        .el-upload-dragger {
+            width: 100%;
+            height: 200px;
+        }
+    }
+}
+
+// 表格单元格微调 (保留您原有的 Padding 调整)
 .cell {
     .el-tag {
         margin-right: 0px;
@@ -28,6 +233,16 @@
     }
 }
 
+.status-col {
+    .cell {
+        padding: 0 10px;
+        text-align: center;
+        .el-tag {
+            margin-right: 0px;
+        }
+    }
+}
+
 .fixed-width {
     .el-button--mini {
         padding: 7px 10px;
@@ -35,63 +250,31 @@
     }
 }
 
-.status-col {
-    .cell {
-        padding: 0 10px;
-        text-align: center;
-
-        .el-tag {
-            margin-right: 0px;
-        }
-    }
-}
-
-// to fixed https://github.com/ElemeFE/element/issues/2461
-.el-dialog {
-    transform: none;
-    left: 0;
-    position: relative;
-    margin: 0 auto;
-}
-
-// refine element ui upload
-.upload-container {
-    .el-upload {
-        width: 100%;
-
-        .el-upload-dragger {
-            width: 100%;
-            height: 200px;
-        }
-    }
-}
-
-// dropdown
+// Dropdown 样式
 .el-dropdown-menu {
     a {
         display: block;
     }
 }
 
-// fix date-picker ui bug in filter-item
+// DatePicker 修复
 .el-range-editor.el-input__inner {
     display: inline-flex !important;
 }
 
-// to fix el-date-picker css style
 .el-range-separator {
     box-sizing: content-box;
 }
 
+// Menu 修复
 .el-menu--collapse > div > .el-submenu > .el-submenu__title .el-submenu__icon-arrow {
     display: none;
 }
 
-.el-dropdown .el-dropdown-link {
-    color: var(--el-color-primary) !important;
-}
+// ===============================================
+// 4. 图标与通用样式优化 (Icon & General Tweaks)
+// ===============================================
 
-// 针对特殊样式单独处理
 /* 通用图标微调 */
 .el-button .iconify {
     font-size: 16px;
@@ -101,7 +284,7 @@
 /* 针对圆形按钮的图标居中修正 */
 .el-button.is-circle .iconify {
     display: inline-block;
-    transform: translateY(1px); /* 轻微下移 */
+    transform: translateY(1px);
 }
 
 .el-button.is-circle.is-large .iconify {
@@ -116,4 +299,142 @@
     font-size: 16px;
     line-height: 1;
     vertical-align: -1px;
+}
+
+// 分页样式修正
+.pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding: 10px 0;
+}
+
+.el-dialog .pagination-container {
+    margin: 10px 0 0 0;
+    padding: 0 !important;
+    .el-pagination {
+        justify-content: flex-end;
+    }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+    .pagination-container .el-pagination {
+        > .el-pagination__jump,
+        > .el-pagination__sizes {
+            display: none !important;
+        }
+    }
+    .el-dialog {
+        width: 90% !important;
+    }
+}
+
+// 拖拽排序
+.sortable-ghost {
+    opacity: 0.8;
+    color: #fff !important;
+    background: var(--el-color-success) !important;
+}
+
+// Splitpanes
+.splitpanes.default-theme .splitpanes__pane {
+    background-color: var(--el-bg-color) !important;
+}
+
+// ===============================================
+// 5. 暗黑模式深度适配 (Dark Mode Deep Fix)
+// ===============================================
+html.dark {
+    // ---------------------------
+    // 核心：强制覆盖 Element Plus 颜色变量
+    // ---------------------------
+    --el-bg-color: #141414;
+    --el-bg-color-overlay: #1d1e1f;
+    --el-bg-color-page: #0a0a0a;
+
+    --el-text-color-primary: #e5eaf3;
+    --el-text-color-regular: #a3a6ad;
+    --el-text-color-secondary: #8d9095;
+
+    --el-border-color: #363637;
+    --el-border-color-light: #414243;
+    --el-border-color-lighter: #4c4d4f;
+    --el-fill-color-blank: #141414; // 输入框背景变黑的关键
+
+    // ---------------------------
+    // 表格修复 (Table Fix)
+    // ---------------------------
+    .el-table {
+        --el-table-border-color: #363637;
+        --el-table-header-bg-color: #1d1e1f; // 表头背景变深灰
+        --el-table-header-text-color: #e5eaf3;
+        --el-table-row-hover-bg-color: #262727;
+        --el-table-bg-color: transparent;
+        --el-table-tr-bg-color: transparent;
+
+        background-color: transparent !important;
+        color: var(--el-text-color-primary);
+
+        // 强制覆盖表头单元格
+        th.el-table__cell {
+            background-color: var(--el-table-header-bg-color) !important;
+            color: var(--el-text-color-primary) !important;
+            border-bottom: 1px solid var(--el-table-border-color) !important;
+        }
+
+        // 单元格边框
+        td.el-table__cell {
+            border-bottom: 1px solid var(--el-table-border-color);
+        }
+
+        // 去除表格底部的白线
+        &::before {
+            display: none;
+        }
+    }
+
+    // ---------------------------
+    // 输入框与表单修复 (Input Fix)
+    // ---------------------------
+    .el-input__wrapper,
+    .el-textarea__inner {
+        background-color: #141414 !important; // 输入框背景
+        box-shadow: 0 0 0 1px #363637 inset !important; // 输入框边框
+
+        &.is-focus {
+            box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+        }
+    }
+
+    // 下拉菜单背景
+    .el-dropdown-menu,
+    .el-select__popper,
+    .el-picker__popper {
+        background-color: #1d1e1f !important;
+        border-color: #363637 !important;
+    }
+
+    // 分页样式
+    .el-pagination {
+        button:disabled,
+        .btn-prev,
+        .btn-next {
+            background-color: transparent !important;
+            color: #a3a6ad;
+        }
+        .el-pager li {
+            background-color: transparent !important;
+            color: #a3a6ad;
+            &.is-active {
+                color: var(--el-color-primary);
+            }
+        }
+    }
+
+    // 弹窗与抽屉背景
+    .el-dialog,
+    .el-drawer__body {
+        background-color: #1d1e1f !important;
+    }
 }

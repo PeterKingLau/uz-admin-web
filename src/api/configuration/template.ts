@@ -20,6 +20,12 @@ export interface TemplateListParams {
     status?: string
 }
 
+export interface RepresentativeItem {
+    name: string
+    description: string
+    image: string
+}
+
 export interface AddTemplatePayload {
     interestType: string
     abilityLevel: number
@@ -30,7 +36,7 @@ export interface AddTemplatePayload {
     valueDesc: string
     personalityDesc: string
     comprehensiveDesc: string
-    representative: string
+    representativeList: RepresentativeItem[]
 }
 
 export interface UpdateTemplatePayload extends AddTemplatePayload {

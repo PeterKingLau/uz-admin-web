@@ -1,11 +1,70 @@
 @import './variables.module.scss';
 
+// ===============================================
+// 1. Element Plus 按钮覆盖与扩展
+// ===============================================
+
+// 修正表格中的小按钮样式
+.fixed-width .el-button--small {
+    padding-left: 0;
+    padding-right: 0;
+    width: inherit;
+}
+
+// 顶部右侧按钮
+.top-right-btn {
+    margin-left: auto;
+}
+
+// 自定义青色按钮 (仿旧版 Element UI 风格)
+.el-button--cyan {
+    background-color: $color-cyan;
+    border-color: $color-cyan;
+    color: #ffffff;
+
+    &:focus,
+    &:hover {
+        background: $color-cyan-hover;
+        border-color: $color-cyan-hover;
+        color: #ffffff;
+    }
+
+    &.is-active,
+    &:active {
+        background: $color-cyan;
+        border-color: $color-cyan;
+        color: #ffffff;
+    }
+
+    // 禁用状态
+    &.is-disabled {
+        background-color: #a0cfff; // 简化的禁用色，可视情况调整
+        border-color: #a0cfff;
+    }
+}
+
+// ===============================================
+// 2. 特效按钮 (.pan-btn) 核心逻辑
+// ===============================================
+
+// 定义颜色映射 Map (键名: 颜色变量)
+$pan-btn-colors: (
+    'blue': $blue,
+    'light-blue': $light-blue,
+    'red': $red,
+    'pink': $pink,
+    'green': $green,
+    'tiffany': $tiffany,
+    'yellow': $yellow
+);
+
+// 混合宏：生成颜色行为
 @mixin colorBtn($color) {
     background: $color;
 
     &:hover {
         color: $color;
-
+        // 悬停时背景变白，通过伪元素实现边框动画
         &:before,
         &:after {
             background: $color;
@@ -13,34 +72,7 @@
     }
 }
 
-.blue-btn {
-    @include colorBtn($blue);
-}
-
-.light-blue-btn {
-    @include colorBtn($light-blue);
-}
-
-.red-btn {
-    @include colorBtn($red);
-}
-
-.pink-btn {
-    @include colorBtn($pink);
-}
-
-.green-btn {
-    @include colorBtn($green);
-}
-
-.tiffany-btn {
-    @include colorBtn($tiffany);
-}
-
-.yellow-btn {
-    @include colorBtn($yellow);
-}
-
+// .pan-btn 基础外形
 .pan-btn {
     font-size: 14px;
     color: #fff;
@@ -51,6 +83,7 @@
     transition: 600ms ease all;
     position: relative;
     display: inline-block;
+    cursor: pointer; // 补充手型
 
     &:hover {
         background: #fff;
@@ -62,6 +95,7 @@
         }
     }
 
+    // 动画线条 (上/右)
     &:before,
     &:after {
         content: '';
@@ -73,6 +107,7 @@
         transition: 400ms ease all;
     }
 
+    // 动画线条 (下/左)
     &::after {
         right: inherit;
         top: inherit;
@@ -81,15 +116,25 @@
     }
 }
 
+// 循环生成所有颜色类: .blue-btn, .red-btn ...
+@each $key, $color in $pan-btn-colors {
+    .#{$key}-btn {
+        @include colorBtn($color);
+    }
+}
+
+// ===============================================
+// 3. 其他自定义按钮
+// ===============================================
+
 .custom-button {
     display: inline-block;
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
     background: #fff;
-    color: #fff;
-    -webkit-appearance: none;
-    appearance: none;
+    color: var(--el-color-primary);
+    border: 1px solid #dcdfe6;
     text-align: center;
     box-sizing: border-box;
     outline: 0;
@@ -97,4 +142,33 @@
     padding: 10px 15px;
     font-size: 14px;
     border-radius: 4px;
+
+    &:hover {
+        color: var(--el-color-primary-light-3);
+        border-color: var(--el-color-primary-light-7);
+        background-color: var(--el-color-primary-light-9);
+    }
+}
+
+// ===============================================
+// 4. 暗黑模式适配 (Dark Mode)
+// ===============================================
+html.dark {
+    // 针对 pan-btn 的特殊处理
+    // 因为 pan-btn hover 时背景是白色(#fff)，在暗黑模式下会非常亮
+    // 这里我们稍微降低亮度，或者改为深灰
+    .pan-btn:hover {
+        background: #e5eaf3; // 稍微柔和一点的白
+    }
+
+    .custom-button {
+        background: transparent;
+        border-color: var(--el-border-color);
+        color: var(--el-text-color-primary);
+
+        &:hover {
+            color: var(--el-color-primary);
+            border-color: var(--el-color-primary);
+        }
+    }
 }

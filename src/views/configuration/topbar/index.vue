@@ -1,11 +1,19 @@
 <template>
-    <div class="app-container topbar-page">
-        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" label-width="80px">
+    <div class="app-container topbar-config">
+        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
             <el-form-item label="导航编码" prop="code">
-                <el-input v-model="queryParams.code" placeholder="请输入导航编码" clearable style="width: 240px" @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.code" placeholder="请输入导航编码" clearable style="width: 240px" @keyup.enter="handleQuery">
+                    <template #prefix>
+                        <Icon icon="mdi:code-tags" />
+                    </template>
+                </el-input>
             </el-form-item>
             <el-form-item label="导航名称" prop="name">
-                <el-input v-model="queryParams.name" placeholder="请输入导航名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.name" placeholder="请输入导航名称" clearable style="width: 240px" @keyup.enter="handleQuery">
+                    <template #prefix>
+                        <Icon icon="mdi:magnify" />
+                    </template>
+                </el-input>
             </el-form-item>
             <el-form-item label="状态" prop="isActive">
                 <el-select v-model="queryParams.isActive" placeholder="请选择状态" clearable style="width: 240px">
@@ -14,79 +22,95 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" @click="handleQuery"> <Icon icon="ep:search" /> 搜索 </el-button>
-                <el-button @click="resetQuery"> <Icon icon="ep:refresh" /> 重置 </el-button>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1" /> 搜索 </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1" /> 重置 </el-button>
             </el-form-item>
         </el-form>
 
-        <el-row :gutter="10" class="mb8">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd"> <Icon icon="ep:plus" /> 新增 </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleDeleteSelected"> <Icon icon="ep:delete" /> 删除 </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="success" plain :disabled="selectedRows.length !== 1" @click="handleEditSelected"> <Icon icon="ep:edit" /> 编辑 </el-button>
-            </el-col>
-            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
-        </el-row>
+        <div class="table-wrapper">
+            <div class="table-header">
+                <div class="left-tools">
+                    <el-button type="primary" plain @click="handleAdd"> <Icon icon="mdi:plus" class="mr-1" /> 新增 </el-button>
+                    <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleDeleteSelected">
+                        <Icon icon="mdi:trash-can-outline" class="mr-1" /> 删除
+                    </el-button>
+                </div>
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+            </div>
 
-        <ConfigTable :columns="columns" :data="topbarList" :loading="loading" :table-props="{ border: false }" @selection-change="handleSelectionChange">
-            <template #status="{ row }">
-                <el-switch
-                    v-model="row.isActive"
-                    active-value="1"
-                    inactive-value="0"
-                    :loading="statusLoading === row.id"
-                    @change="(val: string | number | boolean) => handleToggleStatus(row, val)"
-                />
-            </template>
-            <template #createTime="{ row }">
-                <span>{{ formatTime(row.createTime) }}</span>
-            </template>
-            <template #updateTime="{ row }">
-                <span>{{ formatTime(row.updateTime) }}</span>
-            </template>
-            <template #actions="{ row }">
-                <el-button link type="primary" @click="handleUpdate(row)">
-                    <Icon icon="ep:edit" />
-                    编辑
-                </el-button>
-                <el-button link type="danger" @click="handleDelete(row)">
-                    <Icon icon="ep:delete" />
-                    删除
-                </el-button>
-            </template>
-        </ConfigTable>
+            <ConfigTable
+                :columns="columns"
+                :data="topbarList"
+                :loading="loading"
+                header-cell-class-name="table-header-cell"
+                @selection-change="handleSelectionChange"
+            >
+                <template #status="{ row }">
+                    <el-switch
+                        v-model="row.isActive"
+                        active-value="1"
+                        inactive-value="0"
+                        inline-prompt
+                        active-text="启"
+                        inactive-text="禁"
+                        :loading="statusLoading === row.id"
+                        @change="handleToggleStatus(row, $event)"
+                    />
+                </template>
+                <template #createTime="{ row }">
+                    <span class="time-cell">{{ formatTime(row.createTime) }}</span>
+                </template>
+                <template #updateTime="{ row }">
+                    <span class="time-cell">{{ formatTime(row.updateTime) }}</span>
+                </template>
+                <template #actions="{ row }">
+                    <el-button link type="primary" @click="handleUpdate(row)"> <Icon icon="mdi:pencil-outline" class="mr-1" /> 编辑 </el-button>
+                    <el-button link type="danger" @click="handleDelete(row)"> <Icon icon="mdi:trash-can-outline" class="mr-1" /> 删除 </el-button>
+                </template>
+            </ConfigTable>
 
-        <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+            <div class="pagination-container">
+                <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+            </div>
+        </div>
 
-        <el-dialog :title="title" v-model="open" width="460px" append-to-body>
-            <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-                <el-form-item label="导航编码" prop="code">
-                    <el-input v-model="form.code" placeholder="请输入导航编码" />
-                </el-form-item>
-                <el-form-item label="导航名称" prop="name">
-                    <el-input v-model="form.name" placeholder="请输入导航名称" />
-                </el-form-item>
-                <el-form-item label="排序" prop="sort">
-                    <el-input-number v-model="form.sort" :min="0" controls-position="right" />
-                </el-form-item>
-                <el-form-item label="状态" prop="isActive">
-                    <el-radio-group v-model="form.isActive">
-                        <el-radio label="1">启用</el-radio>
-                        <el-radio label="0">禁用</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-form>
+        <el-drawer v-model="open" :title="title" direction="rtl" size="500px" append-to-body destroy-on-close class="modern-drawer">
+            <div class="drawer-content">
+                <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="top" class="drawer-form">
+                    <el-row :gutter="24">
+                        <el-col :span="24">
+                            <el-form-item label="导航编码" prop="code">
+                                <el-input v-model="form.code" placeholder="请输入导航编码" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="24">
+                            <el-form-item label="导航名称" prop="name">
+                                <el-input v-model="form.name" placeholder="请输入导航名称" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="排序" prop="sort">
+                                <el-input-number v-model="form.sort" :min="0" controls-position="right" style="width: 100%" />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="状态" prop="isActive">
+                                <el-radio-group v-model="form.isActive">
+                                    <el-radio label="1">启用</el-radio>
+                                    <el-radio label="0">禁用</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+            </div>
             <template #footer>
-                <div class="dialog-footer">
-                    <el-button type="primary" @click="submitForm">确 定</el-button>
-                    <el-button @click="cancel">取 消</el-button>
+                <div class="drawer-footer">
+                    <el-button @click="open = false" class="btn-cancel">取 消</el-button>
+                    <el-button type="primary" @click="submitForm" class="btn-submit">确 定</el-button>
                 </div>
             </template>
-        </el-dialog>
+        </el-drawer>
     </div>
 </template>
 
@@ -153,10 +177,6 @@ function statusLabel(val: any) {
     return String(val) === '1' ? '启用' : '禁用'
 }
 
-function statusTagType(val: any) {
-    return String(val) === '1' ? 'success' : 'info'
-}
-
 function formatTime(val: any) {
     if (!val) return ''
     return parseTime(val)
@@ -206,14 +226,6 @@ function handleAdd() {
     resetFormData()
     open.value = true
     title.value = '新增导航栏'
-}
-
-function handleEditSelected() {
-    if (selectedRows.value.length !== 1) {
-        proxy?.$modal?.msgWarning?.('请选择一条记录进行编辑')
-        return
-    }
-    handleUpdate(selectedRows.value[0])
 }
 
 async function handleDeleteSelected() {
@@ -313,26 +325,7 @@ function handleDelete(row: any) {
         .catch(() => {})
 }
 
-function cancel() {
-    open.value = false
-    resetFormData()
-}
-
 onMounted(() => {
     getList()
 })
 </script>
-
-<style scoped lang="scss">
-.topbar-page {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-}
-</style>
