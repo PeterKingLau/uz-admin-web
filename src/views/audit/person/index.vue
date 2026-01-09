@@ -1,39 +1,33 @@
 <template>
-    <div class="app-container">
-        <el-card shadow="never" class="main-card">
-            <div class="search-section">
-                <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch" class="search-form">
-                    <el-form-item label="资料类型" prop="applyType">
-                        <el-select v-model="queryParams.applyType" placeholder="全部类型" clearable class="search-input">
-                            <el-option v-for="item in apply_type" :key="item.value" :label="item.label" :value="item.value" />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item label="审核状态" prop="auditStatus">
-                        <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable class="search-input">
-                            <el-option label="待审核" :value="AUDIT_STATUS.PENDING" />
-                            <el-option label="通过" :value="AUDIT_STATUS.APPROVED" />
-                            <el-option label="驳回" :value="AUDIT_STATUS.REJECTED" />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item>
-                        <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
-                        <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
-                    </el-form-item>
-                </el-form>
-            </div>
+    <div class="app-container audit-person">
+        <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch" class="search-form">
+            <el-form-item label="资料类型" prop="applyType">
+                <el-select v-model="queryParams.applyType" placeholder="全部类型" clearable class="search-input">
+                    <el-option v-for="item in apply_type" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="审核状态" prop="auditStatus">
+                <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable class="search-input">
+                    <el-option label="待审核" :value="AUDIT_STATUS.PENDING" />
+                    <el-option label="通过" :value="AUDIT_STATUS.APPROVED" />
+                    <el-option label="驳回" :value="AUDIT_STATUS.REJECTED" />
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
+            </el-form-item>
+        </el-form>
 
-            <el-divider class="section-divider" />
-
-            <div class="table-toolbar">
-                <div class="toolbar-left">
+        <div class="table-wrapper">
+            <div class="table-header">
+                <div class="left-tools">
                     <span class="section-title">审核列表</span>
                 </div>
-                <div class="toolbar-right">
-                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
-                </div>
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
             </div>
 
-            <el-table v-loading="loading" :data="auditList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange" border>
+            <el-table v-loading="loading" :data="auditList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="55" align="center" />
 
                 <el-table-column label="申请人" min-width="140" show-overflow-tooltip>
@@ -116,7 +110,7 @@
             <div class="pagination-container">
                 <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
             </div>
-        </el-card>
+        </div>
 
         <el-dialog title="审核详情" v-model="openDetail" width="720px" append-to-body class="audit-detail-dialog" destroy-on-close>
             <div class="detail-section">
@@ -341,178 +335,3 @@ onMounted(() => {
     getList()
 })
 </script>
-
-<style scoped lang="scss">
-/* 1. 搜索区域 */
-.search-section {
-    .search-input {
-        width: 200px;
-    }
-}
-
-.user-info {
-    .nickname {
-        font-size: 14px;
-        color: #303133;
-    }
-    .username {
-        font-size: 12px;
-        margin-top: 2px;
-    }
-}
-
-.data-cell {
-    display: flex;
-    align-items: center;
-    min-height: 36px;
-}
-
-.text-content {
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 14px;
-}
-
-.text-placeholder {
-    color: #c0c4cc;
-    font-style: italic;
-}
-.text-primary {
-    color: var(--el-color-primary);
-}
-.font-medium {
-    font-weight: 500;
-}
-
-/* 4. 详情弹窗内部样式 */
-.detail-section {
-    .section-label {
-        font-size: 15px;
-        font-weight: 600;
-        color: #303133;
-        margin-bottom: 12px;
-        padding-left: 10px;
-        border-left: 4px solid var(--el-color-primary);
-        line-height: 1;
-    }
-    .mt-5 {
-        margin-top: 20px;
-    }
-}
-
-.compare-container {
-    padding: 4px;
-}
-
-/* 对比卡片核心样式 */
-.compare-card {
-    border-radius: 8px;
-    overflow: hidden;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid;
-    transition: all 0.3s;
-
-    /* 头部 */
-    .card-header {
-        padding: 10px 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-
-        .badge {
-            font-size: 12px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .title {
-            font-size: 14px;
-            font-weight: 600;
-        }
-    }
-
-    /* 内容区 */
-    .card-body {
-        flex: 1;
-        padding: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 160px;
-        background-color: #fff;
-    }
-
-    /* 旧数据风格 (灰) */
-    &.old-state {
-        background-color: #f8f9fa;
-        border-color: #e4e7ed;
-
-        .card-header {
-            background-color: #f2f3f5;
-            color: #909399;
-            .badge {
-                background: #dedfe0;
-                color: #606266;
-            }
-        }
-
-        .text-content.empty {
-            color: #c0c4cc;
-            font-style: italic;
-        }
-    }
-
-    /* 新数据风格 (蓝) */
-    &.new-state {
-        background-color: var(--el-color-primary-light-9);
-        border-color: var(--el-color-primary-light-5);
-
-        .card-header {
-            background-color: var(--el-color-primary-light-8);
-            color: var(--el-color-primary-dark-2);
-            .badge {
-                background: var(--el-color-primary);
-                color: #fff;
-            }
-        }
-
-        .text-content.highlight {
-            color: var(--el-color-primary);
-            font-weight: 600;
-            font-size: 16px;
-        }
-    }
-
-    /* 头像 wrapper */
-    .img-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        .img-tip {
-            font-size: 12px;
-            color: #909399;
-        }
-    }
-
-    .text-content {
-        font-size: 15px;
-        color: #606266;
-        word-break: break-all;
-        text-align: center;
-        line-height: 1.6;
-    }
-}
-
-.dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-</style>

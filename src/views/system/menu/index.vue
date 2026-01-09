@@ -1,105 +1,98 @@
 <template>
-    <div class="app-container">
-        <div class="search-section">
-            <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
-                <el-form-item label="菜单名称" prop="menuName">
-                    <el-input v-model="queryParams.menuName" placeholder="请输入菜单名称" clearable style="width: 200px" @keyup.enter="handleQuery">
-                        <template #prefix>
-                            <Icon icon="mdi:magnify" />
-                        </template>
-                    </el-input>
-                </el-form-item>
-                <el-form-item label="状态" prop="status">
-                    <el-select v-model="queryParams.status" placeholder="菜单状态" clearable style="width: 200px">
-                        <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
-                    <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
-                </el-form-item>
-            </el-form>
-        </div>
+    <div class="app-container system-menu">
+        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
+            <el-form-item label="菜单名称" prop="menuName">
+                <el-input v-model="queryParams.menuName" placeholder="请输入菜单名称" clearable class="search-input" @keyup.enter="handleQuery">
+                    <template #prefix>
+                        <Icon icon="mdi:magnify" />
+                    </template>
+                </el-input>
+            </el-form-item>
+            <el-form-item label="状态" prop="status">
+                <el-select v-model="queryParams.status" placeholder="菜单状态" clearable class="search-input">
+                    <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1" /> 搜索 </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1" /> 重置 </el-button>
+            </el-form-item>
+        </el-form>
 
-        <el-divider class="section-divider" />
-
-        <div class="table-toolbar">
-            <div class="toolbar-left">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:menu:add']"> <Icon icon="mdi:plus" class="btn-icon" /> 新增 </el-button>
-                <el-button type="info" plain @click="toggleExpandAll"> <Icon icon="mdi:sort-variant" class="btn-icon" /> 展开/折叠 </el-button>
-            </div>
-            <div class="toolbar-right">
+        <div class="table-wrapper">
+            <div class="table-header">
+                <div class="left-tools">
+                    <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:menu:add']"> <Icon icon="mdi:plus" class="mr-1" /> 新增 </el-button>
+                    <el-button type="info" plain @click="toggleExpandAll"> <Icon icon="mdi:sort-variant" class="mr-1" /> 展开/折叠 </el-button>
+                </div>
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
             </div>
+
+            <el-table
+                v-if="refreshTable"
+                v-loading="loading"
+                :data="menuList"
+                row-key="menuId"
+                :default-expand-all="isExpandAll"
+                :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+                header-cell-class-name="table-header-cell"
+            >
+                <el-table-column prop="menuName" label="菜单名称" :show-overflow-tooltip="true" min-width="180">
+                    <template #default="{ row }">
+                        <span class="menu-name">{{ row.menuName }}</span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column prop="icon" label="图标" align="center" width="80">
+                    <template #default="{ row }">
+                        <div class="menu-icon-cell">
+                            <Icon v-if="row.icon" :icon="row.icon" class="menu-icon" />
+                        </div>
+                    </template>
+                </el-table-column>
+
+                <el-table-column prop="orderNum" label="排序" width="80" align="center" />
+
+                <el-table-column prop="perms" label="权限标识" :show-overflow-tooltip="true" min-width="150">
+                    <template #default="{ row }">
+                        <span class="menu-perms">{{ row.perms || '-' }}</span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column prop="component" label="组件路径" :show-overflow-tooltip="true" min-width="180" />
+
+                <el-table-column prop="status" label="状态" width="100" align="center">
+                    <template #default="scope">
+                        <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="创建时间" align="center" width="160" prop="createTime">
+                    <template #default="scope">
+                        <span class="time-cell">{{ parseTime(scope.row.createTime) }}</span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column label="操作" align="center" width="280" fixed="right">
+                    <template #default="scope">
+                        <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']">
+                            <Icon icon="mdi:pencil" class="mr-1" /> 修改
+                        </el-button>
+                        <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']">
+                            <Icon icon="mdi:plus" class="mr-1" /> 新增
+                        </el-button>
+                        <el-button link type="primary" @click="handleCopy(scope.row)" v-hasPermi="['system:menu:add']">
+                            <Icon icon="mdi:content-copy" class="mr-1" /> 复制
+                        </el-button>
+                        <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']">
+                            <Icon icon="mdi:trash-can-outline" class="mr-1" /> 删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
         </div>
 
-        <el-table
-            v-if="refreshTable"
-            v-loading="loading"
-            :data="menuList"
-            row-key="menuId"
-            :default-expand-all="isExpandAll"
-            :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-            header-cell-class-name="table-header-cell"
-            border
-        >
-            <el-table-column prop="menuName" label="菜单名称" :show-overflow-tooltip="true" min-width="180">
-                <template #default="{ row }">
-                    <span class="font-medium text-[#303133]">{{ row.menuName }}</span>
-                </template>
-            </el-table-column>
-
-            <el-table-column prop="icon" label="图标" align="center" width="80">
-                <template #default="{ row }">
-                    <div class="flex items-center justify-center">
-                        <Icon v-if="row.icon" :icon="row.icon" class="text-lg text-[var(--el-color-primary)]" />
-                    </div>
-                </template>
-            </el-table-column>
-
-            <el-table-column prop="orderNum" label="排序" width="80" align="center" />
-
-            <el-table-column prop="perms" label="权限标识" :show-overflow-tooltip="true" min-width="150">
-                <template #default="{ row }">
-                    <span class="font-mono text-xs bg-[var(--el-fill-color-light)] px-2 py-1 rounded text-[var(--el-text-color-regular)]">
-                        {{ row.perms || '-' }}
-                    </span>
-                </template>
-            </el-table-column>
-
-            <el-table-column prop="component" label="组件路径" :show-overflow-tooltip="true" min-width="180" />
-
-            <el-table-column prop="status" label="状态" width="100" align="center">
-                <template #default="scope">
-                    <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
-                </template>
-            </el-table-column>
-
-            <el-table-column label="创建时间" align="center" width="160" prop="createTime">
-                <template #default="scope">
-                    <span class="text-xs text-[#909399]">{{ parseTime(scope.row.createTime) }}</span>
-                </template>
-            </el-table-column>
-
-            <el-table-column label="操作" align="center" width="280" fixed="right">
-                <template #default="scope">
-                    <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']">
-                        <Icon icon="mdi:pencil" class="op-icon" /> 修改
-                    </el-button>
-                    <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']">
-                        <Icon icon="mdi:plus" class="op-icon" /> 新增
-                    </el-button>
-                    <el-button link type="primary" @click="handleCopy(scope.row)" v-hasPermi="['system:menu:add']">
-                        <Icon icon="mdi:content-copy" class="op-icon" /> 复制
-                    </el-button>
-                    <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']">
-                        <Icon icon="mdi:trash-can-outline" class="op-icon" /> 删除
-                    </el-button>
-                </template>
-            </el-table-column>
-        </el-table>
-
-        <el-dialog :title="title" v-model="open" width="720px" append-to-body @close="handleDialogClose" class="custom-dialog" top="5vh">
+        <el-dialog :title="title" v-model="open" width="720px" append-to-body @close="handleDialogClose" class="custom-dialog system-menu-dialog" top="5vh">
             <el-form ref="menuRef" :model="form" :rules="rules" label-width="100px" label-position="right">
                 <div class="form-grid">
                     <el-row :gutter="24">
@@ -476,77 +469,3 @@ onMounted(() => {
     getList()
 })
 </script>
-
-<style scoped lang="scss">
-.search-section {
-    .search-form {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: -18px;
-
-        .el-form-item {
-            margin-right: 16px;
-            margin-bottom: 18px;
-        }
-    }
-    .btn-icon {
-        margin-right: 4px;
-        font-size: 16px;
-        vertical-align: -2px;
-    }
-}
-
-.section-divider {
-    margin: 4px 0 20px 0;
-    border-color: var(--el-border-color-lighter);
-}
-
-.table-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .toolbar-left {
-        display: flex;
-        gap: 10px;
-        .btn-icon {
-            font-size: 16px;
-            margin-right: 4px;
-        }
-    }
-}
-
-.font-medium {
-    font-weight: 500;
-}
-
-.op-icon {
-    font-size: 16px;
-    margin-right: 2px;
-}
-
-.form-item-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-
-    .help-icon {
-        color: var(--el-text-color-secondary);
-        font-size: 16px;
-        cursor: help;
-        transition: color 0.3s;
-
-        &:hover {
-            color: var(--el-color-primary);
-        }
-    }
-}
-
-.dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-</style>

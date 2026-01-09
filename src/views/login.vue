@@ -86,7 +86,6 @@ import Cookies from 'js-cookie'
 import { encrypt, decrypt } from '@/utils/jsencrypt'
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
-import { Icon } from '@iconify/vue'
 
 const title = import.meta.env.VITE_APP_TITLE
 const userStore = useUserStore()
@@ -262,7 +261,6 @@ function togglePassword() {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    // 请确保该路径下有背景图片，否则背景是白色的
     background-image: url('../assets/images/login-background.jpg');
     background-size: cover;
     background-position: center;
@@ -272,12 +270,7 @@ function togglePassword() {
         content: '';
         position: absolute;
         inset: 0;
-        // 【修改点】这里将纯黑色的 rgba(0,0,0,0.1) 修改为带有蓝色倾向的深色。
-        // 使用深蓝灰色 (Slate tone) 会比纯黑看起来更高级，且与整体蓝色调融合。
-        // 你可以根据背景图的实际情况微调透明度（0.2 ~ 0.4 之间通常效果不错）
         background: rgba(30, 41, 59, 0.25);
-        // 或者使用一个微妙的渐变，效果会更现代：
-        // background: linear-gradient(to bottom, rgba(30, 41, 59, 0.3), rgba(30, 41, 59, 0.1));
         z-index: 0;
     }
 }
@@ -307,6 +300,7 @@ function togglePassword() {
     box-shadow:
         0 25px 50px -12px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(0, 0, 0, 0.05) inset;
+    transition: all 0.3s ease;
 }
 
 .header-box {
@@ -319,12 +313,14 @@ function togglePassword() {
         font-weight: 800;
         color: #1e293b;
         letter-spacing: -0.5px;
+        transition: color 0.3s;
     }
 
     .sub-title {
         margin-top: 8px;
         font-size: 14px;
         color: #64748b;
+        transition: color 0.3s;
     }
 }
 
@@ -336,6 +332,7 @@ function togglePassword() {
     border-radius: 12px;
     width: 100%;
     height: 44px;
+    transition: background-color 0.3s;
 
     .switch-active-bar {
         position: absolute;
@@ -346,7 +343,9 @@ function togglePassword() {
         background: #ffffff;
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+            transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            background-color 0.3s;
         z-index: 1;
     }
 
@@ -368,7 +367,6 @@ function togglePassword() {
         &:hover {
             color: #334155;
         }
-
         &.active {
             color: #3b82f6;
             font-weight: 600;
@@ -384,6 +382,7 @@ function togglePassword() {
     margin-bottom: 12px;
 }
 
+/* 覆盖输入框样式：使用特定设计而不是全局默认 */
 :deep(.el-input__wrapper) {
     background-color: #f8fafc;
     box-shadow: none !important;
@@ -409,13 +408,8 @@ function togglePassword() {
 :deep(.el-input__inner) {
     height: 48px;
     font-size: 15px;
-    color: #1e293b;
     font-weight: 500;
-
-    &::placeholder {
-        color: #94a3b8;
-        font-weight: 400;
-    }
+    /* 文字颜色现在由全局样式控制，这里只微调字体 */
 }
 
 .input-icon {
@@ -435,7 +429,6 @@ function togglePassword() {
     font-size: 18px;
     transition: color 0.2s;
     margin-right: 8px;
-
     &:hover {
         color: #64748b;
     }
@@ -444,7 +437,6 @@ function togglePassword() {
 .sms-input-group {
     display: flex;
     gap: 12px;
-
     .sms-input {
         flex: 1;
     }
@@ -497,7 +489,6 @@ function togglePassword() {
         text-decoration: none;
         font-weight: 500;
         transition: color 0.2s;
-
         &:hover {
             color: #2563eb;
         }
@@ -543,6 +534,86 @@ function togglePassword() {
         width: 90%;
         padding: 40px 24px;
         margin: 0 20px;
+    }
+}
+
+/* ========================================= */
+/* Login Page Specific Dark Mode Overrides   */
+/* (Depends on element-ui.scss for autofill) */
+/* ========================================= */
+html.dark {
+    .login::before {
+        background: rgba(15, 23, 42, 0.7);
+    }
+
+    .login-form {
+        background: rgba(30, 41, 59, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .header-box .title {
+        color: #f8fafc;
+    }
+    .header-box .sub-title {
+        color: #94a3b8;
+    }
+
+    .login-type-switch {
+        background: #0f172a;
+        .switch-active-bar {
+            background: #334155;
+            box-shadow: none;
+        }
+        .switch-item {
+            color: #64748b;
+            &:hover {
+                color: #94a3b8;
+            }
+            &.active {
+                color: #ffffff;
+            }
+        }
+    }
+
+    /* 输入框 - 使用深色半透明风格适配卡片 */
+    :deep(.el-input__wrapper) {
+        background-color: rgba(15, 23, 42, 0.6) !important;
+        border-color: #334155;
+    }
+
+    :deep(.el-input__wrapper:hover) {
+        border-color: #475569;
+    }
+
+    :deep(.el-input__wrapper.is-focus) {
+        border-color: #3b82f6;
+        background-color: rgba(15, 23, 42, 0.8) !important;
+    }
+
+    .input-icon {
+        color: #475569;
+    }
+    :deep(.el-input__wrapper.is-focus) .input-icon {
+        color: #3b82f6;
+    }
+
+    .form-options :deep(.el-checkbox__label) {
+        color: #94a3b8;
+    }
+    .form-options .register-link {
+        color: #60a5fa;
+    }
+
+    .sms-input-group .sms-btn {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+        &.is-disabled {
+            background: #1e293b;
+            border-color: #334155;
+            color: #475569;
+        }
     }
 }
 </style>

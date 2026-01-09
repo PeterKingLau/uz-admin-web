@@ -1,42 +1,36 @@
 <template>
-    <div class="app-container">
-        <el-card shadow="never" class="main-card">
-            <div class="toolbar-section">
-                <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch" class="search-form">
-                    <el-form-item label="帖子类型" prop="postType">
-                        <el-select v-model="queryParams.postType" placeholder="全部类型" clearable class="search-input">
-                            <el-option v-for="opt in postTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item label="审核状态" prop="auditStatus">
-                        <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable class="search-input">
-                            <el-option v-for="opt in auditStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item label="内容状态" prop="status">
-                        <el-select v-model="queryParams.status" placeholder="全部状态" clearable class="search-input">
-                            <el-option v-for="opt in contentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item>
-                        <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
-                        <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
-                    </el-form-item>
-                </el-form>
-            </div>
+    <div class="app-container audit-profile">
+        <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch" class="search-form">
+            <el-form-item label="帖子类型" prop="postType">
+                <el-select v-model="queryParams.postType" placeholder="全部类型" clearable class="search-input">
+                    <el-option v-for="opt in postTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="审核状态" prop="auditStatus">
+                <el-select v-model="queryParams.auditStatus" placeholder="全部状态" clearable class="search-input">
+                    <el-option v-for="opt in auditStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="内容状态" prop="status">
+                <el-select v-model="queryParams.status" placeholder="全部状态" clearable class="search-input">
+                    <el-option v-for="opt in contentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
+            </el-form-item>
+        </el-form>
 
-            <el-divider class="section-divider" />
-
-            <div class="table-header-wrapper">
-                <div class="left-panel">
+        <div class="table-wrapper">
+            <div class="table-header">
+                <div class="left-tools">
                     <span class="section-title">审核列表</span>
                 </div>
-                <div class="right-panel">
-                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
-                </div>
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
             </div>
 
-            <el-table v-loading="loading" :data="contentList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange" border>
+            <el-table v-loading="loading" :data="contentList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="50" align="center" />
 
                 <el-table-column label="发布人" min-width="140" show-overflow-tooltip>
@@ -114,9 +108,9 @@
             <div class="pagination-container">
                 <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
             </div>
-        </el-card>
+        </div>
 
-        <el-dialog title="内容详情" v-model="openDetail" width="650px" append-to-body class="custom-dialog">
+        <el-dialog title="内容详情" v-model="openDetail" width="650px" append-to-body class="custom-dialog audit-profile-dialog">
             <el-descriptions :column="2" border class="detail-desc">
                 <el-descriptions-item label="用户名">{{ current?.userName }}</el-descriptions-item>
                 <el-descriptions-item label="昵称">{{ current?.nickName }}</el-descriptions-item>
@@ -157,7 +151,7 @@
             </template>
         </el-dialog>
 
-        <el-dialog title="驳回原因" v-model="openReject" width="420px" append-to-body>
+        <el-dialog title="驳回原因" v-model="openReject" width="420px" append-to-body class="audit-profile-dialog">
             <el-form :model="rejectForm" label-position="top">
                 <el-form-item label="请输入驳回原因">
                     <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="例如：内容包含违规信息..." resize="none" />
@@ -312,73 +306,3 @@ onMounted(() => {
     resetQuery()
 })
 </script>
-
-<style scoped lang="scss">
-.toolbar-section {
-    .search-input {
-        width: 180px;
-    }
-}
-
-.user-info {
-    .nickname {
-        font-size: 14px;
-        color: #303133;
-    }
-    .username {
-        font-size: 12px;
-        margin-top: 2px;
-    }
-}
-
-.text-content {
-    color: #606266;
-    font-size: 13px;
-}
-
-.detail-desc {
-    margin-bottom: 24px;
-    :deep(.el-descriptions__cell) {
-        padding: 12px 16px;
-    }
-}
-
-.detail-section {
-    margin-bottom: 20px;
-
-    .section-header {
-        display: flex;
-        align-items: center;
-        font-size: 14px;
-        font-weight: 600;
-        color: #303133;
-        margin-bottom: 10px;
-
-        .section-icon {
-            font-size: 18px;
-            color: var(--el-color-primary);
-            margin-right: 6px;
-        }
-    }
-
-    .content-box {
-        background: #f9f9f9;
-        padding: 12px;
-        border-radius: 6px;
-        font-size: 14px;
-        line-height: 1.6;
-        color: #555;
-        border: 1px solid #eee;
-    }
-
-    .media-box {
-        margin-top: 8px;
-    }
-}
-
-.dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-</style>
