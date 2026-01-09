@@ -214,7 +214,6 @@ import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
-import { Icon } from '@iconify/vue'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const { proxy } = getCurrentInstance() || {}

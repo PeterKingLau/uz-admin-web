@@ -45,10 +45,42 @@
                 @select="handleSelect"
                 @load-more="loadMore"
                 @delete="handleSingleDelete"
+                @edit-tag="handleEditTag"
             />
 
             <el-empty v-else description="暂无内容" :image-size="100" />
         </div>
+
+        <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" @closed="resetEditTag">
+            <el-form label-position="top">
+                <el-form-item label="话题标签" required>
+                    <el-select
+                        v-model="editTagIds"
+                        multiple
+                        filterable
+                        placeholder="请选择话题标签"
+                        style="width: 100%"
+                        clearable
+                        :loading="loadingTags"
+                        class="custom-select"
+                        tag-type="primary"
+                    >
+                        <template #prefix>
+                            <Icon icon="mdi:pound" />
+                        </template>
+                        <template v-for="group in tagOptions" :key="group.id">
+                            <el-option-group v-if="group.children && group.children.length" :label="group.name">
+                                <el-option v-for="tag in group.children" :key="tag.id" :label="tag.name" :value="tag.id" />
+                            </el-option-group>
+                        </template>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="editTagVisible = false">取消</el-button>
+                <el-button type="primary" :loading="updatingTag" @click="submitEditTag">保存</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -56,10 +88,9 @@
 import { ref, reactive, onMounted, onActivated, getCurrentInstance } from 'vue'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
-import { deletePost, listPostByApp } from '@/api/content/post'
+import { deletePost, listPostByApp, updatePostTag } from '@/api/content/post'
 import { getInterestAll } from '@/api/content/interest'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
-import { Icon } from '@iconify/vue'
 
 const { proxy } = getCurrentInstance() || {}
 
@@ -88,15 +119,79 @@ const deleting = ref(false)
 const selectedIds = ref<Array<number | string>>([])
 const totalCount = ref<number | null>(null)
 const tagOptions = ref<any[]>([])
+const loadingTags = ref(false)
+const editTagVisible = ref(false)
+const editTagPost = ref<any | null>(null)
+const editTagIds = ref<Array<string | number>>([])
+const updatingTag = ref(false)
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
 
 async function loadTags() {
+    if (loadingTags.value) return
+    loadingTags.value = true
     try {
         const res = await getInterestAll()
         tagOptions.value = (res as any).data || res || []
     } catch (e) {
         console.error('Failed to load tags', e)
+    } finally {
+        loadingTags.value = false
+    }
+}
+
+function resolveTagIds(post: any) {
+    if (Array.isArray(post?.tags)) {
+        return post.tags.map((tag: any) => tag.tagId ?? tag.id).filter((id: any) => id !== undefined && id !== null && id !== '')
+    }
+    if (Array.isArray(post?.tagIds)) return post.tagIds
+    if (typeof post?.tagStr === 'string') {
+        return post.tagStr
+            .split(',')
+            .map((value: string) => value.trim())
+            .filter(Boolean)
+    }
+    return []
+}
+
+function handleEditTag(post: any) {
+    editTagPost.value = post
+    editTagIds.value = resolveTagIds(post)
+    if (!tagOptions.value.length) loadTags()
+    editTagVisible.value = true
+}
+
+function resetEditTag() {
+    editTagPost.value = null
+    editTagIds.value = []
+}
+
+async function submitEditTag() {
+    if (updatingTag.value) return
+    const postId = editTagPost.value?.id
+    if (!postId) {
+        proxy?.$modal?.msgError?.('未找到帖子ID')
+        return
+    }
+    if (!editTagIds.value.length) {
+        proxy?.$modal?.msgError?.('请至少选择一个话题标签')
+        return
+    }
+
+    updatingTag.value = true
+    try {
+        await updatePostTag({
+            postId,
+            tagStr: editTagIds.value.join(',')
+        })
+        proxy?.$modal?.msgSuccess?.('标签更新成功')
+        editTagVisible.value = false
+        handleQuery()
+    } catch (e) {
+        console.error(e)
+        proxy?.$modal?.msgError?.('标签更新失败')
+    } finally {
+        updatingTag.value = false
     }
 }
 

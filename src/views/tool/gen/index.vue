@@ -129,7 +129,6 @@
 </template>
 
 <script setup name="Gen" lang="ts">
-import { Icon } from '@iconify/vue'
 import { listTable, previewTable, delTable, genCode, synchDb } from '@/api/tool/gen'
 import router from '@/router'
 import { oneOf } from '@zeronejs/utils'

@@ -81,7 +81,6 @@
 <script setup name="Profile">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Icon } from '@iconify/vue'
 import userAvatar from './userAvatar.vue'
 import userInfo from './userInfo.vue'
 import resetPwd from './resetPwd.vue'

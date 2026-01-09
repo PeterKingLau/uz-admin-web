@@ -1,5 +1,5 @@
 <template>
-    <div ref="rootRef" class="feed-item" :class="{ 'is-checked': checked }" @click="$emit('select', !checked)">
+    <div class="feed-item" :class="{ 'is-checked': checked }" @click="$emit('select', !checked)">
         <div class="feed-left">
             <div class="select-box" @click.stop>
                 <el-checkbox :model-value="checked" @change="$emit('select', $event)" />
@@ -29,6 +29,12 @@
                         {{ getAuditStatusName(post.auditStatus) }}
                     </el-tag>
 
+                    <el-tooltip content="编辑标签" placement="top">
+                        <div class="edit-btn" @click.stop="$emit('edit-tag', post)">
+                            <Icon icon="mdi:tag-outline" />
+                        </div>
+                    </el-tooltip>
+
                     <el-tooltip content="删除该条" placement="top">
                         <div class="delete-btn" @click.stop="handleDelete">
                             <Icon icon="mdi:trash-can-outline" />
@@ -43,8 +49,12 @@
                 </div>
                 <div v-else class="feed-text empty">（无正文内容）</div>
 
-                <div v-if="isVisible && mediaList.length" class="feed-media" @click.stop>
-                    <MediaPreview :post-type="post.postType" :media-urls="mediaList" :audit-status="post.auditStatus" />
+                <div class="feed-media" v-if="mediaFiles.length > 0" @click.stop>
+                    <MediaPreview :post-type="post.postType" :media-urls="mediaFiles" :audit-status="post.auditStatus" />
+                </div>
+
+                <div class="tags-wrapper" v-if="post.tags && post.tags.length > 0">
+                    <span v-for="tag in post.tags" :key="tag.tagId" class="hash-tag"> # {{ tag.tagName }} </span>
                 </div>
             </div>
 
@@ -71,8 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { Icon } from '@iconify/vue'
+import { computed } from 'vue'
 import MediaPreview from '@/components/MediaPreview/index.vue'
 import { AUDIT_STATUS, ENUM_TAG_CONFIG } from '@/utils/enum'
 
@@ -84,11 +93,8 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'select', value: boolean): void
     (e: 'delete', id: number | string): void
+    (e: 'edit-tag', post: any): void
 }>()
-
-const rootRef = ref<HTMLElement | null>(null)
-const isVisible = ref(false)
-let observer: IntersectionObserver | null = null
 
 const typeText = computed(() => {
     const t = String(props.post?.postType)
@@ -100,29 +106,37 @@ const typeIcon = computed(() => {
     return t === '1' ? 'mdi:format-text' : t === '2' ? 'mdi:image' : 'mdi:video'
 })
 
-const isVideoType = computed(() => String(props.post?.postType) === '3')
+const mediaFiles = computed(() => {
+    let rawList: any[] = []
+
+    if (props.post.mediaUrls) {
+        if (Array.isArray(props.post.mediaUrls)) {
+            rawList = props.post.mediaUrls
+        } else if (typeof props.post.mediaUrls === 'string') {
+            try {
+                const parsed = JSON.parse(props.post.mediaUrls)
+                rawList = Array.isArray(parsed) ? parsed : [props.post.mediaUrls]
+            } catch (e) {
+                rawList = [props.post.mediaUrls]
+            }
+        }
+    } else if (props.post.files && Array.isArray(props.post.files)) {
+        rawList = props.post.files
+    }
+
+    return rawList
+        .map(item => {
+            if (typeof item === 'string') return item
+            return item?.url || item?.src || item?.path || ''
+        })
+        .filter(url => !!url)
+})
 
 const fullAvatar = (avatar: string) => {
     if (!avatar) return ''
     if (/^https?:\/\//.test(avatar)) return avatar
     return (import.meta.env.VITE_APP_BASE_API || '') + avatar
 }
-
-const normalizeMediaUrls = (mediaUrls: any): string[] => {
-    if (!mediaUrls) return []
-    if (Array.isArray(mediaUrls)) return mediaUrls
-    if (typeof mediaUrls === 'string') {
-        try {
-            const arr = JSON.parse(mediaUrls)
-            return Array.isArray(arr) ? arr : [mediaUrls]
-        } catch {
-            return [mediaUrls]
-        }
-    }
-    return []
-}
-
-const mediaList = computed(() => normalizeMediaUrls(props.post?.mediaUrls))
 
 const auditStatusAlias: Record<string, string> = {
     PENDING: AUDIT_STATUS.PENDING,
@@ -149,37 +163,6 @@ function getAuditStatusName(status: string) {
 function handleDelete() {
     emit('delete', props.post.id)
 }
-
-function setupObserver() {
-    if (isVisible.value) return
-    const el = rootRef.value
-    if (!el || typeof IntersectionObserver === 'undefined') {
-        isVisible.value = true
-        return
-    }
-    observer?.disconnect()
-    observer = new IntersectionObserver(
-        entries => {
-            if (entries[0]?.isIntersecting) {
-                isVisible.value = true
-                observer?.disconnect()
-            }
-        },
-        { rootMargin: '200px 0px' }
-    )
-    observer.observe(el)
-}
-
-onMounted(setupObserver)
-onBeforeUnmount(() => observer?.disconnect())
-watch(
-    () => props.post?.id,
-    async () => {
-        isVisible.value = false
-        await nextTick()
-        setupObserver()
-    }
-)
 </script>
 
 <style scoped lang="scss">
@@ -205,10 +188,6 @@ watch(
 
         html.dark & {
             background-color: rgba(64, 158, 255, 0.1);
-        }
-
-        .feed-media {
-            background-color: transparent;
         }
 
         .type-indicator {
@@ -307,6 +286,24 @@ watch(
 
             font-size: 18px;
         }
+
+        .edit-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            color: var(--el-text-color-secondary);
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: var(--el-color-primary-light-9);
+                color: var(--el-color-primary);
+            }
+
+            font-size: 18px;
+        }
     }
 }
 
@@ -315,7 +312,6 @@ watch(
         font-size: 14px;
         line-height: 1.6;
         color: var(--el-text-color-regular);
-        margin-bottom: 12px;
         white-space: pre-wrap;
 
         &.empty {
@@ -325,9 +321,32 @@ watch(
     }
 
     .feed-media {
+        margin-top: 12px; /* 增加图片与文字的间距 */
         border-radius: 8px;
         overflow: hidden;
         background-color: var(--el-fill-color-lighter);
+    }
+
+    .tags-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px; /* 标签在媒体下方，增加间距 */
+
+        .hash-tag {
+            font-size: 12px;
+            color: var(--el-color-primary);
+            background-color: var(--el-color-primary-light-9);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: default;
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: var(--el-color-primary-light-8);
+            }
+        }
     }
 }
 

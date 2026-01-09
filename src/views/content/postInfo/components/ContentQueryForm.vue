@@ -35,8 +35,6 @@
 </template>
 
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
-
 // 接收 tagOptions
 defineProps<{
     queryParams: any

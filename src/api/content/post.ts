@@ -8,6 +8,11 @@ export interface AddPostPayload {
     mediaUrls?: string
 }
 
+export interface UpdatePostTagPayload {
+    postId: number | string
+    tagStr: string
+}
+
 export function addPost(data: AddPostPayload) {
     const formData = new FormData()
 
@@ -27,6 +32,19 @@ export function addPost(data: AddPostPayload) {
         method: 'post',
         data: formData,
         timeout: 300000
+    })
+}
+
+export function updatePostTag(data: UpdatePostTagPayload) {
+    const formData = new FormData()
+
+    formData.append('postId', String(data.postId ?? ''))
+    formData.append('tagStr', data.tagStr || '')
+
+    return request({
+        url: '/content/postInfo/updatePostTag',
+        method: 'post',
+        data: formData
     })
 }
 

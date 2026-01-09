@@ -141,7 +141,6 @@ import * as echarts from 'echarts'
 import { listContentAudit } from '@/api/audit/profile/content'
 import { listUserAuditDetail } from '@/api/audit/person/person'
 import { listAssessmentQuestions, parseAssessmentQuestionRows } from '@/api/content/assessmentQuestion'
-import { Icon } from '@iconify/vue'
 import useSettingsStore from '@/store/modules/settings'
 
 const settingsStore = useSettingsStore()

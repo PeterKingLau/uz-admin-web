@@ -286,7 +286,6 @@
 
 <script setup name="Menu">
 import { getCurrentInstance, onMounted, nextTick, reactive, ref, toRefs, watch } from 'vue'
-import { Icon } from '@iconify/vue'
 import { addMenu, delMenu, getMenu, listMenu, updateMenu } from '@/api/system/menu'
 import IconSelect from '@/components/IconSelect'
 import { parseTime } from '@/utils/ruoyi'
