@@ -17,6 +17,7 @@
                         :query-params="queryParams"
                         :loading="loading"
                         :post-type-options="postTypeOptions"
+                        :tag-options="tagOptions"
                         @submit="handleQuery"
                         @reset="resetQuery"
                     />
@@ -56,6 +57,7 @@ import { ref, reactive, onMounted, onActivated, getCurrentInstance } from 'vue'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
 import { deletePost, listPostByApp } from '@/api/content/post'
+import { getInterestAll } from '@/api/content/interest'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
 import { Icon } from '@iconify/vue'
 
@@ -64,12 +66,14 @@ const { proxy } = getCurrentInstance() || {}
 const queryParams = reactive<{
     postType?: string
     content: string
+    tagId?: number | string
     lastId?: number
     lastCreateTime?: string
     limit: number
 }>({
     postType: undefined,
     content: '',
+    tagId: undefined,
     lastId: undefined,
     lastCreateTime: undefined,
     limit: 10
@@ -83,8 +87,18 @@ const finished = ref(false)
 const deleting = ref(false)
 const selectedIds = ref<Array<number | string>>([])
 const totalCount = ref<number | null>(null)
+const tagOptions = ref<any[]>([])
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
+
+async function loadTags() {
+    try {
+        const res = await getInterestAll()
+        tagOptions.value = (res as any).data || res || []
+    } catch (e) {
+        console.error('Failed to load tags', e)
+    }
+}
 
 async function fetchList(isLoadMore = false) {
     if (loading.value || loadingMore.value) return
@@ -96,6 +110,7 @@ async function fetchList(isLoadMore = false) {
         const params = {
             postType: queryParams.postType,
             content: queryParams.content?.trim() || undefined,
+            tagId: queryParams.tagId || undefined,
             lastId: queryParams.lastId,
             lastCreateTime: queryParams.lastCreateTime,
             limit: queryParams.limit
@@ -144,6 +159,7 @@ function resetQuery() {
     queryFormRef.value?.reset()
     queryParams.postType = undefined
     queryParams.content = ''
+    queryParams.tagId = undefined
     queryParams.limit = 10
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
@@ -208,6 +224,7 @@ async function handleDeleteConfirm(ids: Array<string | number>) {
 }
 
 onMounted(() => {
+    loadTags()
     resetQuery()
 })
 

@@ -124,12 +124,12 @@
                                 </el-form-item>
                             </transition>
 
-                            <el-form-item label="添加话题" prop="tagStr">
+                            <el-form-item label="添加话题标签" prop="tagStr">
                                 <el-select
                                     v-model="selectedTagIds"
                                     multiple
                                     filterable
-                                    placeholder="搜索或选择话题标签..."
+                                    placeholder="请选择话题标签 (必选)"
                                     style="width: 100%"
                                     clearable
                                     :loading="interestLoading"
@@ -263,7 +263,6 @@ import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
-import { Icon } from '@iconify/vue'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const { proxy } = getCurrentInstance() || {}
@@ -329,6 +328,7 @@ const selectedTagNames = computed(() => {
 
 const rules = {
     postType: [{ required: true, message: '请选择内容类型', trigger: 'change' }],
+    tagStr: [{ required: true, message: '请至少选择一个话题标签', trigger: 'change' }],
     content: [
         {
             validator: (rule: any, value: string, callback: any) => {
@@ -381,7 +381,7 @@ watch(
     () => selectedTagIds.value,
     ids => {
         form.tagStr = ids.join(',')
-        nextTick(() => formRef.value?.clearValidate(['tagStr']))
+        nextTick(() => formRef.value?.validateField('tagStr'))
     },
     { deep: true }
 )
@@ -423,13 +423,13 @@ function handleContentInput() {
 async function handleSubmit() {
     if (!formRef.value) return
 
+    const ok = await formRef.value.validate().catch(() => false)
+    if (!ok) return
+
     if (form.postType !== POST_TYPE.TEXT && fileList.value.length === 0) {
         proxy?.$modal?.msgError(form.postType === POST_TYPE.IMAGE ? '请至少上传一张图片' : '请上传视频')
         return
     }
-
-    const ok = await formRef.value.validate().catch(() => false)
-    if (!ok) return
 
     try {
         await proxy?.$modal?.confirm('确认发布该内容吗？')

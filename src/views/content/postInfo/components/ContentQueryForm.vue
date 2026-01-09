@@ -1,63 +1,84 @@
 <template>
-    <el-form ref="formRef" :model="queryParams" :inline="true" label-width="72px" class="toolbar-form">
-        <el-form-item label="帖子类型" prop="postType">
-            <el-select v-model="queryParams.postType" placeholder="全部" clearable style="width: 180px">
-                <el-option v-for="opt in postTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+    <el-form :inline="true" :model="queryParams" class="content-query-form" @submit.prevent>
+        <el-form-item class="search-input-item">
+            <el-input v-model="queryParams.content" placeholder="搜索动态内容..." clearable @keyup.enter="handleSubmit" style="width: 240px">
+                <template #prefix>
+                    <Icon icon="mdi:magnify" />
+                </template>
+            </el-input>
+        </el-form-item>
+
+        <el-form-item>
+            <el-select v-model="queryParams.postType" placeholder="内容类型" clearable style="width: 120px" @change="handleSubmit">
+                <el-option v-for="item in postTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
         </el-form-item>
-        <el-form-item label="搜索内容" prop="content">
-            <el-input v-model="queryParams.content" placeholder="按内容模糊搜索" clearable style="width: 260px" @keyup.enter="$emit('submit')" />
+
+        <el-form-item>
+            <el-select v-model="queryParams.tagId" placeholder="话题标签" clearable filterable style="width: 160px" @change="handleSubmit">
+                <template #prefix>
+                    <Icon icon="mdi:pound" />
+                </template>
+                <template v-for="group in tagOptions" :key="group.id">
+                    <el-option-group v-if="group.children && group.children.length" :label="group.name">
+                        <el-option v-for="tag in group.children" :key="tag.id" :label="tag.name" :value="tag.id" />
+                    </el-option-group>
+                </template>
+            </el-select>
         </el-form-item>
-        <el-form-item label="条数" prop="limit">
-            <el-input-number v-model="queryParams.limit" :min="1" :max="30" :step="5" style="width: 130px" />
-        </el-form-item>
-        <el-form-item class="toolbar-actions">
-            <el-button type="primary" :loading="loading" @click="$emit('submit')">
-                <el-icon><Icon icon="ep:search" /></el-icon> 搜索
-            </el-button>
-            <el-button @click="$emit('reset')">
-                <el-icon><Icon icon="ep:refresh" /></el-icon> 重置
-            </el-button>
+
+        <el-form-item>
+            <el-button type="primary" @click="handleSubmit" :loading="loading"> 搜索 </el-button>
+            <el-button @click="$emit('reset')">重置</el-button>
         </el-form-item>
     </el-form>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { FormInstance } from 'element-plus'
+import { Icon } from '@iconify/vue'
 
-const formRef = ref<FormInstance | null>(null)
-
+// 接收 tagOptions
 defineProps<{
-    queryParams: { postType?: string; content: string; limit: number }
+    queryParams: any
     loading: boolean
-    postTypeOptions: { label: string; value: string | number }[]
-}>()
-defineEmits<{
-    (e: 'submit'): void
-    (e: 'reset'): void
+    postTypeOptions: any[]
+    tagOptions: any[]
 }>()
 
-const reset = () => {
-    formRef.value?.resetFields?.()
+const emit = defineEmits(['submit', 'reset'])
+
+function handleSubmit() {
+    emit('submit')
+}
+
+// 暴露 reset 方法给父组件调用
+function reset() {
+    // 逻辑已经在父组件处理，这里主要用于特定内部状态重置(如果需要)
 }
 
 defineExpose({ reset })
 </script>
 
 <style scoped lang="scss">
-.toolbar-form {
+.content-query-form {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 6px 14px;
+    align-items: center;
+    gap: 8px;
 
     :deep(.el-form-item) {
-        margin-bottom: 6px;
+        margin-bottom: 0;
+        margin-right: 0;
     }
 
-    .toolbar-actions {
-        margin-left: auto;
+    /* 让搜索框在移动端占满 */
+    @media screen and (max-width: 768px) {
+        .search-input-item {
+            width: 100%;
+            :deep(.el-input) {
+                width: 100% !important;
+            }
+        }
     }
 }
 </style>
