@@ -79,7 +79,7 @@
                 <el-dialog
                     v-model="videoVisible"
                     title="视频预览"
-                    width="800px"
+                    width="900px"
                     append-to-body
                     destroy-on-close
                     align-center
@@ -87,7 +87,7 @@
                     @close="handleVideoClose"
                 >
                     <div class="video-player-wrapper">
-                        <video v-if="videoSrc" ref="videoRef" :src="videoSrc" controls autoplay playsinline class="preview-video" />
+                        <video v-if="videoVisible && videoSrc" ref="playerRef" class="video-js preview-player" playsinline />
                     </div>
                 </el-dialog>
             </template>
@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { computed, ref, getCurrentInstance } from 'vue'
+import { computed, ref, getCurrentInstance, onBeforeUnmount, watch, nextTick } from 'vue'
 import { isExternal } from '@/utils/validate'
 import { POST_TYPE, AUDIT_STATUS } from '@/utils/enum'
 
@@ -161,7 +161,8 @@ function onViewerSwitch(index) {
 }
 
 const videoVisible = ref(false)
-const videoRef = ref(null)
+const playerRef = ref(null)
+let player = null
 
 const videoThumb = computed(() => {
     if (!isVideoPost.value) return ''
@@ -173,16 +174,76 @@ const videoSrc = computed(() => {
     return normalizedList.value[1] || normalizedList.value[0] || ''
 })
 
+const playerOptions = {
+    controls: true,
+    autoplay: true,
+    muted: false,
+    loop: false,
+    preload: 'auto',
+    playbackRates: [0.5, 1, 1.25, 1.5, 2]
+}
+
+function buildSources(url) {
+    const u = String(url || '').trim()
+    if (!u) return []
+    return [{ src: u, type: guessMime(u) }]
+}
+
+function guessMime(url) {
+    const u = String(url || '').toLowerCase()
+    if (u.includes('.m3u8')) return 'application/x-mpegURL'
+    if (u.includes('.mpd')) return 'application/dash+xml'
+    if (u.includes('.webm')) return 'video/webm'
+    if (u.includes('.ogg') || u.includes('.ogv')) return 'video/ogg'
+    return 'video/mp4'
+}
+
 function openVideo() {
     if (!videoSrc.value) return
     videoVisible.value = true
 }
 
-function handleVideoClose() {
-    if (videoRef.value) {
-        videoRef.value.pause()
+async function initPlayer() {
+    if (!videoVisible.value || !videoSrc.value) return
+    await nextTick()
+    const el = playerRef.value
+    if (!el) return
+
+    if (!player) {
+        const videojsLib = proxy?.$videojs
+        if (!videojsLib) return
+        player = videojsLib(el, {
+            ...playerOptions,
+            sources: buildSources(videoSrc.value)
+        })
+    } else {
+        player.src(buildSources(videoSrc.value))
     }
+    player.play?.()
 }
+
+async function stopPlayer() {
+    if (!player) return
+    player.pause?.()
+    player.dispose?.()
+    player = null
+}
+
+watch(
+    () => [videoVisible.value, videoSrc.value],
+    () => {
+        if (videoVisible.value) initPlayer()
+        else stopPlayer()
+    }
+)
+
+async function handleVideoClose() {
+    await stopPlayer()
+}
+
+onBeforeUnmount(() => {
+    stopPlayer()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -391,13 +452,12 @@ function handleVideoClose() {
     justify-content: center;
     align-items: center;
     aspect-ratio: 16/9;
+}
 
-    .preview-video {
-        width: 100%;
-        height: 100%;
-        max-height: 70vh;
-        outline: none;
-    }
+.preview-player {
+    width: 100%;
+    height: 100%;
+    max-height: 70vh;
 }
 
 @keyframes spin {
@@ -438,6 +498,6 @@ function handleVideoClose() {
     pointer-events: none;
     backdrop-filter: blur(4px);
     font-variant-numeric: tabular-nums;
-    z-index: 4001; /* 必须比 mask (4000) 高 */
+    z-index: 4001;
 }
 </style>

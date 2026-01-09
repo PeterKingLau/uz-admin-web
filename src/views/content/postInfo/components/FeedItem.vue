@@ -35,6 +35,18 @@
                         </div>
                     </el-tooltip>
 
+                    <el-tooltip content="人工置顶" placement="top">
+                        <div class="pin-btn" @click.stop="$emit('pin', post)">
+                            <Icon icon="mdi:pin-outline" />
+                        </div>
+                    </el-tooltip>
+
+                    <el-tooltip content="取消置顶" placement="top">
+                        <div class="unpin-btn" @click.stop="$emit('unpin', post)">
+                            <Icon icon="mdi:pin-off-outline" />
+                        </div>
+                    </el-tooltip>
+
                     <el-tooltip content="删除该条" placement="top">
                         <div class="delete-btn" @click.stop="handleDelete">
                             <Icon icon="mdi:trash-can-outline" />
@@ -94,6 +106,8 @@ const emit = defineEmits<{
     (e: 'select', value: boolean): void
     (e: 'delete', id: number | string): void
     (e: 'edit-tag', post: any): void
+    (e: 'pin', post: any): void
+    (e: 'unpin', post: any): void
 }>()
 
 const typeText = computed(() => {
@@ -300,6 +314,42 @@ function handleDelete() {
             &:hover {
                 background-color: var(--el-color-primary-light-9);
                 color: var(--el-color-primary);
+            }
+
+            font-size: 18px;
+        }
+
+        .pin-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            color: var(--el-text-color-secondary);
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: var(--el-color-warning-light-9);
+                color: var(--el-color-warning);
+            }
+
+            font-size: 18px;
+        }
+
+        .unpin-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            color: var(--el-text-color-secondary);
+            transition: all 0.2s;
+
+            &:hover {
+                background-color: var(--el-color-info-light-9);
+                color: var(--el-color-info);
             }
 
             font-size: 18px;

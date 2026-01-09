@@ -28,8 +28,14 @@
         </el-form-item>
 
         <el-form-item>
-            <el-button type="primary" @click="handleSubmit" :loading="loading"> 搜索 </el-button>
-            <el-button @click="$emit('reset')">重置</el-button>
+            <el-button type="primary" @click="handleSubmit" :loading="loading">
+                <Icon icon="mdi:magnify" class="mr-1" />
+                搜索
+            </el-button>
+            <el-button @click="$emit('reset')">
+                <Icon icon="mdi:refresh" class="mr-1" />
+                重置
+            </el-button>
         </el-form-item>
     </el-form>
 </template>

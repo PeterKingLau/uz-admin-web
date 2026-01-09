@@ -284,6 +284,7 @@ const previewMediaList = ref<string[]>([])
 const interestTree = ref<any[]>([])
 const interestLoading = ref(false)
 const selectedTagIds = ref<number[]>([])
+const suppressTagValidate = ref(false)
 
 const currentTime = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
@@ -381,6 +382,7 @@ watch(
     () => selectedTagIds.value,
     ids => {
         form.tagStr = ids.join(',')
+        if (suppressTagValidate.value) return
         nextTick(() => formRef.value?.validateField('tagStr'))
     },
     { deep: true }
@@ -456,6 +458,7 @@ async function handleSubmit() {
 }
 
 async function handleReset(afterSubmit = false) {
+    suppressTagValidate.value = true
     previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
     previewMediaList.value = []
     fileList.value = []
@@ -472,6 +475,7 @@ async function handleReset(afterSubmit = false) {
     formRef.value?.clearValidate()
 
     await nextTick()
+    suppressTagValidate.value = false
     updatePreviewMedia()
 }
 </script>

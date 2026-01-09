@@ -3,6 +3,8 @@ import Cookies from 'js-cookie'
 import ElementPlus, { type ComponentSize } from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
+import videojs from 'video.js'
+import 'video.js/dist/video-js.css'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
 import '@/assets/styles/index.scss' // global css
@@ -56,6 +58,7 @@ addCollection(materialSymbols as IconifyJSON)
 
 const app = createApp(App)
 
+app.config.globalProperties.$videojs = videojs
 app.config.globalProperties.useDict = useDict
 app.config.globalProperties.download = download
 app.config.globalProperties.parseTime = parseTime

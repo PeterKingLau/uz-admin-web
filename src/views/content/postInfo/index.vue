@@ -46,6 +46,8 @@
                 @load-more="loadMore"
                 @delete="handleSingleDelete"
                 @edit-tag="handleEditTag"
+                @pin="handlePin"
+                @unpin="handleUnpin"
             />
 
             <el-empty v-else description="暂无内容" :image-size="100" />
@@ -81,6 +83,18 @@
                 <el-button type="primary" :loading="updatingTag" @click="submitEditTag">保存</el-button>
             </template>
         </el-dialog>
+
+        <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin">
+            <el-form label-position="top">
+                <el-form-item label="置顶天数" required>
+                    <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" style="width: 100%" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="pinVisible = false">取消</el-button>
+                <el-button type="primary" :loading="pinning" @click="submitPin">确定</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -88,7 +102,7 @@
 import { ref, reactive, onMounted, onActivated, getCurrentInstance } from 'vue'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
-import { deletePost, listPostByApp, updatePostTag } from '@/api/content/post'
+import { deletePost, listPostByApp, updatePostTag, pinPostManually, unpinPostManually } from '@/api/content/post'
 import { getInterestAll } from '@/api/content/interest'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
 
@@ -124,6 +138,11 @@ const editTagVisible = ref(false)
 const editTagPost = ref<any | null>(null)
 const editTagIds = ref<Array<string | number>>([])
 const updatingTag = ref(false)
+const pinVisible = ref(false)
+const pinPost = ref<any | null>(null)
+const pinDays = ref<number>(7)
+const pinning = ref(false)
+const unpinning = ref(false)
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
 
@@ -192,6 +211,72 @@ async function submitEditTag() {
         proxy?.$modal?.msgError?.('标签更新失败')
     } finally {
         updatingTag.value = false
+    }
+}
+
+function handlePin(post: any) {
+    pinPost.value = post
+    pinDays.value = 7
+    pinVisible.value = true
+}
+
+function resetPin() {
+    pinPost.value = null
+    pinDays.value = 7
+}
+
+async function submitPin() {
+    if (pinning.value) return
+    const postId = pinPost.value?.id
+    if (!postId) {
+        proxy?.$modal?.msgError?.('未找到帖子ID')
+        return
+    }
+    if (!pinDays.value || pinDays.value < 1) {
+        proxy?.$modal?.msgError?.('请输入置顶天数')
+        return
+    }
+
+    pinning.value = true
+    try {
+        await pinPostManually({
+            postId,
+            days: pinDays.value
+        })
+        proxy?.$modal?.msgSuccess?.('置顶成功')
+        pinVisible.value = false
+        handleQuery()
+    } catch (e) {
+        console.error(e)
+        proxy?.$modal?.msgError?.('置顶失败')
+    } finally {
+        pinning.value = false
+    }
+}
+
+async function handleUnpin(post: any) {
+    if (unpinning.value) return
+    const postId = post?.id
+    if (!postId) {
+        proxy?.$modal?.msgError?.('未找到帖子ID')
+        return
+    }
+    try {
+        await proxy?.$modal?.confirm('确认取消置顶该条内容吗？')
+    } catch {
+        return
+    }
+
+    unpinning.value = true
+    try {
+        await unpinPostManually({ postId })
+        proxy?.$modal?.msgSuccess?.('已取消置顶')
+        handleQuery()
+    } catch (e) {
+        console.error(e)
+        proxy?.$modal?.msgError?.('取消置顶失败')
+    } finally {
+        unpinning.value = false
     }
 }
 

@@ -31,6 +31,8 @@
             @select="val => emit('select', { id: item.id, checked: val })"
             @delete="val => emit('delete', val)"
             @edit-tag="val => emit('edit-tag', val)"
+            @pin="val => emit('pin', val)"
+            @unpin="val => emit('unpin', val)"
         />
 
         <div v-if="posts.length" class="load-more">
@@ -61,6 +63,8 @@ const emit = defineEmits<{
     (e: 'select', payload: { id: string | number; checked: boolean }): void
     (e: 'delete', id: string | number): void
     (e: 'edit-tag', post: any): void
+    (e: 'pin', post: any): void
+    (e: 'unpin', post: any): void
 }>()
 
 const sentinel = ref<HTMLElement | null>(null)

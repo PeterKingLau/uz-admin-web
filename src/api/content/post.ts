@@ -71,3 +71,19 @@ export function deletePost(params: { postIds: Array<string | number> }) {
         method: 'delete'
     })
 }
+
+export function pinPostManually(params: { postId?: number | string; days?: number }) {
+    return request({
+        url: '/content/hotPost/pinPostManually',
+        method: 'get',
+        params
+    })
+}
+
+export function unpinPostManually(params: { postId?: number | string }) {
+    return request({
+        url: '/content/hotPost/unpinPostManually',
+        method: 'get',
+        params
+    })
+}
