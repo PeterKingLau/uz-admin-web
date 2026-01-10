@@ -44,7 +44,6 @@
 <script setup>
 import { ref, reactive, getCurrentInstance } from 'vue'
 import { updateUserPwd } from '@/api/system/user'
-import { Icon } from '@iconify/vue'
 
 const { proxy } = getCurrentInstance()
 const pwdRef = ref(null)

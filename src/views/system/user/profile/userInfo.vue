@@ -34,11 +34,27 @@
 
                 <el-col :span="12" :xs="24">
                     <el-form-item label="性别">
-                        <div class="gender-group">
-                            <el-radio-group v-model="form.sex">
-                                <el-radio-button label="0">男</el-radio-button>
-                                <el-radio-button label="1">女</el-radio-button>
-                            </el-radio-group>
+                        <div class="gender-wrapper">
+                            <transition name="fade-mode" mode="out-in">
+                                <div v-if="!isEditSex" class="gender-view" @click="isEditSex = true">
+                                    <div class="view-content">
+                                        <Icon
+                                            :icon="form.sex === '0' ? 'ep:male' : 'ep:female'"
+                                            class="view-icon"
+                                            :class="form.sex === '0' ? 'male' : 'female'"
+                                        />
+                                        <span class="view-text">{{ form.sex === '0' ? '男' : '女' }}</span>
+                                    </div>
+                                </div>
+
+                                <div v-else class="gender-edit">
+                                    <el-radio-group v-model="form.sex">
+                                        <el-radio value="0" border>男</el-radio>
+                                        <el-radio value="1" border>女</el-radio>
+                                    </el-radio-group>
+                                    <el-button type="primary" link size="small" class="confirm-btn" @click="isEditSex = false"> 确定 </el-button>
+                                </div>
+                            </transition>
                         </div>
                     </el-form-item>
                 </el-col>
@@ -55,7 +71,6 @@
 <script setup>
 import { ref, watch, getCurrentInstance } from 'vue'
 import { updateUserProfile } from '@/api/system/user'
-import { Icon } from '@iconify/vue'
 
 const props = defineProps({
     user: {
@@ -67,6 +82,7 @@ const props = defineProps({
 const { proxy } = getCurrentInstance()
 const userRef = ref(null)
 const loading = ref(false)
+const isEditSex = ref(false)
 
 const form = ref({
     nickName: '',
@@ -152,24 +168,97 @@ function close() {
     }
 }
 
-.gender-group {
-    :deep(.el-radio-button__inner) {
-        padding: 10px 24px;
-        border-radius: 8px;
-        border: 1px solid var(--el-border-color);
-        box-shadow: none !important;
-        margin-right: 10px;
-    }
+.gender-wrapper {
+    height: 40px;
+    display: flex;
+    align-items: center;
+}
 
-    :deep(.el-radio-button:first-child .el-radio-button__inner) {
-        border-left: 1px solid var(--el-border-color);
-    }
+.gender-view {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 12px;
+    height: 40px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: var(--el-fill-color-lighter);
 
-    :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-        background-color: var(--el-color-primary-light-9);
-        color: var(--el-color-primary);
+    &:hover {
         border-color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
     }
+
+    .view-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .view-icon {
+            font-size: 16px;
+            line-height: 1;
+            &.male {
+                color: #409eff;
+            }
+            &.female {
+                color: #f56c6c;
+            }
+        }
+
+        .view-text {
+            font-size: 14px;
+            line-height: 1;
+            color: var(--el-text-color-primary);
+        }
+    }
+
+    .view-action {
+        font-size: 14px;
+        color: var(--el-text-color-secondary);
+        opacity: 0.6;
+        transition: all 0.2s;
+    }
+}
+
+.gender-edit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+
+    :deep(.el-radio-group) {
+        flex: 1;
+        display: flex;
+    }
+
+    :deep(.el-radio) {
+        margin-right: 12px;
+        flex: 1;
+        height: 40px;
+        border-radius: 8px;
+
+        &.is-bordered {
+            padding: 0 15px 0 10px;
+        }
+    }
+
+    .confirm-btn {
+        font-size: 14px;
+        padding: 0 8px;
+    }
+}
+
+.fade-mode-enter-active,
+.fade-mode-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-mode-enter-from,
+.fade-mode-leave-to {
+    opacity: 0;
 }
 
 .form-footer {

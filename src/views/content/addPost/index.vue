@@ -68,7 +68,14 @@
                                     :label="form.postType === POST_TYPE.IMAGE ? '上传图片' : '上传视频'"
                                     prop="files"
                                 >
-                                    <div class="upload-container">
+                                    <div
+                                        class="upload-container"
+                                        @dragenter.prevent.stop="onDragEnter"
+                                        @dragover.prevent.stop="onDragOver"
+                                        @dragleave.prevent.stop="onDragLeave"
+                                        @drop.prevent.stop="onDrop"
+                                        :class="{ 'is-dragging': isDragging }"
+                                    >
                                         <el-upload
                                             ref="uploadRef"
                                             v-model:file-list="fileList"
@@ -285,6 +292,11 @@ const interestTree = ref<any[]>([])
 const interestLoading = ref(false)
 const selectedTagIds = ref<number[]>([])
 const suppressTagValidate = ref(false)
+const autoFilledContent = ref<string | null>(null)
+const lastAutoVideoTitle = ref<string>('')
+
+const isDragging = ref(false)
+const dragDepth = ref(0)
 
 const currentTime = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
@@ -327,6 +339,50 @@ const selectedTagNames = computed(() => {
     return tags
 })
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const getBaseName = (name: string) => name.replace(/\.[^/.]+$/, '').trim()
+
+const appendVideoTitleToContent = (title: string) => {
+    const t = (title || '').trim()
+    if (!t) return
+    if (lastAutoVideoTitle.value === t) return
+
+    const current = String(form.content || '')
+    const cleaned = lastAutoVideoTitle.value
+        ? current.replace(new RegExp(`(^|\\n)\\s*${escapeRegExp(lastAutoVideoTitle.value)}\\s*(\\n|$)`, 'g'), '\n')
+        : current
+    const next = cleaned.trim().length ? `${cleaned.trim()}\n${t}` : t
+
+    form.content = next
+    autoFilledContent.value = t
+    lastAutoVideoTitle.value = t
+    nextTick(() => formRef.value?.validateField('content'))
+}
+
+const applyVideoNameToContent = (file?: UploadFile) => {
+    if (form.postType !== POST_TYPE.VIDEO) return
+    const fileName = file?.name || (file as any)?.raw?.name
+    if (!fileName) return
+    const baseName = getBaseName(fileName)
+    if (!baseName) return
+    appendVideoTitleToContent(baseName)
+}
+
+const isAccepted = (file: File) => {
+    const accept = uploadAccept.value
+    if (!accept) return true
+    const ext = `.${(file.name.split('.').pop() || '').toLowerCase()}`
+    const allow = accept
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean)
+    if (allow.includes(ext)) return true
+    const t = (file.type || '').toLowerCase()
+    if (form.postType === POST_TYPE.IMAGE) return t.startsWith('image/')
+    if (form.postType === POST_TYPE.VIDEO) return t.startsWith('video/')
+    return true
+}
+
 const rules = {
     postType: [{ required: true, message: '请选择内容类型', trigger: 'change' }],
     tagStr: [{ required: true, message: '请至少选择一个话题标签', trigger: 'change' }],
@@ -355,25 +411,93 @@ const updatePreviewMedia = () => {
     previewMediaList.value = []
     if (form.postType === POST_TYPE.TEXT) return
     fileList.value.forEach(file => {
-        if (file.raw) previewMediaList.value.push(URL.createObjectURL(file.raw))
+        if ((file as any).raw) previewMediaList.value.push(URL.createObjectURL((file as any).raw))
     })
+}
+
+const clearFilesValidate = () => {
+    if (!formRef.value) return
+    if (fileList.value.length) formRef.value.clearValidate(['files'])
+}
+
+const addFilesByDrop = async (files: File[]) => {
+    const valid = files.filter(f => f && isAccepted(f))
+    if (!valid.length) return
+    if (!uploadRef.value) return
+
+    if (form.postType === POST_TYPE.VIDEO) {
+        const f = valid[0]
+        uploadRef.value.clearFiles?.()
+        uploadRef.value.handleStart?.(f)
+        appendVideoTitleToContent(getBaseName(f.name))
+        await nextTick()
+        updatePreviewMedia()
+        clearFilesValidate()
+        return
+    }
+
+    const remaining = Math.max(0, 9 - fileList.value.length)
+    if (remaining <= 0) return
+    valid.slice(0, remaining).forEach(f => uploadRef.value.handleStart?.(f))
+    await nextTick()
+    updatePreviewMedia()
+    clearFilesValidate()
+}
+
+const onDragEnter = () => {
+    dragDepth.value += 1
+    isDragging.value = true
+}
+
+const onDragOver = () => {
+    isDragging.value = true
+}
+
+const onDragLeave = () => {
+    dragDepth.value = Math.max(0, dragDepth.value - 1)
+    if (dragDepth.value === 0) isDragging.value = false
+}
+
+const onDrop = async (e: DragEvent) => {
+    dragDepth.value = 0
+    isDragging.value = false
+    if (uploadLimitReached.value) return
+    const dt = e.dataTransfer
+    if (!dt) return
+    const files = Array.from(dt.files || [])
+    if (!files.length) return
+    await addFilesByDrop(files)
 }
 
 const handleFileChange = (uploadFile: UploadFile, uploadFiles: UploadFiles) => {
     setTimeout(() => updatePreviewMedia(), 0)
     if (form.postType !== POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('files'))
+    applyVideoNameToContent(uploadFile)
 }
 
 const handleRemove = (file: UploadFile) => {
     uploadRef.value?.handleRemove(file)
     setTimeout(() => updatePreviewMedia(), 0)
     nextTick(() => formRef.value?.validateField('files'))
+    if (form.postType === POST_TYPE.VIDEO) {
+        const current = String(form.content || '')
+        if (lastAutoVideoTitle.value) {
+            form.content = current.replace(new RegExp(`(^|\\n)\\s*${escapeRegExp(lastAutoVideoTitle.value)}\\s*(\\n|$)`, 'g'), '\n').trim()
+        }
+        lastAutoVideoTitle.value = ''
+        autoFilledContent.value = null
+        nextTick(() => formRef.value?.validateField('content'))
+    }
 }
 
 const handleTypeChange = async () => {
     fileList.value = []
     uploadRef.value?.clearFiles?.()
     updatePreviewMedia()
+    autoFilledContent.value = null
+    lastAutoVideoTitle.value = ''
+    isDragging.value = false
+    dragDepth.value = 0
     await nextTick()
     formRef.value?.clearValidate()
 }
@@ -386,6 +510,15 @@ watch(
         nextTick(() => formRef.value?.validateField('tagStr'))
     },
     { deep: true }
+)
+
+watch(
+    () => fileList.value.length,
+    len => {
+        if (form.postType === POST_TYPE.TEXT) return
+        if (len > 0) nextTick(() => formRef.value?.clearValidate(['files']))
+        else nextTick(() => formRef.value?.validateField('files'))
+    }
 )
 
 onMounted(() => {
@@ -418,6 +551,9 @@ function beforeUpload(file: File) {
 }
 
 function handleContentInput() {
+    if (autoFilledContent.value && form.content.trim() !== autoFilledContent.value) {
+        autoFilledContent.value = null
+    }
     if (form.postType === POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('content'))
     else nextTick(() => formRef.value?.clearValidate(['content']))
 }
@@ -441,7 +577,7 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
-        const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => f.raw).filter(Boolean) as File[]) : []
+        const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => (f as any).raw).filter(Boolean) as File[]) : []
         await addPost({
             postType: form.postType,
             content: form.content?.trim() || '',
@@ -464,6 +600,10 @@ async function handleReset(afterSubmit = false) {
     fileList.value = []
     uploadRef.value?.clearFiles?.()
     selectedTagIds.value = []
+    autoFilledContent.value = null
+    lastAutoVideoTitle.value = ''
+    isDragging.value = false
+    dragDepth.value = 0
 
     if (formRef.value?.resetFields) {
         formRef.value.resetFields()
@@ -625,6 +765,12 @@ async function handleReset(afterSubmit = false) {
 
 .upload-container {
     width: 100%;
+    border-radius: 12px;
+}
+
+.upload-container.is-dragging {
+    outline: 2px dashed var(--el-color-primary);
+    outline-offset: 4px;
 }
 
 .custom-upload {
