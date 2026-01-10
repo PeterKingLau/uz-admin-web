@@ -1,54 +1,63 @@
 <template>
-    <div class="user-info-head" @click="editCropper()">
-        <img :src="options.img" title="点击上传头像" class="img-circle img-lg" />
-        <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog">
-            <el-row>
-                <el-col :xs="24" :md="12" :style="{ height: '350px' }">
-                    <vue-cropper
-                        ref="cropper"
-                        :img="options.img"
-                        :info="true"
-                        :autoCrop="options.autoCrop"
-                        :autoCropWidth="options.autoCropWidth"
-                        :autoCropHeight="options.autoCropHeight"
-                        :fixedBox="options.fixedBox"
-                        :outputType="options.outputType"
-                        @realTime="realTime"
-                        v-if="visible"
-                    />
-                </el-col>
-                <el-col :xs="24" :md="12" :style="{ height: '350px' }">
-                    <div class="avatar-upload-preview">
-                        <img :src="options.previews.url" :style="options.previews.img" />
+    <div class="user-avatar-wrapper" @click="editCropper()">
+        <img :src="options.img" title="点击上传头像" class="avatar-img" />
+
+        <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog" class="avatar-dialog">
+            <div class="cropper-container">
+                <el-row :gutter="20">
+                    <el-col :span="14" class="cropper-col">
+                        <div class="cropper-box">
+                            <vue-cropper
+                                ref="cropper"
+                                :img="options.img"
+                                :info="true"
+                                :autoCrop="options.autoCrop"
+                                :autoCropWidth="options.autoCropWidth"
+                                :autoCropHeight="options.autoCropHeight"
+                                :fixedBox="options.fixedBox"
+                                :outputType="options.outputType"
+                                @realTime="realTime"
+                                v-if="visible"
+                            />
+                        </div>
+                    </el-col>
+                    <el-col :span="10" class="preview-col">
+                        <div class="preview-box">
+                            <div class="preview-img-wrapper" :style="previewStyle">
+                                <div :style="options.previews.div" class="preview-inner">
+                                    <img :src="options.previews.url" :style="options.previews.img" />
+                                </div>
+                            </div>
+                            <div class="preview-text">头像预览</div>
+                        </div>
+                    </el-col>
+                </el-row>
+            </div>
+
+            <template #footer>
+                <div class="dialog-footer">
+                    <div class="left-actions">
+                        <el-upload action="#" :http-request="requestUpload" :show-file-list="false" :before-upload="beforeUpload">
+                            <el-button
+                                >选择图片 <el-icon class="el-icon--right"><Upload /></el-icon
+                            ></el-button>
+                        </el-upload>
                     </div>
-                </el-col>
-            </el-row>
-            <br />
-            <el-row>
-                <el-col :lg="2" :md="2">
-                    <el-upload action="#" :http-request="requestUpload" :show-file-list="false" :before-upload="beforeUpload">
-                        <el-button>
-                            选择
-                            <el-icon class="el-icon--right"><Upload /></el-icon>
-                        </el-button>
-                    </el-upload>
-                </el-col>
-                <el-col :lg="{ span: 1, offset: 2 }" :md="2">
-                    <el-button icon="Plus" @click="changeScale(1)"></el-button>
-                </el-col>
-                <el-col :lg="{ span: 1, offset: 1 }" :md="2">
-                    <el-button icon="Minus" @click="changeScale(-1)"></el-button>
-                </el-col>
-                <el-col :lg="{ span: 1, offset: 1 }" :md="2">
-                    <el-button icon="RefreshLeft" @click="rotateLeft()"></el-button>
-                </el-col>
-                <el-col :lg="{ span: 1, offset: 1 }" :md="2">
-                    <el-button icon="RefreshRight" @click="rotateRight()"></el-button>
-                </el-col>
-                <el-col :lg="{ span: 2, offset: 6 }" :md="2">
-                    <el-button type="primary" @click="uploadImg()">提 交</el-button>
-                </el-col>
-            </el-row>
+
+                    <div class="center-actions">
+                        <el-button-group>
+                            <el-button icon="Plus" @click="changeScale(1)" title="放大"></el-button>
+                            <el-button icon="Minus" @click="changeScale(-1)" title="缩小"></el-button>
+                            <el-button icon="RefreshLeft" @click="rotateLeft()" title="左旋转"></el-button>
+                            <el-button icon="RefreshRight" @click="rotateRight()" title="右旋转"></el-button>
+                        </el-button-group>
+                    </div>
+
+                    <div class="right-actions">
+                        <el-button type="primary" @click="uploadImg()">提 交</el-button>
+                    </div>
+                </div>
+            </template>
         </el-dialog>
     </div>
 </template>
@@ -58,6 +67,7 @@ import 'vue-cropper/dist/index.css'
 import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
+import { ref, reactive, getCurrentInstance, computed } from 'vue'
 
 const userStore = useUserStore()
 const { proxy } = getCurrentInstance()
@@ -66,48 +76,50 @@ const open = ref(false)
 const visible = ref(false)
 const title = ref('修改头像')
 
-//图片裁剪数据
 const options = reactive({
-    img: userStore.avatar, // 裁剪图片的地址
-    autoCrop: true, // 是否默认生成截图框
-    autoCropWidth: 200, // 默认生成截图框宽度
-    autoCropHeight: 200, // 默认生成截图框高度
-    fixedBox: true, // 固定截图框大小 不允许改变
-    outputType: 'png', // 默认生成截图为PNG格式
-    filename: 'avatar', // 文件名称
-    previews: {} //预览数据
+    img: userStore.avatar,
+    autoCrop: true,
+    autoCropWidth: 200,
+    autoCropHeight: 200,
+    fixedBox: true,
+    outputType: 'png',
+    filename: 'avatar',
+    previews: {}
 })
 
-/** 编辑头像 */
+const previewStyle = computed(() => {
+    return {
+        width: options.previews.w + 'px',
+        height: options.previews.h + 'px',
+        overflow: 'hidden',
+        margin: '0',
+        zoom: 200 / options.previews.w // 缩放预览图以适应容器
+    }
+})
+
 function editCropper() {
     open.value = true
 }
 
-/** 打开弹出层结束时的回调 */
 function modalOpened() {
     visible.value = true
 }
 
-/** 覆盖默认上传行为 */
 function requestUpload() {}
 
-/** 向左旋转 */
 function rotateLeft() {
     proxy.$refs.cropper.rotateLeft()
 }
 
-/** 向右旋转 */
 function rotateRight() {
     proxy.$refs.cropper.rotateRight()
 }
 
-/** 图片缩放 */
 function changeScale(num) {
     num = num || 1
     proxy.$refs.cropper.changeScale(num)
 }
 
-/** 上传预处理 */
 function beforeUpload(file) {
     if (file.type.indexOf('image/') == -1) {
         proxy.$modal.msgError('文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。')
@@ -121,7 +133,6 @@ function beforeUpload(file) {
     }
 }
 
-/** 上传图片 */
 function uploadImg() {
     proxy.$refs.cropper.getCropBlob(data => {
         let formData = new FormData()
@@ -136,12 +147,10 @@ function uploadImg() {
     })
 }
 
-/** 实时预览 */
 function realTime(data) {
     options.previews = data
 }
 
-/** 关闭窗口 */
 function closeDialog() {
     options.img = userStore.avatar
     visible.value = false
@@ -149,27 +158,80 @@ function closeDialog() {
 </script>
 
 <style lang="scss" scoped>
-.user-info-head {
+.user-avatar-wrapper {
     position: relative;
     display: inline-block;
-    height: 120px;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 50%; /* 保持圆形 */
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    &:hover::after {
+        content: '+';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        font-size: 24px;
+        border-radius: 50%;
+    }
 }
 
-.user-info-head:hover:after {
-    content: '+';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    color: #eee;
-    background: rgba(0, 0, 0, 0.5);
-    font-size: 24px;
-    font-style: normal;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    cursor: pointer;
-    line-height: 110px;
-    border-radius: 50%;
+.cropper-container {
+    padding: 0 20px;
+}
+
+.cropper-box {
+    height: 350px;
+    width: 100%;
+}
+
+.preview-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 350px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 4px;
+}
+
+.preview-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .preview-img-wrapper {
+        border-radius: 50%;
+        box-shadow: 0 0 4px #ccc;
+    }
+
+    .preview-text {
+        margin-top: 10px;
+        color: var(--el-text-color-secondary);
+        font-size: 14px;
+    }
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+
+    .center-actions {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+    }
 }
 </style>

@@ -56,7 +56,9 @@
 
                 <el-table-column label="媒体资源" width="160" align="center">
                     <template #default="{ row }">
-                        <MediaPreview :post-type="row.postType" :media-urls="row.mediaUrls" :audit-status="row.auditStatus" :max-display-count="1" />
+                        <el-tag size="small" :type="hasMedia(row) ? 'success' : 'info'">
+                            {{ hasMedia(row) ? '有媒体' : '无媒体' }}
+                        </el-tag>
                     </template>
                 </el-table-column>
 
@@ -305,4 +307,29 @@ function handleDelete(row) {
 onMounted(() => {
     resetQuery()
 })
+
+function hasMedia(row) {
+    const list = row?.mediaUrls
+    if (!list) return false
+    if (Array.isArray(list)) {
+        return list.filter(Boolean).length > 0
+    }
+    if (typeof list === 'string') {
+        const trimmed = list.trim()
+        if (!trimmed) return false
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed)
+                return Array.isArray(parsed) && parsed.filter(Boolean).length > 0
+            } catch {
+                return trimmed.length > 2
+            }
+        }
+        return trimmed
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean).length > 0
+    }
+    return false
+}
 </script>

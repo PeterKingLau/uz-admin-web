@@ -5,6 +5,7 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import videojs from 'video.js'
 import 'video.js/dist/video-js.css'
+import zhCN from 'video.js/dist/lang/zh-CN.json'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
 import '@/assets/styles/index.scss' // global css
@@ -55,6 +56,8 @@ addCollection(mdiIcons as IconifyJSON)
 addCollection(epIcons as IconifyJSON)
 addCollection(simpleIcons as IconifyJSON)
 addCollection(materialSymbols as IconifyJSON)
+
+videojs.addLanguage('zh-CN', zhCN as Record<string, string>)
 
 const app = createApp(App)
 
