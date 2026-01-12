@@ -31,7 +31,6 @@
                 v-loading="loading"
                 :data="dataList"
                 table-layout="fixed"
-                border
                 header-cell-class-name="table-header-cell"
                 @selection-change="handleSelectionChange"
             >

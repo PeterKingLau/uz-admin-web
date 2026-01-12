@@ -1,12 +1,12 @@
 <template>
-    <el-card>
+    <el-card shadow="never">
         <el-tabs v-model="activeName">
             <el-tab-pane label="基本信息" name="basic">
                 <basic-info-form ref="basicInfo" :info="info" />
             </el-tab-pane>
             <el-tab-pane label="字段信息" name="columnInfo">
                 <el-table ref="dragTable" :data="columns" row-key="columnId" :max-height="tableHeight">
-                    <el-table-column label="序号" type="index" min-width="5%" />
+                    <el-table-column label="序号" type="index" min-width="5%" align="center" />
                     <el-table-column label="字段列名" prop="columnName" min-width="10%" :show-overflow-tooltip="true" />
                     <el-table-column label="字段描述" min-width="10%">
                         <template #default="scope">
@@ -33,22 +33,22 @@
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="插入" min-width="5%">
+                    <el-table-column label="插入" min-width="5%" align="center">
                         <template #default="scope">
                             <el-checkbox true-label="1" v-model="scope.row.isInsert"></el-checkbox>
                         </template>
                     </el-table-column>
-                    <el-table-column label="编辑" min-width="5%">
+                    <el-table-column label="编辑" min-width="5%" align="center">
                         <template #default="scope">
                             <el-checkbox true-label="1" v-model="scope.row.isEdit"></el-checkbox>
                         </template>
                     </el-table-column>
-                    <el-table-column label="列表" min-width="5%">
+                    <el-table-column label="列表" min-width="5%" align="center">
                         <template #default="scope">
                             <el-checkbox true-label="1" v-model="scope.row.isList"></el-checkbox>
                         </template>
                     </el-table-column>
-                    <el-table-column label="查询" min-width="5%">
+                    <el-table-column label="查询" min-width="5%" align="center">
                         <template #default="scope">
                             <el-checkbox true-label="1" v-model="scope.row.isQuery"></el-checkbox>
                         </template>
@@ -67,7 +67,7 @@
                             </el-select>
                         </template>
                     </el-table-column>
-                    <el-table-column label="必填" min-width="5%">
+                    <el-table-column label="必填" min-width="5%" align="center">
                         <template #default="scope">
                             <el-checkbox true-label="1" v-model="scope.row.isRequired"></el-checkbox>
                         </template>
@@ -91,8 +91,10 @@
                         <template #default="scope">
                             <el-select v-model="scope.row.dictType" clearable filterable placeholder="请选择">
                                 <el-option v-for="dict in dictOptions" :key="dict.dictType" :label="dict.dictName" :value="dict.dictType">
-                                    <span style="float: left">{{ dict.dictName }}</span>
-                                    <span style="float: right; color: #8492a6; font-size: 13px">{{ dict.dictType }}</span>
+                                    <div class="dict-option">
+                                        <span>{{ dict.dictName }}</span>
+                                        <span class="dict-type">{{ dict.dictType }}</span>
+                                    </div>
                                 </el-option>
                             </el-select>
                         </template>
@@ -103,12 +105,11 @@
                 <gen-info-form ref="genInfo" :info="info" :tables="tables" />
             </el-tab-pane>
         </el-tabs>
-        <el-form label-width="100px">
-            <div style="text-align: center; margin-left: -100px; margin-top: 10px">
-                <el-button type="primary" @click="submitForm()">提交</el-button>
-                <el-button @click="close()">返回</el-button>
-            </div>
-        </el-form>
+
+        <div class="footer-actions">
+            <el-button type="primary" @click="submitForm()">提交</el-button>
+            <el-button @click="close()">返回</el-button>
+        </div>
     </el-card>
 </template>
 
@@ -117,14 +118,14 @@ import { getGenTable, updateGenTable } from '@/api/tool/gen'
 import { optionselect as getDictOptionselect } from '@/api/system/dict/type'
 import basicInfoForm from './basicInfoForm.vue'
 import genInfoForm from './genInfoForm.vue'
-import { ComponentInternalInstance, getCurrentInstance, ref } from 'vue'
+import { ComponentInternalInstance, getCurrentInstance, ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const { proxy } = getCurrentInstance() as ComponentInternalInstance
 
 const activeName = ref('columnInfo')
-const tableHeight = ref(document.documentElement.scrollHeight - 245 + 'px')
+const tableHeight = ref('500px')
 const tables = ref<any[]>([])
 const columns = ref<any[]>([])
 const dictOptions = ref<any[]>([])
@@ -132,10 +133,7 @@ const info = ref<any>({})
 const basicInfo = ref<InstanceType<typeof basicInfoForm>>()
 const genInfo = ref<InstanceType<typeof genInfoForm>>()
 
-/** 提交按钮 */
 function submitForm() {
-    // const basicForm = proxy!.$refs.basicInfo.$refs.basicInfoForm;
-    // const genForm = proxy!.$refs.genInfo.$refs.genInfoForm;
     Promise.all([basicInfo.value?.basicInfoForm, genInfo.value?.genInfoForm].map(getFormPromise)).then(res => {
         const validateResult = res.every(item => !!item)
         if (validateResult) {
@@ -158,6 +156,7 @@ function submitForm() {
         }
     })
 }
+
 function getFormPromise(form: any) {
     return new Promise(resolve => {
         form.validate((res: any) => {
@@ -165,24 +164,48 @@ function getFormPromise(form: any) {
         })
     })
 }
+
 function close() {
     const obj = { path: '/tool/gen', query: { t: Date.now(), pageNum: route.query.pageNum } }
     proxy?.$tab.closeOpenPage(obj)
 }
 
-;(() => {
+onMounted(() => {
+    nextTick(() => {
+        tableHeight.value = `${document.documentElement.scrollHeight - 280}px`
+    })
+
     const tableId = route.params && route.params.tableId
     if (tableId) {
-        // 获取表详细信息
         getGenTable(tableId).then(res => {
             columns.value = res.data.rows
             info.value = res.data.info
             tables.value = res.data.tables
         })
-        /** 查询字典下拉列表 */
         getDictOptionselect().then(response => {
             dictOptions.value = response.data
         })
     }
-})()
+})
 </script>
+
+<style scoped>
+.footer-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.dict-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.dict-type {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+}
+</style>

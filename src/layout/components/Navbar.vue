@@ -49,7 +49,6 @@
 
 <script setup>
 import { getCurrentInstance } from 'vue'
-import { Icon } from '@iconify/vue'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'
 import Hamburger from '@/components/Hamburger'
