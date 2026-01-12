@@ -1,19 +1,20 @@
 <template>
-    <el-menu :default-active="activeMenu" mode="horizontal" @select="handleSelect" :ellipsis="false">
+    <el-menu :default-active="activeMenu" mode="horizontal" @select="handleSelect" :ellipsis="false" class="topmenu-container">
         <template v-for="(item, index) in topMenus">
-            <el-menu-item :style="{ '--theme': theme }" :index="item.path" :key="index" v-if="index < visibleNumber">
-                <svg-icon v-if="item.meta && item.meta.icon && item.meta.icon !== '#'" :icon-class="item.meta.icon" />
-                {{ item.meta.title }}
+            <el-menu-item :index="item.path" :key="index" v-if="index < visibleNumber">
+                <Icon v-if="item.meta && item.meta.icon && item.meta.icon !== '#'" :icon="item.meta.icon" class="menu-icon" />
+                <span class="menu-title">{{ item.meta.title }}</span>
             </el-menu-item>
         </template>
 
-        <!-- 顶部菜单超出数量折叠 -->
-        <el-sub-menu :style="{ '--theme': theme }" index="more" v-if="topMenus.length > visibleNumber">
-            <template #title>更多菜单</template>
+        <el-sub-menu index="more" v-if="topMenus.length > visibleNumber" popper-class="top-menu-popper">
+            <template #title>
+                <span class="more-btn">更多菜单</span>
+            </template>
             <template v-for="(item, index) in topMenus">
                 <el-menu-item :index="item.path" :key="index" v-if="index >= visibleNumber">
-                    <svg-icon v-if="item.meta && item.meta.icon && item.meta.icon !== '#'" :icon-class="item.meta.icon" />
-                    {{ item.meta.title }}
+                    <Icon v-if="item.meta && item.meta.icon && item.meta.icon !== '#'" :icon="item.meta.icon" class="menu-icon" />
+                    <span class="menu-title">{{ item.meta.title }}</span>
                 </el-menu-item>
             </template>
         </el-sub-menu>
@@ -26,12 +27,11 @@ import { isHttp } from '@/utils/validate'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-// 顶部栏初始数
 const visibleNumber = ref(null)
-// 当前激活菜单的 index
 const currentIndex = ref(null)
-// 隐藏侧边栏路由
 const hideList = ['/index', '/user/profile']
 
 const appStore = useAppStore()
@@ -40,17 +40,13 @@ const permissionStore = usePermissionStore()
 const route = useRoute()
 const router = useRouter()
 
-// 主题颜色
 const theme = computed(() => settingsStore.theme)
-// 所有的路由信息
 const routers = computed(() => permissionStore.topbarRouters)
 
-// 顶部显示菜单
 const topMenus = computed(() => {
     let topMenus = []
     routers.value.map(menu => {
         if (menu.hidden !== true) {
-            // 兼容顶部栏一级菜单内部跳转
             if (menu.path === '/' && menu.children) {
                 topMenus.push(menu.children[0])
             } else {
@@ -61,7 +57,6 @@ const topMenus = computed(() => {
     return topMenus
 })
 
-// 设置子路由
 const childrenMenus = computed(() => {
     let childrenMenus = []
     routers.value.map(router => {
@@ -82,7 +77,6 @@ const childrenMenus = computed(() => {
     return constantRoutes.concat(childrenMenus)
 })
 
-// 默认激活的菜单
 const activeMenu = computed(() => {
     const path = route.path
     let activePath = path
@@ -102,17 +96,15 @@ const activeMenu = computed(() => {
 
 function setVisibleNumber() {
     const width = document.body.getBoundingClientRect().width / 3
-    visibleNumber.value = parseInt(width / 85)
+    visibleNumber.value = parseInt(width / 110) // 稍微调整宽度系数
 }
 
 function handleSelect(key, keyPath) {
     currentIndex.value = key
     const route = routers.value.find(item => item.path === key)
     if (isHttp(key)) {
-        // http(s):// 路径新窗口打开
         window.open(key, '_blank')
     } else if (!route || !route.children) {
-        // 没有子路由路径内部打开
         const routeMenu = childrenMenus.value.find(item => item.path === key)
         if (routeMenu && routeMenu.query) {
             let query = JSON.parse(routeMenu.query)
@@ -122,7 +114,6 @@ function handleSelect(key, keyPath) {
         }
         appStore.toggleSideBarHide(true)
     } else {
-        // 显示左侧联动菜单
         activeRoutes(key)
         appStore.toggleSideBarHide(false)
     }
@@ -147,60 +138,114 @@ function activeRoutes(key) {
 
 onMounted(() => {
     window.addEventListener('resize', setVisibleNumber)
+    setVisibleNumber()
 })
 
 onBeforeUnmount(() => {
     window.removeEventListener('resize', setVisibleNumber)
 })
-
-onMounted(() => {
-    setVisibleNumber()
-})
 </script>
 
+<style lang="scss" scoped>
+.topmenu-container {
+    border-bottom: none;
+    background: transparent;
+    height: 50px;
+    display: flex;
+    align-items: center;
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        height: 40px;
+        line-height: 40px;
+        border-radius: 6px;
+        margin: 0 4px;
+        padding: 0 12px;
+        color: var(--el-text-color-regular);
+        font-weight: 500;
+        border-bottom: none !important;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+
+        &:hover {
+            color: var(--el-color-primary);
+            background-color: var(--el-fill-color);
+        }
+
+        &.is-active {
+            color: var(--el-color-primary);
+            background-color: var(--el-color-primary-light-9);
+            font-weight: 600;
+        }
+
+        .menu-icon {
+            margin-right: 6px;
+            font-size: 16px;
+        }
+    }
+
+    :deep(.el-sub-menu) {
+        .el-sub-menu__icon-arrow {
+            position: static;
+            margin-left: 6px;
+            margin-top: 0;
+            font-size: 12px;
+        }
+    }
+}
+</style>
+
 <style lang="scss">
-.topmenu-container.el-menu--horizontal > .el-menu-item {
-    float: left;
-    height: 50px !important;
-    line-height: 50px !important;
-    color: #999093 !important;
-    padding: 0 5px !important;
-    margin: 0 10px !important;
-}
+.top-menu-popper {
+    &.el-popper {
+        border: none !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 8px !important;
+        padding: 6px 0 !important;
+    }
 
-.topmenu-container.el-menu--horizontal > .el-menu-item.is-active,
-.el-menu--horizontal > .el-sub-menu.is-active .el-submenu__title {
-    border-bottom: 2px solid #{'var(--theme)'} !important;
-    color: #303133;
-}
+    &.el-popper.is-dark {
+        background: var(--el-bg-color-overlay) !important;
+        border: 1px solid var(--el-border-color-darker) !important;
+    }
 
-/* sub-menu item */
-.topmenu-container.el-menu--horizontal > .el-sub-menu .el-sub-menu__title {
-    float: left;
-    height: 50px !important;
-    line-height: 50px !important;
-    color: #999093 !important;
-    padding: 0 5px !important;
-    margin: 0 10px !important;
-}
+    .el-menu--popup {
+        padding: 4px;
+        min-width: 140px;
+        background-color: var(--el-bg-color-overlay);
 
-/* 背景色隐藏 */
-.topmenu-container.el-menu--horizontal > .el-menu-item:not(.is-disabled):focus,
-.topmenu-container.el-menu--horizontal > .el-menu-item:not(.is-disabled):hover,
-.topmenu-container.el-menu--horizontal > .el-submenu .el-submenu__title:hover {
-    background-color: #ffffff;
-}
+        .el-menu-item {
+            height: 40px;
+            line-height: 40px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            padding: 0 12px !important;
+            color: var(--el-text-color-regular);
+            display: flex;
+            align-items: center;
 
-/* 图标右间距 */
-.topmenu-container .svg-icon {
-    margin-right: 4px;
-}
+            &:last-child {
+                margin-bottom: 0;
+            }
 
-/* topmenu more arrow */
-.topmenu-container .el-sub-menu .el-sub-menu__icon-arrow {
-    position: static;
-    vertical-align: middle;
-    margin-left: 8px;
-    margin-top: 0px;
+            &:hover,
+            &.is-active {
+                color: var(--el-color-primary);
+                background-color: var(--el-color-primary-light-9);
+            }
+
+            .menu-icon {
+                margin-right: 8px;
+                font-size: 16px;
+                width: 1em;
+                height: 1em;
+            }
+
+            .menu-title {
+                font-size: 14px;
+            }
+        }
+    }
 }
 </style>

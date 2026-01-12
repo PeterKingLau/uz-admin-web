@@ -1,22 +1,24 @@
 <template>
-    <div>
-        <svg-icon :icon-class="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" @click="toggle" />
+    <div @click="toggle">
+        <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" class="screenfull-svg" />
     </div>
 </template>
 
 <script setup>
 import { useFullscreen } from '@vueuse/core'
 
-const { isFullscreen, enter, exit, toggle } = useFullscreen()
+const { isFullscreen, toggle } = useFullscreen()
 </script>
 
 <style lang="scss" scoped>
 .screenfull-svg {
     display: inline-block;
     cursor: pointer;
-    fill: #5a5e66;
-    width: 24px;
-    height: 24px;
-    vertical-align: 10px;
+    width: 1em;
+    height: 1em;
+    font-size: 18px;
+    vertical-align: middle;
+    color: inherit;
+    outline: none;
 }
 </style>

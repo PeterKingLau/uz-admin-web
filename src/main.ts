@@ -20,8 +20,8 @@ import plugins from './plugins' // plugins
 import { download } from '@/utils/request'
 
 // svg图标
-import 'virtual:svg-icons-register'
-import SvgIcon from '@/components/SvgIcon/index.vue'
+// import 'virtual:svg-icons-register'
+// import SvgIcon from '@/components/SvgIcon/index.vue'
 import elementIcons from '@/components/SvgIcon/svgicon'
 
 import './permission' // permission control
@@ -84,7 +84,7 @@ app.use(router)
 app.use(store)
 app.use(plugins)
 app.use(elementIcons)
-app.component('svg-icon', SvgIcon)
+// app.component('svg-icon', SvgIcon)
 app.component('Icon', Icon)
 
 directive(app)

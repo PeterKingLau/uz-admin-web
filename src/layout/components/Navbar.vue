@@ -14,13 +14,15 @@
 
                 <el-tooltip content="主题模式" effect="dark" placement="bottom">
                     <div class="right-menu-item hover-effect theme-switch-wrapper" @click="toggleTheme">
-                        <Icon v-if="settingsStore.isDark" icon="ep:sunny" class="theme-icon" />
-                        <Icon v-else icon="ep:moon" class="theme-icon" />
+                        <Icon v-if="settingsStore.isDark" icon="ep:sunny" class="action-icon theme-icon" />
+                        <Icon v-else icon="ep:moon" class="action-icon theme-icon" />
                     </div>
                 </el-tooltip>
 
                 <el-tooltip content="布局大小" effect="dark" placement="bottom">
-                    <size-select id="size-select" class="right-menu-item hover-effect" />
+                    <div class="right-menu-item hover-effect">
+                        <size-select id="size-select" class="size-select-container" />
+                    </div>
                 </el-tooltip>
             </template>
 
@@ -28,7 +30,7 @@
                 <div class="avatar-wrapper">
                     <img :src="userStore.avatar" class="user-avatar" />
                     <span class="user-nickname">{{ userStore.nickName }}</span>
-                    <Icon icon="ep:caret-bottom" class="el-icon--right" />
+                    <Icon icon="ep:caret-bottom" class="action-icon el-icon--right" />
                 </div>
                 <template #dropdown>
                     <el-dropdown-menu>
@@ -41,7 +43,7 @@
             </el-dropdown>
 
             <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="settingsStore.showSettings">
-                <Icon icon="mdi:dots-vertical" />
+                <Icon icon="mdi:dots-vertical" class="action-icon" />
             </div>
         </div>
     </div>
@@ -105,12 +107,12 @@ function toggleTheme() {
     height: 50px;
     overflow: hidden;
     position: relative;
-    background: var(--el-bg-color); // 使用 Element Plus 变量适配暗黑模式
+    background: var(--el-bg-color);
     box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-right: 15px; // 右侧留白
+    padding-right: 15px;
 
     .left-menu {
         display: flex;
@@ -124,6 +126,8 @@ function toggleTheme() {
             transition: background 0.3s;
             -webkit-tap-highlight-color: transparent;
             padding: 0 15px;
+            display: flex;
+            align-items: center;
 
             &:hover {
                 background: rgba(0, 0, 0, 0.025);
@@ -145,24 +149,30 @@ function toggleTheme() {
         }
 
         .right-menu-item {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             padding: 0 8px;
             height: 100%;
+            min-width: 42px;
             font-size: 18px;
-            color: var(--el-text-color-regular); // 适配暗黑模式文字颜色
-            vertical-align: text-bottom;
+            color: var(--el-text-color-regular);
             cursor: pointer;
             transition: background 0.3s;
 
+            .action-icon {
+                font-size: 18px;
+                width: 1em;
+                height: 1em;
+                display: block;
+            }
+
             &.hover-effect {
                 &:hover {
-                    background: var(--el-fill-color-light); // 适配暗黑模式悬停背景
+                    background: var(--el-fill-color-light);
                 }
             }
 
-            // 主题切换图标动画
             &.theme-switch-wrapper {
                 .theme-icon {
                     transition: transform 0.5s;
@@ -173,29 +183,39 @@ function toggleTheme() {
             }
         }
 
+        .size-select-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+        }
+
         .avatar-container {
-            margin-right: 0;
+            margin-left: 4px;
+            padding: 0 8px;
+            min-width: auto;
 
             .avatar-wrapper {
                 display: flex;
                 align-items: center;
                 height: 100%;
-                gap: 8px;
-                padding: 0 4px;
+                gap: 6px;
                 user-select: none;
 
                 .user-avatar {
                     cursor: pointer;
-                    width: 32px;
-                    height: 32px;
+                    width: 26px;
+                    height: 26px;
                     border-radius: 50%;
                     object-fit: cover;
-                    border: 1px solid var(--el-border-color-lighter); // 增加边框提升质感
+                    border: 1px solid var(--el-border-color-lighter);
+                    display: block;
                 }
 
                 .user-nickname {
                     font-size: 14px;
-                    font-weight: 500; // 不用 bold，500 更现代
+                    font-weight: 500;
                     white-space: nowrap;
                     color: var(--el-text-color-primary);
                 }

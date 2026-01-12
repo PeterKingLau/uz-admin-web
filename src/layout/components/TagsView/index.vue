@@ -12,20 +12,20 @@
                 @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
                 @contextmenu.prevent="openMenu(tag, $event)"
             >
-                <svg-icon v-if="tagsIcon && tag.meta && tag.meta.icon && tag.meta.icon !== '#'" :icon-class="tag.meta.icon" />
-                {{ tag.title }}
-                <span v-if="!isAffix(tag)" @click.prevent.stop="closeSelectedTag(tag)">
-                    <close class="el-icon-close" style="width: 1em; height: 1em; vertical-align: middle" />
+                <Icon v-if="tagsIcon && tag.meta && tag.meta.icon && tag.meta.icon !== '#'" :icon="tag.meta.icon" class="tag-icon" />
+                <span class="tag-title">{{ tag.title }}</span>
+                <span v-if="!isAffix(tag)" @click.prevent.stop="closeSelectedTag(tag)" class="close-icon-wrapper">
+                    <Icon icon="ep:close" class="el-icon-close" />
                 </span>
             </router-link>
         </scroll-pane>
         <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
-            <li @click="refreshSelectedTag(selectedTag)"><refresh-right style="width: 1em; height: 1em" /> 刷新页面</li>
-            <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)"><close style="width: 1em; height: 1em" /> 关闭当前</li>
-            <li @click="closeOthersTags"><circle-close style="width: 1em; height: 1em" /> 关闭其他</li>
-            <li v-if="!isFirstView()" @click="closeLeftTags"><back style="width: 1em; height: 1em" /> 关闭左侧</li>
-            <li v-if="!isLastView()" @click="closeRightTags"><right style="width: 1em; height: 1em" /> 关闭右侧</li>
-            <li @click="closeAllTags(selectedTag)"><circle-close style="width: 1em; height: 1em" /> 全部关闭</li>
+            <li @click="refreshSelectedTag(selectedTag)"><Icon icon="ep:refresh-right" /> 刷新页面</li>
+            <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)"><Icon icon="ep:close" /> 关闭当前</li>
+            <li @click="closeOthersTags"><Icon icon="ep:circle-close" /> 关闭其他</li>
+            <li v-if="!isFirstView()" @click="closeLeftTags"><Icon icon="ep:back" /> 关闭左侧</li>
+            <li v-if="!isLastView()" @click="closeRightTags"><Icon icon="ep:right" /> 关闭右侧</li>
+            <li @click="closeAllTags(selectedTag)"><Icon icon="ep:circle-close-filled" /> 全部关闭</li>
         </ul>
     </div>
 </template>
@@ -36,6 +36,8 @@ import { getNormalPath } from '@/utils/ruoyi'
 import useTagsViewStore from '@/store/modules/tagsView'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { ref, watch, onMounted, computed, getCurrentInstance, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const visible = ref(false)
 const top = ref(0)
@@ -129,7 +131,6 @@ function initTags() {
     const res = filterAffixTags(routes.value)
     affixTags.value = res
     for (const tag of res) {
-        // Must have tag name
         if (tag.name) {
             useTagsViewStore().addVisitedView(tag)
         }
@@ -148,7 +149,6 @@ function moveToCurrentTag() {
         for (const r of visitedViews.value) {
             if (r.path === route.path) {
                 scrollPaneRef.value.moveToTarget(r)
-                // when query is different then update
                 if (r.fullPath !== route.fullPath) {
                     useTagsViewStore().updateVisitedView(route)
                 }
@@ -209,10 +209,7 @@ function toLastView(visitedViews, view) {
     if (latestView) {
         router.push(latestView.fullPath)
     } else {
-        // now the default is to redirect to the home page if there is no tags-view,
-        // you can adjust it according to your needs.
         if (view.name === 'Dashboard') {
-            // to reload home page
             router.replace({ path: '/redirect' + view.fullPath })
         } else {
             router.push('/')
@@ -222,10 +219,10 @@ function toLastView(visitedViews, view) {
 
 function openMenu(tag, e) {
     const menuMinWidth = 105
-    const offsetLeft = proxy.$el.getBoundingClientRect().left // container margin left
-    const offsetWidth = proxy.$el.offsetWidth // container width
-    const maxLeft = offsetWidth - menuMinWidth // left boundary
-    const l = e.clientX - offsetLeft + 15 // 15: margin right
+    const offsetLeft = proxy.$el.getBoundingClientRect().left
+    const offsetWidth = proxy.$el.offsetWidth
+    const maxLeft = offsetWidth - menuMinWidth
+    const l = e.clientX - offsetLeft + 15
 
     if (l > maxLeft) {
         left.value = maxLeft
@@ -264,7 +261,7 @@ function handleScroll() {
             position: relative;
             cursor: pointer;
             height: 26px;
-            line-height: 1;
+            line-height: 26px;
             border: 1px solid var(--tags-item-border, #d8dce5);
             color: var(--tags-item-text, #495060);
             background: var(--tags-item-bg, #fff);
@@ -272,7 +269,8 @@ function handleScroll() {
             font-size: 12px;
             margin-left: 5px;
             margin-top: 4px;
-            gap: 4px;
+            border-radius: 2px;
+            transition: all 0.3s;
 
             &:first-of-type {
                 margin-left: 15px;
@@ -295,7 +293,34 @@ function handleScroll() {
                     height: 8px;
                     border-radius: 50%;
                     position: relative;
-                    margin-right: 5px;
+                    margin-right: 6px;
+                }
+            }
+
+            .tag-icon {
+                margin-right: 4px;
+                font-size: 12px;
+            }
+
+            .close-icon-wrapper {
+                margin-left: 4px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+
+                .el-icon-close {
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    text-align: center;
+                    transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+                    font-size: 10px;
+                    padding: 1px;
+
+                    &:hover {
+                        background-color: var(--tags-close-hover, #b4bccc);
+                        color: #fff;
+                    }
                 }
             }
         }
@@ -323,44 +348,12 @@ function handleScroll() {
             margin: 0;
             padding: 7px 16px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
 
             &:hover {
                 background: var(--tags-item-hover, #eee);
-            }
-        }
-    }
-}
-</style>
-
-<style lang="scss">
-//reset element css of el-icon-close
-.tags-view-wrapper {
-    .tags-view-item {
-        svg {
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .el-icon-close {
-            width: 16px;
-            height: 16px;
-            vertical-align: middle;
-            border-radius: 50%;
-            text-align: center;
-            transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-            transform-origin: 100% 50%;
-
-            &:before {
-                transform: scale(0.6);
-                display: inline-block;
-                vertical-align: -3px;
-            }
-
-            &:hover {
-                background-color: var(--tags-close-hover, #b4bccc);
-                color: #fff;
-                width: 12px !important;
-                height: 12px !important;
             }
         }
     }

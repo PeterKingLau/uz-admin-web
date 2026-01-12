@@ -42,10 +42,8 @@ const classObj = computed(() => ({
 const { width } = useWindowSize()
 const WIDTH = 992
 
-// 计算内容区域的顶部内边距，防止被 Fixed Header 遮挡
 const contentStyle = computed(() => {
     if (!fixedHeader.value) return {}
-    // Navbar(50px) + TagsView(34px) = 84px
     const height = needTagsView.value ? '84px' : '50px'
     return {
         paddingTop: height,
@@ -112,20 +110,22 @@ function setLayout() {
     top: 0;
     right: 0;
     z-index: 9;
-    width: calc(100% - var(--sidebar-width));
-    transition: width 0.28s;
+    left: var(--sidebar-width);
+    width: auto;
+
+    transition: left 0.28s;
     background: var(--el-bg-color);
 }
 
 .hideSidebar .fixed-header {
-    width: calc(100% - var(--sidebar-collapse-width));
+    left: var(--sidebar-collapse-width);
 }
 
 .sidebarHide .fixed-header {
-    width: 100%;
+    left: 0;
 }
 
 .mobile .fixed-header {
-    width: 100%;
+    left: 0;
 }
 </style>

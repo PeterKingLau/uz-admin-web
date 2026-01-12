@@ -599,7 +599,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-// 仅保留无法复用的局部微调样式
 .representative-form-item {
     margin-bottom: 0;
 }

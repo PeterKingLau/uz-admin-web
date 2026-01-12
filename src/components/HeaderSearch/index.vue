@@ -1,6 +1,7 @@
 <template>
-    <div class="header-search">
-        <svg-icon class-name="search-icon" icon-class="search" @click.stop="click" />
+    <div @click.stop="click">
+        <Icon icon="ep:search" />
+
         <el-dialog v-model="show" width="600" @close="close" :show-close="false" append-to-body>
             <el-input
                 v-model="search"
@@ -28,11 +29,13 @@
                         :style="activeStyle(index)"
                         @mouseenter="activeIndex = index"
                         @mouseleave="activeIndex = -1"
+                        @click="change(item)"
                     >
                         <div class="left">
-                            <svg-icon class="menu-icon" :icon-class="item.icon" />
+                            <Icon v-if="item.icon" :icon="item.icon" class="menu-icon" />
+                            <Icon v-else icon="ep:menu" class="menu-icon" />
                         </div>
-                        <div class="search-info" @click="change(item)">
+                        <div class="search-info">
                             <div class="menu-title">
                                 {{ item.title.join(' / ') }}
                             </div>
@@ -40,7 +43,7 @@
                                 {{ item.path }}
                             </div>
                         </div>
-                        <svg-icon icon-class="enter" v-show="index === activeIndex" />
+                        <Icon icon="ep:right" class="enter-icon" v-show="index === activeIndex" />
                     </div>
                 </el-scrollbar>
             </div>
@@ -54,6 +57,8 @@ import { getNormalPath } from '@/utils/ruoyi'
 import { isHttp } from '@/utils/validate'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 const search = ref('')
 const options = ref([])
@@ -69,14 +74,15 @@ const routes = computed(() => usePermissionStore().defaultRoutes)
 function click() {
     show.value = !show.value
     if (show.value) {
-        headerSearchSelectRef.value && headerSearchSelectRef.value.focus()
         options.value = searchPool.value
+        nextTick(() => {
+            headerSearchSelectRef.value && headerSearchSelectRef.value.focus()
+        })
     }
 }
 
 function close() {
     headerSearchSelectRef.value && headerSearchSelectRef.value.blur()
-    search.value = ''
     options.value = []
     show.value = false
     activeIndex.value = -1
@@ -86,7 +92,6 @@ function change(val) {
     const path = val.path
     const query = val.query
     if (isHttp(path)) {
-        // http(s):// 路径新窗口打开
         const pindex = path.indexOf('http')
         window.open(path.substr(pindex, path.length), '_blank')
     } else {
@@ -124,13 +129,10 @@ function initFuse(list) {
     })
 }
 
-// Filter out the routes that can be displayed in the sidebar
-// And generate the internationalized title
 function generateRoutes(routes, basePath = '', prefixTitle = []) {
     let res = []
 
     for (const r of routes) {
-        // skip hidden router
         if (r.hidden) {
             continue
         }
@@ -145,8 +147,6 @@ function generateRoutes(routes, basePath = '', prefixTitle = []) {
             data.title = [...data.title, r.meta.title]
             data.icon = r.meta.icon
             if (r.redirect !== 'noRedirect') {
-                // only push the routes with title
-                // special case: need to exclude parent router without redirect
                 res.push(data)
             }
         }
@@ -154,7 +154,6 @@ function generateRoutes(routes, basePath = '', prefixTitle = []) {
             data.query = r.query
         }
 
-        // recursive child routes
         if (r.children) {
             const tempRoutes = generateRoutes(r.children, data.path, data.title)
             if (tempRoutes.length >= 1) {
@@ -206,56 +205,67 @@ watch(searchPool, list => {
 </script>
 
 <style lang="scss" scoped>
-.header-search {
-    .search-icon {
-        cursor: pointer;
-        font-size: 18px;
-        vertical-align: middle;
-    }
-}
-
 .result-wrap {
-    height: 280px;
-    margin: 6px 0;
+    height: 300px;
+    margin-top: 10px;
+    border-top: 1px solid var(--el-border-color-lighter);
 
     .search-item {
         display: flex;
-        height: 48px;
+        height: 56px;
         align-items: center;
-        padding-right: 10px;
+        padding: 0 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        transition: all 0.2s;
 
         .left {
-            width: 60px;
-            text-align: center;
+            width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
 
             .menu-icon {
-                width: 18px;
-                height: 18px;
+                font-size: 20px;
+                color: var(--el-text-color-secondary);
             }
         }
 
         .search-info {
-            padding-left: 5px;
-            margin-top: 10px;
-            width: 100%;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
-            flex: 1;
+            justify-content: center;
+            overflow: hidden;
 
-            .menu-title,
-            .menu-path {
-                height: 20px;
+            .menu-title {
+                font-size: 14px;
+                line-height: 20px;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
+
             .menu-path {
-                color: #ccc;
-                font-size: 10px;
+                font-size: 12px;
+                line-height: 18px;
+                color: var(--el-text-color-secondary);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
         }
-    }
 
-    .search-item:hover {
-        cursor: pointer;
+        .enter-icon {
+            font-size: 16px;
+            margin-left: 8px;
+        }
+
+        &:hover {
+            background-color: var(--el-fill-color-light);
+        }
     }
 }
 </style>

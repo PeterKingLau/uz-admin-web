@@ -19,14 +19,15 @@
             :file-list="fileList"
             :on-preview="handlePictureCardPreview"
             :class="{ hide: fileList.length >= limit, 'is-disabled': disabled }"
+            class="upload-none-tip"
         >
-            <el-icon class="avatar-uploader-icon"><Icon icon="ep:plus" /></el-icon>
+            <div class="upload-slot-trigger">
+                <Icon icon="ep:plus" class="uploader-icon" />
+            </div>
         </el-upload>
 
         <div class="custom-upload-tip" v-if="showTip && !disabled">
-            <div class="tip-icon">
-                <Icon icon="mdi:information-slab-circle-outline" width="18" />
-            </div>
+            <Icon icon="ep:info-filled" class="tip-icon" />
             <div class="tip-content">
                 <span>请上传</span>
                 <template v-if="fileSize">
@@ -39,9 +40,15 @@
             </div>
         </div>
 
-        <el-dialog v-model="dialogVisible" title="预览" width="800px" append-to-body class="custom-dialog">
-            <img :src="dialogImageUrl" style="display: block; max-width: 100%; margin: 0 auto; border-radius: 4px" />
-        </el-dialog>
+        <teleport to="body">
+            <el-image-viewer
+                v-if="showImageViewer"
+                :url-list="previewSrcList"
+                :initial-index="initialIndex"
+                @close="closeImageViewer"
+                class="upload-image-viewer"
+            />
+        </teleport>
     </div>
 </template>
 
@@ -49,6 +56,9 @@
 import { getToken } from '@/utils/auth'
 import { isExternal } from '@/utils/validate'
 import Sortable from 'sortablejs'
+import { Icon } from '@iconify/vue'
+import { ElImageViewer } from 'element-plus'
+import { ref, computed, watch, getCurrentInstance, onMounted, nextTick } from 'vue'
 
 const props = defineProps({
     modelValue: [String, Object, Array],
@@ -86,21 +96,24 @@ const props = defineProps({
 })
 
 const { proxy } = getCurrentInstance()
-const emit = defineEmits()
+const emit = defineEmits(['update:modelValue'])
 const number = ref(0)
 const uploadList = ref([])
-const dialogImageUrl = ref('')
-const dialogVisible = ref(false)
 const baseUrl = import.meta.env.VITE_APP_BASE_API
 const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
+const showImageViewer = ref(false)
+const previewSrcList = ref([])
+const initialIndex = ref(0)
+
 const accept = computed(() => {
     if (props.fileType?.length) {
         return props.fileType.map(type => (String(type).startsWith('.') ? String(type) : `.${type}`)).join(',')
     }
     return 'image/*'
 })
+
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 
 watch(
@@ -204,8 +217,13 @@ function handleUploadError() {
 }
 
 function handlePictureCardPreview(file) {
-    dialogImageUrl.value = file.url
-    dialogVisible.value = true
+    previewSrcList.value = fileList.value.map(f => f.url)
+    initialIndex.value = fileList.value.findIndex(f => f.url === file.url)
+    showImageViewer.value = true
+}
+
+function closeImageViewer() {
+    showImageViewer.value = false
 }
 
 function listToString(list, separator) {
@@ -242,32 +260,59 @@ onMounted(() => {
 <style scoped lang="scss">
 .component-upload-image {
     :deep(.el-upload--picture-card) {
+        width: 110px;
+        height: 110px;
         border-radius: 8px;
         border: 1px dashed var(--el-border-color);
-        background-color: var(--el-fill-color-blank);
-        transition: all 0.3s;
-        width: 120px;
-        height: 120px;
-        line-height: 128px;
+        background-color: var(--el-fill-color-lighter);
+        transition: var(--el-transition-duration);
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
 
         &:hover {
             border-color: var(--el-color-primary);
             background-color: var(--el-color-primary-light-9);
-            color: var(--el-color-primary);
+
+            .uploader-icon {
+                color: var(--el-color-primary);
+                transform: scale(1.1);
+            }
         }
     }
 
-    :deep(.el-upload-list--picture-card .el-upload-list__item) {
-        border-radius: 8px;
-        border: 1px solid var(--el-border-color-light);
-        width: 120px;
-        height: 120px;
-        margin: 0 8px 8px 0;
-        transition: all 0.3s;
+    .upload-slot-trigger {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+    }
 
-        &:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+    .uploader-icon {
+        font-size: 24px;
+        color: var(--el-text-color-secondary);
+        transition: var(--el-transition-duration);
+    }
+
+    :deep(.el-upload-list--picture-card) {
+        .el-upload-list__item {
+            width: 110px;
+            height: 110px;
+            border-radius: 8px;
+            border: 1px solid var(--el-border-color-lighter);
+            margin: 0 8px 8px 0;
+            transition: var(--el-transition-duration);
+            overflow: hidden;
+
+            &:hover {
+                border-color: var(--el-color-primary-light-5);
+                box-shadow: var(--el-box-shadow-light);
+            }
+
+            .el-upload-list__item-thumbnail {
+                object-fit: cover;
+            }
         }
     }
 
@@ -278,56 +323,53 @@ onMounted(() => {
     :deep(.is-disabled .el-upload--picture-card) {
         display: none !important;
     }
-
-    .avatar-uploader-icon {
-        font-size: 24px;
-        color: #8c939d;
-        transition: color 0.3s;
-    }
-
-    :deep(.el-upload--picture-card:hover .avatar-uploader-icon) {
-        color: var(--el-color-primary);
-    }
 }
 
 .custom-upload-tip {
-    margin-top: 10px;
-    padding: 10px 16px;
-    background-color: var(--el-color-primary-light-9);
-    border-left: 4px solid var(--el-color-primary);
+    margin-top: 12px;
+    padding: 8px 12px;
+    background-color: var(--el-fill-color);
+    border: 1px solid var(--el-border-color-lighter);
     border-radius: 4px;
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    transition: all 0.3s;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+    line-height: 1.5;
 
     .tip-icon {
-        color: var(--el-color-primary);
-        display: flex;
-        align-items: center;
-        height: 20px;
+        font-size: 16px;
+        color: var(--el-color-info);
+        flex-shrink: 0;
     }
 
     .tip-content {
-        font-size: 13px;
-        line-height: 20px;
-        color: var(--el-text-color-regular);
         flex: 1;
 
         .highlight {
-            color: var(--el-color-danger);
+            color: var(--el-color-primary);
             font-weight: 600;
-            margin: 0 4px;
-            background-color: rgba(255, 255, 255, 0.5);
-            padding: 0 4px;
-            border-radius: 2px;
+            margin: 0 2px;
         }
     }
 }
 
 .sortable-ghost {
-    opacity: 0.6;
-    background: var(--el-color-primary-light-8) !important;
+    opacity: 0.8;
+    background: var(--el-color-primary-light-9) !important;
     border: 1px dashed var(--el-color-primary) !important;
+}
+</style>
+
+<style lang="scss">
+.upload-image-viewer {
+    .el-image-viewer__mask {
+        opacity: 0.8;
+    }
+    z-index: 9999 !important;
+}
+.upload-none-tip .el-upload-list__item.is-success:focus:not(:hover) {
+    display: none !important;
 }
 </style>
