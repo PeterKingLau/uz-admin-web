@@ -19,44 +19,44 @@
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="handleQuery">
-                    <Icon icon="mdi:magnify" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:magnify" class="mr-1 text-[16px] align-middle" />
                     搜索
                 </el-button>
                 <el-button @click="resetQuery">
-                    <Icon icon="mdi:refresh" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:refresh" class="mr-1 text-[16px] align-middle" />
                     重置
                 </el-button>
             </el-form-item>
         </el-form>
 
-        <el-row :gutter="10" class="mb8">
+        <el-row :gutter="10" class="mb-[8px]">
             <el-col :span="1.5">
                 <el-button type="primary" plain @click="handleGenTable" v-hasPermi="['tool:gen:code']">
-                    <Icon icon="mdi:download" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:download" class="mr-1 text-[16px] align-middle" />
                     生成
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="primary" plain @click="openCreateTable" v-hasRole="['admin']">
-                    <Icon icon="mdi:plus" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:plus" class="mr-1 text-[16px] align-middle" />
                     创建
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="info" plain @click="openImportTable" v-hasPermi="['tool:gen:import']">
-                    <Icon icon="mdi:upload" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:upload" class="mr-1 text-[16px] align-middle" />
                     导入
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="success" plain :disabled="single" @click="handleEditTable" v-hasPermi="['tool:gen:edit']">
-                    <Icon icon="mdi:pencil" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:pencil" class="mr-1 text-[16px] align-middle" />
                     修改
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="danger" plain :disabled="multiple" @click="handleDelete" v-hasPermi="['tool:gen:remove']">
-                    <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" />
+                    <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px] align-middle" />
                     删除
                 </el-button>
             </el-col>
@@ -79,34 +79,33 @@
                 <template #default="scope">
                     <el-tooltip content="预览" placement="top">
                         <el-button link type="primary" @click="handlePreview(scope.row)" v-hasPermi="['tool:gen:preview']">
-                            <Icon icon="mdi:eye-outline" class="text-[16px]" />
+                            <Icon icon="mdi:eye-outline" class="text-[16px] align-middle" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="编辑" placement="top">
                         <el-button link type="primary" @click="handleEditTable(scope.row)" v-hasPermi="['tool:gen:edit']">
-                            <Icon icon="mdi:pencil" class="text-[16px]" />
+                            <Icon icon="mdi:pencil" class="text-[16px] align-middle" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="删除" placement="top">
                         <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['tool:gen:remove']">
-                            <Icon icon="mdi:trash-can-outline" class="text-[16px]" />
+                            <Icon icon="mdi:trash-can-outline" class="text-[16px] align-middle" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="同步" placement="top">
                         <el-button link type="primary" @click="handleSynchDb(scope.row)" v-hasPermi="['tool:gen:edit']">
-                            <Icon icon="mdi:sync" class="text-[16px]" />
+                            <Icon icon="mdi:sync" class="text-[16px] align-middle" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="生成代码" placement="top">
                         <el-button link type="primary" @click="handleGenTable(scope.row)" v-hasPermi="['tool:gen:code']">
-                            <Icon icon="mdi:code-tags" class="text-[16px]" />
+                            <Icon icon="mdi:code-tags" class="text-[16px] align-middle" />
                         </el-button>
                     </el-tooltip>
                 </template>
             </el-table-column>
         </el-table>
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
-        <!-- 预览界面 -->
         <el-dialog :title="preview.title" v-model="preview.open" width="80%" top="5vh" append-to-body custom-class="scrollbar">
             <el-tabs v-model="preview.activeName">
                 <el-tab-pane
@@ -116,7 +115,7 @@
                     :key="key"
                 >
                     <el-link :underline="false" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float: right">
-                        <Icon icon="mdi:content-copy" class="mr-1 text-[16px]" />
+                        <Icon icon="mdi:content-copy" class="mr-1 text-[16px] align-middle" />
                         复制
                     </el-link>
                     <pre>{{ value }}</pre>

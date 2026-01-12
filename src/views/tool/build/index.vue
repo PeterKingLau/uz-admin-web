@@ -1,13 +1,12 @@
 <template>
-    <div class="container">
+    <div class="app-container form-designer-container">
         <div class="left-board">
             <div class="logo-wrapper">
                 <div class="logo">
                     <img :src="logo" alt="logo" />
-                    可视化表单设计器
+                    <span>可视化表单设计器</span>
                 </div>
             </div>
-
             <el-scrollbar class="left-scrollbar">
                 <div class="components-list">
                     <div class="components-title">
@@ -31,7 +30,7 @@
                             >
                                 <div class="components-body">
                                     <Icon :icon="iconMap[element.tagIcon]" class="svg-icon" />
-                                    {{ element.label }}
+                                    <span class="components-text">{{ element.label }}</span>
                                 </div>
                             </div>
                         </template>
@@ -57,7 +56,7 @@
                             >
                                 <div class="components-body">
                                     <Icon :icon="iconMap[element.tagIcon]" class="svg-icon" />
-                                    {{ element.label }}
+                                    <span class="components-text">{{ element.label }}</span>
                                 </div>
                             </div>
                         </template>
@@ -83,7 +82,7 @@
                             >
                                 <div class="components-body">
                                     <Icon :icon="iconMap[element.tagIcon]" class="svg-icon" />
-                                    {{ element.label }}
+                                    <span class="components-text">{{ element.label }}</span>
                                 </div>
                             </div>
                         </template>
@@ -95,21 +94,15 @@
         <div class="center-board">
             <div class="action-bar">
                 <el-button type="primary" text @click="download">
-                    <el-icon>
-                        <Icon icon="ep:download" />
-                    </el-icon>
+                    <Icon icon="ep:download" class="mr-1" />
                     导出vue文件
                 </el-button>
                 <el-button class="copy-btn-main" type="primary" text @click="copy">
-                    <el-icon>
-                        <Icon icon="ep:document-copy" />
-                    </el-icon>
+                    <Icon icon="ep:document-copy" class="mr-1" />
                     复制代码
                 </el-button>
                 <el-button class="delete-btn" text @click="empty" type="danger">
-                    <el-icon>
-                        <Icon icon="ep:delete" />
-                    </el-icon>
+                    <Icon icon="ep:delete" class="mr-1" />
                     清空
                 </el-button>
             </div>
@@ -121,8 +114,17 @@
                         :label-position="formConf.labelPosition"
                         :disabled="formConf.disabled"
                         :label-width="formConf.labelWidth + 'px'"
+                        class="drawing-board-wrapper"
                     >
-                        <VueDraggable class="drawing-board" v-model="drawingList" item-key="formId" group="componentsGroup" :animation="340" @add="onCenterAdd">
+                        <VueDraggable
+                            class="drawing-board"
+                            v-model="drawingList"
+                            item-key="formId"
+                            group="componentsGroup"
+                            :animation="340"
+                            @add="onCenterAdd"
+                            ghost-class="ghost"
+                        >
                             <template #default>
                                 <draggable-item
                                     v-for="(element, index) in drawingList"
@@ -139,13 +141,18 @@
                             </template>
                         </VueDraggable>
 
-                        <div v-show="!drawingList.length" class="empty-info">从左侧拖入或点选组件进行表单设计</div>
+                        <div v-show="!drawingList.length" class="empty-info">
+                            <Icon icon="ep:plus" class="empty-icon" />
+                            <div>从左侧拖入或点选组件进行表单设计</div>
+                        </div>
                     </el-form>
                 </el-row>
             </el-scrollbar>
         </div>
 
-        <right-panel :active-data="activeData" :form-conf="formConf" :show-field="!!drawingList.length" @tag-change="tagChange" />
+        <div class="right-board">
+            <right-panel :active-data="activeData" :form-conf="formConf" :show-field="!!drawingList.length" @tag-change="tagChange" />
+        </div>
 
         <code-type-dialog v-model="dialogVisible" title="选择生成类型" :showFileName="showFileName" @confirm="generate" />
         <input id="copyNode" type="hidden" />
@@ -169,7 +176,7 @@ import { ElNotification } from 'element-plus'
 import DraggableItem from './DraggableItem'
 import RightPanel from './RightPanel'
 import CodeTypeDialog from './CodeTypeDialog'
-
+import { Icon } from '@iconify/vue'
 import { iconMap } from '@/utils/generator/iconMap'
 
 const drawingList = ref(drawingDefalut)
@@ -394,19 +401,26 @@ onMounted(() => {
 <style lang="scss">
 $lighterBlue: #409eff;
 
-.container {
-    position: relative;
+// 1. 改为 app-container 并重置 padding
+.form-designer-container.app-container {
+    padding: 0 !important; // 重置若依默认的 padding
     width: 100%;
+    // 2. 移除 position: relative; 改为 Flex 布局
+    height: calc(100vh - 84px); // 若依默认 Navbar + TagsView 高度
     background-color: var(--el-bg-color-overlay);
-    height: calc(100vh - 50px - 40px);
     overflow: hidden;
+    display: flex; // 关键：Flex 布局
+    flex-direction: row;
 
+    // 左侧面板 - 移除 absolute
     .left-board {
         width: 260px;
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: calc(100vh - 50px - 40px);
+        height: 100%;
+        flex-shrink: 0; // 防止挤压
+        border-right: 1px solid var(--el-border-color-extra-light);
+        display: flex;
+        flex-direction: column;
+        background: #fff;
 
         .logo-wrapper {
             position: relative;
@@ -415,10 +429,10 @@ $lighterBlue: #409eff;
             box-sizing: border-box;
 
             .logo {
-                position: absolute;
-                left: 12px;
-                top: 6px;
-                line-height: 30px;
+                display: flex;
+                align-items: center;
+                padding-left: 12px;
+                height: 100%;
                 color: #00afff;
                 font-weight: 600;
                 font-size: 17px;
@@ -427,81 +441,82 @@ $lighterBlue: #409eff;
                 > img {
                     width: 30px;
                     height: 30px;
-                    vertical-align: top;
-                }
-
-                .github {
-                    display: inline-block;
-                    vertical-align: sub;
-                    margin-left: 15px;
-
-                    > img {
-                        height: 22px;
-                    }
+                    margin-right: 8px;
                 }
             }
         }
 
         .left-scrollbar {
+            flex: 1;
             .el-scrollbar__wrap {
-                box-sizing: border-box;
                 overflow-x: hidden !important;
                 margin-bottom: 0 !important;
 
                 .components-list {
                     padding: 8px;
                     box-sizing: border-box;
-                    height: 100%;
 
                     .components-title {
                         display: flex;
                         align-items: center;
-                        gap: 6px; // 图标和文字间距
+                        gap: 6px;
                         font-size: 14px;
-                        margin: 6px 2px;
+                        margin: 14px 2px 8px;
                         color: var(--el-text-color-primary);
 
-                        &__icon {
-                            width: 18px;
-                            height: 18px;
-                            flex-shrink: 0;
-                            color: var(--el-text-color-secondary);
+                        &:first-child {
+                            margin-top: 0;
                         }
 
+                        &__icon {
+                            font-size: 16px;
+                            color: var(--el-text-color-secondary);
+                        }
                         &__text {
-                            line-height: 1;
+                            font-weight: 600;
                         }
                     }
 
                     .components-draggable {
-                        padding-bottom: 20px;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 8px;
+                        padding-bottom: 8px;
 
                         .components-item {
-                            display: inline-block;
-                            width: 48%;
-                            margin: 1%;
-                            transition: transform 0ms !important;
+                            width: 100%;
+                            cursor: move;
+                            border: 1px dashed var(--el-border-color-light);
+                            border-radius: 4px;
+                            transition: all 0.2s;
+                            background: var(--el-fill-color-light);
 
                             .components-body {
-                                padding: 8px 10px;
-                                background: var(--el-border-color-extra-light);
+                                padding: 8px 6px;
                                 font-size: 12px;
-                                cursor: move;
-                                border: 1px dashed var(--el-border-color-extra-light);
-                                border-radius: 3px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
 
                                 .svg-icon {
-                                    font-size: 15px;
-                                    margin-right: 5px;
+                                    font-size: 16px;
+                                    margin-right: 6px;
+                                    flex-shrink: 0;
                                 }
 
-                                &:hover {
-                                    border: 1px dashed #787be8;
-                                    color: #787be8;
+                                .components-text {
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                    white-space: nowrap;
+                                }
+                            }
 
-                                    .svg-icon {
-                                        color: #787be8;
-                                    }
+                            &:hover {
+                                border-color: $lighterBlue;
+                                color: $lighterBlue;
+                                background-color: var(--el-color-primary-light-9);
+                                .svg-icon {
+                                    color: $lighterBlue;
                                 }
                             }
                         }
@@ -511,231 +526,214 @@ $lighterBlue: #409eff;
         }
     }
 
+    // 中间面板 - 移除 margin-left/right, 使用 flex: 1
     .center-board {
-        height: calc(100vh - 50px - 40px);
-        width: auto;
-        margin: 0 350px 0 260px;
-        box-sizing: border-box;
+        flex: 1; // 关键：自动占满剩余空间
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--el-border-color-light);
+        border-right: 1px solid var(--el-border-color-light);
+        background-color: var(--el-bg-color-page);
 
         .action-bar {
-            position: relative;
             height: 42px;
             padding: 0 15px;
             box-sizing: border-box;
-            border: 1px solid var(--el-border-color-extra-light);
-            border-top: none;
-            border-left: none;
+            border-bottom: 1px solid var(--el-border-color-light);
+            background: #fff;
             display: flex;
             align-items: center;
             justify-content: flex-end;
 
-            u .delete-btn {
+            .delete-btn {
                 color: #f56c6c;
             }
         }
 
         .center-scrollbar {
-            height: calc(100vh - 50px - 40px - 42px);
-            overflow: hidden;
-            border-left: 1px solid var(--el-border-color-extra-light);
-            border-right: 1px solid var(--el-border-color-extra-light);
+            flex: 1;
             box-sizing: border-box;
 
             .el-scrollbar__view {
-                overflow-x: hidden;
+                height: 100%;
             }
 
             .center-board-row {
-                padding: 12px 12px 15px 12px;
+                padding: 12px;
                 box-sizing: border-box;
+                height: 100%;
+                display: flex;
 
-                & > .el-form {
-                    // 69 = 12+15+42
-                    height: calc(100vh - 50px - 40px - 69px);
+                .drawing-board-wrapper {
                     flex: 1;
+                    height: 100%;
+                    position: relative;
+                }
 
-                    .drawing-board {
-                        height: 100%;
-                        position: relative;
+                .drawing-board {
+                    height: 100%;
+                    min-height: 500px;
+                    position: relative;
+                    background: #fff;
+                    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+                    border-radius: 4px;
+                    padding: 10px;
 
-                        .components-body {
-                            padding: 0;
-                            margin: 0;
-                            font-size: 0;
-                        }
-
-                        .sortable-ghost {
-                            position: relative;
-                            display: block;
-                            overflow: hidden;
-
-                            &::before {
-                                content: ' ';
-                                position: absolute;
-                                left: 0;
-                                right: 0;
-                                top: 0;
-                                height: 3px;
-                                background: rgb(89, 89, 223);
-                                z-index: 2;
-                            }
-                        }
-
-                        .components-item.sortable-ghost {
-                            width: 100%;
-                            height: 60px;
-                            background: var(--el-border-color-extra-light);
-                        }
-
-                        .active-from-item {
-                            & > .el-form-item {
-                                background: var(--el-border-color-extra-light);
-                                border-radius: 6px;
-                            }
-
-                            & > .drawing-item-copy,
-                            & > .drawing-item-delete {
-                                display: initial;
-                            }
-
-                            & > .component-name {
-                                color: $lighterBlue;
-                            }
-
-                            .el-input__wrapper {
-                                box-shadow: 0 0 0 1px var(--el-input-hover-border-color) inset;
-                            }
-                        }
-
-                        .el-form-item {
-                            margin-bottom: 15px;
-                        }
+                    .components-body {
+                        padding: 0;
+                        margin: 0;
+                        font-size: 0;
                     }
 
-                    .drawing-item {
-                        position: relative;
-                        cursor: move;
-
-                        &.unfocus-bordered:not(.activeFromItem) > div:first-child {
-                            border: 1px dashed #ccc;
+                    .active-from-item {
+                        & > .el-form-item {
+                            background: var(--el-fill-color-light);
+                            border-radius: 6px;
+                            outline: 1px dashed $lighterBlue;
                         }
-
-                        .el-form-item {
-                            padding: 12px 10px;
-                        }
-                    }
-
-                    .drawing-row-item {
-                        position: relative;
-                        cursor: move;
-                        box-sizing: border-box;
-                        border: 1px dashed #ccc;
-                        border-radius: 3px;
-                        padding: 0 2px;
-                        margin-bottom: 15px;
-
-                        .drawing-row-item {
-                            margin-bottom: 2px;
-                        }
-
-                        .el-col {
-                            margin-top: 22px;
-                        }
-
-                        .el-form-item {
-                            margin-bottom: 0;
-                        }
-
-                        .drag-wrapper {
-                            min-height: 80px;
-                            flex: 1;
-                            display: flex;
-                            flex-wrap: wrap;
-                        }
-
-                        &.active-from-item {
-                            border: 1px dashed $lighterBlue;
-                        }
-
-                        .component-name {
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            font-size: 12px;
-                            color: #bbb;
-                            display: inline-block;
-                            padding: 0 6px;
-                        }
-                    }
-
-                    .drawing-item,
-                    .drawing-row-item {
-                        &:hover {
-                            & > .el-form-item {
-                                background: var(--el-border-color-extra-light);
-                                border-radius: 6px;
-                            }
-
-                            & > .drawing-item-copy,
-                            & > .drawing-item-delete {
-                                display: initial;
-                            }
-                        }
-
                         & > .drawing-item-copy,
                         & > .drawing-item-delete {
-                            display: none;
-                            position: absolute;
-                            top: -10px;
-                            width: 22px;
-                            height: 22px;
-                            line-height: 22px;
-                            text-align: center;
-                            border-radius: 50%;
-                            font-size: 12px;
-                            border: 1px solid;
-                            cursor: pointer;
-                            z-index: 1;
+                            display: block;
                         }
-
-                        & > .drawing-item-copy {
-                            right: 56px;
-                            border-color: $lighterBlue;
+                        & > .component-name {
                             color: $lighterBlue;
-                            background: #fff;
-
-                            &:hover {
-                                background: $lighterBlue;
-                                color: #fff;
-                            }
-                        }
-
-                        & > .drawing-item-delete {
-                            right: 24px;
-                            border-color: #f56c6c;
-                            color: #f56c6c;
-                            background: #fff;
-
-                            &:hover {
-                                background: #f56c6c;
-                                color: #fff;
-                            }
                         }
                     }
 
-                    .empty-info {
+                    .el-form-item {
+                        margin-bottom: 15px;
+                    }
+                }
+
+                .ghost {
+                    position: relative;
+                    display: block;
+                    overflow: hidden;
+                    height: 60px;
+                    background: var(--el-color-primary-light-9);
+                    border: 2px dashed $lighterBlue;
+                    &::before {
+                        content: ' ';
                         position: absolute;
-                        top: 46%;
                         left: 0;
                         right: 0;
+                        top: 0;
+                        height: 3px;
+                        background: $lighterBlue;
+                        z-index: 2;
+                    }
+                }
+
+                .drawing-item,
+                .drawing-row-item {
+                    position: relative;
+                    cursor: move;
+
+                    &:hover {
+                        & > .el-form-item {
+                            background: var(--el-fill-color-lighter);
+                            border-radius: 6px;
+                        }
+                        & > .drawing-item-copy,
+                        & > .drawing-item-delete {
+                            display: block;
+                        }
+                    }
+
+                    & > .drawing-item-copy,
+                    & > .drawing-item-delete {
+                        display: none;
+                        position: absolute;
+                        top: -10px;
+                        width: 22px;
+                        height: 22px;
+                        line-height: 22px;
                         text-align: center;
-                        font-size: 18px;
-                        color: #ccb1ea;
-                        letter-spacing: 4px;
+                        border-radius: 50%;
+                        font-size: 12px;
+                        border: 1px solid;
+                        cursor: pointer;
+                        z-index: 10;
+                    }
+
+                    & > .drawing-item-copy {
+                        right: 56px;
+                        border-color: $lighterBlue;
+                        color: $lighterBlue;
+                        background: #fff;
+                        &:hover {
+                            background: $lighterBlue;
+                            color: #fff;
+                        }
+                    }
+
+                    & > .drawing-item-delete {
+                        right: 24px;
+                        border-color: #f56c6c;
+                        color: #f56c6c;
+                        background: #fff;
+                        &:hover {
+                            background: #f56c6c;
+                            color: #fff;
+                        }
+                    }
+                }
+
+                .drawing-row-item {
+                    border: 1px dashed #ccc;
+                    border-radius: 3px;
+                    padding: 10px 5px;
+                    margin-bottom: 15px;
+
+                    .drag-wrapper {
+                        min-height: 80px;
+                        border: 1px dashed #eee;
+                        background: #fcfcfc;
+                    }
+
+                    &.active-from-item {
+                        border: 1px dashed $lighterBlue;
+                    }
+
+                    .component-name {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        font-size: 12px;
+                        color: #bbb;
+                        padding: 0 6px;
+                        background: #fff;
+                    }
+                }
+
+                .empty-info {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    text-align: center;
+                    font-size: 16px;
+                    color: #909399;
+                    pointer-events: none;
+
+                    .empty-icon {
+                        font-size: 50px;
+                        color: #dcdfe6;
+                        margin-bottom: 10px;
                     }
                 }
             }
         }
+    }
+
+    // 右侧面板 - 移除 absolute
+    .right-board {
+        width: 350px;
+        height: 100%;
+        flex-shrink: 0; // 防止挤压
+        border-left: 1px solid var(--el-border-color-extra-light);
+        background-color: #fff;
     }
 }
 </style>

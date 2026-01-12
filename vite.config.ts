@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import createVitePlugins from './vite/plugins'
-import UnoCSS from 'unocss/vite'
 import zipPack from 'vite-plugin-zip-pack'
 
 // const baseUrl = 'http://192.168.10.17:8080/api' // 有线后端接口
@@ -17,7 +16,6 @@ export default defineConfig(({ mode, command }) => {
 
     const plugins = [
         ...(Array.isArray(basePlugins) ? basePlugins : [basePlugins]),
-        UnoCSS(),
 
         isBuild &&
             zipPack({
@@ -72,21 +70,6 @@ export default defineConfig(({ mode, command }) => {
                     target: baseUrl,
                     changeOrigin: true
                 }
-            }
-        },
-
-        css: {
-            postcss: {
-                plugins: [
-                    {
-                        postcssPlugin: 'internal:charset-removal',
-                        AtRule: {
-                            charset: atRule => {
-                                if (atRule.name === 'charset') atRule.remove()
-                            }
-                        }
-                    }
-                ]
             }
         }
     }

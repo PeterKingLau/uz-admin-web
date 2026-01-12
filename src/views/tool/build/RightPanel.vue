@@ -6,13 +6,12 @@
         </el-tabs>
         <div class="field-box">
             <el-scrollbar class="right-scrollbar">
-                <!-- 组件属性 -->
                 <el-form v-show="currentTab === 'field' && showField" size="default" label-width="90px" label-position="top">
                     <el-form-item v-if="activeData.changeTag" label="组件类型">
                         <el-select v-model="activeData.tagIcon" placeholder="请选择组件类型" :style="{ width: '100%' }" @change="tagChange">
                             <el-option-group v-for="group in tagList" :key="group.label" :label="group.label">
                                 <el-option v-for="item in group.options" :key="item.label" :label="item.label" :value="item.tagIcon">
-                                    <svg-icon class="node-icon" :icon-class="item.tagIcon" style="margin-right: 10px" />
+                                    <Icon class="node-icon" :icon="item.tagIcon" style="margin-right: 10px" />
                                     <span> {{ item.label }}</span>
                                 </el-option>
                             </el-option-group>
@@ -88,30 +87,29 @@
                     <el-form-item v-if="activeData.append !== undefined" label="后缀">
                         <el-input v-model="activeData.append" placeholder="请输入后缀" />
                     </el-form-item>
-                    <!-- 前图标：存 Iconify 名，例如 ep:search -->
+
                     <el-form-item v-if="activeData['prefix-icon'] !== undefined" label="前图标">
-                        <el-input v-model="activeData['prefix-icon']" placeholder="请输入 Iconify 图标名">
-                            <!-- 左侧实时预览 Iconify 图标 -->
+                        <el-input v-model="activeData['prefix-icon']" placeholder="请输入图标名">
                             <template #prepend>
-                                <Icon v-if="activeData['prefix-icon']" :icon="activeData['prefix-icon']" class="icon-preview" />
+                                <div class="icon-wrapper">
+                                    <Icon v-if="activeData['prefix-icon']" :icon="activeData['prefix-icon']" class="icon-preview" />
+                                </div>
                             </template>
-                            <!-- 打开 Icon 选择弹窗 -->
                             <template #append>
-                                <el-button text @click="openIconsDialog('prefix-icon')"> 选择 </el-button>
+                                <el-button text @click="openIconsDialog('prefix-icon')"> <Icon icon="ep:pointer" /> 选择 </el-button>
                             </template>
                         </el-input>
                     </el-form-item>
 
-                    <!-- 后图标：存 Iconify 名，例如 ep:calendar -->
                     <el-form-item v-if="activeData['suffix-icon'] !== undefined" label="后图标">
-                        <el-input v-model="activeData['suffix-icon']" placeholder="请输入 Iconify 图标名">
-                            <!-- 左侧预览后缀图标 -->
+                        <el-input v-model="activeData['suffix-icon']" placeholder="请输入图标名">
                             <template #prepend>
-                                <Icon v-if="activeData['suffix-icon']" :icon="activeData['suffix-icon']" class="icon-preview" />
+                                <div class="icon-wrapper">
+                                    <Icon v-if="activeData['suffix-icon']" :icon="activeData['suffix-icon']" class="icon-preview" />
+                                </div>
                             </template>
-                            <!-- 打开 Icon 选择器 -->
                             <template #append>
-                                <el-button text @click="openIconsDialog('suffix-icon')"> 选择 </el-button>
+                                <el-button text @click="openIconsDialog('suffix-icon')"> <Icon icon="ep:pointer" /> 选择 </el-button>
                             </template>
                         </el-input>
                     </el-form-item>
@@ -229,14 +227,12 @@
                             <template #item="{ element, index }">
                                 <div :key="index" class="select-item">
                                     <div class="select-line-icon option-drag">
-                                        <i class="el-icon-s-operation" />
+                                        <el-icon><Operation /></el-icon>
                                     </div>
                                     <el-input v-model="element.label" placeholder="选项名" size="small" />
                                     <el-input placeholder="选项值" size="small" :value="element.value" @input="setOptionValue(element, $event)" />
                                     <div class="close-btn select-line-icon" @click="activeData.options.splice(index, 1)">
-                                        <el-icon>
-                                            <Remove />
-                                        </el-icon>
+                                        <el-icon><Remove /></el-icon>
                                     </div>
                                 </div>
                             </template>
@@ -380,7 +376,7 @@
                         <el-tree :data="[activeData]" :props="layoutTreeProps" node-key="renderKey" default-expand-all draggable>
                             <template #default="{ node, data }">
                                 <span class="node-label">
-                                    <svg-icon class="node-icon" :icon-class="data.tagIcon" style="margin-right: 5px" />
+                                    <Icon class="node-icon" :icon="data.tagIcon" style="margin-right: 5px" />
                                     {{ node.label }}
                                 </span>
                             </template>
@@ -391,9 +387,7 @@
                         <el-divider>正则校验</el-divider>
                         <div v-for="(item, index) in activeData.regList" :key="index" class="reg-item">
                             <span class="close-btn" @click="activeData.regList.splice(index, 1)">
-                                <el-icon>
-                                    <Close />
-                                </el-icon>
+                                <el-icon><Close /></el-icon>
                             </span>
                             <el-form-item label="表达式">
                                 <el-input v-model="item.pattern" placeholder="请输入正则" />
@@ -408,7 +402,6 @@
                     </template>
                 </el-form>
 
-                <!-- 表单属性 -->
                 <el-form v-show="currentTab === 'form'" label-width="90px" label-position="top">
                     <el-form-item label="表单名">
                         <el-input v-model="formConf.formRef" placeholder="请输入表单名（ref）" />
@@ -722,10 +715,8 @@ function tagChange(tagIcon) {
 
 <style lang="scss" scoped>
 .right-board {
-    width: 350px;
-    position: absolute;
-    right: 0;
-    top: 0;
+    width: 100%; // 关键修改：适应 flex 布局
+    height: 100%; // 关键修改
     padding-top: 3px;
 
     &:deep() {
@@ -846,6 +837,8 @@ function tagChange(tagIcon) {
 
 .node-label {
     font-size: 14px;
+    display: flex;
+    align-items: center;
 }
 
 .node-icon {
@@ -859,5 +852,18 @@ function tagChange(tagIcon) {
     justify-content: space-between;
     font-size: 14px;
     padding-right: 8px;
+}
+
+// 修复图标预览样式
+.icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.icon-preview {
+    font-size: 18px;
+    vertical-align: middle;
 }
 </style>

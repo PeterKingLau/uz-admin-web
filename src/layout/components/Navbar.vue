@@ -22,10 +22,11 @@
                 </el-tooltip>
             </template>
 
-            <el-dropdown @command="handleCommand" class="avatar-container right-menu-item hover-effect" trigger="hover">
+            <el-dropdown @command="handleCommand" class="right-menu-item hover-effect avatar-container" trigger="hover">
                 <div class="avatar-wrapper">
                     <img :src="userStore.avatar" class="user-avatar" />
-                    <span class="user-nickname"> {{ userStore.nickName }} </span>
+                    <span class="user-nickname">{{ userStore.nickName }}</span>
+                    <el-icon class="el-icon--right"><caret-bottom /></el-icon>
                 </div>
                 <template #dropdown>
                     <el-dropdown-menu>
@@ -38,6 +39,7 @@
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
+
             <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="settingsStore.showSettings">
                 <svg-icon icon-class="mdi:dots-vertical" />
             </div>
@@ -56,6 +58,7 @@ import HeaderSearch from '@/components/HeaderSearch'
 import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
+import { CaretBottom } from '@element-plus/icons-vue'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -130,23 +133,21 @@ function toggleTheme() {
         left: 50px;
     }
 
-    .errLog-container {
-        display: inline-block;
-        vertical-align: top;
-    }
-
     .right-menu {
         float: right;
         height: 100%;
         line-height: 50px;
         display: flex;
+        align-items: center;
 
         &:focus {
             outline: none;
         }
 
         .right-menu-item {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             padding: 0 8px;
             height: 100%;
             font-size: 18px;
@@ -163,12 +164,8 @@ function toggleTheme() {
             }
 
             &.theme-switch-wrapper {
-                display: flex;
-                align-items: center;
-
                 svg {
                     transition: transform 0.3s;
-
                     &:hover {
                         transform: scale(1.15);
                     }
@@ -177,34 +174,30 @@ function toggleTheme() {
         }
 
         .avatar-container {
-            margin-right: 0px;
-            padding-right: 0px;
+            margin-right: 0;
 
             .avatar-wrapper {
-                margin-top: 10px;
-                right: 5px;
-                position: relative;
+                display: flex;
+                align-items: center;
+                height: 100%;
+                gap: 8px;
+                padding: 0 4px;
 
                 .user-avatar {
                     cursor: pointer;
                     width: 30px;
                     height: 30px;
                     border-radius: 50%;
+                    object-fit: cover;
                 }
 
                 .user-nickname {
-                    position: relative;
-                    left: 5px;
-                    bottom: 10px;
                     font-size: 14px;
                     font-weight: bold;
+                    white-space: nowrap;
                 }
 
-                i {
-                    cursor: pointer;
-                    position: absolute;
-                    right: -20px;
-                    top: 25px;
+                .el-icon--right {
                     font-size: 12px;
                 }
             }
