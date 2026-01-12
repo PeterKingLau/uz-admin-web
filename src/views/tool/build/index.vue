@@ -401,26 +401,23 @@ onMounted(() => {
 <style lang="scss">
 $lighterBlue: #409eff;
 
-// 1. 改为 app-container 并重置 padding
 .form-designer-container.app-container {
-    padding: 0 !important; // 重置若依默认的 padding
+    padding: 0 !important;
     width: 100%;
-    // 2. 移除 position: relative; 改为 Flex 布局
-    height: calc(100vh - 84px); // 若依默认 Navbar + TagsView 高度
+    height: calc(100vh - 84px);
     background-color: var(--el-bg-color-overlay);
     overflow: hidden;
-    display: flex; // 关键：Flex 布局
+    display: flex;
     flex-direction: row;
 
-    // 左侧面板 - 移除 absolute
     .left-board {
         width: 260px;
         height: 100%;
-        flex-shrink: 0; // 防止挤压
+        flex-shrink: 0;
         border-right: 1px solid var(--el-border-color-extra-light);
         display: flex;
         flex-direction: column;
-        background: #fff;
+        background: var(--el-bg-color);
 
         .logo-wrapper {
             position: relative;
@@ -433,7 +430,7 @@ $lighterBlue: #409eff;
                 align-items: center;
                 padding-left: 12px;
                 height: 100%;
-                color: #00afff;
+                color: var(--el-color-primary);
                 font-weight: 600;
                 font-size: 17px;
                 white-space: nowrap;
@@ -508,15 +505,19 @@ $lighterBlue: #409eff;
                                     overflow: hidden;
                                     text-overflow: ellipsis;
                                     white-space: nowrap;
+                                    color: var(--el-text-color-regular);
                                 }
                             }
 
                             &:hover {
-                                border-color: $lighterBlue;
-                                color: $lighterBlue;
+                                border-color: var(--el-color-primary);
+                                color: var(--el-color-primary);
                                 background-color: var(--el-color-primary-light-9);
                                 .svg-icon {
-                                    color: $lighterBlue;
+                                    color: var(--el-color-primary);
+                                }
+                                .components-text {
+                                    color: var(--el-color-primary);
                                 }
                             }
                         }
@@ -526,9 +527,8 @@ $lighterBlue: #409eff;
         }
     }
 
-    // 中间面板 - 移除 margin-left/right, 使用 flex: 1
     .center-board {
-        flex: 1; // 关键：自动占满剩余空间
+        flex: 1;
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -541,13 +541,13 @@ $lighterBlue: #409eff;
             padding: 0 15px;
             box-sizing: border-box;
             border-bottom: 1px solid var(--el-border-color-light);
-            background: #fff;
+            background: var(--el-bg-color);
             display: flex;
             align-items: center;
             justify-content: flex-end;
 
             .delete-btn {
-                color: #f56c6c;
+                color: var(--el-color-danger);
             }
         }
 
@@ -575,7 +575,7 @@ $lighterBlue: #409eff;
                     height: 100%;
                     min-height: 500px;
                     position: relative;
-                    background: #fff;
+                    background: var(--el-bg-color);
                     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
                     border-radius: 4px;
                     padding: 10px;
@@ -590,14 +590,14 @@ $lighterBlue: #409eff;
                         & > .el-form-item {
                             background: var(--el-fill-color-light);
                             border-radius: 6px;
-                            outline: 1px dashed $lighterBlue;
+                            outline: 1px dashed var(--el-color-primary);
                         }
                         & > .drawing-item-copy,
                         & > .drawing-item-delete {
                             display: block;
                         }
                         & > .component-name {
-                            color: $lighterBlue;
+                            color: var(--el-color-primary);
                         }
                     }
 
@@ -612,7 +612,7 @@ $lighterBlue: #409eff;
                     overflow: hidden;
                     height: 60px;
                     background: var(--el-color-primary-light-9);
-                    border: 2px dashed $lighterBlue;
+                    border: 2px dashed var(--el-color-primary);
                     &::before {
                         content: ' ';
                         position: absolute;
@@ -620,7 +620,7 @@ $lighterBlue: #409eff;
                         right: 0;
                         top: 0;
                         height: 3px;
-                        background: $lighterBlue;
+                        background: var(--el-color-primary);
                         z-index: 2;
                     }
                 }
@@ -659,41 +659,41 @@ $lighterBlue: #409eff;
 
                     & > .drawing-item-copy {
                         right: 56px;
-                        border-color: $lighterBlue;
-                        color: $lighterBlue;
-                        background: #fff;
+                        border-color: var(--el-color-primary);
+                        color: var(--el-color-primary);
+                        background: var(--el-bg-color);
                         &:hover {
-                            background: $lighterBlue;
+                            background: var(--el-color-primary);
                             color: #fff;
                         }
                     }
 
                     & > .drawing-item-delete {
                         right: 24px;
-                        border-color: #f56c6c;
-                        color: #f56c6c;
-                        background: #fff;
+                        border-color: var(--el-color-danger);
+                        color: var(--el-color-danger);
+                        background: var(--el-bg-color);
                         &:hover {
-                            background: #f56c6c;
+                            background: var(--el-color-danger);
                             color: #fff;
                         }
                     }
                 }
 
                 .drawing-row-item {
-                    border: 1px dashed #ccc;
+                    border: 1px dashed var(--el-border-color);
                     border-radius: 3px;
                     padding: 10px 5px;
                     margin-bottom: 15px;
 
                     .drag-wrapper {
                         min-height: 80px;
-                        border: 1px dashed #eee;
-                        background: #fcfcfc;
+                        border: 1px dashed var(--el-border-color-lighter);
+                        background: var(--el-fill-color-extra-light);
                     }
 
                     &.active-from-item {
-                        border: 1px dashed $lighterBlue;
+                        border: 1px dashed var(--el-color-primary);
                     }
 
                     .component-name {
@@ -701,9 +701,9 @@ $lighterBlue: #409eff;
                         top: 0;
                         left: 0;
                         font-size: 12px;
-                        color: #bbb;
+                        color: var(--el-text-color-placeholder);
                         padding: 0 6px;
-                        background: #fff;
+                        background: var(--el-bg-color);
                     }
                 }
 
@@ -712,28 +712,31 @@ $lighterBlue: #409eff;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
-                    text-align: center;
-                    font-size: 16px;
-                    color: #909399;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                    color: var(--el-text-color-secondary);
                     pointer-events: none;
+                    width: 100%;
 
                     .empty-icon {
                         font-size: 50px;
-                        color: #dcdfe6;
-                        margin-bottom: 10px;
+                        color: var(--el-text-color-placeholder);
+                        margin-bottom: 16px;
                     }
                 }
             }
         }
     }
 
-    // 右侧面板 - 移除 absolute
     .right-board {
         width: 350px;
         height: 100%;
-        flex-shrink: 0; // 防止挤压
+        flex-shrink: 0;
         border-left: 1px solid var(--el-border-color-extra-light);
-        background-color: #fff;
+        background-color: var(--el-bg-color);
     }
 }
 </style>

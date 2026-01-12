@@ -295,10 +295,6 @@ h6,
     }
 }
 
-/* *** 关键修复 ***
-   将 Representative Styles 移出 .template-manage 嵌套
-   使其在 append-to-body 的 Drawer 中也能生效
-*/
 .representative-container {
     width: 100%;
 

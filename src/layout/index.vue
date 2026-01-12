@@ -1,13 +1,17 @@
 <template>
     <div :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }">
         <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
+
         <sidebar v-if="!sidebar.hide" class="sidebar-container" />
+
         <div :class="{ hasTagsView: needTagsView, sidebarHide: sidebar.hide }" class="main-container">
             <div :class="{ 'fixed-header': fixedHeader }">
                 <navbar @setLayout="setLayout" />
                 <tags-view v-if="needTagsView" />
             </div>
-            <app-main />
+
+            <app-main :style="contentStyle" />
+
             <settings ref="settingRef" />
         </div>
     </div>
@@ -15,6 +19,7 @@
 
 <script setup>
 import { useWindowSize } from '@vueuse/core'
+import { computed, watch, watchEffect, ref } from 'vue'
 import Sidebar from './components/Sidebar/index.vue'
 import { AppMain, Navbar, Settings, TagsView } from './components'
 import useAppStore from '@/store/modules/app'
@@ -34,8 +39,19 @@ const classObj = computed(() => ({
     mobile: device.value === 'mobile'
 }))
 
-const { width, height } = useWindowSize()
-const WIDTH = 992 // refer to Bootstrap's responsive design
+const { width } = useWindowSize()
+const WIDTH = 992
+
+// 计算内容区域的顶部内边距，防止被 Fixed Header 遮挡
+const contentStyle = computed(() => {
+    if (!fixedHeader.value) return {}
+    // Navbar(50px) + TagsView(34px) = 84px
+    const height = needTagsView.value ? '84px' : '50px'
+    return {
+        paddingTop: height,
+        transition: 'padding-top 0.28s'
+    }
+})
 
 watch(
     () => device.value,
@@ -96,12 +112,13 @@ function setLayout() {
     top: 0;
     right: 0;
     z-index: 9;
-    width: calc(100% - #{$base-sidebar-width});
+    width: calc(100% - var(--sidebar-width));
     transition: width 0.28s;
+    background: var(--el-bg-color);
 }
 
 .hideSidebar .fixed-header {
-    width: calc(100% - 54px);
+    width: calc(100% - var(--sidebar-collapse-width));
 }
 
 .sidebarHide .fixed-header {

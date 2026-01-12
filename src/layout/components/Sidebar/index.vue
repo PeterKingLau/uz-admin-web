@@ -68,7 +68,7 @@ function handleMenuSelect() {
 
 <style lang="scss" scoped>
 $sidebar-expand-width: 220px;
-$sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo 区域更协调
+$sidebar-collapse-width: 54px;
 
 .sidebar-container {
     position: relative;
@@ -90,7 +90,7 @@ $sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo �
     }
 
     .scrollbar-wrapper {
-        height: calc(100% - 50px); // 减去 Logo 高度，防止滚动条溢出
+        height: calc(100% - 50px);
         overflow-x: hidden !important;
     }
 
@@ -102,7 +102,6 @@ $sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo �
     }
 }
 
-// 展开状态样式
 :deep(.sidebar--expand) {
     .el-menu-item,
     .el-sub-menu__title {
@@ -118,6 +117,10 @@ $sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo �
         span {
             font-weight: 500;
             letter-spacing: 0.3px;
+            /* 核心修复：防止文字换行和溢出抖动 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         &:hover {
@@ -144,38 +147,34 @@ $sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo �
     }
 }
 
-// 折叠状态样式 (核心修复部分)
 :deep(.sidebar--collapse) {
     .el-menu-item,
     .el-sub-menu__title {
-        height: 50px !important; // 与 Logo 高度一致
+        height: 50px !important;
         line-height: 50px !important;
         padding: 0 !important;
-        width: 100% !important; // 占满容器宽度
-        margin: 0 !important; // 移除 margin，靠 flex 居中
-        border-radius: 0; // 折叠模式通常不需要圆角，或者保持 0
+        width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0;
         display: flex;
         justify-content: center;
         align-items: center;
         position: relative;
 
-        // 隐藏文字和箭头
         .el-sub-menu__icon-arrow,
         span {
             display: none !important;
             visibility: hidden;
         }
 
-        // 图标重置
         .svg-icon,
         .nav-icon {
-            margin: 0 !important; // 强制移除边距
+            margin: 0 !important;
             font-size: 20px;
             width: 20px;
             height: 20px;
         }
 
-        // 修复 Tooltip 包裹层的对齐问题
         .el-tooltip__trigger {
             display: flex;
             justify-content: center;
@@ -185,9 +184,8 @@ $sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo �
         }
     }
 
-    // 选中状态 (折叠时通常不高亮背景块，只高亮图标，或者显示左侧边条)
     .el-menu-item.is-active {
-        background-color: rgba(0, 0, 0, 0.05) !important; // 轻微背景区分
+        background-color: rgba(0, 0, 0, 0.05) !important;
 
         .svg-icon,
         .nav-icon {
@@ -195,7 +193,6 @@ $sidebar-collapse-width: 54px; // 调整为更标准的折叠宽度，与 Logo �
         }
     }
 
-    // 子菜单容器对齐
     .el-sub-menu {
         width: 100%;
         .el-sub-menu__title {
