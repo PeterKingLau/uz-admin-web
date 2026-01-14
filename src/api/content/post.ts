@@ -13,6 +13,24 @@ export interface UpdatePostTagPayload {
     tagStr: string
 }
 
+export interface LikePostPayload {
+    postId: number | string
+    targetUserId: number | string
+}
+
+export interface BookmarkPostPayload {
+    postId: number | string
+    targetUserId: number | string
+}
+
+export interface AddCommentPayload {
+    postId: number | string
+    content: string
+    targetUserId: number | string
+    parentCommentId?: number | string
+    replyUserId?: number | string
+}
+
 export function addPost(data: AddPostPayload) {
     const formData = new FormData()
 
@@ -60,6 +78,56 @@ export function listPostByApp(params: {
         url: '/content/postInfo/app/v1/listByApp',
         method: 'get',
         params
+    }) as unknown as Promise<any>
+}
+
+export function listPostByLike(params: {
+    lastId?: number | string
+    lastCreateTime?: string
+    limit?: number
+    targetUserId?: number | string
+}): Promise<any> {
+    return request({
+        url: '/content/postInfo/app/v1/listByLike',
+        method: 'get',
+        params
+    }) as unknown as Promise<any>
+}
+
+export function listPostByBookMark(params: {
+    lastId?: number | string
+    lastCreateTime?: string
+    limit?: number
+    targetUserId?: number | string
+}): Promise<any> {
+    return request({
+        url: '/content/postInfo/app/v1/listByBookMark',
+        method: 'get',
+        params
+    }) as unknown as Promise<any>
+}
+
+export function likePost(data: LikePostPayload): Promise<any> {
+    return request({
+        url: '/content/postInfo/app/v1/likePost',
+        method: 'post',
+        data
+    }) as unknown as Promise<any>
+}
+
+export function bookmarkPost(data: BookmarkPostPayload): Promise<any> {
+    return request({
+        url: '/content/postInfo/app/v1/bookmarkPost',
+        method: 'post',
+        data
+    }) as unknown as Promise<any>
+}
+
+export function addComment(data: AddCommentPayload): Promise<any> {
+    return request({
+        url: '/content/postInfo/app/v1/addComment',
+        method: 'post',
+        data
     }) as unknown as Promise<any>
 }
 

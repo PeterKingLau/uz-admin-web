@@ -14,8 +14,8 @@
                         <span class="nickname">{{ userInfo.nickName }}</span>
                         <div class="tags">
                             <el-tag size="small" effect="plain" round v-if="userInfo.age" class="gender-tag">
-                                <Icon icon="ep:male" v-if="userInfo.sex === '1'" />
-                                <Icon icon="ep:female" v-else />
+                                <Icon icon="ep:male" v-if="isMaleSex(userInfo.sex)" />
+                                <Icon icon="ep:female" v-else-if="isFemaleSex(userInfo.sex)" />
                                 {{ userInfo.age }}岁
                             </el-tag>
                             <el-tag size="small" type="info" effect="plain" round v-if="userInfo.location" class="location-tag">
@@ -49,75 +49,29 @@
             </div>
         </div>
 
-        <div class="content-body">
-            <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabClick">
-                <el-tab-pane label="作品" name="works">
-                    <template #label>
-                        <div class="tab-label">
-                            作品 <span class="count">{{ total }}</span>
-                        </div>
-                    </template>
-                </el-tab-pane>
-                <el-tab-pane label="私密" name="private">
-                    <template #label>
-                        <div class="tab-label">私密 <Icon icon="ep:lock" class="ml-1" /></div>
-                    </template>
-                </el-tab-pane>
-                <el-tab-pane label="喜欢" name="likes">
-                    <template #label>
-                        <div class="tab-label">
-                            喜欢 <span class="count">{{ userInfo.likedCount || 0 }}</span>
-                        </div>
-                    </template>
-                </el-tab-pane>
-            </el-tabs>
+        <ContentModule
+            v-model="activeTab"
+            :total="total"
+            :like-count="likeTotal"
+            :bookmark-count="bookmarkTotal"
+            :post-list="postList"
+            :loading="loading"
+            :no-more="noMore"
+            :get-cover="getCover"
+            :get-video-url="getVideoUrl"
+            @tab-click="handleTabClick"
+            @load-more="loadMore"
+            @preview="handlePreview"
+        />
 
-            <div class="post-grid" v-infinite-scroll="loadMore" :infinite-scroll-disabled="loading || noMore" :infinite-scroll-distance="10">
-                <div v-for="item in postList" :key="item.id" class="post-card" @click="handlePreview(item)">
-                    <div class="cover-wrapper">
-                        <img v-if="item.postType === POST_TYPE.IMAGE" :src="getCover(item)" alt="cover" loading="lazy" />
-
-                        <div v-else-if="item.postType === POST_TYPE.VIDEO" class="video-wrapper">
-                            <video :src="getVideoUrl(item)" muted playsinline preload="metadata" class="video-cover"></video>
-                            <div class="play-icon">
-                                <Icon icon="mdi:play" />
-                            </div>
-                        </div>
-
-                        <div v-else class="text-cover">
-                            <span>{{ item.content }}</span>
-                        </div>
-
-                        <div class="card-stat"><Icon icon="ep:star" /> {{ item.likeCount || 0 }}</div>
-                        <div class="type-badge" v-if="item.postType === POST_TYPE.IMAGE">
-                            <Icon icon="ep:picture" />
-                        </div>
-                    </div>
-                    <div class="post-desc">
-                        {{ item.content }}
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="loading" class="loading-state">
-                <el-icon class="is-loading"><Loading /></el-icon> 加载中...
-            </div>
-
-            <div v-if="noMore && postList.length > 0" class="no-more-state">- 暂时没有更多了 -</div>
-
-            <el-empty v-if="!loading && postList.length === 0" description="暂无内容" :image-size="160" />
-        </div>
-
-        <teleport to="body">
-            <div v-if="showVideoPlayer" class="video-viewer-mask" @click="closeVideoPlayer">
-                <div class="video-viewer-close">
-                    <Icon icon="ep:close" />
-                </div>
-                <div class="video-container" @click.stop>
-                    <video v-if="showVideoPlayer && currentVideoSrc" ref="playerRef" class="video-js video-player-content" playsinline></video>
-                </div>
-            </div>
-        </teleport>
+        <VideoModule
+            v-model="showVideoPlayer"
+            :src="currentVideoSrc"
+            :post="currentPost"
+            :user-info="userInfo"
+            @close="closeVideoPlayer"
+            @action="mockAction"
+        />
 
         <el-image-viewer v-if="showImageViewer" :url-list="previewImgList" :initial-index="0" @close="showImageViewer = false" />
 
@@ -155,12 +109,7 @@
                     </el-tabs>
                 </div>
 
-                <div
-                    class="follow-list"
-                    v-infinite-scroll="loadMoreFollow"
-                    :infinite-scroll-disabled="followLoading || followNoMore"
-                    :infinite-scroll-distance="10"
-                >
+                <div class="follow-list" ref="followListRef">
                     <div v-for="item in followList" :key="item.id || item.userId" class="follow-user-row">
                         <div class="left-section">
                             <el-avatar :size="48" :src="item.avatar" class="row-avatar">
@@ -172,8 +121,8 @@
                             <div class="info-top">
                                 <span class="nickname" :title="item.nickName">{{ item.nickName || '用户' }}</span>
                                 <div class="user-badges">
-                                    <Icon v-if="item.sex === '1'" icon="ep:male" class="gender-icon male" />
-                                    <Icon v-else-if="item.sex === '0'" icon="ep:female" class="gender-icon female" />
+                                    <Icon v-if="isMaleSex(item.sex)" icon="ep:male" class="gender-icon male" />
+                                    <Icon v-else-if="isFemaleSex(item.sex)" icon="ep:female" class="gender-icon female" />
                                     <el-tag v-if="followActiveTab === 'mutual'" size="small" type="success" effect="dark" class="mini-tag">互关</el-tag>
                                 </div>
                             </div>
@@ -204,6 +153,7 @@
                     <div v-if="followNoMore && followList.length > 0" class="no-more-state">- 暂时没有更多了 -</div>
 
                     <el-empty v-if="!followLoading && followList.length === 0" description="暂无相关用户" :image-size="100" />
+                    <div ref="followTriggerRef" class="follow-load-trigger" aria-hidden="true"></div>
                 </div>
             </div>
         </el-dialog>
@@ -211,24 +161,28 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, computed, getCurrentInstance, nextTick, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { listPostByApp } from '@/api/content/post'
+import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike } from '@/api/content/post'
 import { listFollowers, listFollowing, listMutual, selectFollowNum, toggleFollowUser } from '@/api/content/userFollow'
 import { getUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
+import modal from '@/plugins/modal'
+import ContentModule from './components/ContentModule/index.vue'
+import VideoModule from './components/VideoModule/index.vue'
+import defaultBg from '@/assets/images/bg_profile.jpeg'
 
 const router = useRouter()
 const userStore = useUserStore()
-const { proxy } = getCurrentInstance()
 
-const defaultBg = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop'
 const activeTab = ref('works')
 const loading = ref(false)
 const noMore = ref(false)
 const total = ref(0)
+const likeTotal = ref(0)
+const bookmarkTotal = ref(0)
 const postList = ref([])
 const profileInfo = ref({})
 const followStats = ref({
@@ -239,21 +193,26 @@ const followStats = ref({
 
 const showVideoPlayer = ref(false)
 const currentVideoSrc = ref('')
+const currentPost = ref({})
 const showImageViewer = ref(false)
 const previewImgList = ref([])
-const playerRef = ref(null)
-let player = null
 
 const followDialogVisible = ref(false)
 const followActiveTab = ref('following')
 const followList = ref([])
 const followLoading = ref(false)
 const followNoMore = ref(false)
+const followListRef = ref(null)
+const followTriggerRef = ref(null)
 const followLastId = ref(undefined)
 const followPageSize = 20
 const followTabSet = new Set(['following', 'followers', 'mutual'])
 const followRequestId = ref(0)
 const followActionLoading = reactive({})
+const likeActionLoading = reactive({})
+const bookmarkActionLoading = reactive({})
+const commentActionLoading = reactive({})
+let followObserver = null
 
 const queryParams = reactive({
     pageNum: 1,
@@ -270,6 +229,14 @@ const clampStats = (following, followers, mutualCount) => {
     const m = Math.max(0, Number(mutualCount) || 0)
     return { following: f1, followers: f2, mutualCount: Math.min(m, f1, f2) }
 }
+
+const normalizeSexValue = value => {
+    if (value === null || value === undefined) return ''
+    return String(value)
+}
+
+const isMaleSex = value => normalizeSexValue(value) === '0'
+const isFemaleSex = value => normalizeSexValue(value) === '1'
 
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
@@ -316,6 +283,37 @@ const normalizeFollowList = (list, activeTab) =>
         avatar: getImgUrl(item.avatar || ''),
         isFollowing: resolveFollowState(item, activeTab)
     }))
+
+const getPostId = item => item?.postId ?? item?.id
+
+const getPostTargetUserId = item =>
+    item?.targetUserId ??
+    item?.userId ??
+    item?.authorId ??
+    item?.createBy ??
+    item?.user?.id ??
+    item?.author?.id ??
+    userInfo.value?.id ??
+    userInfo.value?.userId ??
+    null
+
+const isLikeActionLoading = item => {
+    const postId = getPostId(item)
+    if (postId == null) return false
+    return Boolean(likeActionLoading[postId])
+}
+
+const isBookmarkActionLoading = item => {
+    const postId = getPostId(item)
+    if (postId == null) return false
+    return Boolean(bookmarkActionLoading[postId])
+}
+
+const isCommentActionLoading = item => {
+    const postId = getPostId(item)
+    if (postId == null) return false
+    return Boolean(commentActionLoading[postId])
+}
 
 const getFollowTargetId = item => item?.userId ?? item?.id
 
@@ -386,6 +384,41 @@ const loadMoreFollow = () => {
     if (!followNoMore.value) getFollowList()
 }
 
+const handleFollowIntersect = entries => {
+    if (!entries?.some(entry => entry.isIntersecting)) return
+    if (!followNoMore.value && !followLoading.value) loadMoreFollow()
+}
+
+const setupFollowObserver = async () => {
+    if (followObserver) followObserver.disconnect()
+    await nextTick()
+    if (!followListRef.value || !followTriggerRef.value) return
+    followObserver = new IntersectionObserver(handleFollowIntersect, {
+        root: followListRef.value,
+        rootMargin: '0px 0px 120px 0px',
+        threshold: 0.01
+    })
+    followObserver.observe(followTriggerRef.value)
+}
+
+watch(followDialogVisible, visible => {
+    if (visible) setupFollowObserver()
+    else {
+        followObserver?.disconnect()
+        followObserver = null
+    }
+})
+
+watch(
+    () => followLoading.value,
+    next => {
+        if (!next && followObserver && followTriggerRef.value) {
+            followObserver.unobserve(followTriggerRef.value)
+            followObserver.observe(followTriggerRef.value)
+        }
+    }
+)
+
 const handleFollowTabClick = tab => {
     const nextTab = normalizeFollowTab(tab?.props?.name ?? tab?.paneName ?? followActiveTab.value)
     if (nextTab !== followActiveTab.value) followActiveTab.value = nextTab
@@ -450,54 +483,6 @@ const toggleFollow = async item => {
     }
 }
 
-const playerOptions = {
-    controls: true,
-    autoplay: true,
-    muted: false,
-    loop: false,
-    preload: 'auto',
-    playbackRates: [0.5, 1, 1.25, 1.5, 2]
-}
-
-const buildSources = url => {
-    const u = String(url || '').trim()
-    if (!u) return []
-    return [{ src: u, type: guessMime(u) }]
-}
-
-const guessMime = url => {
-    const u = String(url || '').toLowerCase()
-    if (u.includes('.m3u8')) return 'application/x-mpegURL'
-    if (u.includes('.mpd')) return 'application/dash+xml'
-    if (u.includes('.webm')) return 'video/webm'
-    if (u.includes('.ogg') || u.includes('.ogv')) return 'video/ogg'
-    return 'video/mp4'
-}
-
-const initPlayer = async () => {
-    if (!showVideoPlayer.value || !currentVideoSrc.value) return
-    await nextTick()
-    const el = playerRef.value
-    if (!el) return
-
-    if (!player) {
-        const videojsLib = proxy?.$videojs
-        if (!videojsLib) return
-        player = videojsLib(el, { ...playerOptions, sources: buildSources(currentVideoSrc.value) })
-    } else {
-        player.src(buildSources(currentVideoSrc.value))
-    }
-
-    player.play?.()
-}
-
-const stopPlayer = () => {
-    if (!player) return
-    player.pause?.()
-    player.dispose?.()
-    player = null
-}
-
 const getCover = item => {
     const mediaList = getMediaList(item)
     return mediaList[0] || ''
@@ -515,7 +500,6 @@ const getMediaList = item => {
 
 const parseMediaUrls = mediaUrls => {
     let rawList = []
-
     if (Array.isArray(mediaUrls)) {
         rawList = mediaUrls
     } else if (typeof mediaUrls === 'string') {
@@ -534,7 +518,6 @@ const parseMediaUrls = mediaUrls => {
     } else if (mediaUrls && typeof mediaUrls === 'object') {
         rawList = [mediaUrls]
     }
-
     return rawList
         .map(item => {
             if (typeof item === 'string') return item
@@ -547,7 +530,6 @@ const parseMediaUrls = mediaUrls => {
 const getList = async () => {
     if (loading.value) return
     loading.value = true
-
     try {
         const params = {
             limit: queryParams.limit,
@@ -556,24 +538,34 @@ const getList = async () => {
             lastCreateTime: queryParams.lastCreateTime,
             postType: queryParams.postType
         }
-
-        const res = await listPostByApp(params)
-        const dataList = Array.isArray(res.data) ? res.data : []
-
+        const res =
+            activeTab.value === 'likes'
+                ? await listPostByLike(params)
+                : activeTab.value === 'bookmarks'
+                  ? await listPostByBookMark(params)
+                  : await listPostByApp(params)
+        const dataList = Array.isArray(res?.data) ? res.data : Array.isArray(res?.rows) ? res.rows : []
         if (dataList.length > 0) {
             const normalizedList = dataList.map(item => ({
                 ...item,
                 mediaList: parseMediaUrls(item.mediaUrls || item.fileList || item.files || [])
             }))
             postList.value = [...postList.value, ...normalizedList]
-
             const lastItem = dataList[dataList.length - 1]
             queryParams.lastId = lastItem.id
             queryParams.lastCreateTime = lastItem.createTime
-
             if (dataList.length < queryParams.limit) noMore.value = true
         } else {
             noMore.value = true
+        }
+        const resTotal = res?.total ?? res?.data?.total ?? res?.count
+        const nextTotal = Number.isFinite(Number(resTotal)) ? Number(resTotal) : postList.value.length
+        if (activeTab.value === 'likes') {
+            likeTotal.value = nextTotal
+        } else if (activeTab.value === 'bookmarks') {
+            bookmarkTotal.value = nextTotal
+        } else {
+            total.value = nextTotal
         }
     } catch (error) {
         console.error(error)
@@ -586,7 +578,12 @@ const getList = async () => {
 const getProfile = async () => {
     try {
         const res = await getUserProfile()
-        profileInfo.value = res.data || {}
+        const data = res?.data ?? {}
+        const profile = data.user ?? data
+        profileInfo.value = {
+            ...profile,
+            sex: normalizeSexValue(profile.sex ?? profile.gender ?? data.sex ?? data.gender)
+        }
     } catch (error) {
         console.error(error)
     }
@@ -596,14 +593,11 @@ const getFollowStats = async () => {
     try {
         const res = await selectFollowNum({ targetUserId: queryParams.targetUserId })
         const data = res?.data ?? {}
-
         const rawFollowing = data.followerCount ?? 0
         const rawFollowers = data.fans ?? 0
         const rawMutual = data.eachOtherCount ?? 0
-
         const useMutualListCount = followDialogVisible.value && followActiveTab.value === 'mutual'
         const mutualFrom = useMutualListCount ? followList.value.length : rawMutual
-
         const s = clampStats(rawFollowing, rawFollowers, mutualFrom)
         followStats.value = s
         syncMutualCountFromListIfNeeded()
@@ -617,12 +611,27 @@ const loadMore = () => {
 }
 
 const handleTabClick = tab => {
-    if (tab.props.name === 'works') {
+    const nextTab = tab?.props?.name ?? activeTab.value
+    if (nextTab !== activeTab.value) {
+        activeTab.value = nextTab
     }
+    postList.value = []
+    noMore.value = false
+    queryParams.lastId = undefined
+    queryParams.lastCreateTime = undefined
+    if (activeTab.value === 'likes') {
+        likeTotal.value = 0
+    } else if (activeTab.value === 'bookmarks') {
+        bookmarkTotal.value = 0
+    } else {
+        total.value = 0
+    }
+    getList()
 }
 
 const handlePreview = item => {
     if (item.postType === POST_TYPE.VIDEO) {
+        currentPost.value = item
         currentVideoSrc.value = getVideoUrl(item)
         showVideoPlayer.value = true
     } else if (item.postType === POST_TYPE.IMAGE) {
@@ -632,9 +641,9 @@ const handlePreview = item => {
 }
 
 const closeVideoPlayer = () => {
-    stopPlayer()
     showVideoPlayer.value = false
     currentVideoSrc.value = ''
+    currentPost.value = {}
 }
 
 const goToProfile = () => {
@@ -649,6 +658,80 @@ const openFollowDialog = type => {
     getFollowList()
 }
 
+const mockAction = async (type, payload) => {
+    if (type === 'like') {
+        const post = currentPost.value || {}
+        const postId = getPostId(post)
+        const targetUserId = getPostTargetUserId(post)
+        if (!postId || !targetUserId || isLikeActionLoading(post)) return
+        likeActionLoading[postId] = true
+        const wasLiked = Boolean(post.isLiked)
+        try {
+            const res = await likePost({ postId, targetUserId })
+            const active = res?.data?.active
+            const nextLiked = typeof active === 'boolean' ? active : !wasLiked
+            if (nextLiked !== wasLiked) {
+                post.isLiked = nextLiked
+                const nextCount = Number(post.likeCount || 0) + (nextLiked ? 1 : -1)
+                post.likeCount = Math.max(0, nextCount)
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            likeActionLoading[postId] = false
+        }
+    }
+    if (type === 'collect') {
+        const post = currentPost.value || {}
+        const postId = getPostId(post)
+        const targetUserId = getPostTargetUserId(post)
+        if (!postId || !targetUserId || isBookmarkActionLoading(post)) return
+        bookmarkActionLoading[postId] = true
+        const wasCollected = Boolean(post.isCollected)
+        try {
+            const res = await bookmarkPost({ postId, targetUserId })
+            const active = res?.data?.active
+            const nextCollected = typeof active === 'boolean' ? active : !wasCollected
+            if (nextCollected !== wasCollected) {
+                post.isCollected = nextCollected
+                const nextCount = Number(post.collectCount || 0) + (nextCollected ? 1 : -1)
+                post.collectCount = Math.max(0, nextCount)
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            bookmarkActionLoading[postId] = false
+        }
+    }
+    if (type === 'comment') {
+        const post = currentPost.value || {}
+        const postId = getPostId(post)
+        const targetUserId = getPostTargetUserId(post)
+        if (!postId || !targetUserId || isCommentActionLoading(post)) return
+        const parentCommentId = payload?.parentCommentId
+        const replyUserId = payload?.replyUserId
+        let content = String(payload?.content ?? '').trim()
+        if (!content) {
+            try {
+                const res = await modal.prompt('请输入评论内容')
+                content = String(res?.value ?? '').trim()
+            } catch (error) {
+                return
+            }
+        }
+        if (!content) return
+        commentActionLoading[postId] = true
+        try {
+            await addComment({ postId, targetUserId, content, parentCommentId, replyUserId })
+            post.commentCount = Number(post.commentCount || 0) + 1
+        } catch (error) {
+            console.error(error)
+        } finally {
+            commentActionLoading[postId] = false
+        }
+    }
+}
+
 onMounted(() => {
     queryParams.targetUserId = userStore.id
     getProfile()
@@ -661,16 +744,9 @@ onActivated(() => {
     getFollowStats()
 })
 
-watch(
-    () => [showVideoPlayer.value, currentVideoSrc.value],
-    () => {
-        if (showVideoPlayer.value) initPlayer()
-        else stopPlayer()
-    }
-)
-
 onBeforeUnmount(() => {
-    stopPlayer()
+    followObserver?.disconnect()
+    followObserver = null
 })
 </script>
 
@@ -819,198 +895,6 @@ onBeforeUnmount(() => {
             }
         }
     }
-
-    .content-body {
-        padding: 0 32px 40px;
-
-        :deep(.custom-tabs) {
-            .el-tabs__nav-wrap::after {
-                background-color: var(--el-border-color-light);
-                height: 1px;
-            }
-
-            .el-tabs__item {
-                font-size: 16px;
-                padding: 0 24px;
-                color: var(--el-text-color-secondary);
-
-                &.is-active {
-                    color: var(--el-text-color-primary);
-                    font-weight: 600;
-                }
-
-                .tab-label {
-                    display: flex;
-                    align-items: center;
-
-                    .count {
-                        margin-left: 4px;
-                        font-size: 12px;
-                        background: var(--el-fill-color-dark);
-                        padding: 0 6px;
-                        border-radius: 10px;
-                        color: var(--el-text-color-secondary);
-                    }
-                }
-            }
-
-            .el-tabs__active-bar {
-                background-color: var(--el-color-warning);
-                height: 3px;
-                border-radius: 3px;
-            }
-        }
-
-        .post-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 12px;
-            margin-top: 20px;
-
-            .post-card {
-                position: relative;
-                cursor: pointer;
-                border-radius: 8px;
-                overflow: hidden;
-                background-color: var(--el-bg-color-overlay);
-                border: 1px solid var(--el-border-color-extra-light);
-                transition: all 0.3s;
-
-                &:hover {
-                    transform: translateY(-4px);
-                    box-shadow: var(--el-box-shadow-light);
-
-                    .cover-wrapper::after {
-                        opacity: 1;
-                    }
-                }
-
-                .cover-wrapper {
-                    position: relative;
-                    width: 100%;
-                    padding-bottom: 133%;
-                    background: var(--el-fill-color-darker);
-
-                    &::after {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        background: rgba(0, 0, 0, 0.1);
-                        opacity: 0;
-                        transition: opacity 0.3s;
-                        z-index: 1;
-                        pointer-events: none;
-                    }
-
-                    img {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        object-fit: cover;
-                        z-index: 0;
-                    }
-
-                    .video-wrapper {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        z-index: 0;
-
-                        .video-cover {
-                            width: 100%;
-                            height: 100%;
-                            object-fit: cover;
-                        }
-
-                        .play-icon {
-                            position: absolute;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            font-size: 32px;
-                            color: #fff;
-                            opacity: 0.8;
-                            z-index: 2;
-                            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-                        }
-                    }
-
-                    .text-cover {
-                        position: absolute;
-                        inset: 0;
-                        padding: 16px;
-                        font-size: 14px;
-                        color: var(--el-text-color-primary);
-                        background: var(--el-fill-color-light);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        text-align: center;
-
-                        span {
-                            display: -webkit-box;
-                            -webkit-line-clamp: 4;
-                            line-clamp: 4;
-                            -webkit-box-orient: vertical;
-                            overflow: hidden;
-                        }
-                    }
-
-                    .card-stat {
-                        position: absolute;
-                        bottom: 8px;
-                        left: 8px;
-                        color: #fff;
-                        font-size: 12px;
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-                        z-index: 2;
-                    }
-
-                    .type-badge {
-                        position: absolute;
-                        top: 8px;
-                        right: 8px;
-                        color: #fff;
-                        background: rgba(0, 0, 0, 0.3);
-                        padding: 4px;
-                        border-radius: 4px;
-                        font-size: 12px;
-                        display: flex;
-                        align-items: center;
-                        z-index: 2;
-                    }
-                }
-
-                .post-desc {
-                    padding: 8px 10px;
-                    font-size: 13px;
-                    color: var(--el-text-color-regular);
-                    line-height: 1.4;
-                    display: -webkit-box;
-                    line-clamp: 2;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                    background: var(--el-bg-color-overlay);
-                }
-            }
-        }
-
-        .loading-state,
-        .no-more-state {
-            text-align: center;
-            padding: 30px 0;
-            color: var(--el-text-color-secondary);
-            font-size: 13px;
-        }
-    }
 }
 
 :deep(.custom-dialog-theme) {
@@ -1125,6 +1009,10 @@ onBeforeUnmount(() => {
     flex: 1;
     overflow-y: auto;
     padding: 0;
+}
+
+.follow-load-trigger {
+    height: 1px;
 }
 
 .follow-user-row {
@@ -1253,58 +1141,6 @@ onBeforeUnmount(() => {
                     border-color: var(--el-border-color);
                 }
             }
-        }
-    }
-}
-
-.video-viewer-mask {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.9);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .video-viewer-close {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        width: 40px;
-        height: 40px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #fff;
-        font-size: 20px;
-        z-index: 10000;
-        transition: background 0.3s;
-
-        &:hover {
-            background: rgba(255, 255, 255, 0.4);
-        }
-    }
-
-    .video-container {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .video-player-content {
-            max-width: 100%;
-            max-height: 100%;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            outline: none;
         }
     }
 }
