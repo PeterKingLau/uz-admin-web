@@ -1,6 +1,5 @@
 <template>
     <div class="app-container tag-data">
-        <!-- 查询条件 -->
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px" class="search-form">
             <el-form-item label="标签名称" prop="name">
                 <el-input v-model="queryParams.name" placeholder="请输入标签名称" clearable style="width: 220px" @keyup.enter="handleQuery" />
@@ -66,7 +65,6 @@
             </div>
         </div>
 
-        <!-- 添加或修改子标签对话框 -->
         <el-dialog :title="dialogTitle" v-model="open" width="500px" append-to-body>
             <el-form ref="dataRef" :model="form" :rules="rules" label-width="90px">
                 <el-form-item label="标签名称" prop="name">
@@ -148,7 +146,6 @@ function ensureCategoryId() {
     return id
 }
 
-/** 查询列表 */
 function getList() {
     const cid = ensureCategoryId()
     if (!cid) return
@@ -172,13 +169,11 @@ function getList() {
         })
 }
 
-/** 搜索 */
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置 */
 function resetQuery() {
     proxy.resetForm?.('queryRef')
     queryParams.value.pageNum = 1
@@ -188,7 +183,6 @@ function resetQuery() {
     getList()
 }
 
-/** 多选框选中数据 */
 function handleSelectionChange(selection) {
     selectedRows.value = selection
     ids.value = selection.map(item => item.id)
@@ -206,14 +200,12 @@ function resetFormData() {
     })
 }
 
-/** 新增按钮 */
 function handleAdd() {
     dialogTitle.value = '新增子标签'
     resetFormData()
     open.value = true
 }
 
-/** 修改按钮（批量入口） */
 function handleUpdate() {
     if (single.value || !selectedRows.value.length) {
         proxy.$modal?.msgWarning && proxy.$modal.msgWarning('请选择一条要修改的数据')
@@ -222,7 +214,6 @@ function handleUpdate() {
     handleEdit(selectedRows.value[0])
 }
 
-/** 修改按钮（行内） */
 function handleEdit(row) {
     if (!row?.id) {
         proxy.$modal?.msgError && proxy.$modal.msgError('未找到要修改的子标签')
@@ -240,7 +231,6 @@ function handleEdit(row) {
     open.value = true
 }
 
-/** 删除 */
 function handleDelete(row) {
     const targets = row ? [row] : selectedRows.value
     const targetIds = targets.map(item => item.id).filter(Boolean)
@@ -267,7 +257,6 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 保存 */
 function submitForm() {
     if (!dataRef.value) return
 
@@ -296,9 +285,9 @@ function submitForm() {
     })
 }
 
-/** 返回 */
 function handleClose() {
-    router.push('/configuration/tag')
+    const obj = { path: '/configuration/tag' }
+    proxy.$tab.closeOpenPage(obj)
 }
 
 function formatTimeCell(val) {
@@ -311,3 +300,45 @@ onMounted(() => {
     getList()
 })
 </script>
+
+<style scoped lang="scss">
+.tag-data {
+    .table-wrapper {
+        border-radius: 6px;
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+
+            .left-tools {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+        }
+    }
+
+    .time-cell {
+        color: var(--el-text-color-secondary);
+        font-size: 13px;
+    }
+
+    .row-title {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        cursor: pointer;
+    }
+
+    .row-code {
+        font-family: 'JetBrains Mono', Consolas, monospace;
+        color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+        border: 1px solid var(--el-color-primary-light-8);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+}
+</style>

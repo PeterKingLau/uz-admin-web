@@ -329,3 +329,45 @@ onMounted(() => {
     getList()
 })
 </script>
+
+<style scoped lang="scss">
+.topbar-config {
+    .table-wrapper {
+        border-radius: 6px;
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+
+            .left-tools {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+        }
+    }
+
+    .time-cell {
+        color: var(--el-text-color-secondary);
+        font-size: 13px;
+    }
+
+    .row-title {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        cursor: pointer;
+    }
+
+    .row-code {
+        font-family: 'JetBrains Mono', Consolas, monospace;
+        color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+        border: 1px solid var(--el-color-primary-light-8);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+}
+</style>

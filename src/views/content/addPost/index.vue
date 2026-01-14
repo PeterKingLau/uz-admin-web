@@ -293,7 +293,6 @@ const interestLoading = ref(false)
 const selectedTagIds = ref<number[]>([])
 const suppressTagValidate = ref(false)
 const autoFilledContent = ref<string | null>(null)
-const lastAutoVideoTitle = ref<string>('')
 
 const isDragging = ref(false)
 const dragDepth = ref(0)
@@ -339,23 +338,15 @@ const selectedTagNames = computed(() => {
     return tags
 })
 
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const getBaseName = (name: string) => name.replace(/\.[^/.]+$/, '').trim()
 
 const appendVideoTitleToContent = (title: string) => {
     const t = (title || '').trim()
     if (!t) return
-    if (lastAutoVideoTitle.value === t) return
+    if (form.content && form.content.trim()) return
 
-    const current = String(form.content || '')
-    const cleaned = lastAutoVideoTitle.value
-        ? current.replace(new RegExp(`(^|\\n)\\s*${escapeRegExp(lastAutoVideoTitle.value)}\\s*(\\n|$)`, 'g'), '\n')
-        : current
-    const next = cleaned.trim().length ? `${cleaned.trim()}\n${t}` : t
-
-    form.content = next
+    form.content = t
     autoFilledContent.value = t
-    lastAutoVideoTitle.value = t
     nextTick(() => formRef.value?.validateField('content'))
 }
 
@@ -480,11 +471,9 @@ const handleRemove = (file: UploadFile) => {
     setTimeout(() => updatePreviewMedia(), 0)
     nextTick(() => formRef.value?.validateField('files'))
     if (form.postType === POST_TYPE.VIDEO) {
-        const current = String(form.content || '')
-        if (lastAutoVideoTitle.value) {
-            form.content = current.replace(new RegExp(`(^|\\n)\\s*${escapeRegExp(lastAutoVideoTitle.value)}\\s*(\\n|$)`, 'g'), '\n').trim()
+        if (autoFilledContent.value && form.content === autoFilledContent.value) {
+            form.content = ''
         }
-        lastAutoVideoTitle.value = ''
         autoFilledContent.value = null
         nextTick(() => formRef.value?.validateField('content'))
     }
@@ -495,7 +484,6 @@ const handleTypeChange = async () => {
     uploadRef.value?.clearFiles?.()
     updatePreviewMedia()
     autoFilledContent.value = null
-    lastAutoVideoTitle.value = ''
     isDragging.value = false
     dragDepth.value = 0
     await nextTick()
@@ -601,7 +589,6 @@ async function handleReset(afterSubmit = false) {
     uploadRef.value?.clearFiles?.()
     selectedTagIds.value = []
     autoFilledContent.value = null
-    lastAutoVideoTitle.value = ''
     isDragging.value = false
     dragDepth.value = 0
 

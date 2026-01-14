@@ -468,3 +468,100 @@ onMounted(() => {
     getList()
 })
 </script>
+
+<style scoped lang="scss">
+.system-menu {
+    .table-wrapper {
+        border-radius: 6px;
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+
+            .left-tools {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+        }
+    }
+
+    .time-cell {
+        color: var(--el-text-color-secondary);
+        font-size: 13px;
+    }
+
+    .row-title {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        cursor: pointer;
+    }
+
+    .row-code {
+        font-family: 'JetBrains Mono', Consolas, monospace;
+        color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+        border: 1px solid var(--el-color-primary-light-8);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    .search-input {
+        width: 200px;
+    }
+
+    .menu-name {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+    }
+
+    .menu-icon-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .menu-icon {
+        font-size: 18px;
+        color: var(--el-color-primary);
+    }
+
+    .menu-perms {
+        display: inline-block;
+        font-family: 'JetBrains Mono', Consolas, monospace;
+        font-size: 12px;
+        background: var(--el-fill-color-light);
+        padding: 2px 8px;
+        border-radius: 4px;
+        color: var(--el-text-color-regular);
+    }
+}
+
+:deep(.system-menu-dialog) {
+    .form-item-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        .help-icon {
+            color: var(--el-text-color-secondary);
+            font-size: 16px;
+            cursor: help;
+            transition: color 0.3s;
+
+            &:hover {
+                color: var(--el-color-primary);
+            }
+        }
+    }
+
+    .dialog-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+}
+</style>

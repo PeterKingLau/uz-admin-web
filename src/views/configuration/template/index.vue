@@ -599,6 +599,114 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.template-manage {
+    .table-wrapper {
+        border-radius: 6px;
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+
+            .left-tools {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+        }
+    }
+
+    .time-cell {
+        color: var(--el-text-color-secondary);
+        font-size: 13px;
+    }
+
+    .row-title {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        cursor: pointer;
+    }
+
+    .row-code {
+        font-family: 'JetBrains Mono', Consolas, monospace;
+        color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+        border: 1px solid var(--el-color-primary-light-8);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+}
+
+.representative-container {
+    width: 100%;
+
+    .representative-card {
+        background-color: var(--el-fill-color-lighter);
+        border: 1px solid var(--el-border-color-light);
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        display: block;
+
+        &:hover {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            border-color: var(--el-border-color);
+            transform: translateY(-1px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+
+            .index-badge {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--el-text-color-secondary);
+                background: var(--el-fill-color);
+                padding: 2px 8px;
+                border-radius: 10px;
+            }
+        }
+
+        .card-body {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+
+            .left-inputs {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                min-width: 0;
+            }
+
+            .right-upload {
+                width: 80px;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    }
+
+    .add-btn {
+        width: 100%;
+        border-style: dashed;
+        color: var(--el-text-color-secondary);
+        &:hover {
+            border-color: var(--el-color-primary);
+            color: var(--el-color-primary);
+        }
+    }
+}
+
 .representative-form-item {
     margin-bottom: 0;
 }

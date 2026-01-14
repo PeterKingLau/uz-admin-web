@@ -333,3 +333,114 @@ function hasMedia(row) {
     return false
 }
 </script>
+
+<style scoped lang="scss">
+.audit-profile {
+    .table-wrapper {
+        border-radius: 6px;
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+
+            .left-tools {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+        }
+    }
+
+    .time-cell {
+        color: var(--el-text-color-secondary);
+        font-size: 13px;
+    }
+
+    .row-title {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        cursor: pointer;
+    }
+
+    .row-code {
+        font-family: 'JetBrains Mono', Consolas, monospace;
+        color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+        border: 1px solid var(--el-color-primary-light-8);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    .search-input {
+        width: 180px;
+    }
+
+    .user-info {
+        .nickname {
+            font-size: 14px;
+            color: #303133;
+        }
+        .username {
+            font-size: 12px;
+            margin-top: 2px;
+        }
+    }
+
+    .text-content {
+        color: #606266;
+        font-size: 13px;
+    }
+}
+
+:deep(.audit-profile-dialog) {
+    .detail-desc {
+        margin-bottom: 24px;
+    }
+
+    .detail-desc .el-descriptions__cell {
+        padding: 12px 16px;
+    }
+
+    .detail-section {
+        margin-bottom: 20px;
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #303133;
+            margin-bottom: 10px;
+
+            .section-icon {
+                font-size: 18px;
+                color: var(--el-color-primary);
+                margin-right: 6px;
+            }
+        }
+
+        .content-box {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+            border: 1px solid #eee;
+        }
+
+        .media-box {
+            margin-top: 8px;
+        }
+    }
+
+    .dialog-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+}
+</style>
