@@ -1,6 +1,13 @@
 <template>
-    <teleport to="body">
-        <div v-if="visible" class="video-immersive-container" @click="handleClose">
+    <component :is="teleportWrapper" v-bind="teleportAttrs">
+        <div
+            v-if="visible"
+            class="video-immersive-container"
+            :class="{ 'page-mode': !props.useTeleport }"
+            @click="handleClose"
+            @mousemove="onMouseMove"
+            @mouseleave="onMouseLeave"
+        >
             <div class="stage" @click.stop>
                 <div ref="playerFrameRef" class="player-frame" :class="{ 'comment-open': commentPanelVisible }">
                     <div ref="videoWrapperRef" class="player-shell" :class="[videoFitClass, { 'is-watermarked': showWatermark }]">
@@ -24,13 +31,13 @@
                             @ratechange="onRateChange"
                         ></video>
 
-                        <div class="top-bar">
+                        <div class="top-bar" :class="{ 'hide-controls': !controlsVisible && isPlaying }">
                             <div class="close-btn" @click.stop="handleClose">
                                 <Icon icon="ep:close" />
                             </div>
                         </div>
 
-                        <div class="bottom-info-layer">
+                        <div class="bottom-info-layer" :class="{ 'hide-controls': !controlsVisible && isPlaying }">
                             <div class="info-content">
                                 <div class="author-line">
                                     <div class="author-name">@{{ authorName }}</div>
@@ -48,25 +55,23 @@
 
                             <div class="controls-layer" @click.stop>
                                 <div class="progress-container">
-                                    <input
-                                        class="progress"
-                                        type="range"
-                                        min="0"
-                                        :max="progressMax"
-                                        step="0.1"
+                                    <el-slider
                                         v-model="progressValue"
+                                        :min="0"
+                                        :max="progressMax"
+                                        :step="0.1"
+                                        :show-tooltip="false"
                                         @input="onSeekInput"
                                         @change="onSeekChange"
-                                        :style="progressStyle"
+                                        class="progress-slider"
                                     />
                                 </div>
 
                                 <div class="control-row">
                                     <div class="left-controls">
-                                        <button class="btn icon" @click="togglePlay">
+                                        <div class="play-btn" @click="togglePlay">
                                             <Icon :icon="isPlaying ? 'mdi:pause' : 'mdi:play'" />
-                                        </button>
-
+                                        </div>
                                         <div class="time-display">
                                             <span>{{ formatClock(currentTime) }}</span>
                                             <span class="sep">/</span>
@@ -76,30 +81,29 @@
 
                                     <div class="right-controls">
                                         <div class="volume-control">
-                                            <button class="btn icon" @click="toggleMute">
+                                            <div class="volume-btn" @click="toggleMute">
                                                 <Icon :icon="muted || volume === 0 ? 'mdi:volume-mute' : volume < 0.5 ? 'mdi:volume-low' : 'mdi:volume-high'" />
-                                            </button>
+                                            </div>
                                             <div class="volume-slider-wrapper">
-                                                <input
-                                                    class="volume-slider"
-                                                    type="range"
-                                                    min="0"
-                                                    max="1"
-                                                    step="0.01"
-                                                    v-model.number="volume"
+                                                <el-slider
+                                                    v-model="volume"
+                                                    :min="0"
+                                                    :max="1"
+                                                    :step="0.01"
+                                                    :show-tooltip="false"
                                                     @input="applyVolume"
-                                                    :style="volumeStyle"
+                                                    class="volume-slider"
                                                 />
                                             </div>
                                         </div>
 
                                         <div class="speed-control">
                                             <div class="speed-trigger">
-                                                <span class="speed-text">{{ playbackRate }}x</span>
+                                                <span class="speed-text">{{ playbackRate === 1 ? '倍速' : playbackRate + 'x' }}</span>
                                                 <div class="speed-menu-wrapper">
                                                     <div class="speed-menu">
-                                                        <div class="speed-list">
-                                                            <button
+                                                        <div class="speed-options">
+                                                            <div
                                                                 v-for="r in rates"
                                                                 :key="r"
                                                                 class="speed-item"
@@ -107,7 +111,7 @@
                                                                 @click="applyRate(r)"
                                                             >
                                                                 {{ r }}x
-                                                            </button>
+                                                            </div>
                                                         </div>
                                                         <div class="custom-speed">
                                                             <input
@@ -125,15 +129,49 @@
                                             </div>
                                         </div>
 
-                                        <button class="btn icon" :disabled="!pipSupported" @click="togglePiP" title="画中画">
+                                        <div class="icon-btn" :class="{ disabled: !pipSupported }" @click="togglePiP" title="画中画">
                                             <Icon :icon="pipIcon" />
-                                        </button>
+                                        </div>
 
-                                        <button class="btn icon" @click="toggleFullscreen" title="全屏">
+                                        <div class="icon-btn" @click="toggleFullscreen" title="全屏">
                                             <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" />
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="right-sidebar">
+                            <div class="sidebar-item avatar-wrapper">
+                                <el-avatar :size="48" :src="authorAvatar" class="author-avatar" />
+                            </div>
+
+                            <div class="sidebar-item" @click.stop="emitAction('like')">
+                                <div class="icon-wrapper">
+                                    <Icon icon="mdi:heart" :class="{ liked: isLiked }" />
+                                </div>
+                                <span class="count">{{ formatCount(postData.likeCount) }}</span>
+                            </div>
+
+                            <div class="sidebar-item" :class="{ active: commentPanelVisible }" @click.stop="toggleCommentPanel">
+                                <div class="icon-wrapper">
+                                    <Icon icon="mdi:comment-processing" />
+                                </div>
+                                <span class="count">{{ formatCount(postData.commentCount) }}</span>
+                            </div>
+
+                            <div class="sidebar-item" @click.stop="emitAction('collect')">
+                                <div class="icon-wrapper">
+                                    <Icon icon="mdi:star" :class="{ collected: isCollected }" />
+                                </div>
+                                <span class="count">{{ formatCount(collectedCount) }}</span>
+                            </div>
+
+                            <div class="sidebar-item" @click.stop="emitAction('share')">
+                                <div class="icon-wrapper">
+                                    <Icon icon="mdi:share" />
+                                </div>
+                                <span class="count">{{ formatCount(postData.shareCount) }}</span>
                             </div>
                         </div>
                     </div>
@@ -144,9 +182,9 @@
                                 <span class="title">全部评论</span>
                                 <span class="count" v-if="postData.commentCount > 0">({{ formatCount(postData.commentCount) }})</span>
                             </div>
-                            <button class="panel-close" @click="commentPanelVisible = false">
+                            <div class="panel-close" @click="commentPanelVisible = false">
                                 <Icon icon="ep:close" />
-                            </button>
+                            </div>
                         </div>
 
                         <div class="comment-panel-body" ref="commentBodyRef" @scroll="handleCommentScroll">
@@ -167,11 +205,12 @@
                                     </div>
 
                                     <div class="comment-actions">
-                                        <button class="action-btn reply-btn" @click="handleReplyToComment(comment)">回复</button>
-                                        <button v-if="Number(comment.replyCount || 0) > 0" class="action-btn toggle-reply-btn" @click="toggleReplies(comment)">
-                                            {{ resolveReplyState(comment).open ? '收起' : `展开 ${comment.replyCount} 条回复` }}
+                                        <span class="action-text reply-btn" @click="handleReplyToComment(comment)">回复</span>
+                                        <div v-if="Number(comment.replyCount || 0) > 0" class="action-text toggle-reply-btn" @click="toggleReplies(comment)">
+                                            <span class="divider"></span>
+                                            <span>{{ resolveReplyState(comment).open ? '收起' : `展开 ${comment.replyCount} 条回复` }}</span>
                                             <Icon :icon="resolveReplyState(comment).open ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
-                                        </button>
+                                        </div>
                                     </div>
 
                                     <div class="comment-replies" v-if="resolveReplyState(comment).open">
@@ -182,7 +221,7 @@
                                                     <span class="reply-name">{{ getCommentName(reply) }}</span>
                                                     <span v-if="reply.replyUserNickName" class="reply-arrow">
                                                         <Icon icon="mdi:menu-right" />
-                                                        {{ reply.replyUserNickName }}
+                                                        <span class="target-name">{{ reply.replyUserNickName }}</span>
                                                     </span>
                                                 </div>
                                                 <div class="reply-content" @click="handleReplyToReply(reply, comment)">
@@ -190,15 +229,16 @@
                                                 </div>
                                                 <div class="reply-meta">
                                                     <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
-                                                    <button class="action-btn reply-btn" @click="handleReplyToReply(reply, comment)">回复</button>
+                                                    <span class="action-text reply-btn" @click="handleReplyToReply(reply, comment)">回复</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div v-if="!resolveReplyState(comment).noMore" class="load-more-replies">
-                                            <button @click="loadReplies(comment)" :disabled="resolveReplyState(comment).loading">
+                                            <span class="load-more-text" @click="loadReplies(comment)">
                                                 {{ resolveReplyState(comment).loading ? '加载中...' : '查看更多回复' }}
-                                            </button>
+                                                <Icon icon="mdi:chevron-down" v-if="!resolveReplyState(comment).loading" />
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -214,9 +254,9 @@
                         <div class="comment-panel-footer">
                             <div v-if="replyTarget" class="reply-context-bar">
                                 <span class="reply-text">回复 @{{ replyTarget.replyUserName }}</span>
-                                <button class="cancel-reply" @click="clearReplyTarget">
+                                <div class="cancel-reply" @click="clearReplyTarget">
                                     <Icon icon="ep:close" />
-                                </button>
+                                </div>
                             </div>
                             <div class="input-area">
                                 <el-input
@@ -230,50 +270,16 @@
                                     class="comment-input"
                                     @keydown.enter.exact.prevent="submitComment"
                                 />
-                                <button class="send-btn" :disabled="!commentDraft.trim()" @click="submitComment">
+                                <div class="send-btn" :class="{ disabled: !commentDraft.trim() }" @click="submitComment">
                                     <Icon icon="mdi:send" />
-                                </button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="right-sidebar">
-                        <div class="sidebar-item avatar-wrapper">
-                            <el-avatar :size="48" :src="authorAvatar" class="author-avatar" />
-                        </div>
-
-                        <div class="sidebar-item" @click.stop="emitAction('like')">
-                            <div class="icon-wrapper">
-                                <Icon icon="mdi:heart" :class="{ liked: postData.isLiked }" />
-                            </div>
-                            <span class="count">{{ formatCount(postData.likeCount) }}</span>
-                        </div>
-
-                        <div class="sidebar-item" :class="{ active: commentPanelVisible }" @click.stop="toggleCommentPanel">
-                            <div class="icon-wrapper">
-                                <Icon icon="mdi:comment-processing" />
-                            </div>
-                            <span class="count">{{ formatCount(postData.commentCount) }}</span>
-                        </div>
-
-                        <div class="sidebar-item" @click.stop="emitAction('collect')">
-                            <div class="icon-wrapper">
-                                <Icon icon="mdi:star" :class="{ collected: postData.isCollected }" />
-                            </div>
-                            <span class="count">{{ formatCount(postData.collectCount) }}</span>
-                        </div>
-
-                        <div class="sidebar-item" @click.stop="emitAction('share')">
-                            <div class="icon-wrapper">
-                                <Icon icon="mdi:share" />
-                            </div>
-                            <span class="count">{{ formatCount(postData.shareCount) }}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </teleport>
+    </component>
 </template>
 
 <script setup>
@@ -286,12 +292,16 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     src: { type: String, default: '' },
     post: { type: Object, default: () => ({}) },
-    userInfo: { type: Object, default: () => ({}) }
+    userInfo: { type: Object, default: () => ({}) },
+    useTeleport: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['update:modelValue', 'close', 'action'])
 
 const { proxy } = getCurrentInstance()
+
+const teleportWrapper = computed(() => (props.useTeleport ? 'teleport' : 'div'))
+const teleportAttrs = computed(() => (props.useTeleport ? { to: 'body' } : {}))
 
 const visible = computed({
     get: () => props.modelValue,
@@ -299,6 +309,20 @@ const visible = computed({
 })
 
 const postData = computed(() => props.post || {})
+const isLiked = computed(() => {
+    if (typeof postData.value?.isLiked === 'boolean') return postData.value.isLiked
+    if (typeof postData.value?.like === 'boolean') return postData.value.like
+    if (postData.value?.like != null) return String(postData.value.like) === '1'
+    if (postData.value?.isLiked != null) return String(postData.value.isLiked) === '1'
+    return false
+})
+const isCollected = computed(() => {
+    if (typeof postData.value?.isCollected === 'boolean') return postData.value.isCollected
+    if (typeof postData.value?.bookmark === 'boolean') return postData.value.bookmark
+    if (postData.value?.bookmark != null) return String(postData.value.bookmark) === '1'
+    if (postData.value?.isCollected != null) return String(postData.value.isCollected) === '1'
+    return false
+})
 const playerRef = ref(null)
 const playerFrameRef = ref(null)
 const videoWrapperRef = ref(null)
@@ -326,9 +350,13 @@ const seeking = ref(false)
 const volume = ref(1)
 const muted = ref(false)
 
-const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+const rates = [0.75, 1.0, 1.25, 1.5, 2.0]
 const playbackRate = ref(1)
 const customRate = ref('')
+
+const controlsVisible = ref(true)
+let hideControlsTimer = null
+
 const clampRate = v => {
     const n = Number(v)
     if (!Number.isFinite(n)) return 1
@@ -337,7 +365,6 @@ const clampRate = v => {
 
 const pipSupported = ref(false)
 const pipActive = ref(false)
-
 const isFullscreen = ref(false)
 
 const pipIcon = computed(() => (pipActive.value ? 'mdi:picture-in-picture-bottom-right' : 'mdi:picture-in-picture-bottom-right-outline'))
@@ -348,6 +375,7 @@ const authorAvatar = computed(() => {
     const avatar = postData.value.avatar || props.userInfo?.avatar || ''
     return getImgUrl(avatar)
 })
+const collectedCount = computed(() => postData.value.bookmarkCount ?? postData.value.collectCount ?? 0)
 
 const formatCount = num => {
     const n = Number(num || 0)
@@ -541,8 +569,17 @@ const buildContentParts = content => {
 
 const contentParts = computed(() => buildContentParts(postData.value?.content || ''))
 
+const resolveBackgroundUrl = () => {
+    const list = Array.isArray(postData.value?.mediaList) ? postData.value.mediaList : []
+    if (list.length > 1) return list[0]
+    if (list.length === 1 && list[0] && list[0] !== props.src) return list[0]
+    const fallback = postData.value?.cover || postData.value?.coverUrl || postData.value?.thumbnail || postData.value?.poster
+    if (!fallback) return ''
+    return getImgUrl(fallback)
+}
+
 const bgStyle = computed(() => {
-    const s = String(props.src || '').trim()
+    const s = String(resolveBackgroundUrl() || '').trim()
     if (!s) return {}
     return { backgroundImage: `url(${s})` }
 })
@@ -584,21 +621,6 @@ const progressValue = computed({
     }
 })
 const progressTemp = ref(0)
-const progressStyle = computed(() => {
-    const max = progressMax.value || 1
-    const val = progressValue.value
-    const percentage = (val / max) * 100
-    return {
-        backgroundSize: `${percentage}% 100%`
-    }
-})
-
-const volumeStyle = computed(() => {
-    const percentage = volume.value * 100
-    return {
-        backgroundSize: `${percentage}% 100%`
-    }
-})
 
 const formatClock = s => {
     const sec = Math.max(0, Math.floor(Number(s) || 0))
@@ -653,6 +675,7 @@ const onLoadedMeta = () => {
     volume.value = Number(el.volume ?? 1)
     muted.value = Boolean(el.muted)
     playbackRate.value = Number(el.playbackRate || 1)
+    customRate.value = playbackRate.value
     syncPiPSupport()
     updateWatermarkAndFit()
 }
@@ -690,17 +713,16 @@ const onRateChange = () => {
     playbackRate.value = Number(el.playbackRate || 1)
 }
 
-const onSeekInput = e => {
+const onSeekInput = v => {
     seeking.value = true
-    const v = Number(e?.target?.value || 0)
-    progressTemp.value = v
+    progressTemp.value = Number(v || 0)
 }
 
-const onSeekChange = e => {
+const onSeekChange = v => {
     const el = playerRef.value
     if (!el) return
-    const v = Number(e?.target?.value || 0)
-    el.currentTime = Math.min(Number(el.duration || 0), Math.max(0, v))
+    const sec = Number(v || 0)
+    el.currentTime = Math.min(Number(el.duration || 0), Math.max(0, sec))
     currentTime.value = Number(el.currentTime || 0)
     seeking.value = false
 }
@@ -813,6 +835,10 @@ const stopPlayer = () => {
     clearReplyTarget()
     window.removeEventListener('resize', handleResize)
     document.removeEventListener('fullscreenchange', handleResize)
+    if (hideControlsTimer) {
+        clearTimeout(hideControlsTimer)
+        hideControlsTimer = null
+    }
 }
 
 const initPlayer = async () => {
@@ -833,6 +859,35 @@ const initPlayer = async () => {
     }
 }
 
+const resetHideTimer = () => {
+    controlsVisible.value = true
+    if (hideControlsTimer) clearTimeout(hideControlsTimer)
+    if (isPlaying.value) {
+        hideControlsTimer = setTimeout(() => {
+            controlsVisible.value = false
+        }, 3000)
+    }
+}
+
+const onMouseMove = () => {
+    resetHideTimer()
+}
+
+const onMouseLeave = () => {
+    if (isPlaying.value) {
+        controlsVisible.value = false
+    }
+}
+
+watch(isPlaying, val => {
+    if (val) {
+        resetHideTimer()
+    } else {
+        controlsVisible.value = true
+        if (hideControlsTimer) clearTimeout(hideControlsTimer)
+    }
+})
+
 const seekTo = seconds => {
     const el = playerRef.value
     if (!el) return
@@ -848,7 +903,8 @@ watch(
     ([v]) => {
         if (v) initPlayer()
         else stopPlayer()
-    }
+    },
+    { immediate: true }
 )
 
 watch(
@@ -879,6 +935,13 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    &.page-mode {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        z-index: 0;
+    }
 }
 
 .stage {
@@ -897,29 +960,20 @@ onBeforeUnmount(() => {
     width: 100%;
     max-width: 1200px;
     display: flex;
-    transition: transform 0.3s ease;
-
-    &.comment-open {
-        .player-shell {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-        }
-        .right-sidebar {
-            opacity: 0;
-            pointer-events: none;
-        }
-    }
+    overflow: hidden;
+    border-radius: 12px;
+    background: #000;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    transition: all 0.3s ease;
 }
 
 .player-shell {
     position: relative;
     flex: 1;
     height: 100%;
-    border-radius: 12px;
     overflow: hidden;
-    background: #000;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    transition: border-radius 0.3s ease;
+    min-width: 0;
+    cursor: default;
 }
 
 .player-bg {
@@ -945,10 +999,19 @@ onBeforeUnmount(() => {
 
 .top-bar {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
     z-index: 10;
     pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+
+    &.hide-controls {
+        opacity: 0;
+    }
 }
 
 .close-btn {
@@ -977,7 +1040,7 @@ onBeforeUnmount(() => {
     position: absolute;
     top: 0;
     bottom: 0;
-    right: -80px;
+    right: 20px;
     width: 60px;
     display: flex;
     flex-direction: column;
@@ -987,6 +1050,12 @@ onBeforeUnmount(() => {
     padding-bottom: 120px;
     z-index: 13;
     transition: opacity 0.2s ease;
+    pointer-events: auto;
+}
+
+.comment-open .right-sidebar {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .sidebar-item {
@@ -1053,17 +1122,25 @@ onBeforeUnmount(() => {
     right: 0;
     bottom: 0;
     z-index: 9;
-    padding: 24px 32px 16px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+    padding: 0 32px 24px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
     display: flex;
     flex-direction: column;
     gap: 16px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+
+    &.hide-controls {
+        opacity: 0;
+        pointer-events: none;
+    }
 }
 
 .info-content {
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     max-width: 80%;
+    margin-bottom: 8px;
 }
 
 .author-line {
@@ -1096,71 +1173,74 @@ onBeforeUnmount(() => {
     }
 }
 
-/* 控制栏重构 */
 .controls-layer {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     pointer-events: auto;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.player-shell:hover .controls-layer {
-    opacity: 1;
 }
 
 .progress-container {
     width: 100%;
 }
 
-.progress {
+.progress-slider {
     width: 100%;
     height: 4px;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    cursor: pointer;
-    background-image: linear-gradient(#fff, #fff);
-    background-repeat: no-repeat;
-    transition: height 0.1s;
+}
 
-    &:hover {
-        height: 6px;
-    }
+:deep(.progress-slider .el-slider__runway) {
+    background: rgba(255, 255, 255, 0.25);
+    height: 4px;
+    margin: 0;
+}
 
-    &::-webkit-slider-thumb {
-        appearance: none;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        transform: scale(0);
-        transition: transform 0.1s;
-    }
+:deep(.progress-slider .el-slider__bar) {
+    background: #fff;
+    height: 4px;
+}
 
-    &:hover::-webkit-slider-thumb {
-        transform: scale(1);
-    }
+:deep(.progress-slider .el-slider__button-wrapper) {
+    top: -15px;
+}
+
+:deep(.progress-slider .el-slider__button) {
+    border: none;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    transform: scale(0);
+    transition: transform 0.2s;
+}
+
+.progress-container:hover :deep(.el-slider__button) {
+    transform: scale(1);
 }
 
 .control-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 36px;
 }
 
 .left-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
-.right-controls {
+.play-btn {
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 16px;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.8;
+    }
 }
 
 .time-display {
@@ -1175,63 +1255,68 @@ onBeforeUnmount(() => {
     }
 }
 
-.btn.icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    background: transparent;
-    color: #fff;
-    font-size: 24px;
+.right-controls {
     display: flex;
     align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    transition: background 0.2s;
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
+    gap: 20px;
 }
 
 .volume-control {
     display: flex;
     align-items: center;
     position: relative;
+    height: 100%;
+
+    .volume-btn {
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        z-index: 2;
+    }
+
+    .volume-slider-wrapper {
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+        margin-left: 0;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 4px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        padding-right: 12px;
+    }
 
     &:hover .volume-slider-wrapper {
-        width: 80px;
+        width: 90px;
         opacity: 1;
-        padding-left: 8px;
+        margin-left: 8px;
+        padding-left: 12px;
     }
-}
-
-.volume-slider-wrapper {
-    width: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
 }
 
 .volume-slider {
-    width: 80px;
-    height: 4px;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    background-image: linear-gradient(#fff, #fff);
-    background-repeat: no-repeat;
-    cursor: pointer;
+    width: 100%;
+}
 
-    &::-webkit-slider-thumb {
-        appearance: none;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #fff;
-    }
+:deep(.volume-slider .el-slider__runway) {
+    background: rgba(255, 255, 255, 0.3);
+    height: 3px;
+    margin: 0;
+}
+
+:deep(.volume-slider .el-slider__bar) {
+    background: #face15;
+    height: 3px;
+}
+
+:deep(.volume-slider .el-slider__button) {
+    width: 10px;
+    height: 10px;
+    border: none;
 }
 
 .speed-control {
@@ -1242,24 +1327,15 @@ onBeforeUnmount(() => {
 }
 
 .speed-trigger {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0 4px;
-    height: 100%;
-}
-
-.speed-text {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #fff;
-    transition: color 0.2s;
-}
-
-.speed-trigger:hover .speed-text {
-    color: #face15;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    position: relative;
 }
 
 .speed-menu-wrapper {
@@ -1267,55 +1343,49 @@ onBeforeUnmount(() => {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    padding-bottom: 12px;
+    padding-bottom: 16px;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease 0.1s;
+    visibility: hidden;
+    transition: all 0.2s ease;
 }
 
 .speed-trigger:hover .speed-menu-wrapper {
     opacity: 1;
-    pointer-events: auto;
-    transition-delay: 0s;
+    visibility: visible;
 }
 
 .speed-menu {
-    background: rgba(20, 20, 20, 0.95);
+    background: rgba(28, 28, 30, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 8px;
     padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    min-width: 120px;
-}
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 120px;
 
-.speed-list {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-}
-
-.speed-item {
-    background: transparent;
-    border: none;
-    color: #ccc;
-    font-size: 12px;
-    padding: 6px 4px;
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: center;
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
+    .speed-options {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 2px;
     }
 
-    &.active {
-        color: #face15;
-        font-weight: 600;
-        background: rgba(250, 206, 21, 0.1);
+    .speed-item {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 13px;
+        padding: 8px;
+        text-align: center;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        &.active {
+            color: #face15;
+            font-weight: 600;
+        }
     }
 }
 
@@ -1324,6 +1394,7 @@ onBeforeUnmount(() => {
     gap: 4px;
     padding-top: 6px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 4px;
 }
 
 .custom-input {
@@ -1357,21 +1428,37 @@ onBeforeUnmount(() => {
     }
 }
 
+.icon-btn {
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 1;
+    }
+
+    &.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+}
+
 .comment-panel {
-    width: 400px;
+    width: 0;
     height: 100%;
     background: rgba(24, 24, 28, 0.98);
     backdrop-filter: blur(20px);
-    border-top-right-radius: 12px;
-    border-bottom-right-radius: 12px;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transform: translateX(0);
-    width: 0;
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 
     &.open {
         width: 400px;
@@ -1386,6 +1473,12 @@ onBeforeUnmount(() => {
     justify-content: space-between;
     align-items: center;
 
+    .header-left {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
     .title {
         font-size: 16px;
         font-weight: 600;
@@ -1395,20 +1488,18 @@ onBeforeUnmount(() => {
     .count {
         font-size: 13px;
         color: rgba(255, 255, 255, 0.5);
-        margin-left: 6px;
     }
 
     .panel-close {
-        background: transparent;
-        border: none;
         color: rgba(255, 255, 255, 0.6);
         font-size: 20px;
         cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
+        transition: color 0.2s;
+        border: none;
+        background: transparent;
+        padding: 0;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.1);
             color: #fff;
         }
     }
@@ -1482,39 +1573,42 @@ onBeforeUnmount(() => {
         color: rgba(255, 255, 255, 0.9);
         white-space: pre-wrap;
         word-break: break-all;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         cursor: pointer;
     }
 
     .comment-actions {
         display: flex;
         gap: 16px;
+        margin-bottom: 4px;
 
-        .action-btn {
-            background: transparent;
-            border: none;
-            padding: 0;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+        .action-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
             cursor: pointer;
             transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
 
             &:hover {
                 color: #face15;
             }
+        }
 
-            &.toggle-reply-btn {
-                display: flex;
-                align-items: center;
-                gap: 2px;
-            }
+        .divider {
+            width: 12px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin-right: 4px;
         }
     }
 
     .comment-replies {
-        margin-top: 12px;
-        padding-left: 12px;
-        border-left: 2px solid rgba(255, 255, 255, 0.1);
+        margin-top: 8px;
+        padding-left: 16px;
+        border-left: 2px solid rgba(255, 255, 255, 0.15);
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -1542,6 +1636,13 @@ onBeforeUnmount(() => {
                         align-items: center;
                         margin-left: 4px;
                         color: rgba(255, 255, 255, 0.3);
+                        font-size: 14px;
+                    }
+
+                    .target-name {
+                        color: #face15;
+                        margin-left: 2px;
+                        font-weight: 500;
                     }
                 }
 
@@ -1557,27 +1658,36 @@ onBeforeUnmount(() => {
                     display: flex;
                     gap: 12px;
                     font-size: 11px;
-                    color: rgba(255, 255, 255, 0.3);
+                    color: rgba(255, 255, 255, 0.4);
+                    align-items: center;
 
-                    .reply-btn:hover {
-                        color: #face15;
+                    .reply-btn {
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.6);
                         cursor: pointer;
+                        &:hover {
+                            color: #face15;
+                        }
                     }
                 }
             }
         }
 
-        .load-more-replies button {
-            background: transparent;
-            border: none;
-            color: #face15;
-            font-size: 12px;
-            cursor: pointer;
-            padding: 4px 0;
+        .load-more-replies {
+            padding-top: 4px;
+            .load-more-text {
+                font-size: 13px;
+                color: rgba(255, 255, 255, 0.7);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                transition: color 0.2s;
+                font-weight: 500;
 
-            &:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
+                &:hover {
+                    color: #face15;
+                }
             }
         }
     }
@@ -1626,13 +1736,8 @@ onBeforeUnmount(() => {
         color: rgba(255, 255, 255, 0.7);
 
         .cancel-reply {
-            background: transparent;
-            border: none;
-            color: inherit;
             cursor: pointer;
-            padding: 2px;
             display: flex;
-
             &:hover {
                 color: #fff;
             }
@@ -1668,7 +1773,6 @@ onBeforeUnmount(() => {
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border: none;
             background: #face15;
             color: #000;
             display: flex;
@@ -1678,13 +1782,13 @@ onBeforeUnmount(() => {
             transition: all 0.2s;
             flex-shrink: 0;
 
-            &:disabled {
+            &.disabled {
                 background: rgba(255, 255, 255, 0.1);
                 color: rgba(255, 255, 255, 0.3);
                 cursor: not-allowed;
             }
 
-            &:not(:disabled):hover {
+            &:not(.disabled):hover {
                 transform: scale(1.05);
                 background: #fbd63d;
             }
@@ -1716,6 +1820,7 @@ onBeforeUnmount(() => {
 
         &.open {
             transform: translateY(0);
+            width: 100%;
         }
     }
 

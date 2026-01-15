@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="app-container user-profile-page">
         <div class="profile-header">
             <div class="banner">
@@ -55,6 +55,8 @@
             :like-count="likeTotal"
             :bookmark-count="bookmarkTotal"
             :post-list="postList"
+            :collection-list="collectionList"
+            :collection-loading="collectionLoading"
             :loading="loading"
             :no-more="noMore"
             :get-cover="getCover"
@@ -62,15 +64,8 @@
             @tab-click="handleTabClick"
             @load-more="loadMore"
             @preview="handlePreview"
-        />
-
-        <VideoModule
-            v-model="showVideoPlayer"
-            :src="currentVideoSrc"
-            :post="currentPost"
-            :user-info="userInfo"
-            @close="closeVideoPlayer"
-            @action="mockAction"
+            @works-filter-change="handleWorksFilterChange"
+            @create-collection="handleCreateCollection"
         />
 
         <el-image-viewer v-if="showImageViewer" :url-list="previewImgList" :initial-index="0" @close="showImageViewer = false" />
@@ -162,20 +157,23 @@
 
 <script setup>
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike } from '@/api/content/post'
+import { useRoute, useRouter } from 'vue-router'
+import { listPostByApp, listPostByBookMark, listPostByLike } from '@/api/content/post'
+import { addCollection, listMyCollections } from '@/api/content/collection'
 import { listFollowers, listFollowing, listMutual, selectFollowNum, toggleFollowUser } from '@/api/content/userFollow'
 import { getUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
+import cache from '@/plugins/cache'
 import modal from '@/plugins/modal'
 import ContentModule from './components/ContentModule/index.vue'
-import VideoModule from './components/VideoModule/index.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
 const activeTab = ref('works')
 const loading = ref(false)
@@ -184,6 +182,9 @@ const total = ref(0)
 const likeTotal = ref(0)
 const bookmarkTotal = ref(0)
 const postList = ref([])
+const collectionList = ref([])
+const collectionLoading = ref(false)
+const createCollectionLoading = ref(false)
 const profileInfo = ref({})
 const followStats = ref({
     following: 0,
@@ -191,9 +192,6 @@ const followStats = ref({
     mutualCount: 0
 })
 
-const showVideoPlayer = ref(false)
-const currentVideoSrc = ref('')
-const currentPost = ref({})
 const showImageViewer = ref(false)
 const previewImgList = ref([])
 
@@ -209,9 +207,6 @@ const followPageSize = 20
 const followTabSet = new Set(['following', 'followers', 'mutual'])
 const followRequestId = ref(0)
 const followActionLoading = reactive({})
-const likeActionLoading = reactive({})
-const bookmarkActionLoading = reactive({})
-const commentActionLoading = reactive({})
 let followObserver = null
 
 const queryParams = reactive({
@@ -283,37 +278,6 @@ const normalizeFollowList = (list, activeTab) =>
         avatar: getImgUrl(item.avatar || ''),
         isFollowing: resolveFollowState(item, activeTab)
     }))
-
-const getPostId = item => item?.postId ?? item?.id
-
-const getPostTargetUserId = item =>
-    item?.targetUserId ??
-    item?.userId ??
-    item?.authorId ??
-    item?.createBy ??
-    item?.user?.id ??
-    item?.author?.id ??
-    userInfo.value?.id ??
-    userInfo.value?.userId ??
-    null
-
-const isLikeActionLoading = item => {
-    const postId = getPostId(item)
-    if (postId == null) return false
-    return Boolean(likeActionLoading[postId])
-}
-
-const isBookmarkActionLoading = item => {
-    const postId = getPostId(item)
-    if (postId == null) return false
-    return Boolean(bookmarkActionLoading[postId])
-}
-
-const isCommentActionLoading = item => {
-    const postId = getPostId(item)
-    if (postId == null) return false
-    return Boolean(commentActionLoading[postId])
-}
 
 const getFollowTargetId = item => item?.userId ?? item?.id
 
@@ -498,6 +462,16 @@ const getMediaList = item => {
     return parseMediaUrls(item.mediaUrls || item.fileList || item.files || [])
 }
 
+const normalizePostFlags = item => {
+    const likeValue = item?.like ?? item?.isLiked ?? item?.liked ?? item?.likeStatus ?? item?.isLike
+    const bookmarkValue = item?.bookmark ?? item?.isCollected ?? item?.collected ?? item?.collectStatus ?? item?.isCollect
+    return {
+        ...item,
+        like: typeof likeValue === 'boolean' ? likeValue : likeValue != null ? String(likeValue) === '1' : false,
+        bookmark: typeof bookmarkValue === 'boolean' ? bookmarkValue : bookmarkValue != null ? String(bookmarkValue) === '1' : false
+    }
+}
+
 const parseMediaUrls = mediaUrls => {
     let rawList = []
     if (Array.isArray(mediaUrls)) {
@@ -547,7 +521,7 @@ const getList = async () => {
         const dataList = Array.isArray(res?.data) ? res.data : Array.isArray(res?.rows) ? res.rows : []
         if (dataList.length > 0) {
             const normalizedList = dataList.map(item => ({
-                ...item,
+                ...normalizePostFlags(item),
                 mediaList: parseMediaUrls(item.mediaUrls || item.fileList || item.files || [])
             }))
             postList.value = [...postList.value, ...normalizedList]
@@ -575,6 +549,88 @@ const getList = async () => {
     }
 }
 
+const resolveTotalFromResponse = (res, fallback = 0) => {
+    const resTotal = res?.total ?? res?.data?.total ?? res?.count
+    const nextTotal = Number(resTotal)
+    if (Number.isFinite(nextTotal)) return nextTotal
+    return fallback
+}
+
+const resolveTotalFromListResponse = (res, fallback = 0) => {
+    const resolved = resolveTotalFromResponse(res, Number.NaN)
+    if (Number.isFinite(resolved)) return resolved
+    const dataList = Array.isArray(res?.data) ? res.data : Array.isArray(res?.rows) ? res.rows : []
+    if (dataList.length > 0) return dataList.length
+    return fallback
+}
+
+const loadInitialTabTotals = async () => {
+    const params = {
+        limit: queryParams.limit,
+        lastId: queryParams.lastId,
+        lastCreateTime: queryParams.lastCreateTime
+    }
+    if (queryParams.targetUserId !== null && queryParams.targetUserId !== undefined && queryParams.targetUserId !== '') {
+        params.targetUserId = queryParams.targetUserId
+    }
+    try {
+        const [likeRes, bookmarkRes] = await Promise.all([listPostByLike(params), listPostByBookMark(params)])
+        likeTotal.value = resolveTotalFromListResponse(likeRes, likeTotal.value)
+        bookmarkTotal.value = resolveTotalFromListResponse(bookmarkRes, bookmarkTotal.value)
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+const getCollectionList = async () => {
+    if (collectionLoading.value) return
+    collectionLoading.value = true
+    try {
+        const res = await listMyCollections()
+        const dataList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        collectionList.value = dataList
+    } catch (error) {
+        console.error(error)
+    } finally {
+        collectionLoading.value = false
+    }
+}
+
+const handleWorksFilterChange = value => {
+    if (value === 'collection') {
+        getCollectionList()
+    }
+}
+
+const handleCreateCollection = async payload => {
+    if (createCollectionLoading.value) return
+    const title = String(payload?.title || '').trim()
+    const description = String(payload?.desc || '').trim()
+    const coverUrl = String(payload?.coverUrl || '').trim()
+    if (!title || !coverUrl) {
+        modal.msgWarning('请完善合集信息')
+        return
+    }
+    createCollectionLoading.value = true
+    modal.loading('正在创建合集...')
+    try {
+        await addCollection({
+            title,
+            coverUrl,
+            description,
+            sortType: 0
+        })
+        modal.msgSuccess('创建成功')
+        getCollectionList()
+    } catch (error) {
+        console.error(error)
+        modal.msgError('创建失败')
+    } finally {
+        modal.closeLoading()
+        createCollectionLoading.value = false
+    }
+}
+
 const getProfile = async () => {
     try {
         const res = await getUserProfile()
@@ -583,6 +639,11 @@ const getProfile = async () => {
         profileInfo.value = {
             ...profile,
             sex: normalizeSexValue(profile.sex ?? profile.gender ?? data.sex ?? data.gender)
+        }
+        const resolvedUserId = profile.userId ?? profile.id ?? data.userId ?? data.id ?? null
+        if (resolvedUserId != null && resolvedUserId !== '' && queryParams.targetUserId !== resolvedUserId) {
+            queryParams.targetUserId = resolvedUserId
+            loadInitialTabTotals()
         }
     } catch (error) {
         console.error(error)
@@ -619,31 +680,28 @@ const handleTabClick = tab => {
     noMore.value = false
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
-    if (activeTab.value === 'likes') {
-        likeTotal.value = 0
-    } else if (activeTab.value === 'bookmarks') {
-        bookmarkTotal.value = 0
-    } else {
-        total.value = 0
-    }
     getList()
 }
 
 const handlePreview = item => {
     if (item.postType === POST_TYPE.VIDEO) {
-        currentPost.value = item
-        currentVideoSrc.value = getVideoUrl(item)
-        showVideoPlayer.value = true
+        const src = getVideoUrl(item)
+        const postId = item?.postId ?? item?.id
+        if (!src || postId == null) return
+        const normalized = normalizePostFlags(item)
+        const cacheKey = `${VIDEO_PLAYER_CACHE_KEY}:${postId}`
+        cache.session.setJSON(cacheKey, {
+            id: postId,
+            src,
+            post: normalized,
+            userInfo: userInfo.value,
+            from: route.fullPath
+        })
+        router.push({ name: 'VideoPlayer', params: { id: postId }, query: { from: route.fullPath } })
     } else if (item.postType === POST_TYPE.IMAGE) {
         previewImgList.value = getMediaList(item)
         showImageViewer.value = true
     }
-}
-
-const closeVideoPlayer = () => {
-    showVideoPlayer.value = false
-    currentVideoSrc.value = ''
-    currentPost.value = {}
 }
 
 const goToProfile = () => {
@@ -658,90 +716,18 @@ const openFollowDialog = type => {
     getFollowList()
 }
 
-const mockAction = async (type, payload) => {
-    if (type === 'like') {
-        const post = currentPost.value || {}
-        const postId = getPostId(post)
-        const targetUserId = getPostTargetUserId(post)
-        if (!postId || !targetUserId || isLikeActionLoading(post)) return
-        likeActionLoading[postId] = true
-        const wasLiked = Boolean(post.isLiked)
-        try {
-            const res = await likePost({ postId, targetUserId })
-            const active = res?.data?.active
-            const nextLiked = typeof active === 'boolean' ? active : !wasLiked
-            if (nextLiked !== wasLiked) {
-                post.isLiked = nextLiked
-                const nextCount = Number(post.likeCount || 0) + (nextLiked ? 1 : -1)
-                post.likeCount = Math.max(0, nextCount)
-            }
-        } catch (error) {
-            console.error(error)
-        } finally {
-            likeActionLoading[postId] = false
-        }
-    }
-    if (type === 'collect') {
-        const post = currentPost.value || {}
-        const postId = getPostId(post)
-        const targetUserId = getPostTargetUserId(post)
-        if (!postId || !targetUserId || isBookmarkActionLoading(post)) return
-        bookmarkActionLoading[postId] = true
-        const wasCollected = Boolean(post.isCollected)
-        try {
-            const res = await bookmarkPost({ postId, targetUserId })
-            const active = res?.data?.active
-            const nextCollected = typeof active === 'boolean' ? active : !wasCollected
-            if (nextCollected !== wasCollected) {
-                post.isCollected = nextCollected
-                const nextCount = Number(post.collectCount || 0) + (nextCollected ? 1 : -1)
-                post.collectCount = Math.max(0, nextCount)
-            }
-        } catch (error) {
-            console.error(error)
-        } finally {
-            bookmarkActionLoading[postId] = false
-        }
-    }
-    if (type === 'comment') {
-        const post = currentPost.value || {}
-        const postId = getPostId(post)
-        const targetUserId = getPostTargetUserId(post)
-        if (!postId || !targetUserId || isCommentActionLoading(post)) return
-        const parentCommentId = payload?.parentCommentId
-        const replyUserId = payload?.replyUserId
-        let content = String(payload?.content ?? '').trim()
-        if (!content) {
-            try {
-                const res = await modal.prompt('请输入评论内容')
-                content = String(res?.value ?? '').trim()
-            } catch (error) {
-                return
-            }
-        }
-        if (!content) return
-        commentActionLoading[postId] = true
-        try {
-            await addComment({ postId, targetUserId, content, parentCommentId, replyUserId })
-            post.commentCount = Number(post.commentCount || 0) + 1
-        } catch (error) {
-            console.error(error)
-        } finally {
-            commentActionLoading[postId] = false
-        }
-    }
-}
-
 onMounted(() => {
     queryParams.targetUserId = userStore.id
     getProfile()
     getFollowStats()
+    loadInitialTabTotals()
     getList()
 })
 
 onActivated(() => {
     getProfile()
     getFollowStats()
+    loadInitialTabTotals()
 })
 
 onBeforeUnmount(() => {

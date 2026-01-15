@@ -113,6 +113,13 @@ export const constantRoutes: RouteRecordRaw[] = [
                 meta: { title: '个人中心', icon: 'ep:user' }
             }
         ]
+    },
+    {
+        path: '/content/video-player/:id',
+        component: () => import('@/views/content/videoPlayer/index.vue'),
+        name: 'VideoPlayer',
+        hidden: true,
+        meta: { title: 'Video Player' }
     }
 ]
 
