@@ -16,7 +16,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { addComment, bookmarkPost, likePost } from '@/api/content/post'
+import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
 import cache from '@/plugins/cache'
 import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
@@ -37,6 +37,7 @@ const fromPath = ref('')
 const likeActionLoading = reactive({})
 const bookmarkActionLoading = reactive({})
 const commentActionLoading = reactive({})
+const repostActionLoading = reactive({})
 
 const ready = computed(() => Boolean(currentVideoSrc.value))
 
@@ -109,6 +110,12 @@ const isCommentActionLoading = post => {
     return Boolean(commentActionLoading[postId])
 }
 
+const isRepostActionLoading = post => {
+    const postId = getPostId(post)
+    if (postId == null) return false
+    return Boolean(repostActionLoading[postId])
+}
+
 const handleAction = async (type, payload) => {
     if (type === 'like') {
         const post = currentPost.value || {}
@@ -176,12 +183,37 @@ const handleAction = async (type, payload) => {
         if (!content) return
         commentActionLoading[postId] = true
         try {
-            await addComment({ postId, targetUserId, content, parentCommentId, replyUserId })
+            const res = await addComment({ postId, targetUserId, content, parentCommentId, replyUserId })
             post.commentCount = Number(post.commentCount || 0) + 1
+            payload?.onSuccess?.(res)
         } catch (error) {
             console.error(error)
         } finally {
             commentActionLoading[postId] = false
+        }
+    }
+    if (type === 'share') {
+        const post = currentPost.value || {}
+        const postId = getPostId(post)
+        if (!postId || isRepostActionLoading(post)) return
+        let content = String(payload?.content ?? '').trim()
+        if (!content) {
+            try {
+                const res = await modal.prompt('请输入转发内容')
+                content = String(res?.value ?? '').trim()
+            } catch (error) {
+                return
+            }
+        }
+        if (!content) return
+        repostActionLoading[postId] = true
+        try {
+            await repostPost({ originalPostId: postId, content })
+            post.shareCount = Number(post.shareCount || 0) + 1
+        } catch (error) {
+            console.error(error)
+        } finally {
+            repostActionLoading[postId] = false
         }
     }
 }

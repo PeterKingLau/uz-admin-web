@@ -57,7 +57,7 @@
                         <span class="bulk-count">已选 {{ bulkSelectedCount }} 个{{ bulkLabel }}</span>
                     </div>
                     <div class="bulk-actions">
-                        <el-button text class="bulk-action" :disabled="bulkSelectedCount === 0">
+                        <el-button text class="bulk-action" :disabled="bulkSelectedCount === 0" @click="handleBulkAction">
                             <Icon :icon="bulkActionIcon" /> {{ bulkActionLabel }}
                         </el-button>
                     </div>
@@ -70,7 +70,7 @@
                         <span class="bulk-count">已选 {{ bulkSelectedCount }} 个{{ bulkLabel }}</span>
                     </div>
                     <div class="bulk-actions">
-                        <el-button text class="bulk-action" :disabled="bulkSelectedCount === 0">
+                        <el-button text class="bulk-action" :disabled="bulkSelectedCount === 0" @click="handleBulkAction">
                             <Icon :icon="bulkActionIcon" /> {{ bulkActionLabel }}
                         </el-button>
                     </div>
@@ -250,7 +250,7 @@
                     </div>
                     <div class="collection-dialog-actions">
                         <el-button class="ghost-btn" @click="addDialogVisible = false">取消</el-button>
-                        <el-button class="primary-btn" :loading="addDialogSaving" :disabled="selectedPostIds.length === 0" @click="handleDialogSubmit">
+                        <el-button class="primary-btn" :loading="addDialogSaving" :disabled="addDialogSaving" @click="handleDialogSubmit">
                             {{ dialogActionLabel }}
                         </el-button>
                     </div>
@@ -267,7 +267,12 @@
             <div class="add-posts-body">
                 <div class="add-posts-toolbar">
                     <span>已选 {{ selectedPostIds.length }} 条</span>
-                    <el-button text @click="toggleSelectAll">{{ isAllSelected ? '取消全选' : '全选' }}</el-button>
+                    <div class="toolbar-actions">
+                        <el-button v-if="addDialogTab === 'selected'" text :disabled="selectedPostIds.length === 0" @click="removeSelectedPosts"
+                            >移除选中</el-button
+                        >
+                        <el-button text @click="toggleSelectAll">{{ isAllSelected ? '取消全选' : '全选' }}</el-button>
+                    </div>
                 </div>
 
                 <div v-if="addDialogTab === 'selected' && collectionPostsLoading" class="status-box">
@@ -282,7 +287,7 @@
                     <div class="empty-desc">{{ addDialogTab === 'add' ? '暂无可添加作品～' : '请回到添加作品选择' }}</div>
                 </div>
 
-                <div v-else class="select-posts-grid">
+                <div v-else class="select-posts-grid" ref="selectedPostsGridRef" :class="{ 'is-draggable': addDialogTab === 'selected' }">
                     <div
                         v-for="item in displayPosts"
                         :key="resolvePostKey(item)"
@@ -310,20 +315,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
+import Sortable from 'sortablejs'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
-import {
-    addCollection,
-    addPostToCollection,
-    deleteCollections,
-    getPostByCollection,
-    listMyCollections,
-    removePostFromCollectionBatch,
-    updateCollection
-} from '@/api/content/collection'
+import { addCollection, addPostToCollection, deleteCollections, getPostByCollection, listMyCollections, updateCollection } from '@/api/content/collection'
 
 type AnyObj = Record<string, any>
 type DialogMode = 'create' | 'edit'
@@ -471,6 +469,31 @@ const toggleBulkMode = () => {
     resetBulkSelection()
 }
 
+const handleBulkAction = async () => {
+    if (!bulkMode.value || bulkSelectedCount.value === 0) return
+    if (!bulkIsCollectionContext.value) return
+    const ids = bulkSelectedCollectionIds.value.filter(id => id != null)
+    if (!ids.length) return
+    try {
+        await proxy?.$modal?.confirm?.('确认删除选中合集？删除后不可恢复。', '提示', {
+            type: 'warning',
+            confirmButtonText: '删除',
+            cancelButtonText: '取消'
+        })
+    } catch {
+        return
+    }
+    try {
+        await deleteCollections(ids)
+        proxy?.$modal?.msgSuccess?.('删除成功')
+        await syncCollections()
+        resetBulkSelection()
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('删除失败')
+    }
+}
+
 const resolveCollectionBulkId = (item: any) => {
     const id = resolveCollectionId(item)
     return id == null ? null : String(id)
@@ -616,6 +639,8 @@ const addDialogTab = ref<'add' | 'selected'>('add')
 const selectedPostIds = ref<number[]>([])
 const collectionPosts = ref<AnyObj[]>([])
 const collectionPostsLoading = ref(false)
+const selectedPostsGridRef = ref<HTMLElement | null>(null)
+let selectedPostsSortable: Sortable | null = null
 
 const selectablePosts = computed(() => (Array.isArray(props.postList) ? props.postList : []))
 const collectionPostIds = computed(() => collectionPosts.value.map(resolvePostId).filter((id): id is number => Number.isFinite(id)))
@@ -636,7 +661,7 @@ const addDialogCount = computed(() => {
     return toNumber(addDialogTarget.value?.postCount ?? addDialogTarget.value?.count, 0)
 })
 const selectedTabCount = computed(() => collectionPosts.value.length)
-const dialogActionLabel = computed(() => (addDialogTab.value === 'selected' ? '移除选中' : '保存'))
+const dialogActionLabel = computed(() => '保存')
 const displayPosts = computed(() => (addDialogTab.value === 'selected' ? collectionPosts.value : availablePosts.value))
 
 const normalizeCollectionPosts = (res: any) => {
@@ -662,6 +687,7 @@ const loadCollectionPosts = async (force = false) => {
         collectionPosts.value = []
     } finally {
         collectionPostsLoading.value = false
+        setupSelectedPostsSortable()
     }
 }
 
@@ -679,6 +705,7 @@ const resetAddPostsDialog = () => {
     addDialogTab.value = 'add'
     selectedPostIds.value = []
     collectionPosts.value = []
+    destroySelectedPostsSortable()
 }
 
 const setAddDialogTab = (value: 'add' | 'selected') => {
@@ -686,6 +713,7 @@ const setAddDialogTab = (value: 'add' | 'selected') => {
     addDialogTab.value = value
     selectedPostIds.value = []
     if (value === 'selected') loadCollectionPosts()
+    setupSelectedPostsSortable()
 }
 
 const isPostSelected = (item: any) => {
@@ -705,86 +733,105 @@ const toggleSelectAll = () => {
     selectedPostIds.value = isAllSelected.value ? [] : [...currentPostIds.value]
 }
 
-const buildAddItems = () => {
+const destroySelectedPostsSortable = () => {
+    if (!selectedPostsSortable) return
+    selectedPostsSortable.destroy()
+    selectedPostsSortable = null
+}
+
+const setupSelectedPostsSortable = async () => {
+    destroySelectedPostsSortable()
+    if (!addDialogVisible.value || addDialogTab.value !== 'selected') return
+    await nextTick()
+    const element = selectedPostsGridRef.value
+    if (!element) return
+    selectedPostsSortable = Sortable.create(element, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        draggable: '.select-post-card',
+        filter: '.remove-action',
+        onEnd: evt => {
+            if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return
+            const moved = collectionPosts.value.splice(evt.oldIndex, 1)[0]
+            if (!moved) return
+            collectionPosts.value.splice(evt.newIndex, 0, moved)
+        }
+    })
+}
+
+const removePostsFromCollection = (postIds: number[]) => {
+    if (!postIds.length || addDialogSaving.value) return
+    const removeSet = new Set(postIds)
+    collectionPosts.value = collectionPosts.value.filter(item => {
+        const id = resolvePostId(item)
+        return id == null || !removeSet.has(id)
+    })
+    selectedPostIds.value = selectedPostIds.value.filter(id => !removeSet.has(id))
+}
+
+const removeSelectedPosts = () => {
+    if (addDialogTab.value !== 'selected') return
+    removePostsFromCollection(selectedPostIds.value)
+}
+
+const buildOrderedAddPostIds = () => {
     const indexMap = new Map<number, number>()
     availablePosts.value.forEach((item, index) => {
         const id = resolvePostId(item)
         if (id != null && !indexMap.has(id)) indexMap.set(id, index)
     })
-    return selectedPostIds.value
-        .filter(id => indexMap.has(id))
-        .sort((a, b) => (indexMap.get(a) ?? 0) - (indexMap.get(b) ?? 0))
-        .map((postId, index) => ({ postId, sortOrder: index + 1 }))
+    return selectedPostIds.value.filter(id => indexMap.has(id)).sort((a, b) => (indexMap.get(a) ?? 0) - (indexMap.get(b) ?? 0))
 }
 
-const submitAddPosts = async () => {
+const buildUpdateItems = (postIds: number[]) => {
+    const seen = new Set<number>()
+    const ordered = postIds.filter(id => {
+        if (!Number.isFinite(id) || seen.has(id)) return false
+        seen.add(id)
+        return true
+    })
+    return ordered.map((postId, index) => ({ postId, sortOrder: index + 1 }))
+}
+
+const buildSavePostIds = () => {
+    if (addDialogTab.value === 'add') {
+        const addIds = buildOrderedAddPostIds()
+        return [...collectionPostIds.value, ...addIds]
+    }
+    return [...collectionPostIds.value]
+}
+
+const submitSavePosts = async () => {
     if (addDialogSaving.value) return
     const collectionId = resolveCollectionId(addDialogTarget.value)
     if (!collectionId) {
         proxy?.$modal?.msgError?.('合集ID异常')
         return
     }
-    const items = buildAddItems()
-    if (!items.length) {
-        proxy?.$modal?.msgWarning?.('请至少选择一个作品')
-        return
-    }
+    const postIds = buildSavePostIds()
+    const items = postIds.length ? buildUpdateItems(postIds) : []
     addDialogSaving.value = true
     try {
-        await addPostToCollection({ collectionId: String(collectionId), items })
-        proxy?.$modal?.msgSuccess?.('已加入合集')
+        await addPostToCollection({ collectionId: String(collectionId), sortType: DEFAULT_SORT_TYPE, items })
+        proxy?.$modal?.msgSuccess?.('保存成功')
         addDialogVisible.value = false
         await syncCollections()
     } catch (error) {
         console.error(error)
-        proxy?.$modal?.msgError?.('加入合集失败')
-    } finally {
-        addDialogSaving.value = false
-    }
-}
-
-const submitRemovePosts = async () => {
-    if (addDialogSaving.value) return
-    const collectionId = resolveCollectionId(addDialogTarget.value)
-    if (!collectionId) {
-        proxy?.$modal?.msgError?.('合集ID异常')
-        return
-    }
-    const items = selectedPostIds.value.map(postId => ({ postId }))
-    if (!items.length) {
-        proxy?.$modal?.msgWarning?.('请至少选择一个作品')
-        return
-    }
-    addDialogSaving.value = true
-    try {
-        await removePostFromCollectionBatch({ collectionId: String(collectionId), items })
-        const removeSet = new Set(items.map(entry => entry.postId))
-        collectionPosts.value = collectionPosts.value.filter(item => {
-            const id = resolvePostId(item)
-            return id == null || !removeSet.has(id)
-        })
-        selectedPostIds.value = []
-        proxy?.$modal?.msgSuccess?.('已移除')
-        await syncCollections()
-    } catch (error) {
-        console.error(error)
-        proxy?.$modal?.msgError?.('移除失败')
+        proxy?.$modal?.msgError?.('保存失败')
     } finally {
         addDialogSaving.value = false
     }
 }
 
 const handleDialogSubmit = () => {
-    if (addDialogTab.value === 'selected') submitRemovePosts()
-    else submitAddPosts()
+    submitSavePosts()
 }
 
 const removeSinglePost = (item: any) => {
     const id = resolvePostId(item)
     if (id == null) return
-    if (addDialogSaving.value) return
-    selectedPostIds.value = [id]
-    submitRemovePosts()
+    removePostsFromCollection([id])
 }
 
 const handleDeleteCollection = async (item: any) => {
@@ -841,6 +888,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     loadObserver?.disconnect()
+    destroySelectedPostsSortable()
 })
 
 watch(
@@ -872,6 +920,17 @@ watch(
         if (open) loadCollections()
     },
     { immediate: true }
+)
+
+watch(
+    () => addDialogVisible.value,
+    open => {
+        if (!open) {
+            destroySelectedPostsSortable()
+            return
+        }
+        setupSelectedPostsSortable()
+    }
 )
 </script>
 
@@ -1089,7 +1148,7 @@ watch(
 }
 
 .bulk-action {
-    color: var(--el-text-color-regular);
+    color: var(--el-color-danger);
 }
 
 .bulk-action.is-disabled {
@@ -1706,6 +1765,12 @@ watch(
     color: var(--el-text-color-secondary);
     font-size: 13px;
 
+    .toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
     :deep(.el-button) {
         color: var(--el-text-color-regular);
     }
@@ -1715,6 +1780,18 @@ watch(
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 14px;
+
+    &.is-draggable .select-post-card {
+        cursor: grab;
+    }
+
+    &.is-draggable .select-post-card:active {
+        cursor: grabbing;
+    }
+}
+
+.sortable-ghost {
+    opacity: 0.6;
 }
 
 .select-post-card {

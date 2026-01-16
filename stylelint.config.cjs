@@ -14,6 +14,12 @@ module.exports = {
         'no-empty-source': null,
         'block-no-empty': null,
         'selector-class-pattern': null,
+        'at-rule-no-unknown': [
+            true,
+            {
+                ignoreAtRules: ['tailwind', 'apply', 'layer', 'variants', 'responsive', 'screen']
+            }
+        ],
         'color-function-notation': 'modern',
         'alpha-value-notation': 'number',
         'font-family-no-missing-generic-family-keyword': null

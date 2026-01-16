@@ -465,10 +465,12 @@ const getMediaList = item => {
 const normalizePostFlags = item => {
     const likeValue = item?.like ?? item?.isLiked ?? item?.liked ?? item?.likeStatus ?? item?.isLike
     const bookmarkValue = item?.bookmark ?? item?.isCollected ?? item?.collected ?? item?.collectStatus ?? item?.isCollect
+    const like = typeof likeValue === 'boolean' ? likeValue : likeValue != null ? String(likeValue) === '1' : false
+    const bookmark = typeof bookmarkValue === 'boolean' ? bookmarkValue : bookmarkValue != null ? String(bookmarkValue) === '1' : false
     return {
         ...item,
-        like: typeof likeValue === 'boolean' ? likeValue : likeValue != null ? String(likeValue) === '1' : false,
-        bookmark: typeof bookmarkValue === 'boolean' ? bookmarkValue : bookmarkValue != null ? String(bookmarkValue) === '1' : false
+        like: activeTab.value === 'likes' ? true : like,
+        bookmark: activeTab.value === 'bookmarks' ? true : bookmark
     }
 }
 

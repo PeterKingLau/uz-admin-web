@@ -20,8 +20,8 @@
     --navbar-text: #334155;
     --navbar-hover: #f1f5f9;
 
-    --app-bg: #ffffff; // 整体背景
-    --app-text: #303133; // 整体文字
+    --app-bg: #ffffff;
+    --app-text: #303133;
 }
 
 // 暗黑模式映射
@@ -48,6 +48,7 @@ body,
     height: 100%;
     margin: 0;
     box-sizing: border-box;
+    scrollbar-gutter: stable;
 }
 
 body {

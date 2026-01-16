@@ -60,6 +60,7 @@ export interface AddPostToCollectionItem {
 
 export interface AddPostToCollectionPayload {
     collectionId: number | string
+    sortType?: number
     items: AddPostToCollectionItem[]
 }
 

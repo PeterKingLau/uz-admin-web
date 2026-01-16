@@ -31,6 +31,11 @@ export interface AddCommentPayload {
     replyUserId?: number | string
 }
 
+export interface RepostPostPayload {
+    originalPostId: number | string
+    content: string
+}
+
 export function addPost(data: AddPostPayload) {
     const formData = new FormData()
 
@@ -128,6 +133,17 @@ export function addComment(data: AddCommentPayload): Promise<any> {
         url: '/content/postInfo/app/v1/addComment',
         method: 'post',
         data
+    }) as unknown as Promise<any>
+}
+
+export function repostPost(data: RepostPostPayload): Promise<any> {
+    const formData = new FormData()
+    formData.append('originalPostId', String(data.originalPostId ?? ''))
+    formData.append('content', String(data.content ?? ''))
+    return request({
+        url: '/content/postInfo/app/v1/repost',
+        method: 'post',
+        data: formData
     }) as unknown as Promise<any>
 }
 

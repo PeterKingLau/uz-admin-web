@@ -146,7 +146,7 @@
                                 <el-avatar :size="48" :src="authorAvatar" class="author-avatar" />
                             </div>
 
-                            <div class="sidebar-item" @click.stop="emitAction('like')">
+                            <div class="sidebar-item" @click.stop="handleToggleLike">
                                 <div class="icon-wrapper">
                                     <Icon icon="mdi:heart" :class="{ liked: isLiked }" />
                                 </div>
@@ -157,17 +157,17 @@
                                 <div class="icon-wrapper">
                                     <Icon icon="mdi:comment-processing" />
                                 </div>
-                                <span class="count">{{ formatCount(postData.commentCount) }}</span>
+                                <span class="count">{{ formatCount(localCommentCount) }}</span>
                             </div>
 
-                            <div class="sidebar-item" @click.stop="emitAction('collect')">
+                            <div class="sidebar-item" @click.stop="handleToggleCollect">
                                 <div class="icon-wrapper">
                                     <Icon icon="mdi:star" :class="{ collected: isCollected }" />
                                 </div>
                                 <span class="count">{{ formatCount(collectedCount) }}</span>
                             </div>
 
-                            <div class="sidebar-item" @click.stop="emitAction('share')">
+                            <div class="sidebar-item" @click.stop="openRepostDialog">
                                 <div class="icon-wrapper">
                                     <Icon icon="mdi:share" />
                                 </div>
@@ -180,7 +180,7 @@
                         <div class="comment-panel-header">
                             <div class="header-left">
                                 <span class="title">全部评论</span>
-                                <span class="count" v-if="postData.commentCount > 0">({{ formatCount(postData.commentCount) }})</span>
+                                <span class="count" v-if="localCommentCount > 0">({{ formatCount(localCommentCount) }})</span>
                             </div>
                             <div class="panel-close" @click="commentPanelVisible = false">
                                 <Icon icon="ep:close" />
@@ -206,6 +206,9 @@
 
                                     <div class="comment-actions">
                                         <span class="action-text reply-btn" @click="handleReplyToComment(comment)">回复</span>
+                                        <span v-if="canDeleteComment(comment)" class="action-text delete-btn" @click.stop="handleDeleteComment(comment)"
+                                            >删除</span
+                                        >
                                         <div v-if="Number(comment.replyCount || 0) > 0" class="action-text toggle-reply-btn" @click="toggleReplies(comment)">
                                             <span class="divider"></span>
                                             <span>{{ resolveReplyState(comment).open ? '收起' : `展开 ${comment.replyCount} 条回复` }}</span>
@@ -230,6 +233,13 @@
                                                 <div class="reply-meta">
                                                     <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
                                                     <span class="action-text reply-btn" @click="handleReplyToReply(reply, comment)">回复</span>
+                                                    <span
+                                                        v-if="canDeleteComment(reply)"
+                                                        class="action-text reply-btn delete-btn"
+                                                        @click.stop="handleDeleteComment(reply, comment)"
+                                                    >
+                                                        删除
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -263,7 +273,6 @@
                                     ref="commentInputRef"
                                     v-model="commentDraft"
                                     type="textarea"
-                                    :rows="1"
                                     :autosize="{ minRows: 1, maxRows: 4 }"
                                     maxlength="200"
                                     :placeholder="commentPlaceholder"
@@ -279,14 +288,39 @@
                 </div>
             </div>
         </div>
+
+        <el-dialog v-model="repostDialogVisible" append-to-body destroy-on-close width="520px" class="repost-dialog" @closed="repostContent = ''">
+            <template #header>
+                <div class="repost-dialog-title">转发内容</div>
+            </template>
+            <div class="repost-dialog-body">
+                <el-input
+                    ref="repostInputRef"
+                    v-model="repostContent"
+                    type="textarea"
+                    :rows="8"
+                    placeholder="写点什么吧..."
+                    maxlength="2000"
+                    show-word-limit
+                    resize="none"
+                    class="custom-textarea"
+                />
+            </div>
+            <template #footer>
+                <div class="repost-dialog-footer">
+                    <el-button text @click="repostDialogVisible = false">取消</el-button>
+                    <el-button type="primary" :disabled="!canSubmitRepost" @click="submitRepost">转发</el-button>
+                </div>
+            </template>
+        </el-dialog>
     </component>
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { parseTime } from '@/utils/ruoyi'
 import { getImgUrl } from '@/utils/img'
-import { listCommentReplies, listTopComments } from '@/api/content/postComment'
+import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -309,20 +343,20 @@ const visible = computed({
 })
 
 const postData = computed(() => props.post || {})
-const isLiked = computed(() => {
-    if (typeof postData.value?.isLiked === 'boolean') return postData.value.isLiked
-    if (typeof postData.value?.like === 'boolean') return postData.value.like
-    if (postData.value?.like != null) return String(postData.value.like) === '1'
-    if (postData.value?.isLiked != null) return String(postData.value.isLiked) === '1'
-    return false
-})
-const isCollected = computed(() => {
-    if (typeof postData.value?.isCollected === 'boolean') return postData.value.isCollected
-    if (typeof postData.value?.bookmark === 'boolean') return postData.value.bookmark
-    if (postData.value?.bookmark != null) return String(postData.value.bookmark) === '1'
-    if (postData.value?.isCollected != null) return String(postData.value.isCollected) === '1'
-    return false
-})
+const resolveActiveFlag = value => {
+    if (typeof value === 'boolean') return value
+    return value != null ? String(value) === '1' : false
+}
+
+const isLiked = computed(() =>
+    resolveActiveFlag(postData.value?.like ?? postData.value?.isLiked ?? postData.value?.liked ?? postData.value?.likeStatus ?? postData.value?.isLike)
+)
+const isCollected = computed(() =>
+    resolveActiveFlag(
+        postData.value?.bookmark ?? postData.value?.isCollected ?? postData.value?.collected ?? postData.value?.collectStatus ?? postData.value?.isCollect
+    )
+)
+const currentUserId = computed(() => props.userInfo?.id ?? props.userInfo?.userId ?? null)
 const playerRef = ref(null)
 const playerFrameRef = ref(null)
 const videoWrapperRef = ref(null)
@@ -338,9 +372,16 @@ const commentLoading = ref(false)
 const commentNoMore = ref(false)
 const commentLastId = ref(undefined)
 const commentLastCreateTime = ref(undefined)
+const localCommentCount = ref(0)
 const commentPageSize = 10
 const replyStateMap = ref({})
 const replyTarget = ref(null)
+const deleteCommentLoading = reactive({})
+const commentRefreshing = ref(false)
+const repostDialogVisible = ref(false)
+const repostContent = ref('')
+const repostInputRef = ref(null)
+const canSubmitRepost = computed(() => Boolean(repostContent.value.trim()))
 
 const isPlaying = ref(false)
 const duration = ref(0)
@@ -413,6 +454,17 @@ const formatCommentTime = time => {
 }
 
 const getCommentId = comment => comment?.id ?? comment?.commentId ?? null
+const getCommentUserId = comment => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
+const canDeleteComment = comment => {
+    const userId = currentUserId.value
+    const commentUserId = getCommentUserId(comment)
+    if (userId == null || commentUserId == null) return false
+    return String(userId) === String(commentUserId)
+}
+const isDeleteCommentLoading = comment => {
+    const commentId = getCommentId(comment)
+    return commentId != null && Boolean(deleteCommentLoading[commentId])
+}
 const commentPlaceholder = computed(() => (replyTarget.value ? `回复 @${replyTarget.value.replyUserName}` : '善语结善缘，恶语伤人心'))
 
 const ensureReplyState = commentId => {
@@ -472,11 +524,24 @@ const resetComments = () => {
     replyStateMap.value = {}
 }
 
-const loadTopComments = async ({ reset = false } = {}) => {
+const loadTopComments = async ({ reset = false, silent = false } = {}) => {
     const postId = activePostId.value
-    if (reset) resetComments()
-    if (!postId || commentLoading.value || commentNoMore.value) return
-    commentLoading.value = true
+    if (reset) {
+        commentLastId.value = undefined
+        commentLastCreateTime.value = undefined
+        commentNoMore.value = false
+        replyStateMap.value = {}
+        if (!silent) commentItems.value = []
+    }
+    if (!postId) return
+    if (!reset && commentNoMore.value) return
+    if (silent) {
+        if (commentRefreshing.value) return
+        commentRefreshing.value = true
+    } else {
+        if (commentLoading.value || commentRefreshing.value) return
+        commentLoading.value = true
+    }
     try {
         const res = await listTopComments({
             postId,
@@ -486,18 +551,20 @@ const loadTopComments = async ({ reset = false } = {}) => {
         })
         const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.rows) ? res.rows : []
         if (list.length) {
-            commentItems.value = [...commentItems.value, ...list]
+            commentItems.value = reset ? [...list] : [...commentItems.value, ...list]
             const lastItem = list[list.length - 1]
             commentLastId.value = lastItem?.id ?? commentLastId.value
             commentLastCreateTime.value = lastItem?.createTime ?? commentLastCreateTime.value
             if (list.length < commentPageSize) commentNoMore.value = true
         } else {
+            if (reset) commentItems.value = []
             commentNoMore.value = true
         }
     } catch (error) {
         console.error(error)
     } finally {
-        commentLoading.value = false
+        if (silent) commentRefreshing.value = false
+        else commentLoading.value = false
     }
 }
 
@@ -548,6 +615,70 @@ const toggleReplies = comment => {
     state.open = !state.open
     if (state.open && state.list.length === 0) {
         loadReplies(comment)
+    }
+}
+
+const updateCommentCount = delta => {
+    const next = Number(localCommentCount.value || 0) + delta
+    localCommentCount.value = Math.max(0, next)
+}
+
+const resolveReplyRemoveCount = (commentId, comment) => {
+    const rawCount = Number(comment?.replyCount || 0)
+    const replyCount = Number.isFinite(rawCount) ? rawCount : 0
+    const state = replyStateMap.value?.[commentId]
+    const loadedCount = Array.isArray(state?.list) ? state.list.length : 0
+    return Math.max(replyCount, loadedCount)
+}
+
+const removeLocalComment = (commentId, parent) => {
+    const targetId = String(commentId)
+    if (parent) {
+        const parentId = getCommentId(parent)
+        const state = ensureReplyState(parentId)
+        if (state) {
+            state.list = state.list.filter(item => String(getCommentId(item)) !== targetId)
+        }
+        parent.replyCount = Math.max(0, Number(parent.replyCount || 0) - 1)
+        updateCommentCount(-1)
+    } else {
+        const comment = findCommentById(commentId)
+        const removeReplies = resolveReplyRemoveCount(targetId, comment)
+        commentItems.value = commentItems.value.filter(item => String(getCommentId(item)) !== targetId)
+        if (replyStateMap.value?.[targetId]) {
+            delete replyStateMap.value[targetId]
+        }
+        updateCommentCount(-(1 + Math.max(0, removeReplies)))
+    }
+}
+
+const handleDeleteComment = async (comment, parent) => {
+    const commentId = getCommentId(comment)
+    if (!commentId || !canDeleteComment(comment) || isDeleteCommentLoading(comment)) return
+    if (String(commentId).startsWith('local-')) {
+        proxy?.$modal?.msgWarning?.('评论正在同步，请稍后重试')
+        loadTopComments({ reset: true, silent: true })
+        return
+    }
+    try {
+        await proxy?.$modal?.confirm?.('确认删除该评论？', '提示', {
+            type: 'warning',
+            confirmButtonText: '删除',
+            cancelButtonText: '取消'
+        })
+    } catch {
+        return
+    }
+    deleteCommentLoading[commentId] = true
+    try {
+        await deleteComment({ id: commentId, userId: currentUserId.value ?? undefined })
+        removeLocalComment(commentId, parent)
+        proxy?.$modal?.msgSuccess?.('删除成功')
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('删除失败')
+    } finally {
+        deleteCommentLoading[commentId] = false
     }
 }
 
@@ -767,6 +898,30 @@ const emitAction = (type, payload) => {
     emit('action', type, payload)
 }
 
+const handleToggleLike = () => {
+    emitAction('like', { active: !isLiked.value })
+}
+
+const handleToggleCollect = () => {
+    emitAction('collect', { active: !isCollected.value })
+}
+
+const openRepostDialog = () => {
+    repostContent.value = ''
+    repostDialogVisible.value = true
+    nextTick(() => repostInputRef.value?.focus?.())
+}
+
+const submitRepost = () => {
+    const content = repostContent.value.trim()
+    if (!content) {
+        proxy?.$modal?.msgWarning?.('请输入转发内容')
+        return
+    }
+    emitAction('share', { content })
+    repostDialogVisible.value = false
+}
+
 const toggleCommentPanel = () => {
     commentPanelVisible.value = !commentPanelVisible.value
     if (commentPanelVisible.value) {
@@ -790,7 +945,12 @@ const submitComment = () => {
         content,
         userName: props.userInfo?.nickName || props.userInfo?.userName || '',
         nickName: props.userInfo?.nickName || '',
-        createTime: now.toISOString()
+        createTime: now.toISOString(),
+        avatar: props.userInfo?.avatar || '',
+        userAvatar: props.userInfo?.avatar || '',
+        user: {
+            avatar: props.userInfo?.avatar || ''
+        }
     }
     if (parentId) {
         const parent = findCommentById(parentId)
@@ -813,7 +973,12 @@ const submitComment = () => {
     } else {
         commentItems.value = [draftItem, ...commentItems.value]
     }
-    emitAction('comment', { content, parentCommentId: parentId, replyUserId })
+    emitAction('comment', {
+        content,
+        parentCommentId: parentId,
+        replyUserId,
+        onSuccess: () => loadTopComments({ reset: true, silent: true })
+    })
     commentDraft.value = ''
     clearReplyTarget()
 }
@@ -919,6 +1084,25 @@ watch(
             loadTopComments({ reset: true })
         }
     }
+)
+
+watch(
+    () => commentPanelVisible.value,
+    open => {
+        if (!open) {
+            clearReplyTarget()
+            commentDraft.value = ''
+        }
+    }
+)
+
+watch(
+    () => [activePostId.value, postData.value?.commentCount],
+    ([, count]) => {
+        const next = Number(count ?? 0)
+        localCommentCount.value = Number.isFinite(next) ? next : 0
+    },
+    { immediate: true }
 )
 
 onBeforeUnmount(() => {
@@ -1595,6 +1779,14 @@ onBeforeUnmount(() => {
             &:hover {
                 color: #face15;
             }
+
+            &.delete-btn {
+                color: rgba(255, 255, 255, 0.5);
+            }
+
+            &.delete-btn:hover {
+                color: #ff6b6b;
+            }
         }
 
         .divider {
@@ -1667,6 +1859,14 @@ onBeforeUnmount(() => {
                         cursor: pointer;
                         &:hover {
                             color: #face15;
+                        }
+
+                        &.delete-btn {
+                            color: rgba(255, 255, 255, 0.5);
+                        }
+
+                        &.delete-btn:hover {
+                            color: #ff6b6b;
                         }
                     }
                 }
@@ -1750,17 +1950,19 @@ onBeforeUnmount(() => {
         align-items: flex-end;
 
         :deep(.el-textarea__inner) {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid transparent;
-            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
             color: #fff;
-            padding: 8px 12px;
-            min-height: 36px !important;
-            line-height: 20px;
+            padding: 4px 10px;
+            min-height: 28px !important;
+            line-height: 18px;
             font-size: 14px;
+            outline: none;
+            box-shadow: none;
 
             &:focus {
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.06);
                 border-color: rgba(255, 255, 255, 0.2);
             }
 
@@ -1792,6 +1994,48 @@ onBeforeUnmount(() => {
                 transform: scale(1.05);
                 background: #fbd63d;
             }
+        }
+    }
+}
+
+.repost-dialog-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+}
+
+.repost-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.repost-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.custom-textarea {
+    :deep(.el-textarea__inner) {
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 15px;
+        line-height: 1.6;
+        border: 1px solid var(--el-border-color);
+        background-color: var(--el-input-bg-color, var(--el-fill-color-blank));
+        color: var(--el-text-color-primary);
+        box-shadow: none;
+        transition: all 0.3s;
+
+        &::placeholder {
+            color: var(--el-text-color-placeholder);
+        }
+
+        &:focus {
+            background-color: var(--el-bg-color);
+            border-color: var(--el-color-primary);
+            box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
         }
     }
 }
