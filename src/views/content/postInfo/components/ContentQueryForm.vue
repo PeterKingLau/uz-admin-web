@@ -29,12 +29,18 @@
 
         <el-form-item>
             <el-button type="primary" @click="handleSubmit" :loading="loading">
-                <Icon icon="mdi:magnify" class="mr-1" />
+                <template #icon>
+                    <Icon v-if="!loading" icon="mdi:magnify" />
+                </template>
                 搜索
             </el-button>
             <el-button @click="$emit('reset')">
                 <Icon icon="mdi:refresh" class="mr-1" />
                 重置
+            </el-button>
+            <el-button :type="batchMode ? 'primary' : 'info'" @click="$emit('toggle-batch')">
+                <Icon icon="mdi:checkbox-multiple-marked-outline" class="mr-1" />
+                {{ batchMode ? '退出批量' : '批量管理' }}
             </el-button>
         </el-form-item>
     </el-form>
@@ -47,9 +53,10 @@ defineProps<{
     loading: boolean
     postTypeOptions: any[]
     tagOptions: any[]
+    batchMode?: boolean
 }>()
 
-const emit = defineEmits(['submit', 'reset'])
+const emit = defineEmits(['submit', 'reset', 'toggle-batch'])
 
 function handleSubmit() {
     emit('submit')

@@ -117,7 +117,6 @@ $sidebar-collapse-width: 54px;
         span {
             font-weight: 500;
             letter-spacing: 0.3px;
-            /* 核心修复：防止文字换行和溢出抖动 */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -162,7 +161,7 @@ $sidebar-collapse-width: 54px;
         position: relative;
 
         .el-sub-menu__icon-arrow,
-        span {
+        .menu-title {
             display: none !important;
             visibility: hidden;
         }
@@ -199,5 +198,25 @@ $sidebar-collapse-width: 54px;
             justify-content: center !important;
         }
     }
+}
+
+:deep(.el-tooltip__popper),
+:deep(.el-popper.is-dark),
+:deep(.el-popper.is-light) {
+    background: linear-gradient(135deg, var(--el-fill-color-dark) 0%, var(--el-bg-color-overlay) 100%) !important;
+    border: 1px solid var(--el-border-color-light) !important;
+    color: var(--el-text-color-primary) !important;
+    box-shadow: 0 12px 30px rgba(var(--el-color-black-rgb), 0.35) !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    letter-spacing: 0.2px;
+}
+
+:deep(.el-popper.is-dark .el-popper__arrow::before),
+:deep(.el-popper.is-light .el-popper__arrow::before),
+:deep(.el-tooltip__popper .el-popper__arrow::before) {
+    background: var(--el-fill-color-dark) !important;
+    border: 1px solid var(--el-border-color-light) !important;
 }
 </style>

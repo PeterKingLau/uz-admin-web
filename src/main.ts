@@ -45,7 +45,8 @@ import MediaPreview from '@/components/MediaPreview/index.vue'
 // 字典标签组件
 import DictTag from '@/components/DictTag/index.vue'
 
-import { Icon, addCollection } from '@iconify/vue/dist/offline'
+import { addCollection } from '@iconify/vue/dist/offline'
+import AppIcon from '@/components/Icon/index.vue'
 import type { IconifyJSON } from '@iconify/types'
 import mdiIcons from '@iconify-json/mdi/icons.json'
 import epIcons from '@iconify-json/ep/icons.json'
@@ -85,7 +86,7 @@ app.use(store)
 app.use(plugins)
 app.use(elementIcons)
 // app.component('svg-icon', SvgIcon)
-app.component('Icon', Icon)
+app.component('Icon', AppIcon)
 
 directive(app)
 

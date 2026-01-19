@@ -1,92 +1,85 @@
 <template>
-    <div class="feed-item" :class="{ 'is-checked': checked }" @click="$emit('select', !checked)">
-        <div class="feed-left">
-            <div class="select-box" @click.stop>
-                <el-checkbox :model-value="checked" @change="$emit('select', $event)" />
+    <div class="feed-card" :class="{ checked }" @click.capture="handleCardClick">
+        <div class="card-top">
+            <div class="top-left" @click="handleTopLeftClick">
+                <el-checkbox v-if="isBatchMode" :model-value="checked" data-stop-card-click @change="handleCheckboxChange" />
+                <div class="type-badge" :data-type="String(post?.postType ?? '')">
+                    <Icon :icon="typeIcon" class="type-icon" />
+                    <span class="type-text">{{ typeText }}</span>
+                </div>
             </div>
-            <div class="type-indicator" :class="post.postType">
-                <Icon :icon="typeIcon" class="type-icon" />
-                <span class="type-text">{{ typeText }}</span>
+
+            <div class="top-right" @click.stop>
+                <el-tag :type="getStatusType(post.auditStatus)" size="small" effect="light" class="audit-tag">
+                    {{ getAuditStatusName(post.auditStatus) }}
+                </el-tag>
+
+                <el-tooltip content="编辑标签" placement="top">
+                    <button type="button" class="icon-btn" data-stop-card-click @click="emit('edit-tag', post)">
+                        <Icon icon="mdi:tag-outline" />
+                    </button>
+                </el-tooltip>
+
+                <el-tooltip content="人工置顶" placement="top">
+                    <button type="button" class="icon-btn" data-stop-card-click @click="emit('pin', post)">
+                        <Icon icon="mdi:pin-outline" />
+                    </button>
+                </el-tooltip>
+
+                <el-tooltip content="取消置顶" placement="top">
+                    <button type="button" class="icon-btn" data-stop-card-click @click="emit('unpin', post)">
+                        <Icon icon="mdi:pin-off-outline" />
+                    </button>
+                </el-tooltip>
+
+                <el-tooltip content="删除该条" placement="top">
+                    <button type="button" class="icon-btn danger" data-stop-card-click @click="handleDelete">
+                        <Icon icon="mdi:trash-can-outline" />
+                    </button>
+                </el-tooltip>
             </div>
         </div>
 
-        <div class="feed-body">
-            <div class="feed-header">
-                <div class="user-info">
-                    <el-avatar :size="36" :src="fullAvatar(post.avatar)" class="avatar">
-                        {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
-                    </el-avatar>
-                    <div class="meta">
-                        <div class="top-row">
-                            <span class="username">{{ post.nickName || '未知用户' }}</span>
-                        </div>
-                        <div class="time">{{ post.createTime || '-' }}</div>
-                    </div>
-                </div>
+        <div class="card-user">
+            <el-avatar :size="36" :src="fullAvatar(post.avatar)" class="avatar">
+                {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
+            </el-avatar>
 
-                <div class="header-actions">
-                    <el-tag :type="getStatusType(post.auditStatus)" size="small" effect="light" class="audit-tag">
-                        {{ getAuditStatusName(post.auditStatus) }}
-                    </el-tag>
+            <div class="user-meta">
+                <div class="user-name">{{ post.nickName || '未知用户' }}</div>
+                <div class="user-time">{{ post.createTime || '-' }}</div>
+            </div>
+        </div>
 
-                    <el-tooltip content="编辑标签" placement="top">
-                        <div class="edit-btn" @click.stop="$emit('edit-tag', post)">
-                            <Icon icon="mdi:tag-outline" />
-                        </div>
-                    </el-tooltip>
+        <div class="card-content">
+            <div v-if="post.content" class="text">{{ post.content }}</div>
+            <div v-else class="text empty">（无正文内容）</div>
 
-                    <el-tooltip content="人工置顶" placement="top">
-                        <div class="pin-btn" @click.stop="$emit('pin', post)">
-                            <Icon icon="mdi:pin-outline" />
-                        </div>
-                    </el-tooltip>
-
-                    <el-tooltip content="取消置顶" placement="top">
-                        <div class="unpin-btn" @click.stop="$emit('unpin', post)">
-                            <Icon icon="mdi:pin-off-outline" />
-                        </div>
-                    </el-tooltip>
-
-                    <el-tooltip content="删除该条" placement="top">
-                        <div class="delete-btn" @click.stop="handleDelete">
-                            <Icon icon="mdi:trash-can-outline" />
-                        </div>
-                    </el-tooltip>
-                </div>
+            <div v-if="mediaFiles.length > 0" class="media" @click.stop>
+                <MediaPreview :post-type="post.postType" :media-urls="mediaFiles" :audit-status="post.auditStatus" />
             </div>
 
-            <div class="feed-content-wrapper">
-                <div v-if="post.content" class="feed-text">
-                    {{ post.content }}
-                </div>
-                <div v-else class="feed-text empty">（无正文内容）</div>
-
-                <div class="feed-media" v-if="mediaFiles.length > 0" @click.stop>
-                    <MediaPreview :post-type="post.postType" :media-urls="mediaFiles" :audit-status="post.auditStatus" />
-                </div>
-
-                <div class="tags-wrapper" v-if="post.tags && post.tags.length > 0">
-                    <span v-for="tag in post.tags" :key="tag.tagId" class="hash-tag"> # {{ tag.tagName }} </span>
-                </div>
+            <div v-if="post.tags && post.tags.length > 0" class="tags" @click.stop>
+                <span v-for="tag in post.tags" :key="tag.tagId" class="tag-chip">#{{ tag.tagName }}</span>
             </div>
+        </div>
 
-            <div class="feed-footer">
-                <div class="stat-item">
-                    <Icon icon="mdi:thumb-up-outline" />
-                    <span>{{ post.likeCount ?? 0 }}</span>
-                </div>
-                <div class="stat-item">
-                    <Icon icon="mdi:comment-outline" />
-                    <span>{{ post.commentCount ?? 0 }}</span>
-                </div>
-                <div class="stat-item">
-                    <Icon icon="mdi:share-variant-outline" />
-                    <span>{{ post.repostCount ?? 0 }}</span>
-                </div>
-                <div class="stat-item">
-                    <Icon :icon="(post.bookmarkCount ?? 0) > 0 ? 'mdi:bookmark' : 'mdi:bookmark-outline'" />
-                    <span>{{ post.bookmarkCount ?? 0 }}</span>
-                </div>
+        <div class="card-footer" @click.stop>
+            <div class="stat">
+                <Icon icon="mdi:thumb-up-outline" />
+                <span>{{ post.likeCount ?? 0 }}</span>
+            </div>
+            <div class="stat">
+                <Icon icon="mdi:comment-outline" />
+                <span>{{ post.commentCount ?? 0 }}</span>
+            </div>
+            <div class="stat">
+                <Icon icon="mdi:share-variant-outline" />
+                <span>{{ post.repostCount ?? 0 }}</span>
+            </div>
+            <div class="stat">
+                <Icon :icon="(post.bookmarkCount ?? 0) > 0 ? 'mdi:bookmark' : 'mdi:bookmark-outline'" />
+                <span>{{ post.bookmarkCount ?? 0 }}</span>
             </div>
         </div>
     </div>
@@ -95,11 +88,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import MediaPreview from '@/components/MediaPreview/index.vue'
-import { AUDIT_STATUS, ENUM_TAG_CONFIG } from '@/utils/enum'
+import { AUDIT_STATUS, ENUM_TAG_CONFIG, POST_TYPE } from '@/utils/enum'
 
 const props = defineProps<{
     post: any
     checked?: boolean
+    batchMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -108,29 +102,31 @@ const emit = defineEmits<{
     (e: 'edit-tag', post: any): void
     (e: 'pin', post: any): void
     (e: 'unpin', post: any): void
+    (e: 'preview', post: any): void
 }>()
+
+const checked = computed(() => Boolean(props.checked))
+const isBatchMode = computed(() => Boolean(props.batchMode))
 
 const typeText = computed(() => {
     const t = String(props.post?.postType)
-    return t === '1' ? '文字' : t === '2' ? '图文' : '视频'
+    return t === POST_TYPE.TEXT ? '文字' : t === POST_TYPE.IMAGE ? '图文' : '视频'
 })
 
 const typeIcon = computed(() => {
     const t = String(props.post?.postType)
-    return t === '1' ? 'mdi:format-text' : t === '2' ? 'mdi:image' : 'mdi:video'
+    return t === POST_TYPE.TEXT ? 'mdi:format-text' : t === POST_TYPE.IMAGE ? 'mdi:image' : 'mdi:video'
 })
 
 const mediaFiles = computed(() => {
     let rawList: any[] = []
-
     if (props.post.mediaUrls) {
-        if (Array.isArray(props.post.mediaUrls)) {
-            rawList = props.post.mediaUrls
-        } else if (typeof props.post.mediaUrls === 'string') {
+        if (Array.isArray(props.post.mediaUrls)) rawList = props.post.mediaUrls
+        else if (typeof props.post.mediaUrls === 'string') {
             try {
                 const parsed = JSON.parse(props.post.mediaUrls)
                 rawList = Array.isArray(parsed) ? parsed : [props.post.mediaUrls]
-            } catch (e) {
+            } catch {
                 rawList = [props.post.mediaUrls]
             }
         }
@@ -143,7 +139,7 @@ const mediaFiles = computed(() => {
             if (typeof item === 'string') return item
             return item?.url || item?.src || item?.path || ''
         })
-        .filter(url => !!url)
+        .filter(Boolean)
 })
 
 const fullAvatar = (avatar: string) => {
@@ -177,246 +173,265 @@ function getAuditStatusName(status: string) {
 function handleDelete() {
     emit('delete', props.post.id)
 }
+
+function handleCardClick(event: MouseEvent) {
+    const target = event.target as HTMLElement | null
+    if (target?.closest('[data-stop-card-click]')) return
+
+    if (isBatchMode.value) {
+        emit('select', !checked.value)
+        event.stopPropagation()
+        return
+    }
+
+    const postType = String(props.post?.postType ?? '')
+    if (postType !== POST_TYPE.IMAGE) return
+
+    emit('preview', props.post)
+    event.stopPropagation()
+}
+
+function handleCheckboxChange(value: boolean) {
+    if (!isBatchMode.value) return
+    emit('select', value)
+}
+
+function handleTopLeftClick(event: MouseEvent) {
+    if (isBatchMode.value) event.stopPropagation()
+}
 </script>
 
 <style scoped lang="scss">
-.feed-item {
-    display: flex;
-    gap: 16px;
-    padding: 16px;
-    border-radius: 8px;
-    background-color: var(--el-bg-color-overlay);
-    border: 1px solid var(--el-border-color-light);
-    transition: all 0.2s ease;
+.feed-card {
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 18px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
     cursor: pointer;
-
-    &:hover {
-        background-color: var(--el-bg-color);
-        border-color: var(--el-border-color-darker);
-        box-shadow: var(--el-box-shadow-light);
-    }
-
-    &.is-checked {
-        border-color: var(--el-color-primary);
-        background-color: var(--el-color-primary-light-9);
-
-        html.dark & {
-            background-color: rgba(64, 158, 255, 0.1);
-        }
-
-        .type-indicator {
-            background-color: transparent;
-        }
-    }
-}
-
-.feed-left {
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        border-color 0.18s ease;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    min-width: 48px;
-
-    .type-indicator {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: var(--el-fill-color-light);
-        color: var(--el-text-color-regular);
-        font-size: 12px;
-
-        .type-icon {
-            font-size: 20px;
-            margin-bottom: 2px;
-        }
-    }
+    min-height: 280px;
 }
 
-.feed-body {
-    flex: 1;
+.feed-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+    border-color: var(--el-border-color);
+}
+
+.feed-card.checked {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 16px 44px rgba(64, 158, 255, 0.16);
+}
+
+.card-top {
+    padding: 12px 12px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.top-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.type-badge {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--el-text-color-regular);
+    background: var(--el-fill-color-light);
+    border: 1px solid var(--el-border-color-extra-light);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.type-badge .type-icon {
+    font-size: 16px;
+}
+
+.type-badge[data-type='1'] {
+    background: rgba(64, 158, 255, 0.12);
+    border-color: rgba(64, 158, 255, 0.22);
+    color: var(--el-color-primary);
+}
+
+.type-badge[data-type='2'] {
+    background: rgba(103, 194, 58, 0.12);
+    border-color: rgba(103, 194, 58, 0.22);
+    color: var(--el-color-success);
+}
+
+.type-badge[data-type='3'] {
+    background: rgba(230, 162, 60, 0.12);
+    border-color: rgba(230, 162, 60, 0.22);
+    color: var(--el-color-warning);
+}
+
+.top-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.audit-tag {
+    border-radius: 999px;
+}
+
+.icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition:
+        background 0.16s ease,
+        color 0.16s ease,
+        border-color 0.16s ease;
+    padding: 0;
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    background: var(--el-fill-color-dark);
+    color: var(--el-text-color-primary);
+    border-color: var(--el-border-color);
+}
+
+.icon-btn.danger:hover {
+    background: var(--el-color-danger-light-9);
+    color: var(--el-color-danger);
+    border-color: rgba(245, 108, 108, 0.35);
+}
+
+.card-user {
+    padding: 0 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar {
+    flex-shrink: 0;
+}
+
+.user-meta {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 2px;
 }
 
-.feed-header {
+.user-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-time {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-content {
+    padding: 0 14px 14px;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-
-    .user-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-
-        .meta {
-            display: flex;
-            flex-direction: column;
-
-            .top-row {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-
-                .username {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: var(--el-text-color-primary);
-                }
-            }
-
-            .time {
-                font-size: 12px;
-                color: var(--el-text-color-secondary);
-                margin-top: 2px;
-            }
-        }
-    }
-
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .delete-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            color: var(--el-text-color-secondary);
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: var(--el-color-danger-light-9);
-                color: var(--el-color-danger);
-            }
-
-            font-size: 18px;
-        }
-
-        .edit-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            color: var(--el-text-color-secondary);
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: var(--el-color-primary-light-9);
-                color: var(--el-color-primary);
-            }
-
-            font-size: 18px;
-        }
-
-        .pin-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            color: var(--el-text-color-secondary);
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: var(--el-color-warning-light-9);
-                color: var(--el-color-warning);
-            }
-
-            font-size: 18px;
-        }
-
-        .unpin-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            color: var(--el-text-color-secondary);
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: var(--el-color-info-light-9);
-                color: var(--el-color-info);
-            }
-
-            font-size: 18px;
-        }
-    }
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
 }
 
-.feed-content-wrapper {
-    .feed-text {
-        font-size: 14px;
-        line-height: 1.6;
-        color: var(--el-text-color-regular);
-        white-space: pre-wrap;
-
-        &.empty {
-            color: var(--el-text-color-placeholder);
-            font-style: italic;
-        }
-    }
-
-    .feed-media {
-        margin-top: 12px; /* 增加图片与文字的间距 */
-        border-radius: 8px;
-        overflow: hidden;
-        background-color: var(--el-fill-color-lighter);
-    }
-
-    .tags-wrapper {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px; /* 标签在媒体下方，增加间距 */
-
-        .hash-tag {
-            font-size: 12px;
-            color: var(--el-color-primary);
-            background-color: var(--el-color-primary-light-9);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: 500;
-            cursor: default;
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: var(--el-color-primary-light-8);
-            }
-        }
-    }
+.text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--el-text-color-regular);
+    white-space: pre-wrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-.feed-footer {
+.text.empty {
+    color: var(--el-text-color-placeholder);
+    font-style: italic;
+}
+
+.media {
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--el-fill-color-lighter);
+    border: 1px solid var(--el-border-color-extra-light);
+}
+
+.tags {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-chip {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+    border: 1px solid rgba(64, 158, 255, 0.18);
+    white-space: nowrap;
+}
+
+.card-footer {
+    padding: 12px 14px;
+    border-top: 1px solid var(--el-border-color-extra-light);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: var(--el-bg-color);
+}
+
+.stat {
+    display: inline-flex;
     align-items: center;
-    gap: 24px;
-    padding-top: 12px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    justify-content: center;
+    gap: 6px;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    background: var(--el-fill-color-extra-light);
+    transition:
+        background 0.16s ease,
+        color 0.16s ease;
+}
 
-    .stat-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-
-        &:hover {
-            color: var(--el-color-primary);
-        }
-    }
+.stat:hover {
+    background: var(--el-fill-color);
+    color: var(--el-text-color-primary);
 }
 </style>

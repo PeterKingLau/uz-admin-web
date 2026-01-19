@@ -138,18 +138,18 @@
             </div>
 
             <div v-else>
-                <div v-if="loading && postList.length === 0" class="status-box">
+                <div v-if="loading && worksPostList.length === 0" class="status-box">
                     <el-icon class="is-loading"><Loading /></el-icon> 加载中...
                 </div>
 
-                <div v-else-if="!loading && postList.length === 0" class="status-box empty">
+                <div v-else-if="!loading && worksPostList.length === 0" class="status-box empty">
                     <el-empty description="暂无内容" :image-size="140" />
                 </div>
 
                 <div v-else>
                     <div class="works-grid-view">
                         <div
-                            v-for="item in postList"
+                            v-for="item in worksPostList"
                             :key="item.id"
                             class="work-card-modern"
                             :class="{ 'bulk-selected': bulkMode && isBulkWorkSelected(item) }"
@@ -189,10 +189,10 @@
 
                     <div ref="loadTriggerRef" class="scroll-trigger"></div>
 
-                    <div v-if="loading && postList.length > 0" class="status-box small">
+                    <div v-if="loading && worksPostList.length > 0" class="status-box small">
                         <el-icon class="is-loading"><Loading /></el-icon>
                     </div>
-                    <div v-if="noMore && postList.length > 0" class="status-box small text-only">- 到底啦 -</div>
+                    <div v-if="noMore && worksPostList.length > 0" class="status-box small text-only">- 到底啦 -</div>
                 </div>
             </div>
         </div>
@@ -355,6 +355,13 @@ const activeTabValue = computed({
     set: value => emit('update:modelValue', value)
 })
 
+const worksPostList = computed(() => {
+    const list = Array.isArray(props.postList) ? props.postList : []
+    return list
+})
+
+const videoPostList = computed(() => worksPostList.value.filter(item => item?.postType === POST_TYPE.VIDEO))
+
 const worksFilter = ref<'all' | 'collection'>('all')
 const showCollections = computed(() => activeTabValue.value === 'works' && worksFilter.value === 'collection')
 
@@ -431,7 +438,7 @@ const bulkActionIcon = computed(() => {
 })
 const bulkTotalCount = computed(() => {
     if (bulkIsCollectionContext.value) return collectionListLocal.value.length
-    return Array.isArray(props.postList) ? props.postList.length : 0
+    return worksPostList.value.length
 })
 const bulkSelectedCount = computed(() => {
     if (!bulkMode.value) return 0
@@ -449,7 +456,7 @@ const bulkAllChecked = computed({
                     .map(id => String(id))
                 bulkSelectedCollectionIds.value = Array.from(new Set(ids))
             } else {
-                const ids = (Array.isArray(props.postList) ? props.postList : []).map(resolvePostId).filter((id): id is number => Number.isFinite(id))
+                const ids = worksPostList.value.map(resolvePostId).filter((id): id is number => Number.isFinite(id))
                 bulkSelectedWorkIds.value = Array.from(new Set(ids))
             }
         } else {
@@ -642,7 +649,7 @@ const collectionPostsLoading = ref(false)
 const selectedPostsGridRef = ref<HTMLElement | null>(null)
 let selectedPostsSortable: Sortable | null = null
 
-const selectablePosts = computed(() => (Array.isArray(props.postList) ? props.postList : []))
+const selectablePosts = computed(() => videoPostList.value)
 const collectionPostIds = computed(() => collectionPosts.value.map(resolvePostId).filter((id): id is number => Number.isFinite(id)))
 const collectionPostIdSet = computed(() => new Set(collectionPostIds.value))
 const availablePosts = computed(() =>

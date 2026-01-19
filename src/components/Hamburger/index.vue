@@ -5,8 +5,6 @@
 </template>
 
 <script setup>
-import { Icon } from '@iconify/vue'
-
 const props = defineProps({
     isActive: {
         type: Boolean,
