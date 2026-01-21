@@ -130,7 +130,6 @@
 
             <div class="detail-section">
                 <div class="section-header">
-                    <Icon icon="mdi:format-text" class="section-icon" />
                     <span>正文内容</span>
                 </div>
                 <div class="content-box">{{ current?.content || '（无正文内容）' }}</div>
@@ -138,7 +137,6 @@
 
             <div class="detail-section" v-if="current?.mediaUrls && current.mediaUrls.length">
                 <div class="section-header">
-                    <Icon icon="mdi:image-multiple-outline" class="section-icon" />
                     <span>媒体资源</span>
                 </div>
                 <div class="media-box">
@@ -325,10 +323,12 @@ function hasMedia(row) {
                 return trimmed.length > 2
             }
         }
-        return trimmed
-            .split(',')
-            .map(item => item.trim())
-            .filter(Boolean).length > 0
+        return (
+            trimmed
+                .split(',')
+                .map(item => item.trim())
+                .filter(Boolean).length > 0
+        )
     }
     return false
 }
@@ -364,16 +364,6 @@ function hasMedia(row) {
         cursor: pointer;
     }
 
-    .row-code {
-        font-family: 'JetBrains Mono', Consolas, monospace;
-        color: var(--el-color-primary);
-        background-color: var(--el-color-primary-light-9);
-        border: 1px solid var(--el-color-primary-light-8);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
     .search-input {
         width: 180px;
     }
@@ -381,7 +371,7 @@ function hasMedia(row) {
     .user-info {
         .nickname {
             font-size: 14px;
-            color: #303133;
+            color: var(--el-text-color-primary);
         }
         .username {
             font-size: 12px;
@@ -390,12 +380,14 @@ function hasMedia(row) {
     }
 
     .text-content {
-        color: #606266;
+        color: var(--el-text-color-regular);
         font-size: 13px;
     }
 }
+</style>
 
-:deep(.audit-profile-dialog) {
+<style lang="scss">
+.audit-profile-dialog {
     .detail-desc {
         margin-bottom: 24px;
     }
@@ -410,26 +402,23 @@ function hasMedia(row) {
         .section-header {
             display: flex;
             align-items: center;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
-            color: #303133;
-            margin-bottom: 10px;
-
-            .section-icon {
-                font-size: 18px;
-                color: var(--el-color-primary);
-                margin-right: 6px;
-            }
+            color: var(--el-text-color-primary);
+            margin-bottom: 12px;
+            padding-left: 10px;
+            border-left: 4px solid var(--el-color-primary);
+            line-height: 1;
         }
 
         .content-box {
-            background: #f9f9f9;
+            background: var(--el-fill-color-light);
             padding: 12px;
             border-radius: 6px;
             font-size: 14px;
             line-height: 1.6;
-            color: #555;
-            border: 1px solid #eee;
+            color: var(--el-text-color-regular);
+            border: 1px solid var(--el-border-color-lighter);
         }
 
         .media-box {

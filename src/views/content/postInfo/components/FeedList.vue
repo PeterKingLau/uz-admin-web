@@ -39,6 +39,7 @@
             @select="val => emit('select', { id: item.id, checked: val })"
             @delete="val => emit('delete', val)"
             @preview="val => emit('preview', val)"
+            @view-profile="val => emit('view-profile', val)"
             @edit-tag="val => emit('edit-tag', val)"
             @pin="val => emit('pin', val)"
             @unpin="val => emit('unpin', val)"
@@ -76,6 +77,7 @@ const emit = defineEmits<{
     (e: 'pin', post: any): void
     (e: 'unpin', post: any): void
     (e: 'preview', post: any): void
+    (e: 'view-profile', post: any): void
 }>()
 
 const sentinel = ref<HTMLElement | null>(null)
@@ -180,8 +182,8 @@ watch(
 
 .feed-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(286px, 1fr));
+    gap: 10px;
     align-items: start;
 }
 

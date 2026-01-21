@@ -14,8 +14,8 @@
                 </el-select>
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
-                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" /> 搜索 </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" /> 重置 </el-button>
             </el-form-item>
         </el-form>
 
@@ -87,7 +87,6 @@
                                     <Icon icon="mdi:eye-outline" class="op-icon" />
                                 </el-button>
                             </el-tooltip>
-
                             <template v-if="row.auditStatus === AUDIT_STATUS.PENDING">
                                 <el-divider direction="vertical" />
                                 <el-tooltip content="通过" placement="top">
@@ -112,7 +111,7 @@
             </div>
         </div>
 
-        <el-dialog title="审核详情" v-model="openDetail" width="720px" append-to-body class="audit-detail-dialog" destroy-on-close>
+        <el-dialog title="审核详情" v-model="openDetail" width="750px" append-to-body class="audit-detail-dialog" destroy-on-close>
             <div class="detail-section">
                 <div class="section-label">基础信息</div>
                 <el-descriptions :column="2" border>
@@ -137,8 +136,8 @@
             <div class="detail-section mt-5">
                 <div class="section-label">变更对比</div>
                 <div class="compare-container">
-                    <el-row :gutter="24">
-                        <el-col :span="12">
+                    <el-row :gutter="24" class="compare-row">
+                        <el-col :span="12" class="compare-col">
                             <div class="compare-card old-state">
                                 <div class="card-header">
                                     <span class="badge">原</span>
@@ -159,7 +158,7 @@
                             </div>
                         </el-col>
 
-                        <el-col :span="12">
+                        <el-col :span="12" class="compare-col">
                             <div class="compare-card new-state">
                                 <div class="card-header">
                                     <span class="badge">新</span>
@@ -251,7 +250,6 @@ const queryParams = reactive({
 function getList() {
     loading.value = true
     const query = proxy.addDateRange ? proxy.addDateRange(queryParams, dateRange.value) : queryParams
-
     listUserAuditDetail(query)
         .then(res => {
             auditList.value = res.rows || []
@@ -339,8 +337,6 @@ onMounted(() => {
 <style scoped lang="scss">
 .audit-person {
     .table-wrapper {
-        border-radius: 6px;
-
         .table-header {
             display: flex;
             justify-content: space-between;
@@ -355,35 +351,10 @@ onMounted(() => {
         }
     }
 
-    .time-cell {
-        color: var(--el-text-color-secondary);
-        font-size: 13px;
-    }
-
-    .row-title {
-        font-weight: 500;
-        color: var(--el-text-color-primary);
-        cursor: pointer;
-    }
-
-    .row-code {
-        font-family: 'JetBrains Mono', Consolas, monospace;
-        color: var(--el-color-primary);
-        background-color: var(--el-color-primary-light-9);
-        border: 1px solid var(--el-color-primary-light-8);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-
-    .search-input {
-        width: 200px;
-    }
-
     .user-info {
         .nickname {
             font-size: 14px;
-            color: #303133;
+            color: var(--el-text-color-primary);
         }
         .username {
             font-size: 12px;
@@ -406,174 +377,96 @@ onMounted(() => {
         font-size: 14px;
     }
 
-    .text-placeholder {
-        color: #c0c4cc;
-        font-style: italic;
-    }
-
     .font-medium {
         font-weight: 500;
     }
 
-    .detail-section {
-        .section-label {
-            font-size: 15px;
-            font-weight: 600;
-            color: #303133;
-            margin-bottom: 12px;
-            padding-left: 10px;
-            border-left: 4px solid var(--el-color-primary);
-            line-height: 1;
-        }
-        .mt-5 {
-            margin-top: 20px;
-        }
-    }
-
-    .compare-container {
-        padding: 4px;
-    }
-
-    .compare-card {
-        border-radius: 8px;
-        overflow: hidden;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        border: 1px solid;
-        transition: all 0.3s;
-
-        .card-header {
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-
-            .badge {
-                font-size: 12px;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            .title {
-                font-size: 14px;
-                font-weight: 600;
-            }
-        }
-
-        .card-body {
-            flex: 1;
-            padding: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 160px;
-            background-color: #fff;
-        }
-
-        &.old-state {
-            background-color: #f8f9fa;
-            border-color: #e4e7ed;
-
-            .card-header {
-                background-color: #f2f3f5;
-                color: #909399;
-                .badge {
-                    background: #dedfe0;
-                    color: #606266;
-                }
-            }
-
-            .text-content.empty {
-                color: #c0c4cc;
-                font-style: italic;
-            }
-        }
-
-        &.new-state {
-            background-color: var(--el-color-primary-light-9);
-            border-color: var(--el-color-primary-light-5);
-
-            .card-header {
-                background-color: var(--el-color-primary-light-8);
-                color: var(--el-color-primary-dark-2);
-                .badge {
-                    background: var(--el-color-primary);
-                    color: #fff;
-                }
-            }
-
-            .text-content.highlight {
-                color: var(--el-color-primary);
-                font-weight: 600;
-                font-size: 16px;
-            }
-        }
-
-        .img-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            .img-tip {
-                font-size: 12px;
-                color: #909399;
-            }
-        }
-
-        .text-content {
-            font-size: 15px;
-            color: #606266;
-            word-break: break-all;
-            text-align: center;
-            line-height: 1.6;
-        }
-    }
-
-    .dialog-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
+    .search-input {
+        width: 200px;
     }
 }
+</style>
 
-:deep(.audit-detail-dialog) {
+<style lang="scss">
+.audit-detail-dialog {
+    .el-dialog__header {
+        margin-right: 0;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        display: flex;
+        align-items: center;
+    }
+
+    .el-dialog__title {
+        position: relative;
+        padding-left: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 16px;
+            background: var(--el-color-primary);
+            border-radius: 2px;
+        }
+    }
+
+    .el-dialog__body {
+        padding: 24px;
+    }
+
     .detail-section {
         .section-label {
             font-size: 15px;
             font-weight: 600;
-            color: #303133;
+            color: var(--el-text-color-primary);
             margin-bottom: 12px;
             padding-left: 10px;
             border-left: 4px solid var(--el-color-primary);
             line-height: 1;
         }
-    }
 
-    .detail-section.mt-5 {
-        margin-top: 20px;
+        &.mt-5 {
+            margin-top: 24px;
+        }
     }
 
     .compare-container {
-        padding: 4px;
+        padding: 4px 0;
+
+        .compare-row {
+            display: flex;
+            align-items: stretch;
+
+            .compare-col {
+                display: flex;
+                flex-direction: column;
+            }
+        }
     }
 
     .compare-card {
         border-radius: 8px;
         overflow: hidden;
-        height: 100%;
+        flex: 1;
         display: flex;
         flex-direction: column;
         border: 1px solid;
         transition: all 0.3s;
+        width: 100%;
 
         .card-header {
             padding: 10px 16px;
             display: flex;
             align-items: center;
             gap: 8px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--el-border-color-lighter);
 
             .badge {
                 font-size: 12px;
@@ -593,25 +486,24 @@ onMounted(() => {
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 160px;
-            background-color: #fff;
+            min-height: 180px;
+            background-color: var(--el-bg-color);
         }
 
         &.old-state {
-            background-color: #f8f9fa;
-            border-color: #e4e7ed;
+            background-color: var(--el-fill-color-light);
+            border-color: var(--el-border-color-lighter);
 
             .card-header {
-                background-color: #f2f3f5;
-                color: #909399;
+                background-color: var(--el-fill-color-lighter);
+                color: var(--el-text-color-secondary);
                 .badge {
-                    background: #dedfe0;
-                    color: #606266;
+                    background: var(--el-fill-color);
+                    color: var(--el-text-color-regular);
                 }
             }
-
             .text-content.empty {
-                color: #c0c4cc;
+                color: var(--el-text-color-placeholder);
                 font-style: italic;
             }
         }
@@ -628,7 +520,6 @@ onMounted(() => {
                     color: #fff;
                 }
             }
-
             .text-content.highlight {
                 color: var(--el-color-primary);
                 font-weight: 600;
@@ -643,13 +534,13 @@ onMounted(() => {
             gap: 8px;
             .img-tip {
                 font-size: 12px;
-                color: #909399;
+                color: var(--el-text-color-secondary);
             }
         }
 
         .text-content {
             font-size: 15px;
-            color: #606266;
+            color: var(--el-text-color-regular);
             word-break: break-all;
             text-align: center;
             line-height: 1.6;
@@ -657,14 +548,8 @@ onMounted(() => {
     }
 
     .text-placeholder {
-        color: #c0c4cc;
+        color: var(--el-text-color-placeholder);
         font-style: italic;
-    }
-
-    .dialog-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
     }
 }
 </style>

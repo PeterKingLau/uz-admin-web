@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+    <defs>
+        <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
+            <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+        </linearGradient>
+    </defs>
+    <rect width="900" height="1200" fill="__BG__" />
+    <rect width="900" height="1200" fill="url(#shine)" />
+    <text x="70" y="140" font-size="96" font-weight="700" fill="__QUOTE__" font-family="Microsoft YaHei, PingFang SC, sans-serif">
+        &#8220;
+    </text>
+    __TEXT__
+    <rect x="750" y="1100" width="90" height="12" rx="6" fill="__ACCENT__" />
+</svg>

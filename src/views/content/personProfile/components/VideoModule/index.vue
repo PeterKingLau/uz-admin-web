@@ -41,7 +41,7 @@
                             <div class="info-content">
                                 <div class="author-line">
                                     <div class="author-name">@{{ authorName }}</div>
-                                    <span class="publish-time">{{ formatDate(postData.createTime) }}</span>
+                                    <span class="publish-time" @click.stop="openDetailPanel"> {{ formatDate(postData.createTime) }} </span>
                                 </div>
                                 <div class="video-desc">
                                     <span class="desc-text">
@@ -94,6 +94,7 @@
                                                     @input="applyVolume"
                                                     class="volume-slider"
                                                 />
+                                                <div class="volume-percent">{{ Math.round(volume * 100) }}%</div>
                                             </div>
                                         </div>
 
@@ -112,17 +113,6 @@
                                                             >
                                                                 {{ r }}x
                                                             </div>
-                                                        </div>
-                                                        <div class="custom-speed">
-                                                            <input
-                                                                v-model="customRate"
-                                                                class="custom-input"
-                                                                placeholder="自定义"
-                                                                type="number"
-                                                                step="0.1"
-                                                                @keyup.enter="applyRate(customRate)"
-                                                            />
-                                                            <button class="custom-btn" @click="applyRate(customRate)">确认</button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -144,6 +134,9 @@
                         <div class="right-sidebar">
                             <div class="sidebar-item avatar-wrapper">
                                 <el-avatar :size="48" :src="authorAvatar" class="author-avatar" />
+                                <button v-if="showFollowBadge" type="button" class="follow-badge" @click.stop="handleToggleFollow" aria-label="关注">
+                                    <Icon :icon="followBadgeIcon" />
+                                </button>
                             </div>
 
                             <div class="sidebar-item" @click.stop="handleToggleLike">
@@ -176,11 +169,14 @@
                         </div>
                     </div>
 
-                    <div class="comment-panel" :class="{ open: commentPanelVisible }" @click.stop>
+                    <div class="comment-panel" :class="{ open: commentPanelVisible, 'with-collection': showCollectionTab }" @click.stop>
                         <div class="comment-panel-header">
                             <div class="header-left">
-                                <span class="title">全部评论</span>
-                                <span class="count" v-if="localCommentCount > 0">({{ formatCount(localCommentCount) }})</span>
+                                <el-tabs v-model="activePanelTab" class="panel-tabs" @tab-click="handlePanelTabClick">
+                                    <el-tab-pane name="detail" label="详情" />
+                                    <el-tab-pane name="comments" label="评论" />
+                                    <el-tab-pane v-if="showCollectionTab" name="collection" label="合集" />
+                                </el-tabs>
                             </div>
                             <div class="panel-close" @click="commentPanelVisible = false">
                                 <Icon icon="ep:close" />
@@ -188,77 +184,137 @@
                         </div>
 
                         <div class="comment-panel-body" ref="commentBodyRef" @scroll="handleCommentScroll">
-                            <div v-if="commentItems.length === 0 && !commentLoading" class="comment-empty">
-                                <Icon icon="mdi:comment-outline" class="empty-icon" />
-                                <span>暂无评论，快来抢沙发~</span>
-                            </div>
+                            <template v-if="activePanelTab === 'comments'">
+                                <div class="comment-panel-count">全部评论 ({{ formatCount(localCommentCount) }})</div>
+                                <div v-if="commentItems.length === 0 && !commentLoading" class="comment-empty">
+                                    <Icon icon="mdi:comment-outline" class="empty-icon" />
+                                    <span>暂无评论，快来抢沙发~</span>
+                                </div>
 
-                            <div v-for="(comment, index) in commentItems" :key="comment.id ?? index" class="comment-item">
-                                <el-avatar :size="36" :src="getCommentAvatar(comment)" class="comment-avatar" />
-                                <div class="comment-main">
-                                    <div class="comment-user-info">
-                                        <span class="comment-name">{{ getCommentName(comment) }}</span>
-                                        <span class="comment-time">{{ formatCommentTime(comment.createTime) }}</span>
-                                    </div>
-                                    <div class="comment-content" @click="handleReplyToComment(comment)">
-                                        {{ comment.content }}
-                                    </div>
-
-                                    <div class="comment-actions">
-                                        <span class="action-text reply-btn" @click="handleReplyToComment(comment)">回复</span>
-                                        <span v-if="canDeleteComment(comment)" class="action-text delete-btn" @click.stop="handleDeleteComment(comment)"
-                                            >删除</span
-                                        >
-                                        <div v-if="Number(comment.replyCount || 0) > 0" class="action-text toggle-reply-btn" @click="toggleReplies(comment)">
-                                            <span class="divider"></span>
-                                            <span>{{ resolveReplyState(comment).open ? '收起' : `展开 ${comment.replyCount} 条回复` }}</span>
-                                            <Icon :icon="resolveReplyState(comment).open ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+                                <div v-for="(comment, index) in commentItems" :key="comment.id ?? index" class="comment-item">
+                                    <el-avatar :size="36" :src="getCommentAvatar(comment)" class="comment-avatar" />
+                                    <div class="comment-main">
+                                        <div class="comment-user-info">
+                                            <span class="comment-name">{{ getCommentName(comment) }}</span>
+                                            <span class="comment-time">{{ formatCommentTime(comment.createTime) }}</span>
                                         </div>
-                                    </div>
+                                        <div class="comment-content" @click="handleReplyToComment(comment)">
+                                            {{ comment.content }}
+                                        </div>
 
-                                    <div class="comment-replies" v-if="resolveReplyState(comment).open">
-                                        <div v-for="(reply, rIndex) in resolveReplyState(comment).list" :key="reply.id ?? rIndex" class="reply-item">
-                                            <el-avatar :size="24" :src="getCommentAvatar(reply)" class="reply-avatar" />
-                                            <div class="reply-main">
-                                                <div class="reply-user-info">
-                                                    <span class="reply-name">{{ getCommentName(reply) }}</span>
-                                                    <span v-if="reply.replyUserNickName" class="reply-arrow">
-                                                        <Icon icon="mdi:menu-right" />
-                                                        <span class="target-name">{{ reply.replyUserNickName }}</span>
-                                                    </span>
-                                                </div>
-                                                <div class="reply-content" @click="handleReplyToReply(reply, comment)">
-                                                    {{ reply.content }}
-                                                </div>
-                                                <div class="reply-meta">
-                                                    <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
-                                                    <span class="action-text reply-btn" @click="handleReplyToReply(reply, comment)">回复</span>
-                                                    <span
-                                                        v-if="canDeleteComment(reply)"
-                                                        class="action-text reply-btn delete-btn"
-                                                        @click.stop="handleDeleteComment(reply, comment)"
-                                                    >
-                                                        删除
-                                                    </span>
-                                                </div>
+                                        <div class="comment-actions">
+                                            <span class="action-text reply-btn" @click="handleReplyToComment(comment)">回复</span>
+                                            <span
+                                                v-if="canDeleteComment(comment)"
+                                                class="action-text delete-btn danger"
+                                                @click.stop="handleDeleteComment(comment)"
+                                                >删除</span
+                                            >
+                                            <div
+                                                v-if="Number(comment.replyCount || 0) > 0"
+                                                class="action-text toggle-reply-btn"
+                                                @click="toggleReplies(comment)"
+                                            >
+                                                <span class="divider"></span>
+                                                <span>{{ resolveReplyState(comment).open ? '收起' : `展开 ${comment.replyCount} 条回复` }}</span>
+                                                <Icon :icon="resolveReplyState(comment).open ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
                                             </div>
                                         </div>
 
-                                        <div v-if="!resolveReplyState(comment).noMore" class="load-more-replies">
-                                            <span class="load-more-text" @click="loadReplies(comment)">
-                                                {{ resolveReplyState(comment).loading ? '加载中...' : '查看更多回复' }}
-                                                <Icon icon="mdi:chevron-down" v-if="!resolveReplyState(comment).loading" />
-                                            </span>
+                                        <div class="comment-replies" v-if="resolveReplyState(comment).open">
+                                            <div v-for="(reply, rIndex) in resolveReplyState(comment).list" :key="reply.id ?? rIndex" class="reply-item">
+                                                <el-avatar :size="24" :src="getCommentAvatar(reply)" class="reply-avatar" />
+                                                <div class="reply-main">
+                                                    <div class="reply-user-info">
+                                                        <span class="reply-name">{{ getCommentName(reply) }}</span>
+                                                        <span v-if="reply.replyUserNickName" class="reply-arrow">
+                                                            <Icon icon="mdi:menu-right" />
+                                                            <span class="target-name">{{ reply.replyUserNickName }}</span>
+                                                        </span>
+                                                    </div>
+                                                    <div class="reply-content" @click="handleReplyToReply(reply, comment)">
+                                                        {{ reply.content }}
+                                                    </div>
+                                                    <div class="reply-meta">
+                                                        <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
+                                                        <span class="action-text reply-btn" @click="handleReplyToReply(reply, comment)">回复</span>
+                                                        <span
+                                                            v-if="canDeleteComment(reply)"
+                                                            class="action-text reply-btn delete-btn danger"
+                                                            @click.stop="handleDeleteComment(reply, comment)"
+                                                        >
+                                                            删除
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="!resolveReplyState(comment).noMore" class="load-more-replies">
+                                                <span class="load-more-text" @click="loadReplies(comment)">
+                                                    {{ resolveReplyState(comment).loading ? '加载中...' : '查看更多回复' }}
+                                                    <Icon icon="mdi:chevron-down" v-if="!resolveReplyState(comment).loading" />
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div v-if="commentLoading" class="comment-loading">
-                                <div class="loading-spinner"></div>
-                                <span>正在加载评论...</span>
-                            </div>
-                            <div v-if="commentNoMore && commentItems.length > 0" class="comment-end">- 到底了 -</div>
+                                <div v-if="commentLoading" class="comment-loading">
+                                    <div class="loading-spinner"></div>
+                                    <span>正在加载评论...</span>
+                                </div>
+                                <div v-if="commentNoMore && commentItems.length > 0" class="comment-end">- 到底了 -</div>
+                            </template>
+
+                            <template v-else-if="activePanelTab === 'detail'">
+                                <div class="detail-panel">
+                                    <div class="detail-section">
+                                        <div class="detail-label">正文</div>
+                                        <div v-if="detailContent" class="detail-content-text">{{ detailContent }}</div>
+                                        <div v-else class="detail-empty">暂无正文内容</div>
+                                    </div>
+                                    <div class="detail-section">
+                                        <div class="detail-label">标签</div>
+                                        <div v-if="detailTags.length" class="detail-tags">
+                                            <span v-for="tag in detailTags" :key="tag" class="detail-tag">#{{ tag }}</span>
+                                        </div>
+                                        <div v-else class="detail-empty">暂无标签</div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template v-else>
+                                <div class="collection-panel-title">合集 · {{ activeCollectionName || '未命名合集' }}</div>
+                                <div v-if="collectionLoading" class="collection-loading">加载中...</div>
+                                <div v-else-if="collectionVideoPosts.length === 0" class="collection-empty">暂无合集视频</div>
+                                <div v-else class="collection-list">
+                                    <button
+                                        v-for="item in collectionVideoPosts"
+                                        :key="getPostId(item) ?? item.id"
+                                        type="button"
+                                        class="collection-item"
+                                        :class="{ active: isCurrentCollectionPost(item) }"
+                                        @click="handleSelectCollectionPost(item)"
+                                    >
+                                        <div class="collection-thumb">
+                                            <el-image
+                                                v-if="resolveCollectionCover(item)"
+                                                :src="resolveCollectionCover(item)"
+                                                fit="cover"
+                                                class="collection-cover"
+                                            />
+                                            <div v-else class="collection-thumb-empty">
+                                                <Icon icon="mdi:video-outline" />
+                                            </div>
+                                        </div>
+                                        <div class="collection-info">
+                                            <div class="collection-title">{{ resolveCollectionTitle(item) }}</div>
+                                            <div class="collection-meta">{{ formatDate(item.createTime) }}</div>
+                                        </div>
+                                        <div v-if="isCurrentCollectionPost(item)" class="collection-playing">播放中</div>
+                                    </button>
+                                </div>
+                            </template>
                         </div>
 
                         <div class="comment-panel-footer">
@@ -321,6 +377,9 @@ import { computed, getCurrentInstance, nextTick, onBeforeUnmount, reactive, ref,
 import { parseTime } from '@/utils/ruoyi'
 import { getImgUrl } from '@/utils/img'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
+import { getPostByCollection } from '@/api/content/collection'
+import { POST_TYPE } from '@/utils/enum'
+import useUserStore from '@/store/modules/user'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -330,9 +389,10 @@ const props = defineProps({
     useTeleport: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['update:modelValue', 'close', 'action'])
+const emit = defineEmits(['update:modelValue', 'close', 'action', 'select-collection'])
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 
 const teleportWrapper = computed(() => (props.useTeleport ? 'teleport' : 'div'))
 const teleportAttrs = computed(() => (props.useTeleport ? { to: 'body' } : {}))
@@ -356,7 +416,37 @@ const isCollected = computed(() =>
         postData.value?.bookmark ?? postData.value?.isCollected ?? postData.value?.collected ?? postData.value?.collectStatus ?? postData.value?.isCollect
     )
 )
-const currentUserId = computed(() => props.userInfo?.id ?? props.userInfo?.userId ?? null)
+const resolveFollowFlag = value => {
+    if (typeof value === 'boolean') return value
+    return value != null ? String(value) === '1' : false
+}
+const isFollowing = computed(() =>
+    resolveFollowFlag(
+        postData.value?.follow ??
+            postData.value?.isFollow ??
+            postData.value?.isFollowing ??
+            postData.value?.followed ??
+            postData.value?.followStatus ??
+            postData.value?.following
+    )
+)
+const currentUserId = computed(() => props.userInfo?.id ?? props.userInfo?.userId ?? userStore.id ?? userStore.userId ?? null)
+const authorUserId = computed(
+    () => postData.value?.userId ?? postData.value?.authorId ?? postData.value?.createBy ?? postData.value?.user?.id ?? postData.value?.author?.id ?? null
+)
+const isAuthorSelf = computed(() => {
+    const currentId = currentUserId.value
+    const authorId = authorUserId.value
+    if (currentId == null || authorId == null) return false
+    return String(currentId) === String(authorId)
+})
+const followRequested = ref(false)
+const showFollowCheck = ref(false)
+let followCheckTimer = null
+let followRequestResetTimer = null
+
+const showFollowBadge = computed(() => !isAuthorSelf.value && (!isFollowing.value || showFollowCheck.value))
+const followBadgeIcon = computed(() => (showFollowCheck.value ? 'mdi:check' : 'mdi:plus'))
 const playerRef = ref(null)
 const playerFrameRef = ref(null)
 const videoWrapperRef = ref(null)
@@ -393,7 +483,6 @@ const muted = ref(false)
 
 const rates = [0.75, 1.0, 1.25, 1.5, 2.0]
 const playbackRate = ref(1)
-const customRate = ref('')
 
 const controlsVisible = ref(true)
 let hideControlsTimer = null
@@ -432,6 +521,40 @@ const formatDate = time => {
 
 const getPostId = post => post?.postId ?? post?.id ?? null
 const activePostId = computed(() => getPostId(postData.value))
+const resolveCollectionId = post => post?.collectionId ?? post?.postCollectionDto?.collectionId ?? post?.collection?.id ?? null
+const activeCollectionId = computed(() => resolveCollectionId(postData.value))
+const resolveCollectionName = post =>
+    post?.collectionName || post?.postCollectionDto?.collectionName || post?.collection?.name || post?.collection?.title || post?.collectionTitle || ''
+const collectionNameFromApi = ref('')
+const resolveCollectionNameFromResponse = res => {
+    const data = res?.data ?? res ?? {}
+    const collection =
+        data?.collection ??
+        data?.collectionInfo ??
+        data?.collectionDetail ??
+        data?.collectionDto ??
+        data?.collectionVO ??
+        data?.collectionEntity ??
+        data?.info ??
+        data?.detail ??
+        null
+    const name =
+        data?.collectionName ||
+        data?.collectionTitle ||
+        data?.title ||
+        collection?.name ||
+        collection?.title ||
+        collection?.collectionName ||
+        collection?.collectionTitle ||
+        ''
+    return String(name || '').trim()
+}
+const activeCollectionName = computed(() => collectionNameFromApi.value || resolveCollectionName(postData.value))
+const showCollectionTab = computed(() => Boolean(activeCollectionId.value))
+const activePanelTab = ref('comments')
+const collectionPosts = ref([])
+const collectionLoading = ref(false)
+const collectionLoaded = ref(false)
 
 const getCommentName = comment => comment?.nickName || comment?.userName || comment?.authorName || comment?.nickname || comment?.user?.nickName || '用户'
 
@@ -451,6 +574,115 @@ const formatCommentTime = time => {
     if (diff < 86400) return Math.floor(diff / 3600) + '小时前'
     if (diff < 86400 * 3) return Math.floor(diff / 86400) + '天前'
     return parseTime(time, '{m}-{d}') || ''
+}
+
+const parseMediaRaw = raw => {
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim()
+        if (!trimmed) return []
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed)
+                return Array.isArray(parsed) ? parsed : [parsed]
+            } catch {
+                return trimmed
+                    .split(',')
+                    .map(item => item.trim())
+                    .filter(Boolean)
+            }
+        }
+        return trimmed
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+    }
+    if (typeof raw === 'object') return [raw]
+    return []
+}
+
+const resolveMediaList = post => [
+    ...parseMediaRaw(post?.mediaUrls),
+    ...parseMediaRaw(post?.mediaList),
+    ...parseMediaRaw(post?.files),
+    ...parseMediaRaw(post?.resources),
+    ...parseMediaRaw(post?.videos)
+]
+
+const resolveMediaUrl = url => (url ? getImgUrl(url) : '')
+
+const isVideoUrl = url => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
+
+const resolveCollectionVideoUrl = post => {
+    const direct = post?.videoUrl || post?.video || post?.url || post?.src || ''
+    if (direct) return resolveMediaUrl(direct)
+    const list = resolveMediaList(post)
+    const normalized = list
+        .map(item => {
+            if (typeof item === 'string') return item
+            return item?.url || item?.src || item?.path || item?.fileUrl || ''
+        })
+        .filter(Boolean)
+    const candidate = normalized.find(isVideoUrl) || normalized[0] || ''
+    return resolveMediaUrl(candidate)
+}
+
+const resolveCollectionCover = post => {
+    const cover = post?.cover || post?.coverUrl || post?.thumbnail || post?.poster || post?.image || post?.coverImage || ''
+    if (cover) return resolveMediaUrl(cover)
+    const list = resolveMediaList(post)
+    const candidate = list
+        .map(item => {
+            if (typeof item === 'string') return item
+            return item?.cover || item?.coverUrl || item?.thumbnail || item?.poster || item?.image || item?.url || item?.src || item?.path || ''
+        })
+        .filter(Boolean)[0]
+    return resolveMediaUrl(candidate || '')
+}
+
+const resolveCollectionTitle = post => {
+    const title = post?.title || post?.postTitle || post?.content || post?.description || ''
+    const text = String(title || '').trim()
+    return text || '未命名视频'
+}
+
+const isCollectionVideoPost = post => String(post?.postType ?? '') === POST_TYPE.VIDEO || Boolean(resolveCollectionVideoUrl(post))
+
+const collectionVideoPosts = computed(() => collectionPosts.value.filter(item => isCollectionVideoPost(item)))
+const isCurrentCollectionPost = post => {
+    const id = getPostId(post)
+    if (id == null || activePostId.value == null) return false
+    return String(id) === String(activePostId.value)
+}
+
+const normalizeCollectionPosts = res => {
+    const data = res?.data ?? res?.rows ?? res?.list ?? res?.records ?? []
+    if (Array.isArray(data)) return data
+    if (Array.isArray(data?.posts)) return data.posts
+    if (Array.isArray(res?.posts)) return res.posts
+    return []
+}
+
+const loadCollectionPosts = async (force = false) => {
+    if (collectionLoading.value) return
+    if (!force && collectionLoaded.value) return
+    const collectionId = activeCollectionId.value
+    if (!collectionId) return
+    collectionLoading.value = true
+    try {
+        const res = await getPostByCollection({ collectionId })
+        collectionPosts.value = normalizeCollectionPosts(res)
+        const resolvedName = resolveCollectionNameFromResponse(res)
+        if (resolvedName) collectionNameFromApi.value = resolvedName
+        collectionLoaded.value = true
+    } catch (error) {
+        console.error(error)
+        collectionPosts.value = []
+        collectionLoaded.value = false
+    } finally {
+        collectionLoading.value = false
+    }
 }
 
 const getCommentId = comment => comment?.id ?? comment?.commentId ?? null
@@ -569,6 +801,7 @@ const loadTopComments = async ({ reset = false, silent = false } = {}) => {
 }
 
 const handleCommentScroll = () => {
+    if (activePanelTab.value !== 'comments') return
     const el = commentBodyRef.value
     if (!el || commentLoading.value || commentNoMore.value) return
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 60) {
@@ -664,7 +897,8 @@ const handleDeleteComment = async (comment, parent) => {
         await proxy?.$modal?.confirm?.('确认删除该评论？', '提示', {
             type: 'warning',
             confirmButtonText: '删除',
-            cancelButtonText: '取消'
+            cancelButtonText: '取消',
+            lockScroll: false
         })
     } catch {
         return
@@ -699,6 +933,46 @@ const buildContentParts = content => {
 }
 
 const contentParts = computed(() => buildContentParts(postData.value?.content || ''))
+const detailContent = computed(() => String(postData.value?.content ?? '').trim())
+const detailTags = computed(() => {
+    const raw = postData.value
+    const tags = []
+    if (Array.isArray(raw?.tags)) {
+        raw.tags.forEach(tag => {
+            const name = tag?.tagName ?? tag?.name ?? tag?.label ?? tag?.title ?? ''
+            const text = String(name || '').trim()
+            if (text) tags.push(text)
+        })
+    }
+    if (Array.isArray(raw?.tagList)) {
+        raw.tagList.forEach(tag => {
+            const name = tag?.tagName ?? tag?.name ?? tag?.label ?? tag?.title ?? ''
+            const text = String(name || '').trim()
+            if (text) tags.push(text)
+        })
+    }
+    if (typeof raw?.tagStr === 'string') {
+        raw.tagStr
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+            .forEach(item => tags.push(item))
+    }
+    if (Array.isArray(raw?.tagNames)) {
+        raw.tagNames.forEach(item => {
+            const text = String(item || '').trim()
+            if (text) tags.push(text)
+        })
+    }
+    if (tags.length === 0) {
+        const matches = String(raw?.content ?? '').match(/#[^#\s]+/g) || []
+        matches
+            .map(item => item.replace(/^#/, '').trim())
+            .filter(Boolean)
+            .forEach(item => tags.push(item))
+    }
+    return Array.from(new Set(tags))
+})
 
 const resolveBackgroundUrl = () => {
     const list = Array.isArray(postData.value?.mediaList) ? postData.value.mediaList : []
@@ -791,10 +1065,21 @@ const toggleMute = () => {
     muted.value = el.muted
 }
 
+const safePlay = async el => {
+    if (!el?.play) return
+    try {
+        const result = el.play()
+        if (result?.catch) await result
+    } catch (error) {
+        if (error?.name === 'AbortError') return
+        console.error(error)
+    }
+}
+
 const togglePlay = () => {
     const el = playerRef.value
     if (!el) return
-    if (el.paused) el.play?.()
+    if (el.paused) safePlay(el)
     else el.pause?.()
 }
 
@@ -806,7 +1091,6 @@ const onLoadedMeta = () => {
     volume.value = Number(el.volume ?? 1)
     muted.value = Boolean(el.muted)
     playbackRate.value = Number(el.playbackRate || 1)
-    customRate.value = playbackRate.value
     syncPiPSupport()
     updateWatermarkAndFit()
 }
@@ -898,6 +1182,19 @@ const emitAction = (type, payload) => {
     emit('action', type, payload)
 }
 
+const handleToggleFollow = () => {
+    if (isAuthorSelf.value) return
+    if (!isFollowing.value) {
+        followRequested.value = true
+        showFollowCheck.value = false
+        if (followRequestResetTimer) clearTimeout(followRequestResetTimer)
+        followRequestResetTimer = setTimeout(() => {
+            followRequested.value = false
+        }, 2000)
+    }
+    emitAction('follow', { active: !isFollowing.value })
+}
+
 const handleToggleLike = () => {
     emitAction('like', { active: !isLiked.value })
 }
@@ -905,6 +1202,16 @@ const handleToggleLike = () => {
 const handleToggleCollect = () => {
     emitAction('collect', { active: !isCollected.value })
 }
+
+watch(isFollowing, value => {
+    if (!followRequested.value || !value) return
+    followRequested.value = false
+    showFollowCheck.value = true
+    if (followCheckTimer) clearTimeout(followCheckTimer)
+    followCheckTimer = setTimeout(() => {
+        showFollowCheck.value = false
+    }, 800)
+})
 
 const openRepostDialog = () => {
     repostContent.value = ''
@@ -926,10 +1233,19 @@ const toggleCommentPanel = () => {
     commentPanelVisible.value = !commentPanelVisible.value
     if (commentPanelVisible.value) {
         nextTick(() => commentInputRef.value?.focus?.())
+        if (activePanelTab.value === 'collection' && showCollectionTab.value) {
+            loadCollectionPosts()
+        }
         return
     }
     clearReplyTarget()
     commentDraft.value = ''
+    activePanelTab.value = 'comments'
+}
+
+const openDetailPanel = () => {
+    commentPanelVisible.value = true
+    activePanelTab.value = 'detail'
 }
 
 const submitComment = () => {
@@ -1017,11 +1333,7 @@ const initPlayer = async () => {
     el.playbackRate = Number(playbackRate.value || 1)
     el.volume = Math.min(1, Math.max(0, Number(volume.value)))
     updateWatermarkAndFit()
-    try {
-        await el.play?.()
-    } catch (e) {
-        console.error(e)
-    }
+    await safePlay(el)
 }
 
 const resetHideTimer = () => {
@@ -1092,10 +1404,38 @@ watch(
         if (!open) {
             clearReplyTarget()
             commentDraft.value = ''
+            activePanelTab.value = 'comments'
         }
     }
 )
 
+watch(
+    () => activeCollectionId.value,
+    () => {
+        collectionPosts.value = []
+        collectionLoaded.value = false
+        collectionNameFromApi.value = ''
+        if (!showCollectionTab.value) activePanelTab.value = 'comments'
+    }
+)
+
+const setPanelTab = value => {
+    if (activePanelTab.value === value) return
+    activePanelTab.value = value
+    if (value === 'collection' && showCollectionTab.value) {
+        loadCollectionPosts()
+    }
+}
+
+const handlePanelTabClick = tab => {
+    const next = tab?.props?.name ?? tab?.paneName ?? activePanelTab.value
+    setPanelTab(next)
+}
+
+const handleSelectCollectionPost = post => {
+    if (isCurrentCollectionPost(post)) return
+    emit('select-collection', post)
+}
 watch(
     () => [activePostId.value, postData.value?.commentCount],
     ([, count]) => {
@@ -1106,6 +1446,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
+    if (followCheckTimer) clearTimeout(followCheckTimer)
+    if (followRequestResetTimer) clearTimeout(followRequestResetTimer)
     stopPlayer()
 })
 </script>
@@ -1234,7 +1576,7 @@ onBeforeUnmount(() => {
     padding-bottom: 120px;
     z-index: 13;
     transition: opacity 0.2s ease;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 .comment-open .right-sidebar {
@@ -1248,10 +1590,41 @@ onBeforeUnmount(() => {
     align-items: center;
     cursor: pointer;
     color: #fff;
+    pointer-events: auto;
 
     &.active .icon-wrapper {
         color: #face15;
     }
+}
+
+.avatar-wrapper {
+    position: relative;
+}
+
+.follow-badge {
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #ff4d4f;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.follow-badge:hover {
+    transform: translateX(-50%) scale(1.05);
 }
 
 .icon-wrapper {
@@ -1259,7 +1632,6 @@ onBeforeUnmount(() => {
     height: 48px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1343,6 +1715,11 @@ onBeforeUnmount(() => {
 .publish-time {
     opacity: 0.7;
     font-size: 13px;
+    cursor: pointer;
+
+    &:hover {
+        opacity: 1;
+    }
 }
 
 .desc-text {
@@ -1471,11 +1848,12 @@ onBeforeUnmount(() => {
         height: 32px;
         display: flex;
         align-items: center;
+        gap: 6px;
         padding-right: 12px;
     }
 
     &:hover .volume-slider-wrapper {
-        width: 90px;
+        width: 110px;
         opacity: 1;
         margin-left: 8px;
         padding-left: 12px;
@@ -1483,7 +1861,11 @@ onBeforeUnmount(() => {
 }
 
 .volume-slider {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 :deep(.volume-slider .el-slider__runway) {
@@ -1501,6 +1883,19 @@ onBeforeUnmount(() => {
     width: 10px;
     height: 10px;
     border: none;
+}
+
+:deep(.volume-slider .el-slider__button-wrapper) {
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.volume-percent {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 600;
+    white-space: nowrap;
+    line-height: 1;
 }
 
 .speed-control {
@@ -1573,45 +1968,6 @@ onBeforeUnmount(() => {
     }
 }
 
-.custom-speed {
-    display: flex;
-    gap: 4px;
-    padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 4px;
-}
-
-.custom-input {
-    flex: 1;
-    width: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 4px;
-    color: #fff;
-    padding: 4px;
-    font-size: 12px;
-    text-align: center;
-
-    &:focus {
-        outline: 1px solid #face15;
-    }
-}
-
-.custom-btn {
-    background: #face15;
-    color: #000;
-    border: none;
-    border-radius: 4px;
-    padding: 0 8px;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-
-    &:hover {
-        background: #fbd63d;
-    }
-}
-
 .icon-btn {
     color: #fff;
     font-size: 22px;
@@ -1650,6 +2006,10 @@ onBeforeUnmount(() => {
     }
 }
 
+.comment-panel.with-collection.open {
+    width: 460px;
+}
+
 .comment-panel-header {
     padding: 16px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1660,7 +2020,7 @@ onBeforeUnmount(() => {
     .header-left {
         display: flex;
         align-items: baseline;
-        gap: 6px;
+        gap: 10px;
     }
 
     .title {
@@ -1689,6 +2049,36 @@ onBeforeUnmount(() => {
     }
 }
 
+.panel-tabs {
+    :deep(.el-tabs__header) {
+        margin: 0;
+    }
+
+    :deep(.el-tabs__nav-wrap::after) {
+        display: none;
+    }
+
+    :deep(.el-tabs__item) {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 14px;
+        font-weight: 600;
+        padding: 0 8px;
+        height: auto;
+        line-height: 1.2;
+        transition: color 0.2s ease;
+    }
+
+    :deep(.el-tabs__item.is-active) {
+        color: #fff;
+    }
+
+    :deep(.el-tabs__active-bar) {
+        background: #face15;
+        height: 2px;
+        border-radius: 2px;
+    }
+}
+
 .comment-panel-body {
     flex: 1;
     overflow-y: auto;
@@ -1701,6 +2091,164 @@ onBeforeUnmount(() => {
         background: rgba(255, 255, 255, 0.2);
         border-radius: 2px;
     }
+}
+
+.comment-panel-count {
+    padding: 16px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.detail-panel {
+    padding: 16px 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.detail-content-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: pre-wrap;
+}
+
+.detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.detail-tag {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(250, 206, 21, 0.16);
+    color: #face15;
+}
+
+.detail-empty {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.collection-panel-title {
+    padding: 16px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.collection-loading,
+.collection-empty {
+    padding-top: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.4);
+    gap: 10px;
+    font-size: 14px;
+}
+
+.collection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.collection-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.collection-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.collection-item.active {
+    border-color: rgba(250, 206, 21, 0.6);
+    background: rgba(250, 206, 21, 0.12);
+}
+
+.collection-thumb {
+    width: 68px;
+    height: 42px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.collection-cover {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.collection-thumb-empty {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 20px;
+}
+
+.collection-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.collection-title {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.collection-meta {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.collection-playing {
+    font-size: 11px;
+    color: #face15;
+    font-weight: 600;
+    flex-shrink: 0;
 }
 
 .comment-empty {
@@ -1787,6 +2335,14 @@ onBeforeUnmount(() => {
             &.delete-btn:hover {
                 color: #ff6b6b;
             }
+
+            &.danger {
+                color: #ff6b6b;
+            }
+
+            &.danger:hover {
+                color: #ff9a9a;
+            }
         }
 
         .divider {
@@ -1867,6 +2423,14 @@ onBeforeUnmount(() => {
 
                         &.delete-btn:hover {
                             color: #ff6b6b;
+                        }
+
+                        &.danger {
+                            color: #ff6b6b;
+                        }
+
+                        &.danger:hover {
+                            color: #ff9a9a;
                         }
                     }
                 }

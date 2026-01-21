@@ -4,7 +4,7 @@
             <el-form-item label="菜单名称" prop="menuName">
                 <el-input v-model="queryParams.menuName" placeholder="请输入菜单名称" clearable class="search-input" @keyup.enter="handleQuery">
                     <template #prefix>
-                        <Icon icon="mdi:magnify" />
+                        <Icon icon="mdi:magnify" class="input-icon" />
                     </template>
                 </el-input>
             </el-form-item>
@@ -126,7 +126,7 @@
                                     <template #reference>
                                         <el-input v-model="form.icon" placeholder="点击选择图标" readonly class="cursor-pointer">
                                             <template #prefix>
-                                                <Icon :icon="form.icon || 'mdi:magnify'" class="text-lg" />
+                                                <Icon :icon="form.icon || 'mdi:magnify'" class="input-icon" />
                                             </template>
                                         </el-input>
                                     </template>
@@ -513,6 +513,11 @@ onMounted(() => {
         width: 200px;
     }
 
+    .input-icon {
+        font-size: 15px;
+        color: var(--el-text-color-placeholder);
+    }
+
     .menu-name {
         font-weight: 500;
         color: var(--el-text-color-primary);
@@ -539,16 +544,28 @@ onMounted(() => {
         color: var(--el-text-color-regular);
     }
 }
+</style>
 
-:deep(.system-menu-dialog) {
+<style lang="scss">
+.system-menu-dialog {
+    background-color: var(--el-bg-color);
+
     .form-item-label {
         display: inline-flex;
         align-items: center;
         gap: 4px;
+        white-space: nowrap;
+
+        .el-tooltip__trigger {
+            display: inline-flex;
+            align-items: center;
+        }
 
         .help-icon {
             color: var(--el-text-color-secondary);
             font-size: 16px;
+            line-height: 1;
+            display: inline-flex;
             cursor: help;
             transition: color 0.3s;
 
@@ -556,6 +573,48 @@ onMounted(() => {
                 color: var(--el-color-primary);
             }
         }
+    }
+
+    .el-dialog__header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        display: flex;
+        align-items: center;
+    }
+
+    .el-dialog__title {
+        position: relative;
+        padding-left: 12px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 16px;
+            border-radius: 2px;
+            background-color: var(--el-color-primary);
+            display: inline-block;
+        }
+    }
+
+    .el-dialog__body {
+        padding: 24px;
+        background-color: var(--el-bg-color);
+    }
+
+    .el-dialog__footer {
+        padding: 16px 20px;
+        border-top: 1px solid var(--el-border-color-lighter);
+        background-color: var(--el-bg-color);
     }
 
     .dialog-footer {

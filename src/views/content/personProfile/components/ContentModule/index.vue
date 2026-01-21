@@ -34,7 +34,9 @@
                             </template>
                         </el-tab-pane>
                     </el-tabs>
-                    <el-button class="batch-btn" :class="{ active: bulkMode }" @click="toggleBulkMode"> <Icon icon="mdi:playlist-check" /> 批量管理 </el-button>
+                    <el-button v-if="!readOnly" class="batch-btn" :class="{ active: bulkMode }" @click="toggleBulkMode">
+                        <Icon icon="mdi:playlist-check" /> 批量管理
+                    </el-button>
                 </div>
             </div>
         </div>
@@ -44,10 +46,12 @@
                 <template v-if="!bulkMode">
                     <div class="filter-group">
                         <div class="filter-chip" :class="{ active: worksFilter === 'all' }" @click="setWorksFilter('all')">全部作品</div>
-                        <div class="filter-chip" :class="{ active: worksFilter === 'collection' }" @click="setWorksFilter('collection')">我的合集</div>
+                        <div v-if="!readOnly" class="filter-chip" :class="{ active: worksFilter === 'collection' }" @click="setWorksFilter('collection')">
+                            我的合集
+                        </div>
                     </div>
 
-                    <el-button v-if="worksFilter === 'collection'" type="primary" class="create-collection-btn" round plain @click="openCreateDialog">
+                    <el-button v-if="!readOnly && worksFilter === 'collection'" type="primary" class="create-collection-btn" round plain @click="openCreateDialog">
                         <Icon icon="ep:plus" /> 新建合集
                     </el-button>
                 </template>
@@ -289,14 +293,15 @@
 
                 <div v-else class="select-posts-grid" ref="selectedPostsGridRef" :class="{ 'is-draggable': addDialogTab === 'selected' }">
                     <div
-                        v-for="item in displayPosts"
+                        v-for="(item, index) in displayPosts"
                         :key="resolvePostKey(item)"
                         class="select-post-card"
-                        :class="{ selected: isPostSelected(item) }"
+                        :class="{ selected: isPostSelected(item), 'selected-tab': addDialogTab === 'selected' }"
                         @click="togglePostSelection(item)"
                     >
-                        <div v-if="addDialogTab === 'selected'" class="remove-action" @click.stop="removeSinglePost(item)">
-                            <Icon icon="mdi:trash-can-outline" />
+                        <button v-if="addDialogTab === 'selected'" type="button" class="remove-btn" @click.stop="removeSinglePost(item)">×</button>
+                        <div v-if="addDialogTab === 'selected' || isPostSelected(item)" class="select-order">
+                            {{ getDisplayOrder(item, index) }}
                         </div>
                         <div class="thumb">
                             <img v-if="item.postType === POST_TYPE.IMAGE" :src="getCover(item)" alt="cover" loading="lazy" />
@@ -345,7 +350,8 @@ const props = defineProps({
     loading: { type: Boolean, default: false },
     noMore: { type: Boolean, default: false },
     getCover: { type: Function as any, default: () => '' },
-    getVideoUrl: { type: Function as any, default: () => '' }
+    getVideoUrl: { type: Function as any, default: () => '' },
+    readOnly: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'tab-click', 'load-more', 'preview', 'works-filter-change', 'collection-open', 'collection-changed'])
@@ -370,11 +376,24 @@ const handleLoadMore = () => emit('load-more')
 const handlePreview = (item: any) => emit('preview', item)
 
 const setWorksFilter = (value: 'all' | 'collection') => {
+    if (props.readOnly && value === 'collection') return
     if (worksFilter.value === value) return
     worksFilter.value = value
     if (bulkMode.value) resetBulkSelection()
     emit('works-filter-change', value)
 }
+
+watch(
+    () => props.readOnly,
+    readOnly => {
+        if (!readOnly) return
+        if (worksFilter.value !== 'all') worksFilter.value = 'all'
+        if (bulkMode.value) {
+            bulkMode.value = false
+            resetBulkSelection()
+        }
+    }
+)
 
 const collectionLoadingLocal = ref(false)
 const collectionListLocal = ref<AnyObj[]>([])
@@ -472,6 +491,7 @@ const resetBulkSelection = () => {
 }
 
 const toggleBulkMode = () => {
+    if (props.readOnly) return
     bulkMode.value = !bulkMode.value
     resetBulkSelection()
 }
@@ -660,6 +680,13 @@ const availablePosts = computed(() =>
 )
 const availablePostIds = computed(() => availablePosts.value.map(resolvePostId).filter((id): id is number => Number.isFinite(id)))
 const selectedPostIdSet = computed(() => new Set(selectedPostIds.value))
+const selectedOrderMap = computed(() => {
+    const map = new Map<number, number>()
+    selectedPostIds.value.forEach((id, index) => {
+        map.set(id, index + 1)
+    })
+    return map
+})
 const currentPostIds = computed(() => (addDialogTab.value === 'selected' ? collectionPostIds.value : availablePostIds.value))
 const isAllSelected = computed(() => currentPostIds.value.length > 0 && selectedPostIds.value.length === currentPostIds.value.length)
 const addDialogTitle = computed(() => resolveCollectionName(addDialogTarget.value))
@@ -728,6 +755,17 @@ const isPostSelected = (item: any) => {
     return id != null && selectedPostIdSet.value.has(id)
 }
 
+const getSelectedOrder = (item: any) => {
+    const id = resolvePostId(item)
+    if (id == null) return ''
+    return selectedOrderMap.value.get(id) ?? ''
+}
+
+const getDisplayOrder = (item: any, index: number) => {
+    if (addDialogTab.value === 'selected') return index + 1
+    return getSelectedOrder(item)
+}
+
 const togglePostSelection = (item: any) => {
     const id = resolvePostId(item)
     if (id == null) return
@@ -756,7 +794,7 @@ const setupSelectedPostsSortable = async () => {
         animation: 150,
         ghostClass: 'sortable-ghost',
         draggable: '.select-post-card',
-        filter: '.remove-action',
+        filter: '.remove-btn',
         onEnd: evt => {
             if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return
             const moved = collectionPosts.value.splice(evt.oldIndex, 1)[0]
@@ -779,6 +817,12 @@ const removePostsFromCollection = (postIds: number[]) => {
 const removeSelectedPosts = () => {
     if (addDialogTab.value !== 'selected') return
     removePostsFromCollection(selectedPostIds.value)
+}
+
+const removeSinglePost = (item: any) => {
+    const id = resolvePostId(item)
+    if (id == null) return
+    removePostsFromCollection([id])
 }
 
 const buildOrderedAddPostIds = () => {
@@ -833,12 +877,6 @@ const submitSavePosts = async () => {
 
 const handleDialogSubmit = () => {
     submitSavePosts()
-}
-
-const removeSinglePost = (item: any) => {
-    const id = resolvePostId(item)
-    if (id == null) return
-    removePostsFromCollection([id])
 }
 
 const handleDeleteCollection = async (item: any) => {
@@ -1804,7 +1842,7 @@ watch(
 .select-post-card {
     position: relative;
     border-radius: 10px;
-    overflow: hidden;
+    overflow: visible;
     background: var(--el-fill-color);
     border: 1px solid var(--el-border-color-lighter);
     cursor: pointer;
@@ -1820,11 +1858,18 @@ watch(
         box-shadow: var(--el-box-shadow-light);
     }
 
+    &.selected-tab.selected {
+        border-color: var(--el-border-color-lighter);
+        box-shadow: none;
+    }
+
     .thumb {
         position: relative;
         width: 100%;
         aspect-ratio: 3 / 4;
         background: var(--el-fill-color-dark);
+        border-radius: 10px;
+        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1886,30 +1931,48 @@ watch(
         transition: all 0.2s ease;
     }
 
-    .remove-action {
+    .select-order {
         position: absolute;
         top: 8px;
         left: 8px;
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        background: var(--el-color-danger);
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: var(--el-color-primary);
         color: var(--el-color-white);
-        display: flex;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
-        opacity: 0;
-        transform: scale(0.8);
-        transition: all 0.2s ease;
+        line-height: 1;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+        z-index: 2;
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: none;
+        background: #f56c6c;
+        color: #fff;
+        font-size: 16px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        padding: 0;
+        transform: translate(50%, -50%);
     }
 
     &.selected .select-check {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-    &:hover .remove-action {
         opacity: 1;
         transform: scale(1);
     }

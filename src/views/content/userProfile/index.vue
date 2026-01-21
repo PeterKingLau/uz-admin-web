@@ -34,9 +34,6 @@
                         <p>{{ userInfo.signature || '暂时还没想到个性签名' }}</p>
                     </div>
                 </div>
-                <div class="action-btn">
-                    <el-button type="primary" plain class="edit-btn" @click="goToProfile">编辑资料</el-button>
-                </div>
             </div>
         </div>
 
@@ -52,6 +49,7 @@
             :no-more="noMore"
             :get-cover="getCover"
             :get-video-url="getVideoUrl"
+            :read-only="true"
             @tab-click="handleTabClick"
             @load-more="loadMore"
             @preview="handlePreview"
@@ -189,19 +187,23 @@ import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, 
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { addCollection, listMyCollections } from '@/api/content/collection'
 import { listFollowers, listFollowing, listMutual, selectFollowNum, toggleFollowUser } from '@/api/content/userFollow'
-import { getUserProfile } from '@/api/system/user'
+import { getUser, getUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
+import useSettingsStore from '@/store/modules/settings'
+import useTagsViewStore from '@/store/modules/tagsView'
 import { getImgUrl } from '@/utils/img'
 import { parseTime } from '@/utils/ruoyi'
 import { POST_TYPE } from '@/utils/enum'
-import ContentModule from './components/ContentModule/index.vue'
-import PostPreviewModal from './components/PostPreviewModal.vue'
+import ContentModule from '@/views/content/personProfile/components/ContentModule/index.vue'
+import PostPreviewModal from '@/views/content/personProfile/components/PostPreviewModal.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
 
 const route = useRoute()
 const router = useRouter()
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
+const settingsStore = useSettingsStore()
+const tagsViewStore = useTagsViewStore()
 const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
 const activeTab = ref('works')
@@ -221,6 +223,16 @@ const followStats = ref({
     mutualCount: 0
 })
 
+/**
+ * @typedef {Object} ReplyState
+ * @property {boolean} open
+ * @property {boolean} loading
+ * @property {unknown[]} list
+ * @property {boolean} noMore
+ * @property {string | number} [lastId]
+ * @property {string | number} [lastCreateTime]
+ */
+
 const previewVisible = ref(false)
 const previewPost = ref(null)
 const previewFollowLoading = ref(false)
@@ -232,9 +244,9 @@ const previewCommentsLoading = ref(false)
 const commentDraft = ref('')
 const previewModalRef = ref(null)
 const isActionInputFocused = ref(false)
-const deleteCommentLoading = reactive({})
+const deleteCommentLoading = reactive(/** @type {Record<string, boolean>} */ ({}))
 const replyTarget = ref(null)
-const replyStateMap = ref({})
+const replyStateMap = ref(/** @type {Record<string, ReplyState>} */ ({}))
 const replyPageSize = 10
 
 const followDialogVisible = ref(false)
@@ -248,7 +260,7 @@ const followLastId = ref(undefined)
 const followPageSize = 20
 const followTabSet = new Set(['following', 'followers', 'mutual'])
 const followRequestId = ref(0)
-const followActionLoading = reactive({})
+const followActionLoading = reactive(/** @type {Record<string, boolean>} */ ({}))
 let followObserver = null
 
 const queryParams = reactive({
@@ -262,6 +274,21 @@ const queryParams = reactive({
 
 const allowedPostTypes = [String(POST_TYPE.TEXT), String(POST_TYPE.IMAGE), String(POST_TYPE.VIDEO)]
 const allowedPostTypeSet = new Set(allowedPostTypes)
+const normalizeRouteParam = value => {
+    if (Array.isArray(value)) return value[0]
+    if (value === null || value === undefined || value === '') return null
+    return String(value)
+}
+const routeUserId = computed(() => normalizeRouteParam(route.query.userId ?? route.params?.userId))
+const selfUserId = computed(() => normalizeRouteParam(userStore.id))
+const isSelfProfile = computed(() => {
+    const target = routeUserId.value
+    if (!target) return true
+    const self = selfUserId.value
+    if (!self) return false
+    return target === self
+})
+const resolveTargetUserId = () => routeUserId.value ?? selfUserId.value ?? null
 const resolvePostType = value => {
     const fallback = allowedPostTypes.join(',')
     if (value === undefined || value === null || value === '') return fallback
@@ -287,11 +314,11 @@ const isFemaleSex = value => normalizeSexValue(value) === '1'
 
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
-    const avatar = profile.avatar ? getImgUrl(profile.avatar) : userStore.avatar || ''
+    const avatar = profile.avatar != null && String(profile.avatar).trim() ? getImgUrl(profile.avatar) : isSelfProfile.value ? userStore.avatar || '' : ''
     const stats = clampStats(followStats.value.following, followStats.value.followers, followStats.value.mutualCount)
     return {
         ...profile,
-        nickName: profile.nickName || userStore.nickName || '未知用户',
+        nickName: profile.nickName || (isSelfProfile.value ? userStore.nickName : '') || '未知用户',
         avatar,
         following: stats.following,
         followers: stats.followers,
@@ -336,7 +363,7 @@ const getFollowTargetId = item => item?.userId ?? item?.id
 const isFollowActionLoading = item => {
     const targetUserId = getFollowTargetId(item)
     if (targetUserId == null) return false
-    return Boolean(followActionLoading[targetUserId])
+    return Boolean(followActionLoading[String(targetUserId)])
 }
 
 const isMutualLikeRow = item => {
@@ -456,7 +483,7 @@ const removeRowFromFollowList = targetUserId => {
 const toggleFollow = async item => {
     const targetUserId = getFollowTargetId(item)
     if (!targetUserId || isFollowActionLoading(item)) return
-    followActionLoading[targetUserId] = true
+    followActionLoading[String(targetUserId)] = true
 
     const wasFollowing = Boolean(item.isFollowing)
     const active = followActiveTab.value
@@ -499,7 +526,7 @@ const toggleFollow = async item => {
     } catch (error) {
         console.error(error)
     } finally {
-        followActionLoading[targetUserId] = false
+        followActionLoading[String(targetUserId)] = false
     }
 }
 
@@ -573,7 +600,7 @@ const canDeleteComment = comment => {
 }
 const isDeleteCommentLoading = comment => {
     const commentId = getCommentId(comment)
-    return commentId != null && Boolean(deleteCommentLoading[commentId])
+    return commentId != null && Boolean(deleteCommentLoading[String(commentId)])
 }
 const getCommentReplyCount = comment => {
     const value = comment?.replyCount ?? comment?.replyNum ?? comment?.replyCnt ?? 0
@@ -581,8 +608,9 @@ const getCommentReplyCount = comment => {
 }
 const ensureReplyState = commentId => {
     if (!commentId) return null
-    if (!replyStateMap.value[commentId]) {
-        replyStateMap.value[commentId] = {
+    const key = String(commentId)
+    if (!replyStateMap.value[key]) {
+        replyStateMap.value[key] = {
             open: false,
             loading: false,
             list: [],
@@ -591,7 +619,7 @@ const ensureReplyState = commentId => {
             lastCreateTime: undefined
         }
     }
-    return replyStateMap.value[commentId]
+    return replyStateMap.value[key]
 }
 const resolveReplyState = comment => {
     const commentId = getCommentId(comment)
@@ -601,7 +629,7 @@ const resolveReplyState = comment => {
 const resolveReplyRemoveCount = (commentId, comment) => {
     const rawCount = Number(comment?.replyCount || 0)
     const replyCount = Number.isFinite(rawCount) ? rawCount : 0
-    const state = replyStateMap.value?.[commentId]
+    const state = replyStateMap.value?.[String(commentId)]
     const loadedCount = Array.isArray(state?.list) ? state.list.length : 0
     return Math.max(replyCount, loadedCount)
 }
@@ -990,7 +1018,7 @@ const handleDeleteComment = async (comment, parent) => {
     } catch {
         return
     }
-    deleteCommentLoading[commentId] = true
+    deleteCommentLoading[String(commentId)] = true
     try {
         await deleteComment({ id: commentId, userId: userStore.id || undefined })
         removeLocalComment(commentId, parent)
@@ -999,7 +1027,7 @@ const handleDeleteComment = async (comment, parent) => {
         console.error(error)
         proxy?.$modal?.msgError?.('删除失败')
     } finally {
-        deleteCommentLoading[commentId] = false
+        deleteCommentLoading[String(commentId)] = false
     }
 }
 
@@ -1059,8 +1087,10 @@ const handleCreateCollection = async payload => {
 }
 
 const getProfile = async () => {
+    const targetUserId = resolveTargetUserId()
+    if (!targetUserId && !isSelfProfile.value) return
     try {
-        const response = await getUserProfile()
+        const response = isSelfProfile.value ? await getUserProfile() : await getUser(targetUserId)
         const responseData = response?.data ?? {}
         const profile = responseData.user ?? responseData
         profileInfo.value = {
@@ -1070,8 +1100,15 @@ const getProfile = async () => {
         const resolvedUserId = profile.userId ?? profile.id ?? responseData.userId ?? responseData.id ?? null
         if (resolvedUserId != null && resolvedUserId !== '' && queryParams.targetUserId !== resolvedUserId) {
             queryParams.targetUserId = resolvedUserId
-            loadInitialTabTotals()
         }
+        const displayName = profile.nickName || profile.userName || profile.name || userStore.nickName || '用户'
+        const nextTitle = `${displayName}的主页`
+        router.currentRoute.value.meta.title = nextTitle
+        settingsStore.setTitle(nextTitle)
+        tagsViewStore.updateVisitedView({
+            ...router.currentRoute.value,
+            meta: { ...router.currentRoute.value.meta, title: nextTitle }
+        })
     } catch (error) {
         console.error(error)
     }
@@ -1352,19 +1389,50 @@ const openFollowDialog = type => {
     getFollowList()
 }
 
-onMounted(() => {
-    queryParams.targetUserId = userStore.id
-    getProfile()
+const resetProfileLists = () => {
+    postList.value = []
+    noMore.value = false
+    queryParams.lastId = undefined
+    queryParams.lastCreateTime = undefined
+    total.value = 0
+    likeTotal.value = 0
+    bookmarkTotal.value = 0
+}
+
+const refreshProfileView = async () => {
+    followDialogVisible.value = false
+    resetFollowList()
+    if (previewVisible.value) closePreview()
+    const targetUserId = resolveTargetUserId()
+    if (targetUserId != null) {
+        queryParams.targetUserId = targetUserId
+    }
+    resetProfileLists()
+    await getProfile()
     getFollowStats()
     loadInitialTabTotals()
     getList()
-    getCollectionList()
+    if (isSelfProfile.value) {
+        getCollectionList()
+    } else {
+        collectionList.value = []
+    }
+}
+
+watch(
+    () => [routeUserId.value, userStore.id],
+    (next, prev) => {
+        if (next?.[0] === prev?.[0] && next?.[1] === prev?.[1]) return
+        refreshProfileView()
+    }
+)
+
+onMounted(() => {
+    refreshProfileView()
 })
 
 onActivated(() => {
-    getProfile()
-    getFollowStats()
-    loadInitialTabTotals()
+    refreshProfileView()
 })
 
 onBeforeUnmount(() => {

@@ -95,7 +95,8 @@ const elementSize: ComponentSize = cookieSize ?? 'default'
 
 app.use(ElementPlus, {
     locale,
-    size: elementSize
+    size: elementSize,
+    zIndex: 10000
 })
 
 app.mount('#app')

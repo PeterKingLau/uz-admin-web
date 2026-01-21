@@ -9,6 +9,7 @@
             :use-teleport="false"
             @close="handleClose"
             @action="handleAction"
+            @select-collection="handleSelectCollectionPost"
         />
     </div>
 </template>
@@ -17,9 +18,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
+import { toggleFollowUser } from '@/api/content/userFollow'
 import cache from '@/plugins/cache'
 import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
+import { getImgUrl } from '@/utils/img'
 import VideoModule from '@/views/content/personProfile/components/VideoModule/index.vue'
 
 const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
@@ -81,6 +84,55 @@ const handleClose = () => {
 
 const getPostId = post => post?.postId ?? post?.id ?? null
 
+const parseMediaRaw = raw => {
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim()
+        if (!trimmed) return []
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed)
+                return Array.isArray(parsed) ? parsed : [parsed]
+            } catch {
+                return trimmed
+                    .split(',')
+                    .map(item => item.trim())
+                    .filter(Boolean)
+            }
+        }
+        return trimmed
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+    }
+    if (typeof raw === 'object') return [raw]
+    return []
+}
+
+const resolveMediaUrl = url => (url ? getImgUrl(url) : '')
+const isVideoUrl = url => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
+
+const resolveVideoSrc = post => {
+    if (!post) return ''
+    const direct = post.videoUrl || post.video || post.url || post.src || ''
+    if (direct) return resolveMediaUrl(direct)
+    const list = [
+        ...parseMediaRaw(post.mediaUrls),
+        ...parseMediaRaw(post.mediaList),
+        ...parseMediaRaw(post.files),
+        ...parseMediaRaw(post.resources)
+    ]
+    const normalized = list
+        .map(item => {
+            if (typeof item === 'string') return item
+            return item?.url || item?.src || item?.path || item?.fileUrl || ''
+        })
+        .filter(Boolean)
+    const candidate = normalized.find(isVideoUrl) || normalized[0] || ''
+    return resolveMediaUrl(candidate)
+}
+
 const getPostTargetUserId = post =>
     post?.targetUserId ??
     post?.userId ??
@@ -91,6 +143,20 @@ const getPostTargetUserId = post =>
     currentUserInfo.value?.id ??
     currentUserInfo.value?.userId ??
     null
+
+const resolveFollowFlag = value => {
+    if (typeof value === 'boolean') return value
+    return value != null ? String(value) === '1' : false
+}
+
+const setFollowState = (post, nextFollowing) => {
+    if (!post) return
+    post.follow = nextFollowing
+    post.isFollow = nextFollowing
+    post.isFollowing = nextFollowing
+    post.followed = nextFollowing
+    post.followStatus = nextFollowing ? '1' : '0'
+}
 
 const isLikeActionLoading = post => {
     const postId = getPostId(post)
@@ -117,6 +183,18 @@ const isRepostActionLoading = post => {
 }
 
 const handleAction = async (type, payload) => {
+    if (type === 'follow') {
+        const post = currentPost.value || {}
+        const targetUserId = getPostTargetUserId(post)
+        if (!targetUserId) return
+        try {
+            await toggleFollowUser({ targetUserId })
+            const wasFollowing = resolveFollowFlag(post.follow ?? post.isFollow ?? post.isFollowing ?? post.followed ?? post.followStatus ?? post.following)
+            setFollowState(post, !wasFollowing)
+        } catch (error) {
+            console.error(error)
+        }
+    }
     if (type === 'like') {
         const post = currentPost.value || {}
         const postId = getPostId(post)
@@ -218,6 +296,16 @@ const handleAction = async (type, payload) => {
     }
 }
 
+const handleSelectCollectionPost = post => {
+    const nextId = getPostId(post)
+    const currentId = getPostId(currentPost.value)
+    if (!nextId || (currentId != null && String(nextId) === String(currentId))) return
+    const nextSrc = resolveVideoSrc(post)
+    if (!nextSrc) return
+    currentPost.value = { ...(post || {}) }
+    currentVideoSrc.value = nextSrc
+}
+
 onMounted(() => {
     if (!loadPayload()) {
         handleClose()
@@ -229,6 +317,6 @@ onMounted(() => {
 .video-player-page {
     width: 100%;
     min-height: 100vh;
-    background: #000;
+    background: var(--el-color-black);
 }
 </style>

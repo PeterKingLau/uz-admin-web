@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="content-feed-root">
         <div class="app-container content-feed-page">
             <div class="page-header-wrapper">
@@ -50,6 +50,7 @@
                     @load-more="loadMore"
                     @delete="handleSingleDelete"
                     @preview="handlePreview"
+                    @view-profile="handleViewProfile"
                     @edit-tag="handleEditTag"
                     @pin="handlePin"
                     @unpin="handleUnpin"
@@ -58,7 +59,7 @@
                 <el-empty v-else description="暂无内容" :image-size="100" />
             </div>
 
-            <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" @closed="resetEditTag">
+            <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" :lock-scroll="false" @closed="resetEditTag">
                 <el-form label-position="top">
                     <el-form-item label="话题标签" required>
                         <el-select
@@ -102,152 +103,65 @@
             </template>
         </el-dialog>
 
-        <div v-if="previewVisible" class="post-preview-mask" @click.self="closePreview">
-            <button type="button" class="preview-close" @click="closePreview" aria-label="关闭">
-                <Icon icon="mdi:close" />
-            </button>
+        <PostPreviewModal
+            ref="previewModalRef"
+            v-model="previewVisible"
+            :post="previewPost"
+            :media-list="previewMediaList"
+            :tags="previewTags"
+            :comments="previewComments"
+            :comments-loading="previewCommentsLoading"
+            :is-following="isPreviewFollowing"
+            :is-liked="isPreviewLiked"
+            :is-collected="isPreviewCollected"
+            :follow-loading="followActionLoading"
+            :like-loading="likeActionLoading"
+            :bookmark-loading="bookmarkActionLoading"
+            :repost-loading="repostActionLoading"
+            :is-author-self="isPreviewAuthorSelf"
+            v-model:commentDraft="commentDraft"
+            :comment-placeholder="commentPlaceholder"
+            :is-action-input-expanded="isActionInputExpanded"
+            :format-relative-time="formatRelativeTime"
+            :resolve-avatar="resolveAvatar"
+            :get-comment-reply-count="getCommentReplyCount"
+            :resolve-reply-state="resolveReplyState"
+            :can-delete-comment="canDeleteComment"
+            :is-delete-comment-loading="isDeleteCommentLoading"
+            @close="closePreview"
+            @follow="handlePreviewFollow"
+            @action="handlePreviewAction"
+            @reply-comment="handleReplyToComment"
+            @reply-reply="handleReplyToReply"
+            @toggle-replies="toggleCommentReplies"
+            @load-replies="loadCommentReplies"
+            @delete-comment="handleDeleteComment"
+            @submit-comment="submitPreviewComment"
+            @focus-comment="focusCommentInput"
+            @blur-comment="handleActionInputBlur"
+        />
 
-            <div class="post-preview-panel">
-                <div v-if="previewPost" class="post-preview-body">
-                    <div class="preview-media-pane">
-                        <el-carousel v-if="previewMediaList.length > 1" height="100%" :autoplay="false" indicator-position="outside" class="preview-carousel">
-                            <el-carousel-item v-for="(url, index) in previewMediaList" :key="`${previewPost.id}-${index}`">
-                                <el-image :src="url" fit="contain" class="preview-media-img" />
-                            </el-carousel-item>
-                        </el-carousel>
-                        <el-image v-else-if="previewMediaList.length === 1" :src="previewMediaList[0]" fit="contain" class="preview-media-img single" />
-                        <div v-else class="preview-media-empty">暂无图片</div>
-                    </div>
-
-                    <div class="preview-detail-pane">
-                        <div class="detail-header">
-                            <div class="author-block">
-                                <el-avatar :size="36" :src="resolveAvatar(previewPost.avatar)">
-                                    {{ previewPost.nickName?.charAt(0).toUpperCase() || 'U' }}
-                                </el-avatar>
-                                <div class="author-meta">
-                                    <div class="name">{{ previewPost.nickName || '未知用户' }}</div>
-                                    <div class="time">{{ previewPost.createTime || '-' }}</div>
-                                </div>
-                            </div>
-                            <el-button
-                                round
-                                size="small"
-                                class="follow-btn"
-                                :class="{ 'is-following': isPreviewFollowing }"
-                                :loading="followActionLoading"
-                                :disabled="isPreviewAuthorSelf"
-                                @click="handlePreviewFollow"
-                            >
-                                {{ isPreviewFollowing ? '已关注' : '关注' }}
-                            </el-button>
-                        </div>
-
-                        <div class="detail-content">
-                            <div v-if="previewPost.content" class="detail-text">{{ previewPost.content }}</div>
-                            <div v-else class="detail-text empty">（无正文内容）</div>
-                        </div>
-
-                        <div v-if="previewTags.length" class="detail-tags">
-                            <span v-for="tag in previewTags" :key="tag" class="detail-tag">#{{ tag }}</span>
-                        </div>
-
-                        <div class="detail-meta">
-                            <span>{{ previewPost.createTime || '-' }}</span>
-                            <span>评论 {{ previewPost.commentCount ?? 0 }}</span>
-                        </div>
-
-                        <el-divider class="detail-divider" />
-
-                        <div class="detail-comments">
-                            <div class="comment-count">共 {{ previewPost.commentCount ?? 0 }} 条评论</div>
-                            <div v-if="previewComments.length" class="comment-list">
-                                <div v-for="item in previewComments" :key="item.id || item.commentId || item._id" class="comment-item">
-                                    <el-avatar :size="28" :src="resolveAvatar(item.avatar)" />
-                                    <div class="comment-body">
-                                        <div class="comment-user">{{ item.nickName || item.userName || item.username || '用户' }}</div>
-                                        <div class="comment-text">{{ item.content || item.comment || '-' }}</div>
-                                        <div class="comment-time">{{ item.createTime || item.time || '-' }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-else class="comment-empty">
-                                <Icon icon="mdi:sofa-outline" />
-                                <span>暂无评论，快来抢沙发~</span>
-                            </div>
-                        </div>
-
-                        <div class="detail-actions action-bar" :class="{ 'is-input-expanded': isActionInputExpanded }">
-                            <div class="action-input">
-                                <el-input
-                                    ref="commentInputRef"
-                                    v-model="commentDraft"
-                                    class="action-input-inner"
-                                    :type="isActionInputExpanded ? 'textarea' : 'text'"
-                                    :rows="isActionInputExpanded ? 3 : 1"
-                                    maxlength="200"
-                                    placeholder="说点什么..."
-                                    @keydown.enter.exact.prevent="submitPreviewComment"
-                                    @focus="isActionInputFocused = true"
-                                    @blur="handleActionInputBlur"
-                                />
-                            </div>
-
-                            <div class="action-icons" :class="{ hidden: isActionInputExpanded }">
-                                <button
-                                    type="button"
-                                    class="action-icon like"
-                                    :class="{ active: isPreviewLiked, loading: likeActionLoading }"
-                                    :disabled="likeActionLoading"
-                                    @click="handlePreviewAction('like')"
-                                    aria-label="点赞"
-                                >
-                                    <Icon :icon="isPreviewLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
-                                    <span class="num">{{ previewPost?.likeCount ?? 0 }}</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="action-icon collect"
-                                    :class="{ active: isPreviewCollected, loading: bookmarkActionLoading }"
-                                    :disabled="bookmarkActionLoading"
-                                    @click="handlePreviewAction('collect')"
-                                    aria-label="收藏"
-                                >
-                                    <Icon :icon="isPreviewCollected ? 'mdi:star' : 'mdi:star-outline'" />
-                                    <span class="num">{{ previewPost?.bookmarkCount ?? 0 }}</span>
-                                </button>
-
-                                <button type="button" class="action-icon comment" @click="focusCommentInput" aria-label="评论">
-                                    <Icon icon="mdi:comment-outline" />
-                                    <span class="num">{{ previewPost?.commentCount ?? 0 }}</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="action-icon share"
-                                    :class="{ loading: repostActionLoading }"
-                                    :disabled="repostActionLoading"
-                                    @click="handlePreviewAction('share')"
-                                    aria-label="转发"
-                                >
-                                    <Icon icon="mdi:share-variant-outline" />
-                                    <span class="num">{{ previewPost?.repostCount ?? 0 }}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <VideoModule
+            v-if="videoPreviewReady"
+            v-model="videoPreviewVisible"
+            :src="videoPreviewSrc"
+            :post="videoPreviewPost"
+            :user-info="videoUserInfo"
+            @close="closeVideoPreview"
+            @action="handleVideoAction"
+            @select-collection="handleVideoSelectCollectionPost"
+        />
     </div>
 </template>
 
 <script setup name="ContentList" lang="ts">
 import { ref, reactive, computed, onMounted, onActivated, onBeforeUnmount, getCurrentInstance, nextTick, watch } from 'vue'
 import { useScrollLock } from '@vueuse/core'
+import { useRouter } from 'vue-router'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
+import PostPreviewModal from '../personProfile/components/PostPreviewModal.vue'
+import VideoModule from '../personProfile/components/VideoModule/index.vue'
 import {
     addComment,
     bookmarkPost,
@@ -259,19 +173,25 @@ import {
     pinPostManually,
     unpinPostManually
 } from '@/api/content/post'
+import { deleteComment, listTopComments, listCommentReplies } from '@/api/content/postComment'
 import { getInterestAll } from '@/api/content/interest'
 import { toggleFollowUser } from '@/api/content/userFollow'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
 import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
+import { POST_TYPE } from '@/utils/enum'
+import { parseTime } from '@/utils/ruoyi'
+import { buildTextCoverDataUrl } from '@/utils/textCover'
 
 const { proxy } = getCurrentInstance() || {}
+const router = useRouter()
 const userStore = useUserStore()
 
 const queryParams = reactive<{
     postType?: string
     content: string
     tagId?: number | string
+    isQuestion: number | string
     lastId?: number
     lastCreateTime?: string
     limit: number
@@ -279,6 +199,7 @@ const queryParams = reactive<{
     postType: undefined,
     content: '',
     tagId: undefined,
+    isQuestion: 0,
     lastId: undefined,
     lastCreateTime: undefined,
     limit: 10
@@ -296,14 +217,36 @@ const totalCount = ref<number | null>(null)
 
 const previewVisible = ref(false)
 const previewPost = ref<any | null>(null)
+const videoPreviewVisible = ref(false)
+const videoPreviewPost = ref<any | null>(null)
+const videoPreviewSrc = ref('')
 const followActionLoading = ref(false)
 const likeActionLoading = ref(false)
 const bookmarkActionLoading = ref(false)
 const commentActionLoading = ref(false)
 const repostActionLoading = ref(false)
+const previewCommentsLoading = ref(false)
+const videoLikeLoading = ref(false)
+const videoBookmarkLoading = ref(false)
+const videoCommentLoading = ref(false)
+const videoRepostLoading = ref(false)
+const videoFollowLoading = ref(false)
 const commentDraft = ref('')
-const commentInputRef = ref<any | null>(null)
+const previewModalRef = ref<{ focusInput?: () => void } | null>(null)
 const isActionInputFocused = ref(false)
+type ReplyState = {
+    open: boolean
+    loading: boolean
+    list: any[]
+    noMore: boolean
+    lastId?: number | string
+    lastCreateTime?: string
+}
+const replyStateMap = ref<Record<string, ReplyState>>({})
+const replyPageSize = 10
+const replyTarget = ref<any | null>(null)
+const deleteCommentLoading = reactive<Record<string, boolean>>({})
+const commentPlaceholder = computed(() => (replyTarget.value ? `回复 @${replyTarget.value.replyUserName}` : '说点什么...'))
 
 const tagOptions = ref<any[]>([])
 const loadingTags = ref(false)
@@ -318,8 +261,7 @@ const pinDays = ref<number>(7)
 const pinning = ref(false)
 const unpinning = ref(false)
 
-const allowedPostTypes = ['1', '2', '3']
-const postTypeOptions = useEnumOptions('POST_TYPE', { includeKeys: allowedPostTypes })
+const postTypeOptions = useEnumOptions('POST_TYPE')
 const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
 
 async function loadTags() {
@@ -388,7 +330,42 @@ function resolveMediaUrl(url: string) {
     return (import.meta.env.VITE_APP_BASE_API || '') + raw
 }
 
-const previewMediaList = computed(() => normalizeMediaList(previewPost.value).map(resolveMediaUrl).filter(Boolean))
+const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
+
+const getVideoUrl = (post: any) => {
+    const list = normalizeMediaList(post).map(resolveMediaUrl).filter(Boolean)
+    return list[1] || list[0] || ''
+}
+
+const resolveCollectionVideoSrc = (post: any) => {
+    const direct = post?.videoUrl || post?.video || post?.url || post?.src || post?.fileUrl || ''
+    if (direct) return resolveMediaUrl(direct)
+    const list = normalizeMediaList(post).map(resolveMediaUrl).filter(Boolean)
+    return list.find(isVideoUrl) || list[0] || ''
+}
+
+const buildVideoUserInfo = () => ({
+    id: userStore.id,
+    userId: userStore.id,
+    nickName: userStore.nickName,
+    userName: (userStore as any).name || (userStore as any).userName || '',
+    avatar: userStore.avatar
+})
+
+const videoUserInfo = computed(() => buildVideoUserInfo())
+const videoPreviewReady = computed(() => Boolean(videoPreviewSrc.value))
+
+const previewMediaList = computed(() => {
+    const post = previewPost.value
+    if (!post) return []
+    const type = String(post?.postType ?? '')
+    if (type === POST_TYPE.TEXT) {
+        const content = String(post?.content ?? '').trim() || '暂无文字'
+        const seed = String(post?.id ?? post?.postId ?? content)
+        return [buildTextCoverDataUrl(content, seed)]
+    }
+    return normalizeMediaList(post).map(resolveMediaUrl).filter(Boolean)
+})
 
 const previewTags = computed(() => {
     const post = previewPost.value
@@ -413,6 +390,222 @@ const previewComments = computed(() => {
 })
 
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
+const formatRelativeTime = (time: any) => {
+    if (!time) return ''
+    let date = new Date(time)
+    if (Number.isNaN(date.getTime())) {
+        date = new Date(String(time).replace(/-/g, '/'))
+    }
+    if (Number.isNaN(date.getTime())) return String(time)
+
+    const now = new Date()
+    const diff = (now.getTime() - date.getTime()) / 1000
+    if (diff < 60) return '刚刚'
+    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+    if (diff < 86400 * 3) return `${Math.floor(diff / 86400)}天前`
+    return parseTime(time, '{m}-{d}') || ''
+}
+const getCommentId = (comment: any) => comment?.id ?? comment?.commentId ?? comment?._id ?? null
+const getCommentUserId = (comment: any) => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
+const canDeleteComment = (comment: any) => {
+    const commentUserId = getCommentUserId(comment)
+    if ((userStore as any).id == null) return false
+    return String((userStore as any).id) === String(commentUserId)
+}
+const isDeleteCommentLoading = (comment: any) => {
+    const commentId = getCommentId(comment)
+    return commentId != null && Boolean(deleteCommentLoading[String(commentId)])
+}
+const getCommentReplyCount = (comment: any) => {
+    const value = comment?.replyCount ?? comment?.replyNum ?? comment?.replyCnt ?? 0
+    return Math.max(0, Number(value) || 0)
+}
+const ensureReplyState = (commentId: number | string | null) => {
+    if (!commentId) return null
+    if (!replyStateMap.value[commentId]) {
+        replyStateMap.value[commentId] = {
+            open: false,
+            loading: false,
+            list: [],
+            noMore: true,
+            lastId: undefined,
+            lastCreateTime: undefined
+        }
+    }
+    return replyStateMap.value[commentId]
+}
+const resolveReplyState = (comment: any) => {
+    const commentId = getCommentId(comment)
+    return ensureReplyState(commentId) || { open: false, loading: false, list: [], noMore: true }
+}
+
+const resolveReplyRemoveCount = (commentId: string | number, comment: any) => {
+    const rawCount = Number(comment?.replyCount || 0)
+    const replyCount = Number.isFinite(rawCount) ? rawCount : 0
+    const state = replyStateMap.value?.[commentId]
+    const loadedCount = Array.isArray(state?.list) ? state.list.length : 0
+    return Math.max(replyCount, loadedCount)
+}
+
+const removePreviewComment = (post: any, commentId: string | number) => {
+    if (!post) return
+    const targetId = String(commentId)
+    if (Array.isArray(post.commentList)) {
+        post.commentList = post.commentList.filter((item: any) => String(getCommentId(item)) !== targetId)
+        return
+    }
+    if (Array.isArray(post.comments)) {
+        post.comments = post.comments.filter((item: any) => String(getCommentId(item)) !== targetId)
+        return
+    }
+    if (Array.isArray(post.topComments)) {
+        post.topComments = post.topComments.filter((item: any) => String(getCommentId(item)) !== targetId)
+    }
+}
+
+const removeLocalComment = (commentId: string | number, parent?: any) => {
+    const post = previewPost.value
+    if (!post) return
+    const targetId = String(commentId)
+    if (parent) {
+        const parentId = getCommentId(parent)
+        const state = ensureReplyState(parentId)
+        if (state) {
+            state.list = state.list.filter(item => String(getCommentId(item)) !== targetId)
+        }
+        parent.replyCount = Math.max(0, Number(parent.replyCount || 0) - 1)
+        post.commentCount = Math.max(0, Number(post.commentCount || 0) - 1)
+    } else {
+        const comment = previewComments.value.find(item => String(getCommentId(item)) === targetId)
+        const removeReplies = resolveReplyRemoveCount(targetId, comment)
+        removePreviewComment(post, targetId)
+        if (replyStateMap.value?.[targetId]) {
+            delete replyStateMap.value[targetId]
+        }
+        post.commentCount = Math.max(0, Number(post.commentCount || 0) - (1 + Math.max(0, removeReplies)))
+    }
+}
+
+const getCommentName = (comment: any) => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || comment?.user?.nickName || '用户'
+
+const clearReplyTarget = () => {
+    replyTarget.value = null
+}
+
+const handleReplyToComment = (comment: any) => {
+    const commentId = getCommentId(comment)
+    if (!commentId) return
+    replyTarget.value = {
+        parentId: commentId,
+        replyUserId: comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null,
+        replyUserName: getCommentName(comment)
+    }
+    focusCommentInput()
+}
+
+const handleReplyToReply = (reply: any, parent: any) => {
+    const parentId = getCommentId(parent)
+    if (!parentId) return
+    replyTarget.value = {
+        parentId,
+        replyUserId: reply?.userId ?? reply?.user?.id ?? reply?.authorId ?? reply?.createBy ?? null,
+        replyUserName: getCommentName(reply)
+    }
+    focusCommentInput()
+}
+
+const handleDeleteComment = async (comment: any, parent?: any) => {
+    const commentId = getCommentId(comment)
+    if (!commentId || !canDeleteComment(comment) || isDeleteCommentLoading(comment)) return
+    if (String(commentId).startsWith('local-')) {
+        proxy?.$modal?.msgWarning?.('评论正在同步，请稍后重试')
+        loadPreviewComments(previewPost.value, { silent: true })
+        return
+    }
+    try {
+        await proxy?.$modal?.confirm?.('确认删除该评论？', '提示', {
+            type: 'warning',
+            confirmButtonText: '删除',
+            cancelButtonText: '取消',
+            lockScroll: false
+        })
+    } catch {
+        return
+    }
+    deleteCommentLoading[String(commentId)] = true
+    try {
+        await deleteComment({ id: commentId, userId: (userStore as any).id || undefined })
+        removeLocalComment(commentId, parent)
+        proxy?.$modal?.msgSuccess?.('删除成功')
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('删除失败')
+    } finally {
+        deleteCommentLoading[String(commentId)] = false
+    }
+}
+
+const normalizeCommentList = (response: any) => {
+    if (Array.isArray(response?.data)) return response.data
+    if (Array.isArray(response?.rows)) return response.rows
+    if (Array.isArray(response?.list)) return response.list
+    const data = response?.data ?? {}
+    if (Array.isArray(data?.list)) return data.list
+    if (Array.isArray(data?.rows)) return data.rows
+    if (Array.isArray(data?.records)) return data.records
+    if (Array.isArray(data?.items)) return data.items
+    return []
+}
+
+const loadCommentReplies = async (comment: any) => {
+    const postId = getPreviewPostId(previewPost.value)
+    const parentId = getCommentId(comment)
+    if (!postId || !parentId) return
+    const state = ensureReplyState(parentId)
+    if (!state || state.loading || state.noMore) return
+    state.loading = true
+    try {
+        const response = await listCommentReplies({
+            postId,
+            parentId,
+            lastId: state.lastId,
+            lastCreateTime: state.lastCreateTime,
+            limit: replyPageSize
+        })
+        const list = normalizeCommentList(response)
+        state.list = [...state.list, ...list]
+        const lastItem = list[list.length - 1]
+        if (lastItem) {
+            state.lastId = lastItem?.id ?? state.lastId
+            state.lastCreateTime = lastItem?.createTime ?? state.lastCreateTime
+        }
+        state.noMore = list.length < replyPageSize
+    } catch (error) {
+        console.error(error)
+        state.noMore = true
+    } finally {
+        state.loading = false
+    }
+}
+
+const toggleCommentReplies = (comment: any) => {
+    const commentId = getCommentId(comment)
+    if (!commentId) return
+    const state = ensureReplyState(commentId)
+    if (!state) return
+    state.open = !state.open
+    if (state.open && state.list.length === 0) {
+        state.noMore = false
+        loadCommentReplies(comment)
+    }
+}
+
+const resolveActiveFlag = (value: any) => {
+    if (typeof value === 'boolean') return value
+    if (value != null) return String(value) === '1'
+    return false
+}
 
 const resolvePreviewFollowState = (post: any) => {
     if (!post) return false
@@ -431,6 +624,39 @@ const setPreviewFollowState = (post: any, nextFollowing: boolean) => {
     post.isFollowing = nextFollowing
     post.followed = nextFollowing
     post.followStatus = nextFollowing ? '1' : '0'
+}
+
+const normalizePostFlags = (item: any) => {
+    const likeValue = item?.like ?? item?.isLiked ?? item?.liked ?? item?.likeStatus ?? item?.isLike
+    const bookmarkValue = item?.bookmark ?? item?.isCollected ?? item?.collected ?? item?.collectStatus ?? item?.isCollect
+    const like = resolveActiveFlag(likeValue)
+    const bookmark = resolveActiveFlag(bookmarkValue)
+    const follow = resolvePreviewFollowState(item)
+    return {
+        ...item,
+        like,
+        isLiked: like,
+        bookmark,
+        isCollected: bookmark,
+        follow,
+        isFollow: follow,
+        isFollowing: follow,
+        followed: follow,
+        followStatus: follow ? '1' : '0'
+    }
+}
+
+const getPostAuthorId = (post: any) => post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? null
+
+const syncFollowStateForUser = (userId: any, nextFollowing: boolean) => {
+    if (userId == null) return
+    const target = String(userId)
+    postList.value.forEach(item => {
+        const itemUserId = getPostAuthorId(item)
+        if (itemUserId == null) return
+        if (String(itemUserId) !== target) return
+        setPreviewFollowState(item, nextFollowing)
+    })
 }
 
 const isPreviewFollowing = computed(() => resolvePreviewFollowState(previewPost.value))
@@ -452,13 +678,23 @@ const isPreviewAuthorSelf = computed(() => {
     return String(targetUserId) === String(userStore.id)
 })
 
+const toLocalDateTime = (date = new Date()) => {
+    const pad = (value: number) => String(value).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+        date.getSeconds()
+    )}`
+}
+
 const buildPreviewComment = (content: string) => ({
     id: `local-${Date.now()}`,
     content,
-    nickName: userStore.nickName || (userStore as any).name || '我',
+    userId: userStore.id,
+    userName: userStore.nickName || (userStore as any).name || '用户',
+    nickName: userStore.nickName || (userStore as any).name || '用户',
     avatar: userStore.avatar || '',
-    createTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    createTime: toLocalDateTime()
 })
+const resolveProfileUserId = (post: any) => post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? null
 
 const appendPreviewComment = (post: any, comment: any) => {
     if (!post) return
@@ -482,6 +718,12 @@ function handleEditTag(post: any) {
     editTagIds.value = resolveTagIds(post)
     if (!tagOptions.value.length) loadTags()
     editTagVisible.value = true
+}
+
+function handleViewProfile(post: any) {
+    const userId = resolveProfileUserId(post)
+    if (!userId) return
+    router.push({ path: '/content/userProfile', query: { userId: String(userId) } })
 }
 
 function resetEditTag() {
@@ -592,20 +834,20 @@ async function fetchList(isLoadMore = false) {
 
     try {
         const resolvePostType = (value?: string) => {
-            const fallback = allowedPostTypes.join(',')
-            if (value === undefined || value === null || value === '') return fallback
-            const normalized = String(value)
-            return allowedPostTypes.includes(normalized) ? normalized : fallback
+            if (value === undefined || value === null || value === '') return undefined
+            return String(value)
         }
 
-        const params = {
-            postType: resolvePostType(queryParams.postType),
+        const resolvedPostType = resolvePostType(queryParams.postType)
+        const params: Record<string, any> = {
             content: queryParams.content?.trim() || undefined,
             tagId: queryParams.tagId || undefined,
+            isQuestion: queryParams.isQuestion ?? 0,
             lastId: queryParams.lastId,
             lastCreateTime: queryParams.lastCreateTime,
             limit: queryParams.limit
         }
+        if (resolvedPostType != null) params.postType = resolvedPostType
 
         const res = await listPostByApp(params)
         const list = (res as any)?.rows || (res as any)?.data || res || []
@@ -618,8 +860,9 @@ async function fetchList(isLoadMore = false) {
             totalCount.value = null
         }
 
-        if (!isLoadMore) postList.value = records
-        else postList.value = postList.value.concat(records)
+        const normalizedRecords = records.map(item => normalizePostFlags(item))
+        if (!isLoadMore) postList.value = normalizedRecords
+        else postList.value = postList.value.concat(normalizedRecords)
 
         if (records.length > 0) {
             const last = records[records.length - 1]
@@ -651,6 +894,7 @@ function resetQuery() {
     queryParams.postType = undefined
     queryParams.content = ''
     queryParams.tagId = undefined
+    queryParams.isQuestion = 0
     queryParams.limit = 10
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
@@ -679,14 +923,51 @@ function handlePreview(post: any) {
     if (!post) return
     if (batchMode.value) return
     const type = String(post?.postType ?? '')
-    if (type !== '2') return
+    if (type === POST_TYPE.VIDEO) {
+        const src = getVideoUrl(post)
+        if (!src) return
+        if (previewVisible.value) closePreview()
+        videoPreviewPost.value = post
+        videoPreviewSrc.value = src
+        videoPreviewVisible.value = true
+        return
+    }
+    if (type !== POST_TYPE.IMAGE && type !== POST_TYPE.TEXT) return
+    if (videoPreviewVisible.value) closeVideoPreview()
     previewPost.value = post
+    loadPreviewComments(post)
     previewVisible.value = true
+}
+
+async function loadPreviewComments(post: any, options: { silent?: boolean } = {}) {
+    const postId = getPreviewPostId(post)
+    if (!postId) return
+    replyStateMap.value = {}
+    if (!options.silent) previewCommentsLoading.value = true
+    try {
+        const response = await listTopComments({ postId, limit: 20 })
+        const list = normalizeCommentList(response)
+        const totalCount = response?.total ?? response?.data?.total ?? response?.count
+        if (previewPost.value && String(getPreviewPostId(previewPost.value)) === String(postId)) {
+            previewPost.value.commentList = list
+            if (Number.isFinite(Number(totalCount))) {
+                previewPost.value.commentCount = Number(totalCount)
+            }
+        }
+    } catch (error) {
+        console.error(error)
+    } finally {
+        if (!options.silent) previewCommentsLoading.value = false
+    }
 }
 
 function resetPreview() {
     previewPost.value = null
     commentDraft.value = ''
+    isActionInputFocused.value = false
+    previewCommentsLoading.value = false
+    replyStateMap.value = {}
+    replyTarget.value = null
 }
 
 function closePreview() {
@@ -694,14 +975,31 @@ function closePreview() {
     resetPreview()
 }
 
+function resetVideoPreview() {
+    videoPreviewPost.value = null
+    videoPreviewSrc.value = ''
+    videoLikeLoading.value = false
+    videoBookmarkLoading.value = false
+    videoCommentLoading.value = false
+    videoRepostLoading.value = false
+    videoFollowLoading.value = false
+}
+
+function closeVideoPreview() {
+    videoPreviewVisible.value = false
+    resetVideoPreview()
+}
+
 function focusCommentInput() {
+    isActionInputFocused.value = true
     nextTick(() => {
-        commentInputRef.value?.focus?.()
+        previewModalRef.value?.focusInput?.()
     })
 }
 
 function handleActionInputBlur() {
     isActionInputFocused.value = false
+    clearReplyTarget()
 }
 
 async function handlePreviewFollow() {
@@ -714,6 +1012,7 @@ async function handlePreviewFollow() {
     try {
         await toggleFollowUser({ targetUserId })
         setPreviewFollowState(post, !wasFollowing)
+        syncFollowStateForUser(targetUserId, !wasFollowing)
     } catch (error) {
         console.error(error)
     } finally {
@@ -729,12 +1028,42 @@ async function submitPreviewComment() {
     const postId = getPreviewPostId(post)
     const targetUserId = getPreviewTargetUserId(post)
     if (!postId || !targetUserId) return
+    const parentCommentId = replyTarget.value?.parentId ?? null
+    const replyUserId = replyTarget.value?.replyUserId ?? null
+    const replyUserName = replyTarget.value?.replyUserName ?? ''
+    const draftComment = {
+        ...buildPreviewComment(content),
+        parentId: parentCommentId,
+        replyUserId,
+        replyUserNickName: replyUserName
+    }
+    post.commentCount = Number(post.commentCount || 0) + 1
+    if (parentCommentId) {
+        const parent = previewComments.value.find(item => String(getCommentId(item)) === String(parentCommentId))
+        if (parent) {
+            parent.replyCount = Number(parent.replyCount || 0) + 1
+            const state = ensureReplyState(parentCommentId)
+            if (state) {
+                state.open = true
+                state.list = [...state.list, draftComment]
+            }
+        }
+    } else {
+        appendPreviewComment(post, draftComment)
+    }
+    commentDraft.value = ''
+    isActionInputFocused.value = false
+    clearReplyTarget()
     commentActionLoading.value = true
     try {
-        await addComment({ postId, targetUserId, content })
-        post.commentCount = Number(post.commentCount || 0) + 1
-        appendPreviewComment(post, buildPreviewComment(content))
-        commentDraft.value = ''
+        await addComment({
+            postId,
+            targetUserId,
+            content,
+            parentCommentId: parentCommentId || undefined,
+            replyUserId: replyUserId || undefined
+        })
+        loadPreviewComments(post, { silent: true })
     } catch (error) {
         console.error(error)
     } finally {
@@ -819,6 +1148,123 @@ async function handlePreviewAction(type: 'like' | 'collect' | 'share') {
     }
 }
 
+const handleVideoSelectCollectionPost = (post: any) => {
+    if (!post) return
+    const src = resolveCollectionVideoSrc(post)
+    if (!src) return
+    videoPreviewPost.value = normalizePostFlags(post)
+    videoPreviewSrc.value = src
+    videoPreviewVisible.value = true
+}
+
+async function handleVideoAction(type: 'follow' | 'like' | 'collect' | 'comment' | 'share', payload?: any) {
+    const post = videoPreviewPost.value
+    if (!post) return
+    const postId = getPreviewPostId(post)
+    const targetUserId = getPreviewTargetUserId(post)
+
+    if (type === 'follow') {
+        if (!targetUserId || videoFollowLoading.value) return
+        const wasFollowing = resolvePreviewFollowState(post)
+        videoFollowLoading.value = true
+        try {
+            await toggleFollowUser({ targetUserId })
+            setPreviewFollowState(post, !wasFollowing)
+            syncFollowStateForUser(targetUserId, !wasFollowing)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            videoFollowLoading.value = false
+        }
+    }
+
+    if (type === 'like') {
+        if (!postId || !targetUserId || videoLikeLoading.value) return
+        videoLikeLoading.value = true
+        const wasLiked = Boolean(post.isLiked ?? post.like)
+        try {
+            const res = await likePost({ postId, targetUserId })
+            const active = (res as any)?.data?.active
+            const nextLiked = typeof active === 'boolean' ? active : !wasLiked
+            if (nextLiked !== wasLiked) {
+                post.isLiked = nextLiked
+                post.like = nextLiked
+                const nextCount = Number(post.likeCount || 0) + (nextLiked ? 1 : -1)
+                post.likeCount = Math.max(0, nextCount)
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            videoLikeLoading.value = false
+        }
+    }
+
+    if (type === 'collect') {
+        if (!postId || !targetUserId || videoBookmarkLoading.value) return
+        videoBookmarkLoading.value = true
+        const wasCollected = Boolean(post.isCollected ?? post.bookmark)
+        try {
+            const res = await bookmarkPost({ postId, targetUserId })
+            const active = (res as any)?.data?.active
+            const nextCollected = typeof active === 'boolean' ? active : !wasCollected
+            if (nextCollected !== wasCollected) {
+                post.isCollected = nextCollected
+                post.bookmark = nextCollected
+                const baseCount = Number(post.bookmarkCount ?? post.collectCount ?? 0)
+                const nextCount = baseCount + (nextCollected ? 1 : -1)
+                post.bookmarkCount = Math.max(0, nextCount)
+                if (post.collectCount != null) post.collectCount = post.bookmarkCount
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            videoBookmarkLoading.value = false
+        }
+    }
+
+    if (type === 'comment') {
+        if (!postId || !targetUserId || videoCommentLoading.value) return
+        const parentCommentId = payload?.parentCommentId
+        const replyUserId = payload?.replyUserId
+        const content = String(payload?.content ?? '').trim()
+        if (!content) return
+        videoCommentLoading.value = true
+        try {
+            const res = await addComment({ postId, targetUserId, content, parentCommentId, replyUserId })
+            post.commentCount = Number(post.commentCount || 0) + 1
+            payload?.onSuccess?.(res)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            videoCommentLoading.value = false
+        }
+    }
+
+    if (type === 'share') {
+        if (!postId || videoRepostLoading.value) return
+        let content = String(payload?.content ?? '').trim()
+        if (!content) {
+            try {
+                const res = await modal.prompt('请输入转发内容')
+                content = String((res as any)?.value ?? '').trim()
+            } catch {
+                return
+            }
+        }
+        if (!content) return
+        videoRepostLoading.value = true
+        try {
+            await repostPost({ originalPostId: postId, content })
+            post.repostCount = Number(post.repostCount || 0) + 1
+            if (post.shareCount != null) post.shareCount = Number(post.shareCount || 0) + 1
+        } catch (error) {
+            console.error(error)
+        } finally {
+            videoRepostLoading.value = false
+        }
+    }
+}
+
 async function handleBatchDelete() {
     if (!selectedIds.value.length || deleting.value) return
     handleDeleteConfirm(selectedIds.value)
@@ -837,7 +1283,9 @@ function toggleBatchMode() {
 async function handleDeleteConfirm(ids: Array<string | number>) {
     const isBatch = ids.length > 1
     try {
-        await (proxy as any)?.$modal?.confirm(isBatch ? `确认删除选中的 ${ids.length} 条帖子？` : '确认删除该条内容吗？删除后不可恢复。')
+        await (proxy as any)?.$modal?.confirm(isBatch ? `确认删除选中的 ${ids.length} 条帖子？` : '确认删除该条内容吗？删除后不可恢复。', '提示', {
+            lockScroll: false
+        })
     } catch {
         return
     }
@@ -873,8 +1321,8 @@ onActivated(() => {
     resetQuery()
 })
 
-watch(previewVisible, visible => {
-    isBodyScrollLocked.value = visible
+watch([previewVisible, videoPreviewVisible], ([previewOpen, videoOpen]) => {
+    isBodyScrollLocked.value = previewOpen || videoOpen
 })
 
 onBeforeUnmount(() => {
@@ -961,7 +1409,6 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     padding: 24px;
-    z-index: 3000;
 }
 
 .post-preview-panel {

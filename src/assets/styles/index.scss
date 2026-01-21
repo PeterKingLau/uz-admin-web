@@ -70,6 +70,10 @@ body {
         color 0.3s;
 }
 
+body.el-popup-parent--hidden {
+    padding-right: 0 !important;
+}
+
 *,
 *:before,
 *:after {
@@ -299,6 +303,16 @@ html.dark {
 // 5. 模块引入 (顺序很重要)
 // ===============================================
 // Element Plus 覆盖样式
+// ===============================================
+// 6. Layering
+// ===============================================
+.post-preview-mask {
+    z-index: 1990;
+}
+
+.preview-close {
+    z-index: 1991;
+}
 @import './element-ui.scss';
 // 侧边栏样式
 @import './sidebar.scss';

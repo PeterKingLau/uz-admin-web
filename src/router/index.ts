@@ -115,6 +115,19 @@ export const constantRoutes: RouteRecordRaw[] = [
         ]
     },
     {
+        path: '/content/userProfile',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: '',
+                component: () => import('@/views/content/userProfile/index.vue'),
+                name: 'UserProfileView',
+                meta: { title: '个人主页' }
+            }
+        ]
+    },
+    {
         path: '/content/video-player/:id',
         component: () => import('@/views/content/videoPlayer/index.vue'),
         name: 'VideoPlayer',
