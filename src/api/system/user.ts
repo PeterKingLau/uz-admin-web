@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import { parseStrEmpty } from '@/utils/ruoyi'
+import { parseStrEmpty } from '@/utils/utils'
 
 // 查询用户列表
 export function listUser(query: any) {
@@ -75,6 +75,15 @@ export function getUserProfile() {
     return request({
         url: '/system/user/profile',
         method: 'get'
+    })
+}
+
+// APP 获取指定用户个人信息
+export function getUserInfoById(userId?: any) {
+    return request({
+        url: '/system/user/app/getInfoById',
+        method: 'get',
+        params: { userId }
     })
 }
 

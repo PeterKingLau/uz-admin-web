@@ -160,7 +160,7 @@ import { useScrollLock } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
-import PostPreviewModal from '../personProfile/components/PostPreviewModal.vue'
+import PostPreviewModal from '../personProfile/components/Modal/PostPreviewModal.vue'
 import VideoModule from '../personProfile/components/VideoModule/index.vue'
 import {
     addComment,
@@ -180,7 +180,7 @@ import { useEnumOptions } from '@/hooks/useEnumOptions'
 import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
 import { POST_TYPE } from '@/utils/enum'
-import { parseTime } from '@/utils/ruoyi'
+import { parseTime } from '@/utils/utils'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
 
 const { proxy } = getCurrentInstance() || {}

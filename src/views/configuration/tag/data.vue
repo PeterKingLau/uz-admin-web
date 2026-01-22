@@ -93,7 +93,7 @@
 <script setup name="TagData">
 import { onMounted, reactive, ref, toRefs, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { parseTime } from '@/utils/ruoyi'
+import { parseTime } from '@/utils/utils'
 import { addInterestTag, deleteInterestTag, listInterestTag, updateInterestTag } from '@/api/configuration/tag'
 
 const { proxy } = getCurrentInstance()

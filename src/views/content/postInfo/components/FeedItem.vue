@@ -71,12 +71,12 @@
             <div v-else class="content-text empty">（无正文内容）</div>
 
             <div class="card-meta">
-                <button type="button" class="author" @click="handleProfileClick">
+                <el-button link class="author" @click="handleProfileClick">
                     <el-avatar :size="24" :src="fullAvatar(post.avatar)" class="avatar">
                         {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
                     </el-avatar>
                     <span class="author-name">{{ post.nickName || '未知用户' }}</span>
-                </button>
+                </el-button>
 
                 <div class="like-count" :class="{ 'is-liked': isLiked }">
                     <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
@@ -548,12 +548,19 @@ function handleProfileClick() {
 .author {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     background: transparent;
     border: none;
     padding: 0;
     cursor: pointer;
     color: var(--el-text-color-primary);
+    min-width: 0;
+    height: auto;
+}
+
+.author :deep(.el-button__content) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
     min-width: 0;
 }
 
@@ -564,6 +571,7 @@ function handleProfileClick() {
 .author-name {
     font-size: 12px;
     font-weight: 600;
+    margin-left: 6px;
     max-width: 90px;
     white-space: nowrap;
     overflow: hidden;

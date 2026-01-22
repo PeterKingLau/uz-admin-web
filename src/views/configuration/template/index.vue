@@ -211,7 +211,7 @@
 
 <script setup name="TemplateManage" lang="ts">
 import { computed, reactive, ref, toRefs, getCurrentInstance, onMounted } from 'vue'
-import { parseTime } from '@/utils/ruoyi'
+import { parseTime } from '@/utils/utils'
 import { addTemplate, updateTemplate, deleteTemplate, listTemplates, parseTemplateRows, type TemplateItem } from '@/api/configuration/template'
 import { getDimensionTree, parseDimensionTree, type DimensionNode } from '@/api/content/assessmentQuestion'
 import { textMap } from './constants'

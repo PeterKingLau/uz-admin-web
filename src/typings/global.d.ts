@@ -6,7 +6,7 @@ import download from '@/plugins/download'
 import { getImgUrl } from '@/utils/img'
 import { useDict } from '@/utils/dict'
 import { download as utilsDownload } from '@/utils/request'
-import { addDateRange, handleTree, parseTime, resetForm, selectDictLabel, selectDictLabels } from '@/utils/ruoyi'
+import { addDateRange, handleTree, parseTime, resetForm, selectDictLabel, selectDictLabels } from '@/utils/utils'
 
 export {}
 declare module 'vue' {

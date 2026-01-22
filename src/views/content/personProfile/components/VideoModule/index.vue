@@ -374,7 +374,7 @@
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { parseTime } from '@/utils/ruoyi'
+import { parseTime } from '@/utils/utils'
 import { getImgUrl } from '@/utils/img'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getPostByCollection } from '@/api/content/collection'

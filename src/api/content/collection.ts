@@ -1,28 +1,18 @@
 import request from '@/utils/request'
+import type {
+    AddCollectionPayload,
+    AddPostToCollectionPayload,
+    GetPostByCollectionParams,
+    RemovePostFromCollectionPayload,
+    UpdateCollectionPayload
+} from './collection.types'
 
-export interface CollectionItem {
-    id: number
-    title: string
-    coverUrl?: string
-    description?: string
-    sortType?: number
-    count?: number
-    createTime?: string
-    updateTime?: string
-}
-
-export function listMyCollections(): Promise<any> {
+export function listMyCollections(params?: Record<string, any>): Promise<any> {
     return request({
         url: '/content/collection/myCollections',
-        method: 'get'
+        method: 'get',
+        params
     }) as unknown as Promise<any>
-}
-
-export interface AddCollectionPayload {
-    title: string
-    coverUrl?: string
-    description?: string
-    sortType: number
 }
 
 export function addCollection(data: AddCollectionPayload): Promise<any> {
@@ -33,48 +23,12 @@ export function addCollection(data: AddCollectionPayload): Promise<any> {
     }) as unknown as Promise<any>
 }
 
-export interface UpdateCollectionPayload {
-    id: number
-    title?: string
-    coverUrl?: string
-    description?: string
-    sortType?: number
-}
-
 export function updateCollection(data: UpdateCollectionPayload): Promise<any> {
     return request({
         url: '/content/collection/update',
         method: 'post',
         data
     }) as unknown as Promise<any>
-}
-
-export interface DeleteCollectionPayload {
-    ids: Array<number | string>
-}
-
-export interface AddPostToCollectionItem {
-    postId: number
-    sortOrder: number
-}
-
-export interface AddPostToCollectionPayload {
-    collectionId: number | string
-    sortType?: number
-    items: AddPostToCollectionItem[]
-}
-
-export interface GetPostByCollectionParams {
-    collectionId: number | string
-}
-
-export interface RemovePostFromCollectionItem {
-    postId: number
-}
-
-export interface RemovePostFromCollectionPayload {
-    collectionId: number | string
-    items: RemovePostFromCollectionItem[]
 }
 
 export function deleteCollections(ids: Array<number | string> | number | string): Promise<any> {

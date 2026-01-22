@@ -2,7 +2,7 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse,
 import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus'
 import { getToken } from '@/utils/auth'
 import errorCode from '@/utils/errorCode'
-import { tansParams, blobValidate } from '@/utils/ruoyi'
+import { tansParams, blobValidate } from '@/utils/utils'
 import cache from '@/plugins/cache'
 import { saveAs } from 'file-saver'
 import useUserStore from '@/store/modules/user'

@@ -46,8 +46,13 @@
                 <template v-if="!bulkMode">
                     <div class="filter-group">
                         <div class="filter-chip" :class="{ active: worksFilter === 'all' }" @click="setWorksFilter('all')">全部作品</div>
-                        <div v-if="!readOnly" class="filter-chip" :class="{ active: worksFilter === 'collection' }" @click="setWorksFilter('collection')">
-                            我的合集
+                        <div
+                            v-if="canViewCollections"
+                            class="filter-chip"
+                            :class="{ active: worksFilter === 'collection' }"
+                            @click="setWorksFilter('collection')"
+                        >
+                            {{ collectionFilterLabel }}
                         </div>
                     </div>
 
@@ -82,21 +87,21 @@
             </div>
 
             <div v-if="showCollections">
-                <div v-if="collectionLoadingLocal" class="status-box">
+                <div v-if="collectionLoadingState" class="status-box">
                     <el-icon class="is-loading"><Loading /></el-icon> 加载中...
                 </div>
 
-                <div v-else-if="collectionListLocal.length === 0" class="empty-collection-state">
+                <div v-else-if="collectionListData.length === 0" class="empty-collection-state">
                     <div class="empty-icon-wrapper">
                         <Icon icon="ep:folder-opened" class="empty-icon" />
                     </div>
                     <div class="empty-text">还没有创建任何合集</div>
-                    <el-button type="primary" round class="empty-create-btn" @click="openCreateDialog">立即创建</el-button>
+                    <el-button v-if="!readOnly" type="primary" round class="empty-create-btn" @click="openCreateDialog">立即创建</el-button>
                 </div>
 
                 <div v-else class="collection-grid-view">
                     <div
-                        v-for="item in collectionListLocal"
+                        v-for="item in collectionListData"
                         :key="resolveCollectionKey(item)"
                         class="collection-card-modern"
                         :class="{ 'bulk-selected': bulkMode && isBulkCollectionSelected(item) }"
@@ -118,7 +123,7 @@
                                 <div class="count">{{ Number(item?.postCount ?? item?.count ?? 0) }} 个作品</div>
                             </div>
 
-                            <div class="actions" @click.stop>
+                            <div v-if="!readOnly" class="actions" @click.stop>
                                 <el-dropdown trigger="click" placement="bottom-end">
                                     <span class="more-btn">
                                         <Icon icon="mdi:dots-vertical" />
@@ -272,7 +277,7 @@
                 <div class="add-posts-toolbar">
                     <span>已选 {{ selectedPostIds.length }} 条</span>
                     <div class="toolbar-actions">
-                        <el-button v-if="addDialogTab === 'selected'" text :disabled="selectedPostIds.length === 0" @click="removeSelectedPosts"
+                        <el-button v-if="!readOnly && addDialogTab === 'selected'" text :disabled="selectedPostIds.length === 0" @click="removeSelectedPosts"
                             >移除选中</el-button
                         >
                         <el-button text @click="toggleSelectAll">{{ isAllSelected ? '取消全选' : '全选' }}</el-button>
@@ -299,7 +304,7 @@
                         :class="{ selected: isPostSelected(item), 'selected-tab': addDialogTab === 'selected' }"
                         @click="togglePostSelection(item)"
                     >
-                        <button v-if="addDialogTab === 'selected'" type="button" class="remove-btn" @click.stop="removeSinglePost(item)">×</button>
+                        <button v-if="!readOnly && addDialogTab === 'selected'" type="button" class="remove-btn" @click.stop="removeSinglePost(item)">×</button>
                         <div v-if="addDialogTab === 'selected' || isPostSelected(item)" class="select-order">
                             {{ getDisplayOrder(item, index) }}
                         </div>
@@ -347,11 +352,14 @@ const props = defineProps({
     likeCount: { type: Number, default: 0 },
     bookmarkCount: { type: Number, default: 0 },
     postList: { type: Array as any, default: () => [] },
+    collectionList: { type: Array as any, default: null },
+    collectionLoading: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
     noMore: { type: Boolean, default: false },
     getCover: { type: Function as any, default: () => '' },
     getVideoUrl: { type: Function as any, default: () => '' },
-    readOnly: { type: Boolean, default: false }
+    readOnly: { type: Boolean, default: false },
+    allowCollectionView: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'tab-click', 'load-more', 'preview', 'works-filter-change', 'collection-open', 'collection-changed'])
@@ -369,14 +377,16 @@ const worksPostList = computed(() => {
 const videoPostList = computed(() => worksPostList.value.filter(item => item?.postType === POST_TYPE.VIDEO))
 
 const worksFilter = ref<'all' | 'collection'>('all')
-const showCollections = computed(() => activeTabValue.value === 'works' && worksFilter.value === 'collection')
+const canViewCollections = computed(() => !props.readOnly || props.allowCollectionView)
+const collectionFilterLabel = computed(() => (props.readOnly ? '合集' : '我的合集'))
+const showCollections = computed(() => activeTabValue.value === 'works' && worksFilter.value === 'collection' && canViewCollections.value)
 
 const onTabClick = (tab: any) => emit('tab-click', tab)
 const handleLoadMore = () => emit('load-more')
 const handlePreview = (item: any) => emit('preview', item)
 
 const setWorksFilter = (value: 'all' | 'collection') => {
-    if (props.readOnly && value === 'collection') return
+    if (value === 'collection' && !canViewCollections.value) return
     if (worksFilter.value === value) return
     worksFilter.value = value
     if (bulkMode.value) resetBulkSelection()
@@ -384,10 +394,10 @@ const setWorksFilter = (value: 'all' | 'collection') => {
 }
 
 watch(
-    () => props.readOnly,
-    readOnly => {
+    () => [props.readOnly, props.allowCollectionView],
+    ([readOnly, allowCollectionView]) => {
         if (!readOnly) return
-        if (worksFilter.value !== 'all') worksFilter.value = 'all'
+        if (!allowCollectionView && worksFilter.value !== 'all') worksFilter.value = 'all'
         if (bulkMode.value) {
             bulkMode.value = false
             resetBulkSelection()
@@ -398,6 +408,14 @@ watch(
 const collectionLoadingLocal = ref(false)
 const collectionListLocal = ref<AnyObj[]>([])
 const collectionLoaded = ref(false)
+const useExternalCollections = computed(() => props.collectionList !== null)
+const collectionListData = computed(() => {
+    if (useExternalCollections.value) {
+        return Array.isArray(props.collectionList) ? props.collectionList : []
+    }
+    return collectionListLocal.value
+})
+const collectionLoadingState = computed(() => (useExternalCollections.value ? props.collectionLoading : collectionLoadingLocal.value))
 
 const normalizeCollections = (res: any) => {
     const data = res?.data ?? res?.rows ?? []
@@ -405,6 +423,7 @@ const normalizeCollections = (res: any) => {
 }
 
 const loadCollections = async (force = false) => {
+    if (useExternalCollections.value) return
     if (collectionLoadingLocal.value || (!force && collectionLoaded.value)) return
     collectionLoadingLocal.value = true
     try {
@@ -456,7 +475,7 @@ const bulkActionIcon = computed(() => {
     return 'mdi:delete-outline'
 })
 const bulkTotalCount = computed(() => {
-    if (bulkIsCollectionContext.value) return collectionListLocal.value.length
+    if (bulkIsCollectionContext.value) return collectionListData.value.length
     return worksPostList.value.length
 })
 const bulkSelectedCount = computed(() => {
@@ -469,7 +488,7 @@ const bulkAllChecked = computed({
         if (!bulkMode.value) return
         if (checked) {
             if (bulkIsCollectionContext.value) {
-                const ids = collectionListLocal.value
+                const ids = collectionListData.value
                     .map(item => resolveCollectionId(item))
                     .filter((id): id is string | number => id != null)
                     .map(id => String(id))
@@ -555,7 +574,7 @@ const toggleBulkCollectionSelection = (item: any) => {
 const handleCollectionCardClick = (item: any) => {
     if (bulkMode.value) {
         toggleBulkCollectionSelection(item)
-    } else {
+    } else if (!props.readOnly) {
         openAddPostsDialog(item)
     }
 }
@@ -595,12 +614,14 @@ const resetCreateForm = () => {
 }
 
 const openCreateDialog = () => {
+    if (props.readOnly) return
     dialogMode.value = 'create'
     resetCreateForm()
     createDialogVisible.value = true
 }
 
 const openEditDialog = (item: any) => {
+    if (props.readOnly) return
     dialogMode.value = 'edit'
     resetCreateForm()
     Object.assign(createForm, {
@@ -620,6 +641,10 @@ const buildCollectionPayload = () => ({
 })
 
 const syncCollections = async () => {
+    if (useExternalCollections.value) {
+        emit('collection-changed')
+        return
+    }
     await refreshCollections()
     emit('collection-changed')
 }
@@ -726,6 +751,7 @@ const loadCollectionPosts = async (force = false) => {
 }
 
 const openAddPostsDialog = (item: any, tab: 'add' | 'selected' = 'add') => {
+    if (props.readOnly) return
     addDialogTarget.value = item
     addDialogTab.value = tab
     selectedPostIds.value = []

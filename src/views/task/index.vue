@@ -218,7 +218,7 @@
 
 <script setup name="AssessmentQuestionList" lang="ts">
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
-import { parseTime } from '@/utils/ruoyi'
+import { parseTime } from '@/utils/utils'
 import type { AssessmentQuestionItem, DimensionNode } from '@/api/content/assessmentQuestion'
 import type { AssessmentOptionItem } from '@/api/content/assessmentOption'
 
