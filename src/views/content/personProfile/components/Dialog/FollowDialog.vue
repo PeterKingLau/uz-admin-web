@@ -44,11 +44,6 @@
                     <div class="middle-section">
                         <div class="info-top">
                             <span class="nickname" :title="item.nickName">{{ item.nickName || '用户' }}</span>
-                            <div class="user-badges">
-                                <Icon v-if="isMaleSex?.(item.sex)" icon="ep:male" class="gender-icon male" />
-                                <Icon v-else-if="isFemaleSex?.(item.sex)" icon="ep:female" class="gender-icon female" />
-                                <el-tag v-if="activeTab === 'mutual'" size="small" type="success" effect="dark" class="mini-tag">互关</el-tag>
-                            </div>
                         </div>
                         <div class="info-bottom" :title="item.signature">
                             {{ item.signature || '这个人很懒，什么都没有写' }}
@@ -57,15 +52,16 @@
 
                     <div class="right-section">
                         <el-button
-                            :type="item.isFollowing ? 'info' : 'primary'"
-                            :plain="item.isFollowing"
-                            :class="['action-btn', { 'is-following': item.isFollowing }]"
+                            v-if="!isSelfRelation(item)"
+                            :type="getRelationActionType(item)"
+                            :plain="isFollowedRelation(item)"
+                            :class="['action-btn', { 'is-following': isFollowedRelation(item) }]"
                             size="small"
                             round
                             :loading="isFollowActionLoading(item)"
                             @click.stop="toggleFollow(item)"
                         >
-                            {{ item.isFollowing ? '已关注' : '关注' }}
+                            {{ getRelationActionText(item) }}
                         </el-button>
                     </div>
                 </div>
@@ -102,15 +98,13 @@ const props = defineProps({
     followList: { type: Array, default: () => [] },
     followLoading: { type: Boolean, default: false },
     followNoMore: { type: Boolean, default: false },
-    isMaleSex: { type: Function, default: null },
-    isFemaleSex: { type: Function, default: null },
     isFollowActionLoading: { type: Function, default: () => false },
     toggleFollow: { type: Function, default: () => {} }
 })
 
 const emit = defineEmits(['update:modelValue', 'update:activeTab', 'tab-click'])
 
-const { followStats, followList, followLoading, followNoMore, isMaleSex, isFemaleSex, isFollowActionLoading, toggleFollow } = toRefs(props)
+const { followStats, followList, followLoading, followNoMore, isFollowActionLoading, toggleFollow } = toRefs(props)
 
 const dialogVisible = computed({
     get: () => props.modelValue,
@@ -126,6 +120,25 @@ const followListRef = ref(null)
 const followTriggerRef = ref(null)
 
 const handleTabClick = tab => emit('tab-click', tab)
+
+const normalizeRelationType = item => (item?.relationType || 'NONE').toString().toUpperCase()
+
+const isSelfRelation = item => normalizeRelationType(item) === 'SELF'
+
+const isFollowedRelation = item => {
+    const relationType = normalizeRelationType(item)
+    return relationType === 'FOLLOWING' || relationType === 'MUTUAL'
+}
+
+const getRelationActionType = item => (isFollowedRelation(item) ? 'info' : 'primary')
+
+const getRelationActionText = item => {
+    const relationType = normalizeRelationType(item)
+    if (relationType === 'MUTUAL') return '互相关注'
+    if (relationType === 'FOLLOWING') return '已关注'
+    if (relationType === 'FOLLOWER') return '回关'
+    return '关注'
+}
 
 defineExpose({
     followListRef,
@@ -342,30 +355,6 @@ defineExpose({
                 overflow: hidden;
                 text-overflow: ellipsis;
                 max-width: 180px;
-            }
-
-            .user-badges {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            }
-
-            .gender-icon {
-                font-size: 13px;
-                &.male {
-                    color: #409eff;
-                }
-                &.female {
-                    color: #f56c6c;
-                }
-            }
-
-            .mini-tag {
-                height: 18px;
-                padding: 0 4px;
-                font-size: 10px;
-                line-height: 16px;
-                border: none;
             }
         }
 

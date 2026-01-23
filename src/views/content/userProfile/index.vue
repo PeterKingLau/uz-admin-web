@@ -24,15 +24,20 @@
                             <span class="num">{{ userInfo.followers || 0 }}</span>
                             <span class="label">粉丝</span>
                         </div>
-                        <div class="stat-divider"></div>
-                        <!-- 其他人主页不展示互关 -->
+                        <div class="stat-divider" v-if="isSelfProfile"></div>
+                        <div class="stat-item" v-if="isSelfProfile" @click="openFollowDialog('mutual')">
+                            <span class="num">{{ userInfo.mutualCount || 0 }}</span>
+                            <span class="label">互关</span>
+                        </div>
                     </div>
                     <div class="desc-row">
                         <p>{{ userInfo.signature || '暂时还没想到个性签名' }}</p>
                     </div>
                 </div>
-                <div class="action-btn" v-if="!isSelfProfile">
+                <div class="action-btn">
+                    <el-button v-if="isSelfProfile" type="primary" plain class="edit-btn" @click="goToProfile">编辑资料</el-button>
                     <el-button
+                        v-else
                         type="primary"
                         class="follow-btn"
                         :plain="isProfileFollowing"
@@ -58,17 +63,18 @@
             :no-more="noMore"
             :get-cover="getCover"
             :get-video-url="getVideoUrl"
-            :read-only="true"
+            :read-only="!isSelfProfile"
             :allow-collection-view="true"
             @tab-click="handleTabClick"
             @load-more="loadMore"
             @preview="handlePreview"
-            @collection-changed="getCollectionList"
+            @works-filter-change="handleWorksFilterChange"
+            @collection-changed="handleCollectionChanged"
             @create-collection="handleCreateCollection"
         />
 
         <PostPreviewModal
-            ref="previewModalRef"
+            :ref="setPreviewModalRef"
             v-model="previewVisible"
             :post="previewPost"
             :media-list="previewMediaList"
@@ -106,16 +112,14 @@
         />
 
         <FollowDialog
-            ref="followDialogRef"
+            :ref="setFollowDialogRef"
             v-model="followDialogVisible"
             v-model:activeTab="followActiveTab"
-            :show-mutual="false"
+            :show-mutual="isSelfProfile"
             :follow-stats="followStats"
             :follow-list="followList"
             :follow-loading="followLoading"
             :follow-no-more="followNoMore"
-            :is-male-sex="isMaleSex"
-            :is-female-sex="isFemaleSex"
             :is-follow-action-loading="isFollowActionLoading"
             :toggle-follow="toggleFollow"
             @tab-click="handleFollowTabClick"
@@ -124,12 +128,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance, shallowRef } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
-import { addCollection } from '@/api/content/collection'
+import { addCollection, listMyCollections } from '@/api/content/collection'
 import { listFollowers, listFollowing, listMutual, selectFollowNum, toggleFollowUser } from '@/api/content/userFollow'
 import { getUserInfoById } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
@@ -160,6 +164,9 @@ const bookmarkTotal = ref(0)
 const postList = ref([])
 const collectionList = ref([])
 const collectionLoading = ref(false)
+const collectionLoaded = ref(false)
+const collectionFetchedAt = ref(0)
+const COLLECTION_CACHE_TTL = 60 * 1000
 const createCollectionLoading = ref(false)
 const profileInfo = ref({})
 const followStats = ref({
@@ -188,7 +195,10 @@ const commentActionLoading = ref(false)
 const repostActionLoading = ref(false)
 const previewCommentsLoading = ref(false)
 const commentDraft = ref('')
-const previewModalRef = ref(null)
+const previewModalRef = shallowRef(null)
+const setPreviewModalRef = el => {
+    previewModalRef.value = el
+}
 const isActionInputFocused = ref(false)
 const deleteCommentLoading = reactive(/** @type {Record<string, boolean>} */ ({}))
 const replyTarget = ref(null)
@@ -200,10 +210,18 @@ const followActiveTab = ref('following')
 const followList = ref([])
 const followLoading = ref(false)
 const followNoMore = ref(false)
-const followDialogRef = ref(null)
+const followDialogRef = shallowRef(null)
+const setFollowDialogRef = el => {
+    followDialogRef.value = el
+}
 const followLastId = ref(undefined)
 const followPageSize = 20
-const followTabSet = new Set(['following', 'followers'])
+const normalizeFollowTab = value => {
+    if (!value) return 'following'
+    const normalized = String(value)
+    if (normalized === 'mutual') return isSelfProfile.value ? 'mutual' : 'following'
+    return normalized === 'following' || normalized === 'followers' ? normalized : 'following'
+}
 const followRequestId = ref(0)
 const followActionLoading = reactive(/** @type {Record<string, boolean>} */ ({}))
 let followObserver = null
@@ -254,9 +272,6 @@ const normalizeSexValue = value => {
     return String(value)
 }
 
-const isMaleSex = value => normalizeSexValue(value) === '0'
-const isFemaleSex = value => normalizeSexValue(value) === '1'
-
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
     const avatar = profile.avatar != null && String(profile.avatar).trim() ? getImgUrl(profile.avatar) : isSelfProfile.value ? userStore.avatar || '' : ''
@@ -272,8 +287,6 @@ const userInfo = computed(() => {
         likedCount: profile.likedCount ?? 0
     }
 })
-
-const normalizeFollowTab = value => (followTabSet.has(value) ? value : 'following')
 
 const followApiMap = {
     following: listFollowing,
@@ -433,6 +446,16 @@ const removeRowFromFollowList = targetUserId => {
     syncMutualCountFromListIfNeeded()
 }
 
+const resolveNextRelationType = (item, nowFollowing) => {
+    const relation = String(item?.relationType || '').toUpperCase()
+    if (nowFollowing) {
+        if (relation === 'FOLLOWER' || relation === 'MUTUAL') return 'MUTUAL'
+        return 'FOLLOWING'
+    }
+    if (relation === 'MUTUAL') return 'FOLLOWER'
+    return 'NONE'
+}
+
 const toggleFollow = async item => {
     const targetUserId = getFollowTargetId(item)
     if (!targetUserId || isFollowActionLoading(item)) return
@@ -446,6 +469,7 @@ const toggleFollow = async item => {
     try {
         await toggleFollowUser({ targetUserId })
         item.isFollowing = nowFollowing
+        item.relationType = resolveNextRelationType(item, nowFollowing)
 
         let nextFollowing = followStats.value.following
         let nextMutual = followStats.value.mutualCount
@@ -962,16 +986,20 @@ const loadInitialTabTotals = async () => {
     }
 }
 
-const getCollectionList = async () => {
+const shouldUseCollectionCache = () => collectionLoaded.value && Date.now() - collectionFetchedAt.value < COLLECTION_CACHE_TTL
+
+const getCollectionList = async (force = false) => {
     if (collectionLoading.value) return
+    if (!force && shouldUseCollectionCache()) return
     const targetUserId = resolveTargetUserId()
     if (!targetUserId) return
     collectionLoading.value = true
     try {
-        const response = await getUserInfoById(targetUserId)
-        const { data, profile } = resolveUserProfilePayload(response)
-        const { list, found } = resolveCollectionListFromProfile(data, profile)
-        collectionList.value = found ? list : []
+        const response = await listMyCollections({ targetUserId })
+        const responseList = Array.isArray(response?.data) ? response.data : Array.isArray(response?.rows) ? response.rows : []
+        collectionList.value = responseList
+        collectionLoaded.value = true
+        collectionFetchedAt.value = Date.now()
     } catch (error) {
         console.error(error)
     } finally {
@@ -980,14 +1008,17 @@ const getCollectionList = async () => {
 }
 
 const normalizeCommentList = response => {
-    if (Array.isArray(response?.data)) return response.data
-    if (Array.isArray(response?.rows)) return response.rows
-    if (Array.isArray(response?.list)) return response.list
-    const data = response?.data ?? {}
-    if (Array.isArray(data?.list)) return data.list
-    if (Array.isArray(data?.rows)) return data.rows
-    if (Array.isArray(data?.records)) return data.records
-    if (Array.isArray(data?.items)) return data.items
+    if (!response) return []
+    const data = response.data
+    if (Array.isArray(data)) return data
+    if (Array.isArray(response.rows)) return response.rows
+    if (Array.isArray(response.list)) return response.list
+    if (data && typeof data === 'object') {
+        if (Array.isArray(data.list)) return data.list
+        if (Array.isArray(data.rows)) return data.rows
+        if (Array.isArray(data.records)) return data.records
+        if (Array.isArray(data.items)) return data.items
+    }
     return []
 }
 
@@ -1136,7 +1167,7 @@ const handleCreateCollection = async payload => {
             sortType: 0
         })
         proxy?.$modal?.msgSuccess?.('创建成功')
-        getCollectionList()
+        getCollectionList(true)
     } catch (error) {
         console.error(error)
         proxy?.$modal?.msgError?.('创建失败')
@@ -1194,7 +1225,11 @@ const getProfile = async () => {
             meta: { ...router.currentRoute.value.meta, title: nextTitle }
         })
         const { list, found } = resolveCollectionListFromProfile(responseData, mergedProfile)
-        if (found) collectionList.value = list
+        if (found) {
+            collectionList.value = list
+            collectionLoaded.value = true
+            collectionFetchedAt.value = Date.now()
+        }
     } catch (error) {
         console.error(error)
     }
@@ -1207,6 +1242,10 @@ const getFollowStats = async () => {
         const followingCountRaw = responseData.followerCount ?? 0
         const followersCountRaw = responseData.fans ?? 0
         const mutualCountRaw = responseData.eachOtherCount ?? 0
+        const followFlag = resolveFollowFlag(responseData.isFollow)
+        if (typeof followFlag === 'boolean' && !isSelfProfile.value) {
+            setProfileFollowState(profileInfo.value, followFlag)
+        }
         const useMutualListCount = followDialogVisible.value && followActiveTab.value === 'mutual'
         const mutualFrom = useMutualListCount ? followList.value.length : mutualCountRaw
         const stats = clampStats(followingCountRaw, followersCountRaw, mutualFrom)
@@ -1232,6 +1271,12 @@ const handleTabClick = tab => {
     queryParams.lastCreateTime = undefined
     getList()
 }
+
+const handleWorksFilterChange = value => {
+    if (value === 'collection') getCollectionList()
+}
+
+const handleCollectionChanged = () => getCollectionList(true)
 
 const handlePreview = item => {
     if (!item) return
@@ -1472,6 +1517,18 @@ const handleProfileFollow = async () => {
     const targetUserId = resolveTargetUserId()
     if (!targetUserId || profileFollowLoading.value) return
     const wasFollowing = isProfileFollowing.value
+    if (wasFollowing) {
+        try {
+            await proxy?.$modal?.confirm?.('确认取消关注？', '提示', {
+                type: 'warning',
+                confirmButtonText: '取消关注',
+                cancelButtonText: '保留关注',
+                lockScroll: false
+            })
+        } catch {
+            return
+        }
+    }
     profileFollowLoading.value = true
     try {
         await toggleFollowUser({ targetUserId })
@@ -1482,6 +1539,10 @@ const handleProfileFollow = async () => {
     } finally {
         profileFollowLoading.value = false
     }
+}
+
+const goToProfile = () => {
+    router.push({ name: 'Profile' })
 }
 
 const openFollowDialog = type => {
@@ -1502,19 +1563,44 @@ const resetProfileLists = () => {
     bookmarkTotal.value = 0
 }
 
+const resolvePersonProfileTarget = () => {
+    const routes = router.getRoutes()
+    const routeByComponent = routes.find(route => {
+        const component = route.components?.default ?? route.component
+        if (!component) return false
+        const text = String(component)
+        return text.includes('content/personProfile') || text.includes('personProfile/index')
+    })
+    if (routeByComponent) {
+        return routeByComponent.name ? { name: routeByComponent.name } : { path: routeByComponent.path }
+    }
+
+    const routeByMeta = routes.find(route => route.meta?.pageKey === 'personProfile' || route.meta?.profileType === 'self')
+    if (routeByMeta) {
+        return routeByMeta.name ? { name: routeByMeta.name } : { path: routeByMeta.path }
+    }
+
+    const pathCandidates = ['/content/personProfile', '/content/person-profile', '/content/profile']
+    const path = pathCandidates.find(candidate => routes.some(route => route.path === candidate))
+    if (path) return { path }
+
+    return null
+}
+
 const redirectToPersonProfile = () => {
-    router.replace({ name: 'PersonProfileView' })
+    const target = resolvePersonProfileTarget()
+    if (!target) return false
+    router.replace(target)
+    return true
 }
 
 const refreshProfileView = async () => {
     const targetUserId = routeUserId.value
     if (!targetUserId) {
-        redirectToPersonProfile()
-        return
+        if (redirectToPersonProfile()) return
     }
     if (selfUserId.value && String(selfUserId.value) === String(targetUserId)) {
-        redirectToPersonProfile()
-        return
+        if (redirectToPersonProfile()) return
     }
     followDialogVisible.value = false
     resetFollowList()
@@ -1522,11 +1608,12 @@ const refreshProfileView = async () => {
     queryParams.targetUserId = targetUserId
     resetProfileLists()
     collectionList.value = []
+    collectionLoaded.value = false
+    collectionFetchedAt.value = 0
     await getProfile()
     getFollowStats()
     loadInitialTabTotals()
     getList()
-    getCollectionList()
 }
 
 watch(
@@ -1689,6 +1776,25 @@ onBeforeUnmount(() => {
                 .follow-btn {
                     width: 120px;
                     font-weight: 500;
+                }
+
+                :deep(.follow-btn) {
+                    --el-button-bg-color: var(--el-color-danger);
+                    --el-button-border-color: var(--el-color-danger);
+                    --el-button-text-color: var(--el-color-white);
+                    --el-button-hover-bg-color: var(--el-color-danger-light-3);
+                    --el-button-hover-border-color: var(--el-color-danger-light-3);
+                    --el-button-active-bg-color: var(--el-color-danger-dark-2);
+                    --el-button-active-border-color: var(--el-color-danger-dark-2);
+                }
+
+                :deep(.follow-btn.is-plain) {
+                    --el-button-bg-color: var(--el-fill-color);
+                    --el-button-border-color: var(--el-border-color);
+                    --el-button-text-color: var(--el-text-color-regular);
+                    --el-button-hover-bg-color: var(--el-fill-color-light);
+                    --el-button-hover-border-color: var(--el-border-color);
+                    --el-button-hover-text-color: var(--el-text-color-primary);
                 }
             }
         }

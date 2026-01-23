@@ -63,7 +63,7 @@ body {
         Microsoft YaHei,
         Arial,
         sans-serif;
-    background-color: var(--el-bg-color, #fff); // 适配 Element Plus 变量
+    background-color: var(--el-bg-color, #fff);
     color: var(--el-text-color-primary, #303133);
     transition:
         background-color 0.3s,
@@ -313,6 +313,7 @@ html.dark {
 .preview-close {
     z-index: 1991;
 }
+
 @import './element-ui.scss';
 // 侧边栏样式
 @import './sidebar.scss';

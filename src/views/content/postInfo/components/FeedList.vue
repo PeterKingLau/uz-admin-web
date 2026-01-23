@@ -34,21 +34,22 @@
             v-for="item in posts"
             :key="item.id"
             :post="item"
-            :checked="selectedIds?.includes(item.id)"
+            :checked="isSelected(item.id)"
             :batch-mode="batchMode"
-            @select="val => emit('select', { id: item.id, checked: val })"
-            @delete="val => emit('delete', val)"
-            @preview="val => emit('preview', val)"
-            @view-profile="val => emit('view-profile', val)"
-            @edit-tag="val => emit('edit-tag', val)"
-            @pin="val => emit('pin', val)"
-            @unpin="val => emit('unpin', val)"
+            @select="val => handleSelect(item.id, val)"
+            @delete="emit('delete', $event)"
+            @preview="emit('preview', $event)"
+            @view-profile="emit('view-profile', $event)"
+            @edit-tag="emit('edit-tag', $event)"
+            @pin="emit('pin', $event)"
+            @unpin="emit('unpin', $event)"
+            @like="emit('like', $event)"
         />
 
         <div v-if="posts.length" class="load-more">
-            <div ref="sentinel" class="sentinel"></div>
+            <div ref="sentinelRef" class="sentinel"></div>
 
-            <el-button v-if="!finished" :loading="loadingMore" text bg size="small" @click="$emit('load-more')">
+            <el-button v-if="!finished" :loading="loadingMore" text bg size="small" @click="emit('load-more')">
                 {{ loadingMore ? '加载中...' : '加载更多' }}
             </el-button>
             <span v-else class="finished">已无更多数据</span>
@@ -57,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import FeedItem from './FeedItem.vue'
 
 const props = defineProps<{
@@ -78,49 +79,60 @@ const emit = defineEmits<{
     (e: 'unpin', post: any): void
     (e: 'preview', post: any): void
     (e: 'view-profile', post: any): void
+    (e: 'like', post: any): void
 }>()
 
-const sentinel = ref<HTMLElement | null>(null)
-let io: IntersectionObserver | null = null
-let lock = false
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+let loadLock = false
 
-const teardown = () => {
-    if (io) {
-        io.disconnect()
-        io = null
+const selectedIdsSet = computed(() => new Set(props.selectedIds || []))
+
+const isSelected = (id: string | number) => selectedIdsSet.value.has(id)
+
+const handleSelect = (id: string | number, checked: boolean) => {
+    emit('select', { id, checked })
+}
+
+const destroyObserver = () => {
+    if (observer) {
+        observer.disconnect()
+        observer = null
     }
 }
 
-const setup = () => {
-    teardown()
-    const el = sentinel.value
-    if (!el) return
+const createObserver = () => {
+    destroyObserver()
 
-    io = new IntersectionObserver(
+    const element = sentinelRef.value
+    if (!element) return
+
+    observer = new IntersectionObserver(
         entries => {
-            const entry = entries?.[0]
+            const entry = entries[0]
             if (!entry?.isIntersecting) return
-            if (props.finished || props.loading || props.loadingMore || lock) return
+            if (props.finished || props.loading || props.loadingMore || loadLock) return
 
-            lock = true
+            loadLock = true
             emit('load-more')
             setTimeout(() => {
-                lock = false
+                loadLock = false
             }, 200)
         },
         { rootMargin: '240px 0px', threshold: 0 }
     )
-    io.observe(el)
+
+    observer.observe(element)
 }
 
-onMounted(setup)
-onBeforeUnmount(teardown)
+onMounted(createObserver)
+onBeforeUnmount(destroyObserver)
 
 watch(
     () => props.posts.length,
     async () => {
         await nextTick()
-        setup()
+        createObserver()
     }
 )
 </script>

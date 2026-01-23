@@ -58,3 +58,11 @@ export function delMenu(menuId: any) {
         method: 'delete'
     })
 }
+
+// 获取路由
+export function getRouters() {
+    return request({
+        url: '/getRouters',
+        method: 'get'
+    })
+}

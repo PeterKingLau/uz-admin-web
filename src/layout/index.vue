@@ -19,16 +19,17 @@
 
 <script setup>
 import { useWindowSize } from '@vueuse/core'
-import { computed, watch, watchEffect, ref } from 'vue'
+import { computed, watch, watchEffect, shallowRef } from 'vue'
 import Sidebar from './components/Sidebar/index.vue'
 import { AppMain, Navbar, Settings, TagsView } from './components'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 
+const appStore = useAppStore()
 const settingsStore = useSettingsStore()
 const theme = computed(() => settingsStore.theme)
-const sidebar = computed(() => useAppStore().sidebar)
-const device = computed(() => useAppStore().device)
+const sidebar = computed(() => appStore.sidebar)
+const device = computed(() => appStore.device)
 const needTagsView = computed(() => settingsStore.tagsView)
 const fixedHeader = computed(() => settingsStore.fixedHeader)
 
@@ -55,27 +56,29 @@ watch(
     () => device.value,
     () => {
         if (device.value === 'mobile' && sidebar.value.opened) {
-            useAppStore().closeSideBar({ withoutAnimation: false })
+            appStore.closeSideBar({ withoutAnimation: false })
         }
     }
 )
 
 watchEffect(() => {
     if (width.value - 1 < WIDTH) {
-        useAppStore().toggleDevice('mobile')
-        useAppStore().closeSideBar({ withoutAnimation: true })
+        appStore.toggleDevice('mobile')
+        appStore.closeSideBar({ withoutAnimation: true })
     } else {
-        useAppStore().toggleDevice('desktop')
+        appStore.toggleDevice('desktop')
     }
 })
 
 function handleClickOutside() {
-    useAppStore().closeSideBar({ withoutAnimation: false })
+    appStore.closeSideBar({ withoutAnimation: false })
 }
 
-const settingRef = ref(null)
+// 改为 shallowRef
+const settingRef = shallowRef(null)
+
 function setLayout() {
-    settingRef.value.openSetting()
+    settingRef.value?.openSetting()
 }
 </script>
 

@@ -56,7 +56,14 @@
                         </div>
                     </div>
 
-                    <el-button v-if="!readOnly && worksFilter === 'collection'" type="primary" class="create-collection-btn" round plain @click="openCreateDialog">
+                    <el-button
+                        v-if="!readOnly && worksFilter === 'collection'"
+                        type="primary"
+                        class="create-collection-btn"
+                        round
+                        plain
+                        @click="openCreateDialog"
+                    >
                         <Icon icon="ep:plus" /> 新建合集
                     </el-button>
                 </template>
@@ -87,9 +94,7 @@
             </div>
 
             <div v-if="showCollections">
-                <div v-if="collectionLoadingState" class="status-box">
-                    <el-icon class="is-loading"><Loading /></el-icon> 加载中...
-                </div>
+                <div v-if="collectionLoadingState" class="status-box"><Icon class="is-loading" icon="line-md:loading-twotone-loop" /> 加载中...</div>
 
                 <div v-else-if="collectionListData.length === 0" class="empty-collection-state">
                     <div class="empty-icon-wrapper">
@@ -112,7 +117,13 @@
                         </div>
                         <div class="card-inner">
                             <div class="cover-visual">
-                                <img v-if="resolveCollectionCover(item)" :src="resolveCollectionCover(item)" alt="cover" loading="lazy" />
+                                <img
+                                    v-if="resolveCollectionCover(item) && !isCollectionCoverBroken(item)"
+                                    :src="resolveCollectionCover(item)"
+                                    alt="cover"
+                                    loading="lazy"
+                                    @error="handleCollectionCoverError(item)"
+                                />
                                 <div v-else class="cover-fallback">
                                     <Icon icon="ep:folder" class="icon" />
                                 </div>
@@ -148,7 +159,7 @@
 
             <div v-else>
                 <div v-if="loading && worksPostList.length === 0" class="status-box">
-                    <el-icon class="is-loading"><Loading /></el-icon> 加载中...
+                    <Icon class="is-loading" icon="line-md:loading-twotone-loop" /> 加载中...
                 </div>
 
                 <div v-else-if="!loading && worksPostList.length === 0" class="status-box empty">
@@ -178,7 +189,7 @@
                                 </div>
 
                                 <div v-else class="text-container">
-                                    <span>{{ item.content }}</span>
+                                    <img :src="getTextCover(item)" alt="text cover" loading="lazy" />
                                 </div>
 
                                 <div class="bottom-gradient">
@@ -199,7 +210,7 @@
                     <div ref="loadTriggerRef" class="scroll-trigger"></div>
 
                     <div v-if="loading && worksPostList.length > 0" class="status-box small">
-                        <el-icon class="is-loading"><Loading /></el-icon>
+                        <Icon class="is-loading" icon="line-md:loading-twotone-loop" />
                     </div>
                     <div v-if="noMore && worksPostList.length > 0" class="status-box small text-only">- 到底啦 -</div>
                 </div>
@@ -266,10 +277,7 @@
                 </div>
                 <div class="collection-dialog-tabs">
                     <el-button text class="tab-btn" :class="{ active: addDialogTab === 'add' }" @click="setAddDialogTab('add')">添加作品</el-button>
-                    <el-button text class="tab-btn" :class="{ active: addDialogTab === 'selected' }" @click="setAddDialogTab('selected')">
-                        已选作品
-                        <span class="tab-count">{{ selectedTabCount }}</span>
-                    </el-button>
+                    <el-button text class="tab-btn" :class="{ active: addDialogTab === 'selected' }" @click="setAddDialogTab('selected')"> 已选作品 </el-button>
                 </div>
             </template>
 
@@ -285,7 +293,7 @@
                 </div>
 
                 <div v-if="addDialogTab === 'selected' && collectionPostsLoading" class="status-box">
-                    <el-icon class="is-loading"><Loading /></el-icon> 加载中...
+                    <Icon class="is-loading" icon="line-md:loading-twotone-loop" /> 加载中...
                 </div>
 
                 <div v-else-if="displayPosts.length === 0" class="collection-empty-state">
@@ -314,7 +322,9 @@
                                 <video :src="getVideoUrl(item)" muted playsinline preload="metadata"></video>
                                 <div class="thumb-play"><Icon icon="mdi:play" /></div>
                             </div>
-                            <div v-else class="thumb-text">{{ item.content || '文字内容' }}</div>
+                            <div v-else class="thumb-text">
+                                <img :src="getTextCover(item)" alt="text cover" loading="lazy" />
+                            </div>
                         </div>
                         <div class="select-check"><Icon icon="mdi:check-circle" /></div>
                     </div>
@@ -327,10 +337,10 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
 import Sortable from 'sortablejs'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
+import { buildTextCoverDataUrl } from '@/utils/textCover'
 import { addCollection, addPostToCollection, deleteCollections, getPostByCollection, listMyCollections, updateCollection } from '@/api/content/collection'
 
 type AnyObj = Record<string, any>
@@ -359,7 +369,8 @@ const props = defineProps({
     getCover: { type: Function as any, default: () => '' },
     getVideoUrl: { type: Function as any, default: () => '' },
     readOnly: { type: Boolean, default: false },
-    allowCollectionView: { type: Boolean, default: false }
+    allowCollectionView: { type: Boolean, default: false },
+    targetUserId: { type: [String, Number] as any, default: null }
 })
 
 const emit = defineEmits(['update:modelValue', 'tab-click', 'load-more', 'preview', 'works-filter-change', 'collection-open', 'collection-changed'])
@@ -416,10 +427,16 @@ const collectionListData = computed(() => {
     return collectionListLocal.value
 })
 const collectionLoadingState = computed(() => (useExternalCollections.value ? props.collectionLoading : collectionLoadingLocal.value))
+const brokenCollectionCovers = ref<Set<string>>(new Set())
 
 const normalizeCollections = (res: any) => {
     const data = res?.data ?? res?.rows ?? []
     return Array.isArray(data) ? data : []
+}
+
+const buildCollectionParams = () => {
+    if (props.targetUserId === null || props.targetUserId === undefined || props.targetUserId === '') return undefined
+    return { targetUserId: props.targetUserId }
 }
 
 const loadCollections = async (force = false) => {
@@ -427,7 +444,7 @@ const loadCollections = async (force = false) => {
     if (collectionLoadingLocal.value || (!force && collectionLoaded.value)) return
     collectionLoadingLocal.value = true
     try {
-        const res = await listMyCollections()
+        const res = await listMyCollections(buildCollectionParams())
         collectionListLocal.value = normalizeCollections(res)
         collectionLoaded.value = true
     } catch (e) {
@@ -449,6 +466,18 @@ const resolveCollectionCover = (item: any) => {
     const raw = item?.coverUrl ?? item?.cover ?? item?.image ?? item?.thumbnail ?? ''
     return raw ? getImgUrl(raw) : ''
 }
+const isCollectionCoverBroken = (item: any) => {
+    const cover = resolveCollectionCover(item)
+    return cover ? brokenCollectionCovers.value.has(cover) : false
+}
+const handleCollectionCoverError = (item: any) => {
+    const cover = resolveCollectionCover(item)
+    if (!cover) return
+    if (brokenCollectionCovers.value.has(cover)) return
+    const next = new Set(brokenCollectionCovers.value)
+    next.add(cover)
+    brokenCollectionCovers.value = next
+}
 
 const resolvePostId = (item: any) => {
     const id = item?.postId ?? item?.id
@@ -456,6 +485,11 @@ const resolvePostId = (item: any) => {
     return Number.isFinite(num) ? num : null
 }
 const resolvePostKey = (item: any) => resolvePostId(item) ?? JSON.stringify(item)
+const getTextCover = (item: any) => {
+    const content = String(item?.content ?? '').trim()
+    const seed = String(resolvePostId(item) ?? '')
+    return buildTextCoverDataUrl(content, seed || content || 'text')
+}
 
 const bulkMode = ref(false)
 const bulkSelectedWorkIds = ref<number[]>([])
@@ -691,6 +725,7 @@ const addDialogTab = ref<'add' | 'selected'>('add')
 const selectedPostIds = ref<number[]>([])
 const collectionPosts = ref<AnyObj[]>([])
 const collectionPostsLoading = ref(false)
+const collectionPostsLoaded = ref(false)
 const selectedPostsGridRef = ref<HTMLElement | null>(null)
 let selectedPostsSortable: Sortable | null = null
 
@@ -716,7 +751,8 @@ const currentPostIds = computed(() => (addDialogTab.value === 'selected' ? colle
 const isAllSelected = computed(() => currentPostIds.value.length > 0 && selectedPostIds.value.length === currentPostIds.value.length)
 const addDialogTitle = computed(() => resolveCollectionName(addDialogTarget.value))
 const addDialogCount = computed(() => {
-    if (collectionPosts.value.length) return collectionPosts.value.length
+    if (addDialogTab.value === 'selected') return collectionPosts.value.length
+    if (collectionPostsLoaded.value) return collectionPosts.value.length
     return toNumber(addDialogTarget.value?.postCount ?? addDialogTarget.value?.count, 0)
 })
 const selectedTabCount = computed(() => collectionPosts.value.length)
@@ -736,6 +772,7 @@ const loadCollectionPosts = async (force = false) => {
     if (!force && collectionPosts.value.length) return
     const collectionId = resolveCollectionId(addDialogTarget.value)
     if (!collectionId) return
+    collectionPostsLoaded.value = false
     collectionPostsLoading.value = true
     try {
         const res = await getPostByCollection({ collectionId })
@@ -745,6 +782,7 @@ const loadCollectionPosts = async (force = false) => {
         proxy?.$modal?.msgError?.('加载合集作品失败')
         collectionPosts.value = []
     } finally {
+        collectionPostsLoaded.value = true
         collectionPostsLoading.value = false
         setupSelectedPostsSortable()
     }
@@ -756,6 +794,7 @@ const openAddPostsDialog = (item: any, tab: 'add' | 'selected' = 'add') => {
     addDialogTab.value = tab
     selectedPostIds.value = []
     collectionPosts.value = []
+    collectionPostsLoaded.value = false
     loadCollectionPosts(true)
     addDialogVisible.value = true
 }
@@ -765,6 +804,7 @@ const resetAddPostsDialog = () => {
     addDialogTab.value = 'add'
     selectedPostIds.value = []
     collectionPosts.value = []
+    collectionPostsLoaded.value = false
     destroySelectedPostsSortable()
 }
 
@@ -772,7 +812,10 @@ const setAddDialogTab = (value: 'add' | 'selected') => {
     if (addDialogTab.value === value) return
     addDialogTab.value = value
     selectedPostIds.value = []
-    if (value === 'selected') loadCollectionPosts()
+    if (value === 'selected') {
+        collectionPostsLoaded.value = false
+        loadCollectionPosts()
+    }
     setupSelectedPostsSortable()
 }
 
@@ -1334,21 +1377,13 @@ watch(
             position: absolute;
             inset: 0;
             background: var(--el-bg-color-page);
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--el-text-color-primary);
-            font-size: 14px;
-            line-height: 1.6;
-            text-align: center;
+            overflow: hidden;
 
-            span {
-                display: -webkit-box;
-                -webkit-line-clamp: 5;
-                line-clamp: 5;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
+            img {
+                width: 100%;
+                height: 100%;
+                display: block;
+                object-fit: cover;
             }
         }
 
@@ -1930,18 +1965,20 @@ watch(
             font-size: 18px;
         }
 
-        .thumb-text {
-            padding: 12px;
-            font-size: 12px;
-            color: var(--el-text-color-secondary);
-            line-height: 1.4;
-            text-align: center;
-            display: -webkit-box;
-            -webkit-line-clamp: 4;
-            line-clamp: 4;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+    .thumb-text {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: var(--el-bg-color-page);
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
         }
+    }
     }
 
     .select-check {

@@ -1,47 +1,38 @@
 import { defineConfig, loadEnv } from 'vite'
-import path from 'path'
+import { resolve } from 'path'
 import createVitePlugins from './vite/plugins'
 import zipPack from 'vite-plugin-zip-pack'
 
-// const baseUrl = 'http://192.168.10.17:8080/api' // 有线后端接口
-const baseUrl = 'http://192.168.100.26:8080/api' // 无线后端接口
-// const baseUrl = 'http://47.109.96.135' // 生产环境
+const proxyTargets = {
+    wired: 'http://192.168.10.17:8080/api',
+    wireless: 'http://192.168.100.26:8080/api',
+    production: 'http://47.109.96.135'
+} as const
+
+const baseUrl = proxyTargets.wireless
 
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd())
-    const { VITE_APP_ENV } = env
     const isBuild = command === 'build'
 
-    const basePlugins = createVitePlugins(env, isBuild)
-
-    const plugins = [
-        ...(Array.isArray(basePlugins) ? basePlugins : [basePlugins]),
-
-        isBuild &&
-            zipPack({
-                outDir: 'dist',
-                outFileName: 'dist.zip'
-            })
-    ].filter(Boolean)
-
     return {
-        base: VITE_APP_ENV === 'production' ? '/' : '/',
-        plugins,
+        base: '/',
+        plugins: [...createVitePlugins(env, isBuild), isBuild && zipPack({ outDir: 'dist', outFileName: 'dist.zip' })].filter(Boolean),
 
         resolve: {
             alias: {
-                '~': path.resolve(__dirname, './'),
-                '@': path.resolve(__dirname, './src')
+                '~': resolve(__dirname, './'),
+                '@': resolve(__dirname, './src')
             },
             extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
         },
 
         build: {
-            sourcemap: isBuild ? false : 'inline',
+            sourcemap: false,
             outDir: 'dist',
             assetsDir: 'assets',
             chunkSizeWarningLimit: 2000,
-
+            minify: 'esbuild',
             rollupOptions: {
                 output: {
                     chunkFileNames: 'static/js/[name]-[hash].js',
@@ -49,8 +40,6 @@ export default defineConfig(({ mode, command }) => {
                     assetFileNames: 'static/[ext]/[name]-[hash].[ext]'
                 }
             },
-
-            minify: 'esbuild',
             esbuild: {
                 drop: isBuild ? ['console', 'debugger'] : []
             }

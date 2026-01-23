@@ -421,6 +421,19 @@ defineExpose({ focusInput })
     padding: 6px 4px;
 }
 
+.preview-carousel :deep(.el-carousel__indicator--horizontal .el-carousel__button) {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.preview-carousel :deep(.el-carousel__indicator--horizontal.is-active .el-carousel__button) {
+    width: 8px;
+    height: 8px;
+    background-color: var(--el-color-primary);
+}
+
 .preview-media-img {
     width: 100%;
     height: 100%;

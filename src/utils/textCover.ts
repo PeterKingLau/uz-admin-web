@@ -1,4 +1,4 @@
-import textCoverTemplate from '@/assets/image/text-cover-template.svg?raw'
+import textCoverTemplate from '@/assets/images/text-cover-template.svg?raw'
 
 export type TextCoverPaletteItem = {
     bg: string

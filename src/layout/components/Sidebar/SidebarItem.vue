@@ -15,7 +15,7 @@
             </app-link>
         </template>
 
-        <el-sub-menu v-else ref="subMenu" :index="resolvePath(item.path)" teleported>
+        <el-sub-menu v-else :index="resolvePath(item.path)" teleported>
             <template v-if="item.meta" #title>
                 <Icon v-if="item.meta && item.meta.icon" :icon="item.meta.icon" class="nav-icon" />
                 <span class="menu-title truncate" :title="hasTitle(item.meta.title)">{{ item.meta.title }}</span>
@@ -75,8 +75,8 @@ function resolvePath(routePath, routeQuery) {
     if (isExternal(routePath)) return routePath
     if (isExternal(props.basePath)) return props.basePath
     if (routeQuery) {
-        let query = JSON.parse(routeQuery)
-        return { path: getNormalPath(props.basePath + '/' + routePath), query: query }
+        const query = JSON.parse(routeQuery)
+        return { path: getNormalPath(props.basePath + '/' + routePath), query }
     }
     return getNormalPath(props.basePath + '/' + routePath)
 }

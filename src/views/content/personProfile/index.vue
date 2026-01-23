@@ -55,7 +55,8 @@
             @tab-click="handleTabClick"
             @load-more="loadMore"
             @preview="handlePreview"
-            @collection-changed="getCollectionList"
+            @works-filter-change="handleWorksFilterChange"
+            @collection-changed="handleCollectionChanged"
             @create-collection="handleCreateCollection"
         />
 
@@ -105,8 +106,6 @@
             :follow-list="followList"
             :follow-loading="followLoading"
             :follow-no-more="followNoMore"
-            :is-male-sex="isMaleSex"
-            :is-female-sex="isFemaleSex"
             :is-follow-action-loading="isFollowActionLoading"
             :toggle-follow="toggleFollow"
             @tab-click="handleFollowTabClick"
@@ -147,6 +146,9 @@ const bookmarkTotal = ref(0)
 const postList = ref([])
 const collectionList = ref([])
 const collectionLoading = ref(false)
+const collectionLoaded = ref(false)
+const collectionFetchedAt = ref(0)
+const COLLECTION_CACHE_TTL = 60 * 1000
 const createCollectionLoading = ref(false)
 const profileInfo = ref({})
 const followStats = ref({
@@ -214,9 +216,6 @@ const normalizeSexValue = value => {
     if (value === null || value === undefined) return ''
     return String(value)
 }
-
-const isMaleSex = value => normalizeSexValue(value) === '0'
-const isFemaleSex = value => normalizeSexValue(value) === '1'
 
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
@@ -389,6 +388,16 @@ const removeRowFromFollowList = targetUserId => {
     syncMutualCountFromListIfNeeded()
 }
 
+const resolveNextRelationType = (item, nowFollowing) => {
+    const relation = String(item?.relationType || '').toUpperCase()
+    if (nowFollowing) {
+        if (relation === 'FOLLOWER' || relation === 'MUTUAL') return 'MUTUAL'
+        return 'FOLLOWING'
+    }
+    if (relation === 'MUTUAL') return 'FOLLOWER'
+    return 'NONE'
+}
+
 const toggleFollow = async item => {
     const targetUserId = getFollowTargetId(item)
     if (!targetUserId || isFollowActionLoading(item)) return
@@ -402,6 +411,7 @@ const toggleFollow = async item => {
     try {
         await toggleFollowUser({ targetUserId })
         item.isFollowing = nowFollowing
+        item.relationType = resolveNextRelationType(item, nowFollowing)
 
         let nextFollowing = followStats.value.following
         let nextMutual = followStats.value.mutualCount
@@ -813,13 +823,18 @@ const loadInitialTabTotals = async () => {
     }
 }
 
-const getCollectionList = async () => {
+const shouldUseCollectionCache = () => collectionLoaded.value && Date.now() - collectionFetchedAt.value < COLLECTION_CACHE_TTL
+
+const getCollectionList = async (force = false) => {
     if (collectionLoading.value) return
+    if (!force && shouldUseCollectionCache()) return
     collectionLoading.value = true
     try {
         const response = await listMyCollections()
         const responseList = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : []
         collectionList.value = responseList
+        collectionLoaded.value = true
+        collectionFetchedAt.value = Date.now()
     } catch (error) {
         console.error(error)
     } finally {
@@ -828,14 +843,17 @@ const getCollectionList = async () => {
 }
 
 const normalizeCommentList = response => {
-    if (Array.isArray(response?.data)) return response.data
-    if (Array.isArray(response?.rows)) return response.rows
-    if (Array.isArray(response?.list)) return response.list
-    const data = response?.data ?? {}
-    if (Array.isArray(data?.list)) return data.list
-    if (Array.isArray(data?.rows)) return data.rows
-    if (Array.isArray(data?.records)) return data.records
-    if (Array.isArray(data?.items)) return data.items
+    if (!response) return []
+    const data = response.data
+    if (Array.isArray(data)) return data
+    if (Array.isArray(response.rows)) return response.rows
+    if (Array.isArray(response.list)) return response.list
+    if (data && typeof data === 'object') {
+        if (Array.isArray(data.list)) return data.list
+        if (Array.isArray(data.rows)) return data.rows
+        if (Array.isArray(data.records)) return data.records
+        if (Array.isArray(data.items)) return data.items
+    }
     return []
 }
 
@@ -984,7 +1002,7 @@ const handleCreateCollection = async payload => {
             sortType: 0
         })
         proxy?.$modal?.msgSuccess?.('创建成功')
-        getCollectionList()
+        getCollectionList(true)
     } catch (error) {
         console.error(error)
         proxy?.$modal?.msgError?.('创建失败')
@@ -1045,6 +1063,12 @@ const handleTabClick = tab => {
     queryParams.lastCreateTime = undefined
     getList()
 }
+
+const handleWorksFilterChange = value => {
+    if (value === 'collection') getCollectionList()
+}
+
+const handleCollectionChanged = () => getCollectionList(true)
 
 const handlePreview = item => {
     if (!item) return
@@ -1280,6 +1304,14 @@ const goToProfile = () => {
     router.push({ name: 'Profile' })
 }
 
+const syncSelfTargetUserId = () => {
+    const nextId = userStore.id
+    if (nextId == null || nextId === '') return false
+    if (String(queryParams.targetUserId) === String(nextId)) return false
+    queryParams.targetUserId = nextId
+    return true
+}
+
 const openFollowDialog = type => {
     followActiveTab.value = normalizeFollowTab(type)
     followDialogVisible.value = true
@@ -1289,19 +1321,33 @@ const openFollowDialog = type => {
 }
 
 onMounted(() => {
-    queryParams.targetUserId = userStore.id
+    syncSelfTargetUserId()
     getProfile()
     getFollowStats()
     loadInitialTabTotals()
     getList()
-    getCollectionList()
 })
 
 onActivated(() => {
+    syncSelfTargetUserId()
     getProfile()
     getFollowStats()
     loadInitialTabTotals()
 })
+
+watch(
+    () => userStore.id,
+    () => {
+        if (!syncSelfTargetUserId()) return
+        collectionList.value = []
+        collectionLoaded.value = false
+        collectionFetchedAt.value = 0
+        getProfile()
+        getFollowStats()
+        loadInitialTabTotals()
+        getList()
+    }
+)
 
 onBeforeUnmount(() => {
     followObserver?.disconnect()

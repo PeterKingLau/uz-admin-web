@@ -2,7 +2,7 @@
     <div v-if="!isOriginalMissing" class="feed-card" :class="{ checked }">
         <div class="card-media" :class="{ 'is-clickable': canPreview }" @click="handleMediaClick">
             <div v-if="isTextPost" class="text-cover" :style="textCoverStyle">
-                <span class="text-cover-quote">“</span>
+                <span class="text-cover-quote">"</span>
                 <div class="text-cover-text">{{ textCoverText }}</div>
                 <span class="text-cover-accent"></span>
             </div>
@@ -28,7 +28,7 @@
                     <div class="batch-checkbox" :class="{ 'is-hidden': !isBatchMode }">
                         <el-checkbox :model-value="checked" @change="handleCheckboxChange" />
                     </div>
-                    <div class="type-badge" :data-type="String(post?.postType ?? '')">
+                    <div class="type-badge" :data-type="post?.postType ?? ''">
                         <Icon :icon="typeIcon" class="type-icon" />
                         <span class="type-text">{{ typeText }}</span>
                     </div>
@@ -54,7 +54,7 @@
                     </el-tooltip>
 
                     <el-tooltip content="删除该条" placement="top">
-                        <button type="button" class="icon-btn danger" @click="handleDelete">
+                        <button type="button" class="icon-btn danger" @click="emit('delete', post.id)">
                             <Icon icon="mdi:trash-can-outline" />
                         </button>
                     </el-tooltip>
@@ -71,17 +71,17 @@
             <div v-else class="content-text empty">（无正文内容）</div>
 
             <div class="card-meta">
-                <el-button link class="author" @click="handleProfileClick">
-                    <el-avatar :size="24" :src="fullAvatar(post.avatar)" class="avatar">
+                <el-button link class="author" @click="emit('view-profile', post)">
+                    <el-avatar :size="24" :src="resolveAvatar(post.avatar)" class="avatar">
                         {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
                     </el-avatar>
                     <span class="author-name">{{ post.nickName || '未知用户' }}</span>
                 </el-button>
 
-                <div class="like-count" :class="{ 'is-liked': isLiked }">
+                <button type="button" class="like-btn" :class="{ 'is-liked': isLiked }" @click="handleLike">
                     <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
                     <span>{{ post.likeCount ?? 0 }}</span>
-                </div>
+                </button>
             </div>
         </div>
     </div>
@@ -89,7 +89,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { AUDIT_STATUS, ENUM_TAG_CONFIG, POST_TYPE } from '@/utils/enum'
+import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { resolveTextCoverPalette } from '@/utils/textCover'
 
@@ -107,36 +107,39 @@ const emit = defineEmits<{
     (e: 'unpin', post: any): void
     (e: 'preview', post: any): void
     (e: 'view-profile', post: any): void
+    (e: 'like', post: any): void
 }>()
 
-const checked = computed(() => Boolean(props.checked))
 const isBatchMode = computed(() => Boolean(props.batchMode))
 const isOriginalMissing = computed(() => props.post?.originalPostId != null && props.post?.originalPost === null)
-const isVideoPost = computed(() => String(props.post?.postType ?? '') === POST_TYPE.VIDEO)
-const isTextPost = computed(() => String(props.post?.postType ?? '') === POST_TYPE.TEXT)
+const postType = computed(() => String(props.post?.postType ?? ''))
+const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
+const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
 const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
+
 const isLiked = computed(() => {
     const value = props.post?.like ?? props.post?.isLiked ?? props.post?.liked ?? props.post?.likeStatus ?? props.post?.isLike
     if (typeof value === 'boolean') return value
     return value != null ? String(value) === '1' : false
 })
 
-const typeText = computed(() => {
-    const t = String(props.post?.postType)
-    return t === POST_TYPE.TEXT ? '文字' : t === POST_TYPE.IMAGE ? '图文' : '视频'
-})
+const TYPE_CONFIG = {
+    [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },
+    [POST_TYPE.IMAGE]: { text: '图文', icon: 'mdi:image' },
+    [POST_TYPE.VIDEO]: { text: '视频', icon: 'mdi:video' }
+}
 
-const typeIcon = computed(() => {
-    const t = String(props.post?.postType)
-    return t === POST_TYPE.TEXT ? 'mdi:format-text' : t === POST_TYPE.IMAGE ? 'mdi:image' : 'mdi:video'
-})
+const typeText = computed(() => TYPE_CONFIG[postType.value]?.text || '未知')
+const typeIcon = computed(() => TYPE_CONFIG[postType.value]?.icon || 'mdi:help')
 
-const parseMediaRaw = (raw: any) => {
+const parseMediaArray = (raw: any): any[] => {
     if (!raw) return []
     if (Array.isArray(raw)) return raw
+
     if (typeof raw === 'string') {
         const trimmed = raw.trim()
         if (!trimmed) return []
+
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             try {
                 const parsed = JSON.parse(trimmed)
@@ -153,20 +156,21 @@ const parseMediaRaw = (raw: any) => {
             .map(item => item.trim())
             .filter(Boolean)
     }
+
     if (typeof raw === 'object') return [raw]
     return []
 }
 
-const resolveMediaList = (...sources: any[]) => {
+const getFirstValidMediaList = (...sources: any[]) => {
     for (const source of sources) {
-        const list = parseMediaRaw(source)
+        const list = parseMediaArray(source)
         if (list.length) return list
     }
     return []
 }
 
 const mediaRawList = computed(() =>
-    resolveMediaList(props.post?.mediaUrls, props.post?.originalPost?.mediaUrls, props.post?.files, props.post?.originalPost?.files)
+    getFirstValidMediaList(props.post?.mediaUrls, props.post?.originalPost?.mediaUrls, props.post?.files, props.post?.originalPost?.files)
 )
 
 const mediaFiles = computed(() =>
@@ -178,38 +182,37 @@ const mediaFiles = computed(() =>
         .filter(Boolean)
 )
 
-const resolveMediaUrl = (url: string) => {
-    if (!url) return ''
-    return getImgUrl(url)
+const resolveMediaUrl = (url: string) => (url ? getImgUrl(url) : '')
+const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
+
+const isVideoUrl = (url: string) => {
+    if (!url) return false
+    return /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url)
 }
 
-const resolveCoverCandidate = (item: any) => {
+const extractCoverFromItem = (item: any): string => {
     if (!item) return ''
     if (typeof item === 'string') return item
     if (typeof item !== 'object') return ''
     return item.cover || item.coverUrl || item.thumbnail || item.thumb || item.poster || item.image || item.url || item.src || item.path || ''
 }
 
-const fullAvatar = (avatar: string) => resolveMediaUrl(avatar)
-const isVideoUrl = (url: string) => {
-    if (!url) return false
-    return /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url)
-}
-
 const coverUrl = computed(() => {
-    const fallback =
-        props.post?.cover ?? props.post?.coverUrl ?? props.post?.thumbnail ?? props.post?.poster ?? props.post?.image ?? props.post?.coverImage ?? ''
-    if (fallback) return resolveMediaUrl(fallback)
+    const directCover = props.post?.cover ?? props.post?.coverUrl ?? props.post?.thumbnail ?? props.post?.poster ?? props.post?.image ?? props.post?.coverImage
+    if (directCover) return resolveMediaUrl(directCover)
 
-    const candidates = mediaRawList.value.map(resolveCoverCandidate).filter(Boolean)
-    const imageCandidate = candidates.find(url => url && !isVideoUrl(resolveMediaUrl(url)))
-    if (imageCandidate) return resolveMediaUrl(imageCandidate)
-    if (candidates.length > 0 && !isVideoUrl(resolveMediaUrl(candidates[0]))) return resolveMediaUrl(candidates[0])
+    const coverCandidates = mediaRawList.value.map(extractCoverFromItem).filter(Boolean)
+    const imageCover = coverCandidates.find(url => url && !isVideoUrl(resolveMediaUrl(url)))
+    if (imageCover) return resolveMediaUrl(imageCover)
 
-    const mediaCover = mediaFiles.value.map(resolveMediaUrl).find(url => url && !isVideoUrl(url))
-    if (mediaCover) return mediaCover
-    return ''
+    if (coverCandidates.length > 0 && !isVideoUrl(resolveMediaUrl(coverCandidates[0]))) {
+        return resolveMediaUrl(coverCandidates[0])
+    }
+
+    const mediaImageUrl = mediaFiles.value.map(resolveMediaUrl).find(url => url && !isVideoUrl(url))
+    return mediaImageUrl || ''
 })
+
 const canPreview = computed(() => {
     if (isTextPost.value) return Boolean(textCoverText.value)
     return Boolean(coverUrl.value || mediaFiles.value.length > 0)
@@ -226,50 +229,33 @@ const textCoverStyle = computed(() => {
     }
 })
 
-const auditStatusAlias: Record<string, string> = {
-    PENDING: AUDIT_STATUS.PENDING,
-    APPROVED: AUDIT_STATUS.APPROVED,
-    REJECTED: AUDIT_STATUS.REJECTED
-}
-
-function resolveAuditStatusKey(status: string) {
-    const key = String(status ?? '')
-    if (ENUM_TAG_CONFIG.AUDIT_STATUS[key]) return key
-    return auditStatusAlias[key] || key
-}
-
-function getStatusType(status: string) {
-    const key = resolveAuditStatusKey(status)
-    return ENUM_TAG_CONFIG.AUDIT_STATUS[key]?.type || 'warning'
-}
-
-function getAuditStatusName(status: string) {
-    const key = resolveAuditStatusKey(status)
-    return ENUM_TAG_CONFIG.AUDIT_STATUS[key]?.label || status
-}
-
-function handleDelete() {
-    emit('delete', props.post.id)
-}
-
-function handleMediaClick() {
+const handleMediaClick = () => {
     if (isBatchMode.value) {
-        emit('select', !checked.value)
+        emit('select', !props.checked)
         return
     }
 
-    if (!canPreview.value) return
-
-    emit('preview', props.post)
+    if (canPreview.value) {
+        emit('preview', props.post)
+    }
 }
 
-function handleCheckboxChange(value: boolean) {
-    if (!isBatchMode.value) return
-    emit('select', value)
+const handleCheckboxChange = (value: boolean) => {
+    if (isBatchMode.value) {
+        emit('select', value)
+    }
 }
 
-function handleProfileClick() {
-    emit('view-profile', props.post)
+let likeDebounceTimer: number | null = null
+const handleLike = () => {
+    if (likeDebounceTimer) {
+        clearTimeout(likeDebounceTimer)
+    }
+
+    likeDebounceTimer = window.setTimeout(() => {
+        emit('like', props.post)
+        likeDebounceTimer = null
+    }, 300)
 }
 </script>
 
@@ -479,10 +465,6 @@ function handleProfileClick() {
     color: var(--el-color-warning);
 }
 
-.audit-tag {
-    border-radius: 999px;
-}
-
 .icon-btn {
     width: 22px;
     height: 22px;
@@ -578,19 +560,74 @@ function handleProfileClick() {
     text-overflow: ellipsis;
 }
 
-.like-count {
+.like-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    height: 28px;
+    padding: 0 10px;
     font-size: 12px;
     color: var(--el-text-color-secondary);
+    background: transparent;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        background 0.16s ease,
+        color 0.16s ease,
+        border-color 0.16s ease,
+        transform 0.16s ease;
+    user-select: none;
 }
 
-.like-count :deep(svg) {
-    font-size: 12px;
+.like-btn :deep(svg) {
+    font-size: 14px;
+    transition: transform 0.2s ease;
 }
 
-.like-count.is-liked {
+.like-btn:hover {
+    background: var(--el-fill-color-light);
+    border-color: var(--el-border-color);
+    color: var(--el-text-color-primary);
+}
+
+.like-btn:active {
+    transform: scale(0.95);
+}
+
+.like-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.like-btn.is-liked {
     color: var(--el-color-danger);
+    border-color: rgba(var(--el-color-danger-rgb), 0.3);
+    background: rgba(var(--el-color-danger-rgb), 0.08);
+}
+
+.like-btn.is-liked:hover {
+    background: rgba(var(--el-color-danger-rgb), 0.12);
+    border-color: rgba(var(--el-color-danger-rgb), 0.4);
+}
+
+.like-btn.is-liked :deep(svg) {
+    animation: heartbeat 0.3s ease;
+}
+
+@keyframes heartbeat {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.2);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    75% {
+        transform: scale(1.1);
+    }
 }
 </style>
