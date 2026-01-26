@@ -43,6 +43,23 @@ export interface UpdateTemplatePayload extends AddTemplatePayload {
     id: number
 }
 
+export interface InterestTypeItem {
+    code: string
+    name: string
+    description?: string
+    color?: string
+    [key: string]: any
+}
+
+export interface InterestTypeResponse {
+    code?: number
+    msg?: string
+    data?: InterestTypeItem[] | Record<string, any>
+    rows?: InterestTypeItem[]
+}
+
+// ========== 模板相关接口 ==========
+
 export function listTemplates(params?: TemplateListParams) {
     return request<TemplateListResponse>({
         url: '/content/templates/list',
@@ -74,6 +91,13 @@ export function deleteTemplate(ids: string | number) {
     })
 }
 
+export function getInterestTypes() {
+    return request<InterestTypeResponse>({
+        url: '/content/interestTypes/list',
+        method: 'get'
+    })
+}
+
 export function parseTemplateRows(payload: TemplateListResponse | any): TemplateItem[] {
     const rows = payload?.rows ?? payload?.data ?? payload
     if (Array.isArray(rows)) return rows
@@ -81,4 +105,25 @@ export function parseTemplateRows(payload: TemplateListResponse | any): Template
     if (Array.isArray(rows?.list)) return rows.list
     if (Array.isArray(rows?.items)) return rows.items
     return []
+}
+
+export function parseInterestTypes(payload: InterestTypeResponse | any): InterestTypeItem[] {
+    const candidates = [payload?.data, payload?.rows, payload?.list, payload?.data?.list, payload?.data?.rows, payload]
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate)) {
+            return candidate.map(item => normalizeInterestTypeItem(item))
+        }
+    }
+
+    return []
+}
+
+function normalizeInterestTypeItem(item: any): InterestTypeItem {
+    return {
+        code: item?.code ?? item?.typeCode ?? item?.interestCode ?? item?.interestType ?? '',
+        name: item?.name ?? item?.typeName ?? item?.interestName ?? item?.label ?? '',
+        description: item?.description ?? item?.desc ?? item?.remark ?? '',
+        color: item?.color ?? item?.tagColor ?? item?.tagType ?? ''
+    }
 }

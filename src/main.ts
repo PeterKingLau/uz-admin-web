@@ -53,6 +53,8 @@ import epIcons from '@iconify-json/ep/icons.json'
 import simpleIcons from '@iconify-json/simple-icons/icons.json'
 import materialSymbols from '@iconify-json/material-symbols/icons.json'
 
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
 addCollection(mdiIcons as IconifyJSON)
 addCollection(epIcons as IconifyJSON)
 addCollection(simpleIcons as IconifyJSON)
@@ -80,6 +82,8 @@ app.component('ImageUpload', ImageUpload)
 app.component('MediaPreview', MediaPreview)
 app.component('RightToolbar', RightToolbar)
 app.component('Editor', Editor)
+
+store.use(piniaPluginPersistedstate)
 
 app.use(router)
 app.use(store)

@@ -15,20 +15,38 @@
                         <div class="tags"></div>
                     </div>
                     <div class="stat-row">
-                        <div class="stat-item" @click="openFollowDialog('following')">
-                            <span class="num">{{ userInfo.following || 0 }}</span>
-                            <span class="label">关注</span>
-                        </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-item" @click="openFollowDialog('followers')">
-                            <span class="num">{{ userInfo.followers || 0 }}</span>
-                            <span class="label">粉丝</span>
-                        </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-item" @click="openFollowDialog('mutual')">
-                            <span class="num">{{ userInfo.mutualCount || 0 }}</span>
-                            <span class="label">互关</span>
-                        </div>
+                        <template v-if="followStatsLoading && !hasFollowStatsCache">
+                            <div class="stat-item skeleton">
+                                <span class="num skeleton-text">--</span>
+                                <span class="label">关注</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item skeleton">
+                                <span class="num skeleton-text">--</span>
+                                <span class="label">粉丝</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item skeleton">
+                                <span class="num skeleton-text">--</span>
+                                <span class="label">互关</span>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div class="stat-item" @click="openFollowDialog('following')">
+                                <span class="num">{{ userInfo.following || 0 }}</span>
+                                <span class="label">关注</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item" @click="openFollowDialog('followers')">
+                                <span class="num">{{ userInfo.followers || 0 }}</span>
+                                <span class="label">粉丝</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item" @click="openFollowDialog('mutual')">
+                                <span class="num">{{ userInfo.mutualCount || 0 }}</span>
+                                <span class="label">互关</span>
+                            </div>
+                        </template>
                     </div>
                     <div class="desc-row">
                         <p>{{ userInfo.signature || '暂时还没想到个性签名' }}</p>
@@ -123,6 +141,7 @@ import { addCollection, listMyCollections } from '@/api/content/collection'
 import { listFollowers, listFollowing, listMutual, selectFollowNum, toggleFollowUser } from '@/api/content/userFollow'
 import { getUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
+import { useFollowStatsStore } from '@/store/modules/followStats'
 import { getImgUrl } from '@/utils/img'
 import { parseTime } from '@/utils/utils'
 import { POST_TYPE } from '@/utils/enum'
@@ -135,6 +154,7 @@ const route = useRoute()
 const router = useRouter()
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
+const followStatsStore = useFollowStatsStore()
 const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
 const activeTab = ref('works')
@@ -156,6 +176,9 @@ const followStats = ref({
     followers: 0,
     mutualCount: 0
 })
+
+const followStatsLoading = computed(() => followStatsStore.isLoading(queryParams.targetUserId))
+const hasFollowStatsCache = computed(() => followStatsStore.getCachedStats(queryParams.targetUserId) !== null)
 
 const previewVisible = ref(false)
 const previewPost = ref(null)
@@ -185,6 +208,7 @@ const followTabSet = new Set(['following', 'followers', 'mutual'])
 const followRequestId = ref(0)
 const followActionLoading = reactive({})
 let followObserver = null
+let cleanupTimer = null
 
 const queryParams = reactive({
     pageNum: 1,
@@ -434,6 +458,8 @@ const toggleFollow = async item => {
 
         const stats = clampStats(nextFollowing, followStats.value.followers, nextMutual)
         followStats.value = { ...followStats.value, following: stats.following, mutualCount: stats.mutualCount }
+
+        followStatsStore.setCachedStats(queryParams.targetUserId, followStats.value)
 
         if (wasFollowing && (active === 'following' || active === 'mutual')) {
             removeRowFromFollowList(targetUserId)
@@ -1032,8 +1058,18 @@ const getProfile = async () => {
 }
 
 const getFollowStats = async () => {
+    const userId = queryParams.targetUserId
+    if (!userId) return
+
+    const cached = followStatsStore.getCachedStats(userId)
+    if (cached) {
+        followStats.value = cached
+    } else {
+        followStatsStore.setLoading(userId, true)
+    }
+
     try {
-        const response = await selectFollowNum({ targetUserId: queryParams.targetUserId })
+        const response = await selectFollowNum({ targetUserId: userId })
         const responseData = response?.data ?? {}
         const followingCountRaw = responseData.followerCount ?? 0
         const followersCountRaw = responseData.fans ?? 0
@@ -1041,10 +1077,15 @@ const getFollowStats = async () => {
         const useMutualListCount = followDialogVisible.value && followActiveTab.value === 'mutual'
         const mutualFrom = useMutualListCount ? followList.value.length : mutualCountRaw
         const stats = clampStats(followingCountRaw, followersCountRaw, mutualFrom)
+
         followStats.value = stats
+        followStatsStore.setCachedStats(userId, stats)
+
         syncMutualCountFromListIfNeeded()
     } catch (error) {
         console.error(error)
+    } finally {
+        followStatsStore.setLoading(userId, false)
     }
 }
 
@@ -1326,6 +1367,10 @@ onMounted(() => {
     getFollowStats()
     loadInitialTabTotals()
     getList()
+
+    cleanupTimer = setInterval(() => {
+        followStatsStore.clearExpiredCache()
+    }, 60 * 1000)
 })
 
 onActivated(() => {
@@ -1339,6 +1384,7 @@ watch(
     () => userStore.id,
     () => {
         if (!syncSelfTargetUserId()) return
+        followStatsStore.clearCache(queryParams.targetUserId)
         collectionList.value = []
         collectionLoaded.value = false
         collectionFetchedAt.value = 0
@@ -1353,6 +1399,11 @@ onBeforeUnmount(() => {
     followObserver?.disconnect()
     followObserver = null
     isBodyScrollLocked.value = false
+
+    if (cleanupTimer !== null) {
+        clearInterval(cleanupTimer)
+        cleanupTimer = null
+    }
 })
 </script>
 
@@ -1455,18 +1506,34 @@ onBeforeUnmount(() => {
                         align-items: baseline;
                         transition: opacity 0.2s;
 
+                        &.skeleton {
+                            cursor: default;
+                            pointer-events: none;
+                        }
+
                         .num {
                             font-weight: 700;
                             margin-right: 4px;
                             font-size: 16px;
                             color: var(--el-text-color-primary);
                         }
+
+                        .skeleton-text {
+                            display: inline-block;
+                            width: 24px;
+                            height: 16px;
+                            background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+                            background-size: 200% 100%;
+                            animation: skeleton-loading 1.5s ease-in-out infinite;
+                            border-radius: 4px;
+                        }
+
                         .label {
                             font-size: 13px;
                             color: var(--el-text-color-secondary);
                         }
 
-                        &:hover {
+                        &:not(.skeleton):hover {
                             opacity: 0.8;
                             .label {
                                 color: var(--el-text-color-primary);
@@ -1495,6 +1562,15 @@ onBeforeUnmount(() => {
                 }
             }
         }
+    }
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
     }
 }
 </style>
