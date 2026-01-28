@@ -55,6 +55,7 @@
                     @pin="handlePin"
                     @unpin="handleUnpin"
                     @like="handleCardLike"
+                    @qr-code="handleQRCode"
                 />
 
                 <el-empty v-else description="暂无内容" :image-size="100" />
@@ -92,21 +93,23 @@
             </el-dialog>
         </div>
 
-        <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin">
-            <el-form label-position="top">
-                <el-form-item label="置顶天数" required>
-                    <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" style="width: 100%" />
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="pinVisible = false">取消</el-button>
-                <el-button type="primary" :loading="pinning" @click="submitPin">确定</el-button>
-            </template>
-        </el-dialog>
+            <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin">
+                <el-form label-position="top">
+                    <el-form-item label="置顶天数" required>
+                        <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" style="width: 100%" />
+                    </el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="pinVisible = false">取消</el-button>
+                    <el-button type="primary" :loading="pinning" @click="submitPin">确定</el-button>
+                </template>
+            </el-dialog>
 
-        <PostPreviewModal
-            ref="previewModalRef"
-            v-model="previewVisible"
+            <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
+
+            <PostPreviewModal
+                ref="previewModalRef"
+                v-model="previewVisible"
             :post="previewPost"
             :media-list="previewMediaList"
             :tags="previewTags"
@@ -161,6 +164,7 @@ import { useScrollLock } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
+import QrcodeDialog from './components/QrcodeDialog.vue'
 import PostPreviewModal from '../personProfile/components/Modal/PostPreviewModal.vue'
 import VideoModule from '../personProfile/components/VideoModule/index.vue'
 import {
@@ -259,6 +263,12 @@ const pinVisible = ref(false)
 const pinPost = ref<any | null>(null)
 const pinDays = ref<number>(7)
 const pinning = ref(false)
+
+const qrcodeVisible = ref(false)
+const qrcodeText = ref('')
+const qrcodeTitle = ref('')
+const qrcodeDescription = ref('')
+const qrcodeFileName = ref('')
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
 const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
@@ -390,6 +400,15 @@ const resolveCollectionVideoSrc = (post: any) => {
     if (direct) return resolveMediaUrl(direct)
     const list = normalizeMediaList(post).map(resolveMediaUrl).filter(Boolean)
     return list.find(isVideoUrl) || list[0] || ''
+}
+
+const resolveQRCodeText = (post: any) => {
+    if (!post) return ''
+    const type = String(post?.postType ?? '')
+    if (type !== POST_TYPE.VIDEO) return ''
+    const postId = getPreviewPostId(post)
+    if (!postId) return ''
+    return `gbzcb://video?id=${postId}`
 }
 
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
@@ -789,7 +808,7 @@ async function handleDeleteConfirm(ids: Array<string | number>) {
         ;(proxy as any)?.$modal?.msgSuccess?.('删除成功')
 
         postList.value = postList.value.filter(item => !ids.includes(item.id))
-        ids.forEach(id => selectedIds.value.delete(id)) // 优化：逐个删除
+        ids.forEach(id => selectedIds.value.delete(id))
         if (totalCount.value !== null) {
             totalCount.value = Math.max(0, totalCount.value - ids.length)
         }
@@ -805,7 +824,6 @@ async function handleDeleteConfirm(ids: Array<string | number>) {
     }
 }
 
-// ==================== 预览相关 ====================
 function handleViewProfile(post: any) {
     const userId = resolveProfileUserId(post)
     if (!userId) return
@@ -894,7 +912,6 @@ function clearReplyTarget() {
     replyTarget.value = null
 }
 
-// ==================== 评论相关 ====================
 function handleReplyToComment(comment: any) {
     const commentId = getCommentId(comment)
     if (!commentId) return
@@ -1077,7 +1094,6 @@ const removePreviewComment = (post: any, commentId: string | number) => {
     }
 }
 
-// ==================== 互动操作 ====================
 const likingPosts = new Set<string | number>()
 
 async function handleCardLike(post: any) {
@@ -1116,6 +1132,23 @@ async function handleCardLike(post: any) {
             likingPosts.delete(postId)
         }, 500)
     }
+}
+
+async function handleQRCode(post: any) {
+    if (!post) return
+    const text = resolveQRCodeText(post)
+    if (!text) {
+        const type = String(post?.postType ?? '')
+        proxy?.$modal?.msgWarning?.(type === POST_TYPE.VIDEO ? '暂无可用二维码链接' : '仅视频支持生成二维码')
+        return
+    }
+    const postId = getPreviewPostId(post)
+    const titleSeed = String(post?.title || post?.content || '').trim()
+    qrcodeText.value = text
+    qrcodeTitle.value = titleSeed ? `二维码 - ${titleSeed.slice(0, 16)}` : '内容二维码'
+    qrcodeDescription.value = text
+    qrcodeFileName.value = postId != null ? `qrcode-${postId}-${Date.now()}.png` : `qrcode-${Date.now()}.png`
+    qrcodeVisible.value = true
 }
 
 async function handlePreviewFollow() {
@@ -1324,7 +1357,6 @@ async function handleVideoAction(type: 'follow' | 'like' | 'collect' | 'comment'
     }
 }
 
-// ==================== 生命周期 ====================
 onMounted(() => {
     loadTags()
     resetQuery()

@@ -78,10 +78,18 @@
                     <span class="author-name">{{ post.nickName || '未知用户' }}</span>
                 </el-button>
 
-                <button type="button" class="like-btn" :class="{ 'is-liked': isLiked }" @click="handleLike">
-                    <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
-                    <span>{{ post.likeCount ?? 0 }}</span>
-                </button>
+                <div class="meta-actions">
+                    <el-tooltip content="生成二维码" placement="top">
+                        <el-button v-if="isVideoPost" type="button" class="action-btn qrcode-btn" @click="emit('qrcode', post)">
+                            <Icon icon="mdi:qrcode" />
+                        </el-button>
+                    </el-tooltip>
+
+                    <button type="button" class="action-btn like-btn" :class="{ 'is-liked': isLiked }" @click="handleLike">
+                        <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
+                        <span>{{ post.likeCount ?? 0 }}</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -108,8 +116,10 @@ const emit = defineEmits<{
     (e: 'preview', post: any): void
     (e: 'view-profile', post: any): void
     (e: 'like', post: any): void
+    (e: 'qrcode', post: any): void // 新增事件
 }>()
 
+// ... (Script 逻辑保持不变)
 const isBatchMode = computed(() => Boolean(props.batchMode))
 const isOriginalMissing = computed(() => props.post?.originalPostId != null && props.post?.originalPost === null)
 const postType = computed(() => String(props.post?.postType ?? ''))
@@ -560,9 +570,16 @@ const handleLike = () => {
     text-overflow: ellipsis;
 }
 
-.like-btn {
+.meta-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     height: 28px;
     padding: 0 10px;
@@ -580,24 +597,24 @@ const handleLike = () => {
     user-select: none;
 }
 
-.like-btn :deep(svg) {
+.action-btn :deep(svg) {
     font-size: 14px;
     transition: transform 0.2s ease;
 }
 
-.like-btn:hover {
+.action-btn:hover {
     background: var(--el-fill-color-light);
     border-color: var(--el-border-color);
     color: var(--el-text-color-primary);
 }
 
-.like-btn:active {
+.action-btn:active {
     transform: scale(0.95);
 }
 
-.like-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.qrcode-btn {
+    padding: 0;
+    width: 28px;
 }
 
 .like-btn.is-liked {

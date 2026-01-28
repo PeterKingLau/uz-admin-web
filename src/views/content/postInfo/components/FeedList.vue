@@ -44,6 +44,7 @@
             @pin="emit('pin', $event)"
             @unpin="emit('unpin', $event)"
             @like="emit('like', $event)"
+            @qrcode="emit('qr-code', $event)"
         />
 
         <div v-if="posts.length" class="load-more">
@@ -80,6 +81,7 @@ const emit = defineEmits<{
     (e: 'preview', post: any): void
     (e: 'view-profile', post: any): void
     (e: 'like', post: any): void
+    (e: 'qr-code', post: any): void
 }>()
 
 const sentinelRef = ref<HTMLElement | null>(null)

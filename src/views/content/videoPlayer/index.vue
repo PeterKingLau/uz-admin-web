@@ -117,12 +117,7 @@ const resolveVideoSrc = post => {
     if (!post) return ''
     const direct = post.videoUrl || post.video || post.url || post.src || ''
     if (direct) return resolveMediaUrl(direct)
-    const list = [
-        ...parseMediaRaw(post.mediaUrls),
-        ...parseMediaRaw(post.mediaList),
-        ...parseMediaRaw(post.files),
-        ...parseMediaRaw(post.resources)
-    ]
+    const list = [...parseMediaRaw(post.mediaUrls), ...parseMediaRaw(post.mediaList), ...parseMediaRaw(post.files), ...parseMediaRaw(post.resources)]
     const normalized = list
         .map(item => {
             if (typeof item === 'string') return item

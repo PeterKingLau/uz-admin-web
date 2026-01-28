@@ -94,7 +94,14 @@
             </div>
 
             <div v-if="showCollections">
-                <div v-if="collectionLoadingState" class="status-box"><Icon class="is-loading" icon="line-md:loading-twotone-loop" /> 加载中...</div>
+                <div v-if="collectionLoadingState" class="status-box">
+                    <div class="custom-loader">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span class="loading-text">加载中...</span>
+                </div>
 
                 <div v-else-if="collectionListData.length === 0" class="empty-collection-state">
                     <div class="empty-icon-wrapper">
@@ -148,6 +155,9 @@
                                             <el-dropdown-item @click="openAddPostsDialog(item, 'selected')">
                                                 <Icon icon="mdi:playlist-edit" /> 作品管理
                                             </el-dropdown-item>
+                                            <el-dropdown-item class="danger-item" @click="handleDeleteCollection(item)">
+                                                <Icon icon="mdi:trash-can-outline" /> 删除合集
+                                            </el-dropdown-item>
                                         </el-dropdown-menu>
                                     </template>
                                 </el-dropdown>
@@ -159,7 +169,12 @@
 
             <div v-else>
                 <div v-if="loading && worksPostList.length === 0" class="status-box">
-                    <Icon class="is-loading" icon="line-md:loading-twotone-loop" /> 加载中...
+                    <div class="custom-loader">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span class="loading-text">加载中...</span>
                 </div>
 
                 <div v-else-if="!loading && worksPostList.length === 0" class="status-box empty">
@@ -210,12 +225,103 @@
                     <div ref="loadTriggerRef" class="scroll-trigger"></div>
 
                     <div v-if="loading && worksPostList.length > 0" class="status-box small">
-                        <Icon class="is-loading" icon="line-md:loading-twotone-loop" />
+                        <div class="custom-loader small">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
                     </div>
                     <div v-if="noMore && worksPostList.length > 0" class="status-box small text-only">- 到底啦 -</div>
                 </div>
             </div>
         </div>
+
+        <el-dialog
+            v-model="addDialogVisible"
+            append-to-body
+            destroy-on-close
+            class="modern-dialog collection-posts-dialog"
+            width="860px"
+            :show-close="false"
+            @closed="resetAddPostsDialog"
+        >
+            <template #header>
+                <div class="collection-dialog-header">
+                    <div class="collection-dialog-title">
+                        <span class="name">{{ addDialogTitle }}</span>
+                        <span class="count">共{{ addDialogCount }}集</span>
+                    </div>
+                    <div class="collection-dialog-actions">
+                        <el-button class="ghost-btn" @click="addDialogVisible = false">关闭</el-button>
+                        <el-button v-if="!readOnly" class="primary-btn" :loading="addDialogSaving" :disabled="addDialogSaving" @click="handleDialogSubmit">
+                            {{ dialogActionLabel }}
+                        </el-button>
+                    </div>
+                </div>
+                <div class="collection-dialog-tabs">
+                    <el-button v-if="!readOnly" text class="tab-btn" :class="{ active: addDialogTab === 'add' }" @click="setAddDialogTab('add')"
+                        >添加作品</el-button
+                    >
+                    <el-button text class="tab-btn" :class="{ active: addDialogTab === 'selected' }" @click="setAddDialogTab('selected')">已选作品</el-button>
+                </div>
+            </template>
+
+            <div class="add-posts-body">
+                <div class="add-posts-toolbar">
+                    <span v-if="!readOnly">已选 {{ selectedPostIds.length }} 条</span>
+                    <span v-else>共 {{ displayPosts.length }} 条</span>
+                    <div class="toolbar-actions">
+                        <el-button v-if="!readOnly && addDialogTab === 'selected'" text :disabled="selectedPostIds.length === 0" @click="removeSelectedPosts"
+                            >移除选中</el-button
+                        >
+                        <el-button v-if="!readOnly" text @click="toggleSelectAll">{{ isAllSelected ? '取消全选' : '全选' }}</el-button>
+                    </div>
+                </div>
+
+                <div v-if="addDialogTab === 'selected' && collectionPostsLoading" class="status-box">
+                    <div class="custom-loader">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span class="loading-text">加载中...</span>
+                </div>
+
+                <div v-else-if="displayPosts.length === 0" class="collection-empty-state">
+                    <div class="empty-icon">
+                        <Icon icon="mdi:folder-outline" />
+                    </div>
+                    <div class="empty-title">{{ addDialogTab === 'add' ? '暂无内容' : '暂无已选作品' }}</div>
+                    <div class="empty-desc">{{ addDialogTab === 'add' ? '暂无可添加作品～' : '这里没有内容~' }}</div>
+                </div>
+
+                <div v-else class="select-posts-grid" ref="selectedPostsGridRef" :class="{ 'is-draggable': !readOnly && addDialogTab === 'selected' }">
+                    <div
+                        v-for="(item, index) in displayPosts"
+                        :key="resolvePostKey(item)"
+                        class="select-post-card"
+                        :class="{ selected: !readOnly && isPostSelected(item), 'selected-tab': addDialogTab === 'selected' }"
+                        @click="togglePostSelection(item)"
+                    >
+                        <button v-if="!readOnly && addDialogTab === 'selected'" type="button" class="remove-btn" @click.stop="removeSinglePost(item)">×</button>
+                        <div v-if="!readOnly && (addDialogTab === 'selected' || isPostSelected(item))" class="select-order">
+                            {{ getDisplayOrder(item, index) }}
+                        </div>
+                        <div class="thumb">
+                            <img v-if="item.postType === POST_TYPE.IMAGE" :src="getCover(item)" alt="cover" loading="lazy" />
+                            <div v-else-if="item.postType === POST_TYPE.VIDEO" class="thumb-video">
+                                <video :src="getVideoUrl(item)" muted playsinline preload="metadata"></video>
+                                <div class="thumb-play"><Icon icon="mdi:play" /></div>
+                            </div>
+                            <div v-else class="thumb-text">
+                                <img :src="getTextCover(item)" alt="text cover" loading="lazy" />
+                            </div>
+                        </div>
+                        <div v-if="!readOnly" class="select-check"><Icon icon="mdi:check-circle" /></div>
+                    </div>
+                </div>
+            </div>
+        </el-dialog>
 
         <el-dialog v-model="createDialogVisible" append-to-body destroy-on-close class="modern-dialog" width="460px" @closed="resetCreateForm">
             <template #header>
@@ -251,85 +357,6 @@
                     <el-button type="primary" color="var(--el-color-primary)" class="confirm-btn" :loading="saving" @click="saveCreateForm">完成</el-button>
                 </div>
             </template>
-        </el-dialog>
-
-        <el-dialog
-            v-model="addDialogVisible"
-            append-to-body
-            destroy-on-close
-            class="modern-dialog collection-posts-dialog"
-            width="860px"
-            :show-close="false"
-            @closed="resetAddPostsDialog"
-        >
-            <template #header>
-                <div class="collection-dialog-header">
-                    <div class="collection-dialog-title">
-                        <span class="name">{{ addDialogTitle }}</span>
-                        <span class="count">共{{ addDialogCount }}集</span>
-                    </div>
-                    <div class="collection-dialog-actions">
-                        <el-button class="ghost-btn" @click="addDialogVisible = false">取消</el-button>
-                        <el-button class="primary-btn" :loading="addDialogSaving" :disabled="addDialogSaving" @click="handleDialogSubmit">
-                            {{ dialogActionLabel }}
-                        </el-button>
-                    </div>
-                </div>
-                <div class="collection-dialog-tabs">
-                    <el-button text class="tab-btn" :class="{ active: addDialogTab === 'add' }" @click="setAddDialogTab('add')">添加作品</el-button>
-                    <el-button text class="tab-btn" :class="{ active: addDialogTab === 'selected' }" @click="setAddDialogTab('selected')"> 已选作品 </el-button>
-                </div>
-            </template>
-
-            <div class="add-posts-body">
-                <div class="add-posts-toolbar">
-                    <span>已选 {{ selectedPostIds.length }} 条</span>
-                    <div class="toolbar-actions">
-                        <el-button v-if="!readOnly && addDialogTab === 'selected'" text :disabled="selectedPostIds.length === 0" @click="removeSelectedPosts"
-                            >移除选中</el-button
-                        >
-                        <el-button text @click="toggleSelectAll">{{ isAllSelected ? '取消全选' : '全选' }}</el-button>
-                    </div>
-                </div>
-
-                <div v-if="addDialogTab === 'selected' && collectionPostsLoading" class="status-box">
-                    <Icon class="is-loading" icon="line-md:loading-twotone-loop" /> 加载中...
-                </div>
-
-                <div v-else-if="displayPosts.length === 0" class="collection-empty-state">
-                    <div class="empty-icon">
-                        <Icon icon="mdi:folder-outline" />
-                    </div>
-                    <div class="empty-title">{{ addDialogTab === 'add' ? '暂无内容' : '暂无已选作品' }}</div>
-                    <div class="empty-desc">{{ addDialogTab === 'add' ? '暂无可添加作品～' : '请回到添加作品选择' }}</div>
-                </div>
-
-                <div v-else class="select-posts-grid" ref="selectedPostsGridRef" :class="{ 'is-draggable': addDialogTab === 'selected' }">
-                    <div
-                        v-for="(item, index) in displayPosts"
-                        :key="resolvePostKey(item)"
-                        class="select-post-card"
-                        :class="{ selected: isPostSelected(item), 'selected-tab': addDialogTab === 'selected' }"
-                        @click="togglePostSelection(item)"
-                    >
-                        <button v-if="!readOnly && addDialogTab === 'selected'" type="button" class="remove-btn" @click.stop="removeSinglePost(item)">×</button>
-                        <div v-if="addDialogTab === 'selected' || isPostSelected(item)" class="select-order">
-                            {{ getDisplayOrder(item, index) }}
-                        </div>
-                        <div class="thumb">
-                            <img v-if="item.postType === POST_TYPE.IMAGE" :src="getCover(item)" alt="cover" loading="lazy" />
-                            <div v-else-if="item.postType === POST_TYPE.VIDEO" class="thumb-video">
-                                <video :src="getVideoUrl(item)" muted playsinline preload="metadata"></video>
-                                <div class="thumb-play"><Icon icon="mdi:play" /></div>
-                            </div>
-                            <div v-else class="thumb-text">
-                                <img :src="getTextCover(item)" alt="text cover" loading="lazy" />
-                            </div>
-                        </div>
-                        <div class="select-check"><Icon icon="mdi:check-circle" /></div>
-                    </div>
-                </div>
-            </div>
         </el-dialog>
     </div>
 </template>
@@ -608,9 +635,9 @@ const toggleBulkCollectionSelection = (item: any) => {
 const handleCollectionCardClick = (item: any) => {
     if (bulkMode.value) {
         toggleBulkCollectionSelection(item)
-    } else if (!props.readOnly) {
-        openAddPostsDialog(item)
+        return
     }
+    openAddPostsDialog(item, props.readOnly ? 'selected' : 'add')
 }
 
 const handleWorkCardClick = (item: any) => {
@@ -755,7 +782,6 @@ const addDialogCount = computed(() => {
     if (collectionPostsLoaded.value) return collectionPosts.value.length
     return toNumber(addDialogTarget.value?.postCount ?? addDialogTarget.value?.count, 0)
 })
-const selectedTabCount = computed(() => collectionPosts.value.length)
 const dialogActionLabel = computed(() => '保存')
 const displayPosts = computed(() => (addDialogTab.value === 'selected' ? collectionPosts.value : availablePosts.value))
 
@@ -789,9 +815,8 @@ const loadCollectionPosts = async (force = false) => {
 }
 
 const openAddPostsDialog = (item: any, tab: 'add' | 'selected' = 'add') => {
-    if (props.readOnly) return
     addDialogTarget.value = item
-    addDialogTab.value = tab
+    addDialogTab.value = props.readOnly ? 'selected' : tab
     selectedPostIds.value = []
     collectionPosts.value = []
     collectionPostsLoaded.value = false
@@ -809,6 +834,7 @@ const resetAddPostsDialog = () => {
 }
 
 const setAddDialogTab = (value: 'add' | 'selected') => {
+    if (props.readOnly) return
     if (addDialogTab.value === value) return
     addDialogTab.value = value
     selectedPostIds.value = []
@@ -836,6 +862,7 @@ const getDisplayOrder = (item: any, index: number) => {
 }
 
 const togglePostSelection = (item: any) => {
+    if (props.readOnly) return
     const id = resolvePostId(item)
     if (id == null) return
     const index = selectedPostIds.value.indexOf(id)
@@ -844,6 +871,7 @@ const togglePostSelection = (item: any) => {
 }
 
 const toggleSelectAll = () => {
+    if (props.readOnly) return
     selectedPostIds.value = isAllSelected.value ? [] : [...currentPostIds.value]
 }
 
@@ -855,6 +883,7 @@ const destroySelectedPostsSortable = () => {
 
 const setupSelectedPostsSortable = async () => {
     destroySelectedPostsSortable()
+    if (props.readOnly) return
     if (!addDialogVisible.value || addDialogTab.value !== 'selected') return
     await nextTick()
     const element = selectedPostsGridRef.value
@@ -884,11 +913,13 @@ const removePostsFromCollection = (postIds: number[]) => {
 }
 
 const removeSelectedPosts = () => {
+    if (props.readOnly) return
     if (addDialogTab.value !== 'selected') return
     removePostsFromCollection(selectedPostIds.value)
 }
 
 const removeSinglePost = (item: any) => {
+    if (props.readOnly) return
     const id = resolvePostId(item)
     if (id == null) return
     removePostsFromCollection([id])
@@ -922,6 +953,7 @@ const buildSavePostIds = () => {
 }
 
 const submitSavePosts = async () => {
+    if (props.readOnly) return
     if (addDialogSaving.value) return
     const collectionId = resolveCollectionId(addDialogTarget.value)
     if (!collectionId) {
@@ -949,6 +981,7 @@ const handleDialogSubmit = () => {
 }
 
 const handleDeleteCollection = async (item: any) => {
+    if (props.readOnly) return
     const id = resolveCollectionId(item)
     if (!id) return
     try {
@@ -1597,20 +1630,24 @@ watch(
     }
 }
 
+/* 状态容器样式优化 */
 .status-box {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 40px 0;
+    padding: 60px 0;
     color: var(--el-text-color-secondary);
     font-size: 14px;
     width: 100%;
+    min-height: 200px; /* 增加最小高度，避免 Loading 闪烁 */
 
     &.empty {
         min-height: 300px;
     }
 
     &.small {
+        min-height: auto;
         padding: 20px 0;
     }
 
@@ -1618,12 +1655,58 @@ watch(
         color: var(--el-text-color-placeholder);
         font-size: 12px;
     }
+
+    .loading-text {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+    }
+}
+
+/* 自定义 Loading 动画 */
+.custom-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--el-color-primary);
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+
+        &:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        &:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+    }
+
+    &.small .dot {
+        width: 6px;
+        height: 6px;
+    }
+}
+
+@keyframes bounce {
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1);
+    }
 }
 
 .scroll-trigger {
     height: 1px;
 }
 
+/* ... 弹窗样式保持不变 ... */
 .dialog-header-modern {
     font-size: 16px;
     font-weight: 600;
@@ -1965,20 +2048,20 @@ watch(
             font-size: 18px;
         }
 
-    .thumb-text {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        background: var(--el-bg-color-page);
-        overflow: hidden;
-
-        img {
+        .thumb-text {
+            position: relative;
             width: 100%;
             height: 100%;
-            display: block;
-            object-fit: cover;
+            background: var(--el-bg-color-page);
+            overflow: hidden;
+
+            img {
+                width: 100%;
+                height: 100%;
+                display: block;
+                object-fit: cover;
+            }
         }
-    }
     }
 
     .select-check {

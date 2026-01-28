@@ -31,6 +31,10 @@
                             @ratechange="onRateChange"
                         ></video>
 
+                        <div v-if="showPauseOverlay" class="pause-overlay" @click.stop="togglePlay">
+                            <Icon icon="mdi:play" class="pause-overlay-icon" />
+                        </div>
+
                         <div class="top-bar" :class="{ 'hide-controls': !controlsVisible && isPlaying }">
                             <div class="close-btn" @click.stop="handleClose">
                                 <Icon icon="ep:close" />
@@ -54,15 +58,19 @@
                             </div>
 
                             <div class="controls-layer" @click.stop>
-                                <div class="progress-container">
+                                <div class="progress-container" ref="progressContainerRef" @mousemove="onProgressHover" @mouseleave="onProgressLeave">
+                                    <div v-if="progressHover.visible" class="progress-hover-tooltip" :style="{ left: progressHover.left + 'px' }">
+                                        {{ formatClock(isDraggingProgress ? progressDraft : progressHover.time) }}
+                                    </div>
                                     <el-slider
-                                        v-model="progressValue"
+                                        :model-value="progressShown"
                                         :min="0"
                                         :max="progressMax"
                                         :step="0.1"
                                         :show-tooltip="false"
-                                        @input="onSeekInput"
-                                        @change="onSeekChange"
+                                        @update:modelValue="onProgressDrag"
+                                        @input="onProgressDrag"
+                                        @change="onProgressCommit"
                                         class="progress-slider"
                                     />
                                 </div>
@@ -474,9 +482,13 @@ const repostInputRef = ref(null)
 const canSubmitRepost = computed(() => Boolean(repostContent.value.trim()))
 
 const isPlaying = ref(false)
+const showPauseOverlay = computed(() => !isPlaying.value)
+
 const duration = ref(0)
 const currentTime = ref(0)
-const seeking = ref(false)
+
+const isDraggingProgress = ref(false)
+const progressDraft = ref(0)
 
 const volume = ref(1)
 const muted = ref(false)
@@ -1019,13 +1031,50 @@ const handleResize = () => {
 const videoFitClass = computed(() => (videoFitMode.value === 'width' ? 'fit-width' : 'fit-height'))
 
 const progressMax = computed(() => (duration.value > 0 ? duration.value : 0))
-const progressValue = computed({
-    get: () => (seeking.value ? progressTemp.value : currentTime.value),
-    set: v => {
-        progressTemp.value = Number(v || 0)
+
+const progressShown = computed(() => (isDraggingProgress.value ? progressDraft.value : currentTime.value))
+
+const progressContainerRef = ref(null)
+const progressHover = reactive({ visible: false, time: 0, left: 0 })
+
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
+
+const calcHoverLeftByTime = sec => {
+    const el = progressContainerRef.value
+    const max = progressMax.value
+    if (!el || !max) return null
+    const rect = el.getBoundingClientRect()
+    if (!rect.width) return null
+    const ratio = clamp(Number(sec || 0) / max, 0, 1)
+    const offsetX = ratio * rect.width
+    const padding = 16
+    return clamp(offsetX, padding, rect.width - padding)
+}
+
+const onProgressHover = event => {
+    if (isDraggingProgress.value) return
+    const el = progressContainerRef.value
+    const max = progressMax.value
+    if (!el || !max) {
+        progressHover.visible = false
+        return
     }
-})
-const progressTemp = ref(0)
+    const rect = el.getBoundingClientRect()
+    if (!rect.width) return
+    const offsetX = clamp(event.clientX - rect.left, 0, rect.width)
+    const ratio = offsetX / rect.width
+    const nextTime = ratio * max
+    const padding = 16
+    const clampedLeft = clamp(offsetX, padding, rect.width - padding)
+    progressHover.time = nextTime
+    progressHover.left = clampedLeft
+    progressHover.visible = true
+}
+
+const onProgressLeave = () => {
+    if (isDraggingProgress.value) return
+    progressHover.visible = false
+}
 
 const formatClock = s => {
     const sec = Math.max(0, Math.floor(Number(s) || 0))
@@ -1035,6 +1084,35 @@ const formatClock = s => {
     const mm = String(m).padStart(2, '0')
     const rr = String(r).padStart(2, '0')
     return h > 0 ? `${h}:${mm}:${rr}` : `${m}:${rr.padStart(2, '0')}`
+}
+
+const onProgressDrag = v => {
+    const sec = Number(v || 0)
+    isDraggingProgress.value = true
+    progressDraft.value = sec
+    progressHover.time = sec
+    const left = calcHoverLeftByTime(sec)
+    if (left != null) progressHover.left = left
+    progressHover.visible = true
+}
+
+const onProgressCommit = v => {
+    const el = playerRef.value
+    const sec = Number(v || 0)
+    isDraggingProgress.value = false
+    progressDraft.value = sec
+    if (!el) {
+        progressHover.visible = false
+        return
+    }
+    const dur = Number(el.duration || duration.value || 0)
+    const next = Math.min(dur || sec, Math.max(0, sec))
+    el.currentTime = next
+    currentTime.value = next
+    progressHover.time = next
+    const left = calcHoverLeftByTime(next)
+    if (left != null) progressHover.left = left
+    progressHover.visible = true
 }
 
 const syncPiPSupport = () => {
@@ -1091,6 +1169,7 @@ const onLoadedMeta = () => {
     volume.value = Number(el.volume ?? 1)
     muted.value = Boolean(el.muted)
     playbackRate.value = Number(el.playbackRate || 1)
+    isPlaying.value = !el.paused
     syncPiPSupport()
     updateWatermarkAndFit()
 }
@@ -1098,7 +1177,7 @@ const onLoadedMeta = () => {
 const onTimeUpdate = () => {
     const el = playerRef.value
     if (!el) return
-    if (!seeking.value) currentTime.value = Number(el.currentTime || 0)
+    if (!isDraggingProgress.value) currentTime.value = Number(el.currentTime || 0)
 }
 
 const onDurationChange = () => {
@@ -1126,20 +1205,6 @@ const onRateChange = () => {
     const el = playerRef.value
     if (!el) return
     playbackRate.value = Number(el.playbackRate || 1)
-}
-
-const onSeekInput = v => {
-    seeking.value = true
-    progressTemp.value = Number(v || 0)
-}
-
-const onSeekChange = v => {
-    const el = playerRef.value
-    if (!el) return
-    const sec = Number(v || 0)
-    el.currentTime = Math.min(Number(el.duration || 0), Math.max(0, sec))
-    currentTime.value = Number(el.currentTime || 0)
-    seeking.value = false
 }
 
 const toggleFullscreen = async () => {
@@ -1299,6 +1364,22 @@ const submitComment = () => {
     clearReplyTarget()
 }
 
+const isTypingTarget = el => {
+    if (!el) return false
+    const tag = String(el.tagName || '').toLowerCase()
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return true
+    if (el.isContentEditable) return true
+    return false
+}
+
+const onKeydown = e => {
+    if (!visible.value) return
+    if (e.code !== 'Space' && e.key !== ' ') return
+    if (isTypingTarget(e.target)) return
+    e.preventDefault()
+    togglePlay()
+}
+
 const stopPlayer = () => {
     const el = playerRef.value
     if (!el) return
@@ -1308,14 +1389,19 @@ const stopPlayer = () => {
         console.error(e)
     }
     isPlaying.value = false
-    seeking.value = false
     showWatermark.value = false
     pipActive.value = false
     commentPanelVisible.value = false
     commentDraft.value = ''
     clearReplyTarget()
+
+    isDraggingProgress.value = false
+    progressDraft.value = 0
+    progressHover.visible = false
+
     window.removeEventListener('resize', handleResize)
     document.removeEventListener('fullscreenchange', handleResize)
+    window.removeEventListener('keydown', onKeydown)
     if (hideControlsTimer) {
         clearTimeout(hideControlsTimer)
         hideControlsTimer = null
@@ -1330,6 +1416,7 @@ const initPlayer = async () => {
     syncPiPSupport()
     window.addEventListener('resize', handleResize)
     document.addEventListener('fullscreenchange', handleResize)
+    window.addEventListener('keydown', onKeydown)
     el.playbackRate = Number(playbackRate.value || 1)
     el.volume = Math.min(1, Math.max(0, Number(volume.value)))
     updateWatermarkAndFit()
@@ -1521,6 +1608,30 @@ onBeforeUnmount(() => {
     object-fit: contain;
     display: block;
     z-index: 1;
+}
+
+.pause-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.pause-overlay-icon {
+    font-size: 72px;
+    color: rgba(255, 255, 255, 0.92);
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.pause-overlay:hover .pause-overlay-icon {
+    transform: scale(1.08);
 }
 
 .top-bar {
@@ -1743,11 +1854,26 @@ onBeforeUnmount(() => {
 
 .progress-container {
     width: 100%;
+    position: relative;
 }
 
 .progress-slider {
     width: 100%;
     height: 4px;
+}
+
+.progress-hover-tooltip {
+    position: absolute;
+    bottom: 14px;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
 :deep(.progress-slider .el-slider__runway) {

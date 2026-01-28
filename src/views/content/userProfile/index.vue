@@ -5,50 +5,95 @@
                 <img :src="userInfo.bgImage || defaultBg" alt="banner" />
                 <div class="banner-mask"></div>
             </div>
-            <div class="user-info-wrapper">
-                <div class="avatar-container">
-                    <el-avatar :size="100" :src="userInfo.avatar" class="avatar-img" />
-                </div>
-                <div class="info-content">
-                    <div class="name-row">
-                        <span class="nickname">{{ userInfo.nickName }}</span>
-                        <div class="tags"></div>
+
+            <transition name="fade-soft" mode="out-in">
+                <div v-if="headerUiLoading" key="skeleton" class="user-info-wrapper">
+                    <div class="avatar-container">
+                        <div class="avatar-skeleton"></div>
                     </div>
-                    <div class="stat-row">
-                        <div class="stat-item" @click="openFollowDialog('following')">
-                            <span class="num">{{ userInfo.following || 0 }}</span>
-                            <span class="label">关注</span>
+
+                    <div class="info-content">
+                        <div class="name-row">
+                            <span class="nickname skeleton-text skeleton-name"></span>
+                            <div class="tags"></div>
                         </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-item" @click="openFollowDialog('followers')">
-                            <span class="num">{{ userInfo.followers || 0 }}</span>
-                            <span class="label">粉丝</span>
+
+                        <div class="stat-row">
+                            <div class="stat-item skeleton">
+                                <span class="num skeleton-text">--</span>
+                                <span class="label">关注</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item skeleton">
+                                <span class="num skeleton-text">--</span>
+                                <span class="label">粉丝</span>
+                            </div>
+                            <div class="stat-divider" v-if="isSelfProfile"></div>
+                            <div class="stat-item skeleton" v-if="isSelfProfile">
+                                <span class="num skeleton-text">--</span>
+                                <span class="label">互关</span>
+                            </div>
                         </div>
-                        <div class="stat-divider" v-if="isSelfProfile"></div>
-                        <div class="stat-item" v-if="isSelfProfile" @click="openFollowDialog('mutual')">
-                            <span class="num">{{ userInfo.mutualCount || 0 }}</span>
-                            <span class="label">互关</span>
+
+                        <div class="desc-row">
+                            <p class="skeleton-text skeleton-desc"></p>
                         </div>
                     </div>
-                    <div class="desc-row">
-                        <p>{{ userInfo.signature || '暂时还没想到个性签名' }}</p>
+
+                    <div class="action-btn">
+                        <div class="btn-skeleton"></div>
                     </div>
                 </div>
-                <div class="action-btn">
-                    <el-button v-if="isSelfProfile" type="primary" plain class="edit-btn" @click="goToProfile">编辑资料</el-button>
-                    <el-button
-                        v-else
-                        type="primary"
-                        class="follow-btn"
-                        :plain="isProfileFollowing"
-                        :loading="profileFollowLoading"
-                        :disabled="!canFollowProfile"
-                        @click="handleProfileFollow"
-                    >
-                        {{ isProfileFollowing ? '已关注' : '关注' }}
-                    </el-button>
+
+                <div v-else key="content" class="user-info-wrapper">
+                    <div class="avatar-container">
+                        <el-avatar :size="100" :src="stableUserInfo.avatar" class="avatar-img" />
+                    </div>
+
+                    <div class="info-content">
+                        <div class="name-row">
+                            <span class="nickname">{{ stableUserInfo.nickName }}</span>
+                            <div class="tags"></div>
+                        </div>
+
+                        <div class="stat-row">
+                            <div class="stat-item" @click="openFollowDialog('following')">
+                                <span class="num">{{ stableUserInfo.following || 0 }}</span>
+                                <span class="label">关注</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item" @click="openFollowDialog('followers')">
+                                <span class="num">{{ stableUserInfo.followers || 0 }}</span>
+                                <span class="label">粉丝</span>
+                            </div>
+                            <div class="stat-divider" v-if="isSelfProfile"></div>
+                            <div class="stat-item" v-if="isSelfProfile" @click="openFollowDialog('mutual')">
+                                <span class="num">{{ stableUserInfo.mutualCount || 0 }}</span>
+                                <span class="label">互关</span>
+                            </div>
+                        </div>
+
+                        <div class="desc-row">
+                            <p>{{ stableUserInfo.signature || '暂时还没想到个性签名' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="action-btn">
+                        <el-button v-if="isSelfProfile" type="primary" plain class="edit-btn" @click="goToProfile">编辑资料</el-button>
+                        <el-button
+                            v-else
+                            type="primary"
+                            class="follow-btn"
+                            :plain="isProfileFollowing"
+                            :loading="profileFollowLoading"
+                            :disabled="!canFollowProfile || headerUiLoading"
+                            @click="handleProfileFollow"
+                        >
+                            {{ isProfileFollowing ? '已关注' : '关注' }}
+                        </el-button>
+                    </div>
                 </div>
-            </div>
+            </transition>
         </div>
 
         <ContentModule
@@ -139,6 +184,8 @@ import { getUserInfoById } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import useTagsViewStore from '@/store/modules/tagsView'
+import { buildTextCoverDataUrl } from '@/utils/textCover'
+import { useUserProfileStore } from '@/store/modules/userProfile'
 import { getImgUrl } from '@/utils/img'
 import { parseTime } from '@/utils/utils'
 import { POST_TYPE } from '@/utils/enum'
@@ -153,6 +200,7 @@ const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const tagsViewStore = useTagsViewStore()
+const userProfileStore = useUserProfileStore()
 const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
 const activeTab = ref('works')
@@ -175,16 +223,6 @@ const followStats = ref({
     mutualCount: 0
 })
 
-/**
- * @typedef {Object} ReplyState
- * @property {boolean} open
- * @property {boolean} loading
- * @property {unknown[]} list
- * @property {boolean} noMore
- * @property {string | number} [lastId]
- * @property {string | number} [lastCreateTime]
- */
-
 const previewVisible = ref(false)
 const previewPost = ref(null)
 const previewFollowLoading = ref(false)
@@ -195,14 +233,16 @@ const commentActionLoading = ref(false)
 const repostActionLoading = ref(false)
 const previewCommentsLoading = ref(false)
 const commentDraft = ref('')
+
 const previewModalRef = shallowRef(null)
 const setPreviewModalRef = el => {
     previewModalRef.value = el
 }
+
 const isActionInputFocused = ref(false)
-const deleteCommentLoading = reactive(/** @type {Record<string, boolean>} */ ({}))
+const deleteCommentLoading = reactive({})
 const replyTarget = ref(null)
-const replyStateMap = ref(/** @type {Record<string, ReplyState>} */ ({}))
+const replyStateMap = ref({})
 const replyPageSize = 10
 
 const followDialogVisible = ref(false)
@@ -216,6 +256,7 @@ const setFollowDialogRef = el => {
 }
 const followLastId = ref(undefined)
 const followPageSize = 20
+
 const normalizeFollowTab = value => {
     if (!value) return 'following'
     const normalized = String(value)
@@ -223,8 +264,9 @@ const normalizeFollowTab = value => {
     return normalized === 'following' || normalized === 'followers' ? normalized : 'following'
 }
 const followRequestId = ref(0)
-const followActionLoading = reactive(/** @type {Record<string, boolean>} */ ({}))
+const followActionLoading = reactive({})
 let followObserver = null
+let cleanupTimer = null
 
 const queryParams = reactive({
     pageNum: 1,
@@ -237,13 +279,16 @@ const queryParams = reactive({
 
 const allowedPostTypes = [String(POST_TYPE.TEXT), String(POST_TYPE.IMAGE), String(POST_TYPE.VIDEO)]
 const allowedPostTypeSet = new Set(allowedPostTypes)
+
 const normalizeRouteParam = value => {
     if (Array.isArray(value)) return value[0]
     if (value === null || value === undefined || value === '') return null
     return String(value)
 }
+
 const routeUserId = computed(() => normalizeRouteParam(route.query.userId ?? route.params?.userId))
 const selfUserId = computed(() => normalizeRouteParam(userStore.id))
+
 const isSelfProfile = computed(() => {
     const target = routeUserId.value
     if (!target) return false
@@ -251,13 +296,16 @@ const isSelfProfile = computed(() => {
     if (!self) return false
     return target === self
 })
+
 const resolveTargetUserId = () => routeUserId.value ?? null
+
 const resolvePostType = value => {
     const fallback = allowedPostTypes.join(',')
     if (value === undefined || value === null || value === '') return fallback
     const normalized = String(value)
     return allowedPostTypeSet.has(normalized) ? normalized : fallback
 }
+
 const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
 
 const clampStats = (following, followers, mutualCount) => {
@@ -271,6 +319,21 @@ const normalizeSexValue = value => {
     if (value === null || value === undefined) return ''
     return String(value)
 }
+
+const hasProfileCache = computed(() => {
+    const targetUserId = resolveTargetUserId()
+    return userProfileStore.getCachedProfile(targetUserId) !== null
+})
+
+const hasFollowStatsCache = computed(() => {
+    const targetUserId = resolveTargetUserId()
+    return userProfileStore.getCachedFollowStats(targetUserId) !== null
+})
+
+const profileLoading = computed(() => {
+    const targetUserId = resolveTargetUserId()
+    return userProfileStore.isLoading(targetUserId)
+})
 
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
@@ -287,6 +350,118 @@ const userInfo = computed(() => {
         likedCount: profile.likedCount ?? 0
     }
 })
+
+const HEADER_MIN_SKELETON_MS = 240
+const headerUiLoading = ref(true)
+const stableUserInfo = ref({
+    bgImage: '',
+    avatar: '',
+    nickName: '未知用户',
+    signature: '',
+    following: 0,
+    followers: 0,
+    mutualCount: 0,
+    likes: 0,
+    likedCount: 0
+})
+let headerTimer = null
+let headerStartAt = 0
+
+const syncStableUserInfo = next => {
+    stableUserInfo.value = {
+        ...stableUserInfo.value,
+        ...(next || {})
+    }
+}
+
+const startHeaderLoading = () => {
+    headerStartAt = Date.now()
+    headerUiLoading.value = true
+    if (headerTimer) {
+        clearTimeout(headerTimer)
+        headerTimer = null
+    }
+}
+
+const stopHeaderLoadingWithMinDuration = () => {
+    const elapsed = Date.now() - headerStartAt
+    const wait = Math.max(0, HEADER_MIN_SKELETON_MS - elapsed)
+    if (headerTimer) clearTimeout(headerTimer)
+    headerTimer = setTimeout(() => {
+        headerUiLoading.value = false
+        headerTimer = null
+    }, wait)
+}
+
+const isProfileReady = computed(() => {
+    const p = profileInfo.value || {}
+    const hasProfileCore = Boolean((p.nickName && String(p.nickName).trim()) || (p.userName && String(p.userName).trim()) || p.id != null || p.userId != null)
+    const hasStats = Boolean(
+        userProfileStore.getCachedFollowStats(resolveTargetUserId()) ||
+        (followStats.value && (followStats.value.following || followStats.value.followers || followStats.value.mutualCount))
+    )
+    if (hasProfileCache.value) return true
+    return hasProfileCore && (hasStats || !profileLoading.value)
+})
+
+watch(
+    () => routeUserId.value,
+    () => {
+        startHeaderLoading()
+
+        const targetUserId = resolveTargetUserId()
+        const cached = userProfileStore.getCachedProfile(targetUserId)
+        if (cached) {
+            const stats = clampStats(cached.followStats?.following, cached.followStats?.followers, cached.followStats?.mutualCount)
+            const profile = cached.profile || {}
+            syncStableUserInfo({
+                ...profile,
+                avatar: profile.avatar != null && String(profile.avatar).trim() ? getImgUrl(profile.avatar) : isSelfProfile.value ? userStore.avatar || '' : '',
+                nickName: profile.nickName || (isSelfProfile.value ? userStore.nickName : '') || '未知用户',
+                following: stats.following,
+                followers: stats.followers,
+                mutualCount: stats.mutualCount,
+                likes: profile.likes ?? 0,
+                likedCount: profile.likedCount ?? 0
+            })
+            headerUiLoading.value = false
+            if (headerTimer) {
+                clearTimeout(headerTimer)
+                headerTimer = null
+            }
+        } else {
+            syncStableUserInfo({
+                bgImage: '',
+                avatar: '',
+                nickName: '未知用户',
+                signature: '',
+                following: 0,
+                followers: 0,
+                mutualCount: 0
+            })
+        }
+    },
+    { immediate: true }
+)
+
+watch(
+    () => isProfileReady.value,
+    ready => {
+        if (!ready) return
+        syncStableUserInfo(userInfo.value)
+        stopHeaderLoadingWithMinDuration()
+    },
+    { immediate: true }
+)
+
+watch(
+    () => userInfo.value,
+    next => {
+        if (headerUiLoading.value) return
+        syncStableUserInfo(next)
+    },
+    { deep: true }
+)
 
 const followApiMap = {
     following: listFollowing,
@@ -471,6 +646,8 @@ const toggleFollow = async item => {
         item.isFollowing = nowFollowing
         item.relationType = resolveNextRelationType(item, nowFollowing)
 
+        // userProfileStore.updateFollowStatus(targetUserId, nowFollowing)
+
         let nextFollowing = followStats.value.following
         let nextMutual = followStats.value.mutualCount
 
@@ -517,6 +694,12 @@ const getVideoUrl = item => {
     return mediaList[1] || mediaList[0] || ''
 }
 
+const getTextCover = item => {
+    const content = String(item?.content ?? '').trim()
+    const seed = String(resolvePostId(item) ?? '')
+    return buildTextCoverDataUrl(content, seed || content || 'text')
+}
+
 const getMediaList = item => {
     if (Array.isArray(item.mediaList) && item.mediaList.length > 0) return item.mediaList
     return parseMediaUrls(item.mediaUrls || item.fileList || item.files || [])
@@ -551,7 +734,9 @@ const previewComments = computed(() => {
 })
 
 const resolveAvatar = avatar => getImgUrl(avatar || '')
+
 const getCommentName = comment => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || '用户'
+
 const formatRelativeTime = time => {
     if (!time) return ''
     let date = new Date(time)
@@ -568,21 +753,27 @@ const formatRelativeTime = time => {
     if (diff < 86400 * 3) return `${Math.floor(diff / 86400)}天前`
     return parseTime(time, '{m}-{d}') || ''
 }
+
 const getCommentId = comment => comment?.id ?? comment?.commentId ?? comment?._id ?? null
+
 const getCommentUserId = comment => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
+
 const canDeleteComment = comment => {
     const commentUserId = getCommentUserId(comment)
     if (userStore.id == null) return false
     return String(userStore.id) === String(commentUserId)
 }
+
 const isDeleteCommentLoading = comment => {
     const commentId = getCommentId(comment)
     return commentId != null && Boolean(deleteCommentLoading[String(commentId)])
 }
+
 const getCommentReplyCount = comment => {
     const value = comment?.replyCount ?? comment?.replyNum ?? comment?.replyCnt ?? 0
     return Math.max(0, Number(value) || 0)
 }
+
 const ensureReplyState = commentId => {
     if (!commentId) return null
     const key = String(commentId)
@@ -598,6 +789,7 @@ const ensureReplyState = commentId => {
     }
     return replyStateMap.value[key]
 }
+
 const resolveReplyState = comment => {
     const commentId = getCommentId(comment)
     return ensureReplyState(commentId) || { open: false, loading: false, list: [], noMore: true }
@@ -704,21 +896,24 @@ const resolveProfileFollowState = profile => {
     return false
 }
 
-const setProfileFollowState = (profile, nextFollowing) => {
-    if (!profile) return
-    profile.follow = nextFollowing
-    profile.isFollow = nextFollowing
-    profile.isFollowing = nextFollowing
-    profile.followed = nextFollowing
-    profile.followStatus = nextFollowing ? '1' : '0'
-    profile.isFollowed = nextFollowing
-    profile.followFlag = nextFollowing ? '1' : '0'
-    profile.hasFollow = nextFollowing
-    profile.isAttention = nextFollowing
-    profile.attention = nextFollowing
-    profile.isFocus = nextFollowing
-    profile.focus = nextFollowing
-    profile.focusStatus = nextFollowing ? '1' : '0'
+const withProfileFollowState = (profile, nextFollowing) => {
+    const base = profile || {}
+    return {
+        ...base,
+        follow: nextFollowing,
+        isFollow: nextFollowing,
+        isFollowing: nextFollowing,
+        followed: nextFollowing,
+        followStatus: nextFollowing ? '1' : '0',
+        isFollowed: nextFollowing,
+        followFlag: nextFollowing ? '1' : '0',
+        hasFollow: nextFollowing,
+        isAttention: nextFollowing,
+        attention: nextFollowing,
+        isFocus: nextFollowing,
+        focus: nextFollowing,
+        focusStatus: nextFollowing ? '1' : '0'
+    }
 }
 
 const isPreviewFollowing = computed(() => resolvePreviewFollowState(previewPost.value))
@@ -1180,9 +1375,19 @@ const handleCreateCollection = async payload => {
 const getProfile = async () => {
     const targetUserId = resolveTargetUserId()
     if (!targetUserId) return
+
+    const cached = userProfileStore.getCachedProfile(targetUserId)
+    if (cached) {
+        profileInfo.value = { ...(cached.profile || {}) }
+        followStats.value = { ...(cached.followStats || followStats.value) }
+    } else {
+        userProfileStore.setLoading(targetUserId, true)
+    }
+
     try {
         const response = await getUserInfoById(targetUserId)
         const { data: responseData, profile } = resolveUserProfilePayload(response)
+
         const followKeys = [
             'follow',
             'isFollow',
@@ -1202,20 +1407,26 @@ const getProfile = async () => {
             'focus',
             'focusStatus'
         ]
+
         const mergedProfile = { ...profile }
         followKeys.forEach(key => {
             if (mergedProfile[key] == null && responseData[key] != null) {
                 mergedProfile[key] = responseData[key]
             }
         })
+
         profileInfo.value = {
             ...mergedProfile,
             sex: normalizeSexValue(mergedProfile.sex ?? mergedProfile.gender ?? responseData.sex ?? responseData.gender)
         }
+
         const resolvedUserId = mergedProfile.userId ?? mergedProfile.id ?? responseData.userId ?? responseData.id ?? null
         if (resolvedUserId != null && resolvedUserId !== '' && queryParams.targetUserId !== resolvedUserId) {
             queryParams.targetUserId = resolvedUserId
         }
+
+        userProfileStore.setCachedProfile(targetUserId, profileInfo.value, followStats.value)
+
         const displayName = mergedProfile.nickName || mergedProfile.userName || mergedProfile.name || userStore.nickName || '用户'
         const nextTitle = `${displayName}的主页`
         router.currentRoute.value.meta.title = nextTitle
@@ -1224,6 +1435,7 @@ const getProfile = async () => {
             ...router.currentRoute.value,
             meta: { ...router.currentRoute.value.meta, title: nextTitle }
         })
+
         const { list, found } = resolveCollectionListFromProfile(responseData, mergedProfile)
         if (found) {
             collectionList.value = list
@@ -1232,24 +1444,52 @@ const getProfile = async () => {
         }
     } catch (error) {
         console.error(error)
+    } finally {
+        userProfileStore.setLoading(targetUserId, false)
     }
 }
 
 const getFollowStats = async () => {
+    const targetUserId = resolveTargetUserId()
+    if (!targetUserId) return
+
+    const cached = userProfileStore.getCachedFollowStats(targetUserId)
+    if (cached) {
+        followStats.value = { ...cached }
+    }
+
     try {
-        const response = await selectFollowNum({ targetUserId: queryParams.targetUserId })
+        const response = await selectFollowNum({ targetUserId })
         const responseData = response?.data ?? {}
+
         const followingCountRaw = responseData.followerCount ?? 0
         const followersCountRaw = responseData.fans ?? 0
         const mutualCountRaw = responseData.eachOtherCount ?? 0
-        const followFlag = resolveFollowFlag(responseData.isFollow)
+
+        const rawFollow =
+            responseData.isFollow ??
+            responseData.follow ??
+            responseData.followStatus ??
+            responseData.isFollowing ??
+            responseData.followed ??
+            responseData.followFlag ??
+            responseData.focusStatus ??
+            responseData.attention ??
+            responseData.isAttention
+
+        const followFlag = resolveFollowFlag(rawFollow)
         if (typeof followFlag === 'boolean' && !isSelfProfile.value) {
-            setProfileFollowState(profileInfo.value, followFlag)
+            profileInfo.value = withProfileFollowState(profileInfo.value, followFlag)
+            userProfileStore.updateFollowStatus(targetUserId, followFlag)
         }
+
         const useMutualListCount = followDialogVisible.value && followActiveTab.value === 'mutual'
         const mutualFrom = useMutualListCount ? followList.value.length : mutualCountRaw
         const stats = clampStats(followingCountRaw, followersCountRaw, mutualFrom)
+
         followStats.value = stats
+        userProfileStore.updateFollowStats(targetUserId, stats)
+
         syncMutualCountFromListIfNeeded()
     } catch (error) {
         console.error(error)
@@ -1297,7 +1537,20 @@ const handlePreview = item => {
         return
     }
 
-    previewPost.value = normalizePostFlags(item)
+    const normalized = normalizePostFlags(item)
+
+    if (String(normalized?.postType) === String(POST_TYPE.TEXT)) {
+        const media = Array.isArray(normalized.mediaList)
+            ? normalized.mediaList
+            : parseMediaUrls(normalized.mediaUrls || normalized.fileList || normalized.files || [])
+        if (!media.length) {
+            normalized.mediaList = [getTextCover(normalized)]
+        } else {
+            normalized.mediaList = media
+        }
+    }
+
+    previewPost.value = normalized
     commentDraft.value = ''
     isActionInputFocused.value = false
     previewVisible.value = true
@@ -1493,10 +1746,13 @@ const handlePreviewFollow = async () => {
     try {
         await toggleFollowUser({ targetUserId })
         setPreviewFollowState(post, !wasFollowing)
+
         const profileUserId = resolveTargetUserId()
         if (profileUserId != null && String(profileUserId) === String(targetUserId)) {
-            setProfileFollowState(profileInfo.value, !wasFollowing)
+            profileInfo.value = withProfileFollowState(profileInfo.value, !wasFollowing)
+            userProfileStore.updateFollowStatus(targetUserId, !wasFollowing)
         }
+
         const postId = getPreviewPostId(post)
         updatePostInList(postId, {
             follow: post.follow,
@@ -1532,7 +1788,9 @@ const handleProfileFollow = async () => {
     profileFollowLoading.value = true
     try {
         await toggleFollowUser({ targetUserId })
-        setProfileFollowState(profileInfo.value, !wasFollowing)
+
+        profileInfo.value = withProfileFollowState(profileInfo.value, !wasFollowing)
+        userProfileStore.updateFollowStatus(targetUserId, !wasFollowing)
         getFollowStats()
     } catch (error) {
         console.error(error)
@@ -1626,6 +1884,10 @@ watch(
 
 onMounted(() => {
     refreshProfileView()
+
+    cleanupTimer = setInterval(() => {
+        userProfileStore.clearExpiredCache()
+    }, 60 * 1000)
 })
 
 onActivated(() => {
@@ -1636,6 +1898,15 @@ onBeforeUnmount(() => {
     followObserver?.disconnect()
     followObserver = null
     isBodyScrollLocked.value = false
+
+    if (cleanupTimer !== null) {
+        clearInterval(cleanupTimer)
+        cleanupTimer = null
+    }
+    if (headerTimer) {
+        clearTimeout(headerTimer)
+        headerTimer = null
+    }
 })
 </script>
 
@@ -1755,6 +2026,11 @@ onBeforeUnmount(() => {
                                 color: var(--el-text-color-primary);
                             }
                         }
+
+                        &.skeleton {
+                            cursor: default;
+                            pointer-events: none;
+                        }
                     }
                 }
 
@@ -1798,6 +2074,69 @@ onBeforeUnmount(() => {
                 }
             }
         }
+    }
+}
+
+.skeleton-text {
+    display: inline-block;
+    width: 24px;
+    height: 16px;
+    background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.fade-soft-enter-active,
+.fade-soft-leave-active {
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
+}
+
+.fade-soft-enter-from,
+.fade-soft-leave-to {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.avatar-skeleton {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-name {
+    width: 160px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.skeleton-desc {
+    width: 320px;
+    height: 16px;
+    border-radius: 6px;
+}
+
+.btn-skeleton {
+    width: 120px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
     }
 }
 </style>
