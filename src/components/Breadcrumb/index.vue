@@ -22,38 +22,26 @@ const permissionStore = usePermissionStore()
 const levelList = ref([])
 
 function getBreadcrumb() {
-    let matched = []
-    const pathNum = findPathNum(route.path)
+    let matched = route.matched.filter(r => r.meta && r.meta.title)
 
-    if (pathNum > 2) {
-        const reg = /\/\w+/gi
-        const pathList = route.path.match(reg).map((item, index) => {
-            if (index !== 0) item = item.slice(1)
-            return item
-        })
-        getMatched(pathList, permissionStore.defaultRoutes, matched)
-    } else {
-        matched = route.matched.filter(item => item.meta && item.meta.title)
+    if (!matched.length) {
+        const reg = /\/[^/]+/g
+        const pathList = (route.path.match(reg) || []).map((seg, i) => (i === 0 ? seg.slice(1) : seg.slice(1)))
+        const temp = []
+        getMatched(pathList, permissionStore.defaultRoutes, temp)
+        matched = temp.filter(r => r.meta && r.meta.title)
     }
 
     if (!isDashboard(matched[0])) {
         matched = [{ path: '/index', meta: { title: '首页' } }].concat(matched)
     }
-    levelList.value = matched.filter(item => item.meta && item.meta.title && item.meta.breadcrumb !== false)
-}
 
-function findPathNum(str, char = '/') {
-    let index = str.indexOf(char)
-    let num = 0
-    while (index !== -1) {
-        num++
-        index = str.indexOf(char, index + 1)
-    }
-    return num
+    levelList.value = matched.filter(r => r.meta && r.meta.title && r.meta.breadcrumb !== false)
 }
 
 function getMatched(pathList, routeList, matched) {
-    let data = routeList.find(item => item.path == pathList[0] || (item.name += '').toLowerCase() == pathList[0])
+    const key = pathList[0]
+    const data = routeList.find(item => item.path === key || String(item.name).toLowerCase() === key)
     if (data) {
         matched.push(data)
         if (data.children && pathList.length) {

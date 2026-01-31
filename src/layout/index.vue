@@ -44,9 +44,13 @@ const { width } = useWindowSize()
 const WIDTH = 992
 
 const contentStyle = computed(() => {
-    if (!fixedHeader.value) return {}
-    const height = needTagsView.value ? '84px' : '50px'
+    const height = fixedHeader.value ? (needTagsView.value ? '84px' : '50px') : '0px'
+    const style = {
+        '--app-header-height': height
+    }
+    if (!fixedHeader.value) return style
     return {
+        ...style,
         paddingTop: height,
         transition: 'padding-top 0.28s'
     }

@@ -36,27 +36,43 @@
 
                 <div class="overlay-right">
                     <el-tooltip content="编辑标签" placement="top">
-                        <button type="button" class="icon-btn" @click="emit('edit-tag', post)">
-                            <Icon icon="mdi:tag-outline" />
-                        </button>
+                        <template #default>
+                            <span class="tooltip-trigger">
+                                <el-button circle class="icon-btn" @click="emit('edit-tag', post)">
+                                    <Icon icon="mdi:tag-outline" />
+                                </el-button>
+                            </span>
+                        </template>
                     </el-tooltip>
 
                     <el-tooltip content="人工置顶" placement="top">
-                        <button type="button" class="icon-btn" @click="emit('pin', post)">
-                            <Icon icon="mdi:pin-outline" />
-                        </button>
+                        <template #default>
+                            <span class="tooltip-trigger">
+                                <el-button circle class="icon-btn" @click="emit('pin', post)">
+                                    <Icon icon="mdi:pin-outline" />
+                                </el-button>
+                            </span>
+                        </template>
                     </el-tooltip>
 
                     <el-tooltip content="取消置顶" placement="top">
-                        <button type="button" class="icon-btn" @click="emit('unpin', post)">
-                            <Icon icon="mdi:pin-off-outline" />
-                        </button>
+                        <template #default>
+                            <span class="tooltip-trigger">
+                                <el-button circle class="icon-btn" @click="emit('unpin', post)">
+                                    <Icon icon="mdi:pin-off-outline" />
+                                </el-button>
+                            </span>
+                        </template>
                     </el-tooltip>
 
                     <el-tooltip content="删除该条" placement="top">
-                        <button type="button" class="icon-btn danger" @click="emit('delete', post.id)">
-                            <Icon icon="mdi:trash-can-outline" />
-                        </button>
+                        <template #default>
+                            <span class="tooltip-trigger">
+                                <el-button circle class="icon-btn danger" @click="emit('delete', post.id)">
+                                    <Icon icon="mdi:trash-can-outline" />
+                                </el-button>
+                            </span>
+                        </template>
                     </el-tooltip>
                 </div>
             </div>
@@ -80,15 +96,26 @@
 
                 <div class="meta-actions">
                     <el-tooltip content="生成二维码" placement="top">
-                        <el-button v-if="isVideoPost" type="button" class="action-btn qrcode-btn" @click="emit('qrcode', post)">
-                            <Icon icon="mdi:qrcode" />
-                        </el-button>
+                        <template #default>
+                            <span class="tooltip-trigger">
+                                <el-button v-if="isVideoPost" circle class="action-btn qrcode-btn" @click="emit('qrcode', post)">
+                                    <Icon icon="mdi:qrcode" />
+                                </el-button>
+                                <span v-else></span>
+                            </span>
+                        </template>
                     </el-tooltip>
 
-                    <button type="button" class="action-btn like-btn" :class="{ 'is-liked': isLiked }" @click="handleLike">
-                        <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
-                        <span>{{ post.likeCount ?? 0 }}</span>
-                    </button>
+                    <el-tooltip :content="isLiked ? '取消点赞' : '点赞'" placement="top">
+                        <template #default>
+                            <span class="tooltip-trigger">
+                                <el-button class="action-btn like-btn" :class="{ 'is-liked': isLiked }" @click="handleLike">
+                                    <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
+                                    <span>{{ post.likeCount ?? 0 }}</span>
+                                </el-button>
+                            </span>
+                        </template>
+                    </el-tooltip>
                 </div>
             </div>
         </div>
@@ -100,6 +127,7 @@ import { computed } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { resolveTextCoverPalette } from '@/utils/textCover'
+import { Icon } from '@iconify/vue'
 
 const props = defineProps<{
     post: any
@@ -116,10 +144,10 @@ const emit = defineEmits<{
     (e: 'preview', post: any): void
     (e: 'view-profile', post: any): void
     (e: 'like', post: any): void
-    (e: 'qrcode', post: any): void // 新增事件
+    (e: 'qrcode', post: any): void
 }>()
 
-// ... (Script 逻辑保持不变)
+const post = computed(() => props.post || {})
 const isBatchMode = computed(() => Boolean(props.batchMode))
 const isOriginalMissing = computed(() => props.post?.originalPostId != null && props.post?.originalPost === null)
 const postType = computed(() => String(props.post?.postType ?? ''))
@@ -133,7 +161,7 @@ const isLiked = computed(() => {
     return value != null ? String(value) === '1' : false
 })
 
-const TYPE_CONFIG = {
+const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
     [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },
     [POST_TYPE.IMAGE]: { text: '图文', icon: 'mdi:image' },
     [POST_TYPE.VIDEO]: { text: '视频', icon: 'mdi:video' }
@@ -145,11 +173,9 @@ const typeIcon = computed(() => TYPE_CONFIG[postType.value]?.icon || 'mdi:help')
 const parseMediaArray = (raw: any): any[] => {
     if (!raw) return []
     if (Array.isArray(raw)) return raw
-
     if (typeof raw === 'string') {
         const trimmed = raw.trim()
         if (!trimmed) return []
-
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             try {
                 const parsed = JSON.parse(trimmed)
@@ -166,7 +192,6 @@ const parseMediaArray = (raw: any): any[] => {
             .map(item => item.trim())
             .filter(Boolean)
     }
-
     if (typeof raw === 'object') return [raw]
     return []
 }
@@ -215,9 +240,7 @@ const coverUrl = computed(() => {
     const imageCover = coverCandidates.find(url => url && !isVideoUrl(resolveMediaUrl(url)))
     if (imageCover) return resolveMediaUrl(imageCover)
 
-    if (coverCandidates.length > 0 && !isVideoUrl(resolveMediaUrl(coverCandidates[0]))) {
-        return resolveMediaUrl(coverCandidates[0])
-    }
+    if (coverCandidates.length > 0 && !isVideoUrl(resolveMediaUrl(coverCandidates[0]))) return resolveMediaUrl(coverCandidates[0])
 
     const mediaImageUrl = mediaFiles.value.map(resolveMediaUrl).find(url => url && !isVideoUrl(url))
     return mediaImageUrl || ''
@@ -236,7 +259,7 @@ const textCoverStyle = computed(() => {
         '--text-cover-bg': palette.bg,
         '--text-cover-accent': palette.accent,
         '--text-cover-quote': palette.quote
-    }
+    } as Record<string, string>
 })
 
 const handleMediaClick = () => {
@@ -244,24 +267,16 @@ const handleMediaClick = () => {
         emit('select', !props.checked)
         return
     }
-
-    if (canPreview.value) {
-        emit('preview', props.post)
-    }
+    if (canPreview.value) emit('preview', props.post)
 }
 
 const handleCheckboxChange = (value: boolean) => {
-    if (isBatchMode.value) {
-        emit('select', value)
-    }
+    if (isBatchMode.value) emit('select', value)
 }
 
 let likeDebounceTimer: number | null = null
 const handleLike = () => {
-    if (likeDebounceTimer) {
-        clearTimeout(likeDebounceTimer)
-    }
-
+    if (likeDebounceTimer) clearTimeout(likeDebounceTimer)
     likeDebounceTimer = window.setTimeout(() => {
         emit('like', props.post)
         likeDebounceTimer = null
@@ -475,32 +490,33 @@ const handleLike = () => {
     color: var(--el-color-warning);
 }
 
-.icon-btn {
+.tooltip-trigger {
+    display: inline-flex;
+    align-items: center;
+}
+
+.icon-btn.el-button {
     width: 22px;
     height: 22px;
     border-radius: 8px;
+    padding: 0;
     border: 1px solid transparent;
     background: var(--el-fill-color);
     color: var(--el-text-color-secondary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     font-size: 14px;
     transition:
         background 0.16s ease,
         color 0.16s ease,
         border-color 0.16s ease;
-    padding: 0;
-    cursor: pointer;
 }
 
-.icon-btn:hover {
+.icon-btn.el-button:hover {
     background: var(--el-fill-color-dark);
     color: var(--el-text-color-primary);
     border-color: var(--el-border-color);
 }
 
-.icon-btn.danger:hover {
+.icon-btn.el-button.danger:hover {
     background: var(--el-color-danger-light-9);
     color: var(--el-color-danger);
     border-color: rgba(var(--el-color-danger-rgb), 0.35);
@@ -576,7 +592,7 @@ const handleLike = () => {
     gap: 6px;
 }
 
-.action-btn {
+.action-btn.el-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -597,38 +613,38 @@ const handleLike = () => {
     user-select: none;
 }
 
-.action-btn :deep(svg) {
-    font-size: 14px;
-    transition: transform 0.2s ease;
-}
-
-.action-btn:hover {
+.action-btn.el-button:hover {
     background: var(--el-fill-color-light);
     border-color: var(--el-border-color);
     color: var(--el-text-color-primary);
 }
 
-.action-btn:active {
+.action-btn.el-button:active {
     transform: scale(0.95);
 }
 
-.qrcode-btn {
+.action-btn.el-button :deep(svg) {
+    font-size: 14px;
+    transition: transform 0.2s ease;
+}
+
+.qrcode-btn.el-button {
     padding: 0;
     width: 28px;
 }
 
-.like-btn.is-liked {
+.like-btn.el-button.is-liked {
     color: var(--el-color-danger);
     border-color: rgba(var(--el-color-danger-rgb), 0.3);
     background: rgba(var(--el-color-danger-rgb), 0.08);
 }
 
-.like-btn.is-liked:hover {
+.like-btn.el-button.is-liked:hover {
     background: rgba(var(--el-color-danger-rgb), 0.12);
     border-color: rgba(var(--el-color-danger-rgb), 0.4);
 }
 
-.like-btn.is-liked :deep(svg) {
+.like-btn.el-button.is-liked :deep(svg) {
     animation: heartbeat 0.3s ease;
 }
 

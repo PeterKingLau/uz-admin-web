@@ -132,7 +132,20 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/content/videoPlayer/index.vue'),
         name: 'VideoPlayer',
         hidden: true,
-        meta: { title: 'Video Player' }
+        meta: { title: '视频播放器' }
+    },
+    {
+        path: '/circle-manage/circle-data',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'index/:id(\\d+)',
+                component: () => import('@/views/circle/circleRecommend/detail.vue'),
+                name: 'CircleDetail',
+                meta: { title: '圈子详情' }
+            }
+        ]
     }
 ]
 

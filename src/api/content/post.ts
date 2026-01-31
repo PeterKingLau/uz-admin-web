@@ -78,6 +78,7 @@ export function listPostByApp(params: {
     limit?: number
     content?: string
     targetUserId?: number | string
+    circleId?: number | string
 }): Promise<any> {
     return request({
         url: '/content/postInfo/app/v1/listByApp',

@@ -93,23 +93,23 @@
             </el-dialog>
         </div>
 
-            <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin">
-                <el-form label-position="top">
-                    <el-form-item label="置顶天数" required>
-                        <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" style="width: 100%" />
-                    </el-form-item>
-                </el-form>
-                <template #footer>
-                    <el-button @click="pinVisible = false">取消</el-button>
-                    <el-button type="primary" :loading="pinning" @click="submitPin">确定</el-button>
-                </template>
-            </el-dialog>
+        <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin">
+            <el-form label-position="top">
+                <el-form-item label="置顶天数" required>
+                    <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" style="width: 100%" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="pinVisible = false">取消</el-button>
+                <el-button type="primary" :loading="pinning" @click="submitPin">确定</el-button>
+            </template>
+        </el-dialog>
 
-            <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
+        <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
 
-            <PostPreviewModal
-                ref="previewModalRef"
-                v-model="previewVisible"
+        <PostPreviewModal
+            ref="previewModalRef"
+            v-model="previewVisible"
             :post="previewPost"
             :media-list="previewMediaList"
             :tags="previewTags"
@@ -151,6 +151,7 @@
             :src="videoPreviewSrc"
             :post="videoPreviewPost"
             :user-info="videoUserInfo"
+            :author-info="videoAuthorInfo"
             @close="closeVideoPreview"
             @action="handleVideoAction"
             @select-collection="handleVideoSelectCollectionPost"
@@ -285,6 +286,17 @@ const videoUserInfo = computed(() => ({
     userName: (userStore as any).name || (userStore as any).userName || '',
     avatar: userStore.avatar
 }))
+
+const videoAuthorInfo = computed(() => {
+    const p = videoPreviewPost.value || {}
+    return {
+        id: p.userId ?? p.authorId ?? p.createBy ?? p.user?.id ?? p.author?.id,
+        userId: p.userId ?? p.authorId ?? p.createBy ?? p.user?.id ?? p.author?.id,
+        nickName: p.nickName ?? p.authorName ?? p.userName ?? p.user?.nickName ?? p.author?.nickName ?? '',
+        userName: p.userName ?? p.username ?? p.user?.userName ?? p.author?.userName ?? '',
+        avatar: p.avatar ?? p.userAvatar ?? p.user?.avatar ?? p.author?.avatar ?? ''
+    }
+})
 
 const videoPreviewReady = computed(() => Boolean(videoPreviewSrc.value))
 

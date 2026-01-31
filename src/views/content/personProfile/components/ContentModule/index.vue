@@ -1090,8 +1090,8 @@ watch(
 
 .tabs-sticky-container {
     position: sticky;
-    top: 0;
-    z-index: 10;
+    top: var(--app-header-height, 0px);
+    z-index: 8;
     background-color: var(--el-bg-color);
     border-top: 1px solid var(--el-border-color-lighter);
     padding-top: 4px;

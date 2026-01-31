@@ -394,6 +394,7 @@ const props = defineProps({
     src: { type: String, default: '' },
     post: { type: Object, default: () => ({}) },
     userInfo: { type: Object, default: () => ({}) },
+    authorInfo: { type: Object, default: () => ({}) },
     useTeleport: { type: Boolean, default: true }
 })
 
@@ -511,12 +512,22 @@ const isFullscreen = ref(false)
 
 const pipIcon = computed(() => (pipActive.value ? 'mdi:picture-in-picture-bottom-right' : 'mdi:picture-in-picture-bottom-right-outline'))
 
-const authorName = computed(() => postData.value.nickName || postData.value.authorName || props.userInfo?.nickName || '未知用户')
+const authorName = computed(() => {
+    const p = postData.value || {}
+    const a = props.authorInfo || {}
+
+    return p.nickName || p.authorName || p.userName || p.username || p.author?.nickName || p.user?.nickName || a.nickName || a.userName || a.name || '未知用户'
+})
 
 const authorAvatar = computed(() => {
-    const avatar = postData.value.avatar || props.userInfo?.avatar || ''
+    const p = postData.value || {}
+    const a = props.authorInfo || {}
+
+    const avatar = p.avatar || p.userAvatar || p.authorAvatar || p.author?.avatar || p.user?.avatar || a.avatar || a.userAvatar || ''
+
     return getImgUrl(avatar)
 })
+
 const collectedCount = computed(() => postData.value.bookmarkCount ?? postData.value.collectCount ?? 0)
 
 const formatCount = num => {

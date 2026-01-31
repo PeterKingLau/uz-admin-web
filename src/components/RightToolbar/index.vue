@@ -12,29 +12,35 @@
             </el-button>
         </el-tooltip>
 
-        <el-tooltip class="item" effect="dark" content="显隐列" placement="top" v-if="columns">
-            <el-button v-if="showColumnsType == 'transfer'" circle @click="showColumn()">
-                <Icon icon="ep:menu" />
-            </el-button>
+        <el-tooltip v-if="columns" class="item" effect="dark" content="显隐列" placement="top">
+            <template #default>
+                <span class="columns-trigger">
+                    <el-button v-if="showColumnsType === 'transfer'" circle @click="showColumn()">
+                        <Icon icon="ep:menu" />
+                    </el-button>
 
-            <el-dropdown v-if="showColumnsType == 'checkbox'" trigger="click" :hide-on-click="false" style="margin-left: 12px">
-                <el-button circle>
-                    <Icon icon="ep:menu" />
-                </el-button>
-                <template #dropdown>
-                    <el-dropdown-menu>
-                        <el-dropdown-item>
-                            <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange"> 列展示 </el-checkbox>
-                        </el-dropdown-item>
-                        <div class="check-line"></div>
-                        <template v-for="item in columns" :key="item.key">
-                            <el-dropdown-item>
-                                <el-checkbox v-model="item.visible" :label="item.label" @change="handleCheckedTableChange(item)" />
-                            </el-dropdown-item>
+                    <el-dropdown v-else-if="showColumnsType === 'checkbox'" trigger="click" :hide-on-click="false">
+                        <el-button circle>
+                            <Icon icon="ep:menu" />
+                        </el-button>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item>
+                                    <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">列展示</el-checkbox>
+                                </el-dropdown-item>
+                                <div class="check-line"></div>
+                                <template v-for="item in columns" :key="item.key">
+                                    <el-dropdown-item>
+                                        <el-checkbox v-model="item.visible" :label="item.label" @change="handleCheckedTableChange(item)" />
+                                    </el-dropdown-item>
+                                </template>
+                            </el-dropdown-menu>
                         </template>
-                    </el-dropdown-menu>
-                </template>
-            </el-dropdown>
+                    </el-dropdown>
+
+                    <span v-else class="columns-trigger-empty"></span>
+                </span>
+            </template>
         </el-tooltip>
 
         <el-dialog :title="title" v-model="open" append-to-body>
@@ -179,5 +185,15 @@ function handleCheckAllChange(val) {
     height: 1px;
     background-color: var(--el-border-color-light);
     margin: 5px 0;
+}
+
+.columns-trigger {
+    display: inline-flex;
+    align-items: center;
+}
+.columns-trigger-empty {
+    display: inline-block;
+    width: 1px;
+    height: 1px;
 }
 </style>

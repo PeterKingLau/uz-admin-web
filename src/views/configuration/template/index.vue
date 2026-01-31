@@ -1,5 +1,53 @@
 <template>
     <div class="app-container template-manage">
+        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
+            <el-form-item :label="TEXT_MAP.interestType" prop="interestType">
+                <el-select
+                    v-model="queryParams.interestType"
+                    :placeholder="TEXT_MAP.interestTypePlaceholder"
+                    :loading="dimensionLoading"
+                    clearable
+                    filterable
+                    style="width: 220px"
+                >
+                    <el-option v-for="opt in interestTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item :label="TEXT_MAP.abilityLevel" prop="abilityLevel">
+                <el-select v-model="queryParams.abilityLevel" :placeholder="TEXT_MAP.abilityLevelPlaceholder" clearable style="width: 180px">
+                    <el-option v-for="(label, value) in ABILITY_MAP" :key="value" :label="label" :value="Number(value)" />
+                </el-select>
+            </el-form-item>
+            <el-form-item :label="TEXT_MAP.valueType" prop="valueType">
+                <el-select
+                    v-model="queryParams.valueType"
+                    :placeholder="TEXT_MAP.valueTypePlaceholder"
+                    :loading="dimensionLoading"
+                    clearable
+                    filterable
+                    style="width: 200px"
+                >
+                    <el-option v-for="opt in valueTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item :label="TEXT_MAP.personalityTrait" prop="personalityTrait">
+                <el-select
+                    v-model="queryParams.personalityTrait"
+                    :placeholder="TEXT_MAP.personalityTraitPlaceholder"
+                    :loading="dimensionLoading"
+                    clearable
+                    filterable
+                    style="width: 200px"
+                >
+                    <el-option v-for="opt in personalityTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1" /> {{ TEXT_MAP.search }} </el-button>
+                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1" /> {{ TEXT_MAP.reset }} </el-button>
+            </el-form-item>
+        </el-form>
+
         <div class="table-wrapper">
             <div class="table-header">
                 <div class="left-tools">
@@ -8,7 +56,7 @@
                         <Icon icon="mdi:trash-can-outline" class="mr-1" /> {{ TEXT_MAP.delete }}
                     </el-button>
                 </div>
-                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :search="false" />
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
             </div>
 
             <el-table v-loading="loading" :data="templateList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
@@ -237,12 +285,15 @@ const showSearch = ref(true)
 const total = ref(0)
 const templateList = ref<TemplateItem[]>([])
 const selectedIds = ref<(number | string)[]>([])
+const queryRef = ref()
 
 const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
-    name: '',
-    code: ''
+    interestType: '',
+    abilityLevel: '',
+    valueType: '',
+    personalityTrait: ''
 })
 
 const {
@@ -291,8 +342,10 @@ async function getList() {
         const res = await listTemplates({
             pageNum: queryParams.pageNum,
             pageSize: queryParams.pageSize,
-            name: queryParams.name || undefined,
-            code: queryParams.code || undefined
+            interestType: queryParams.interestType || undefined,
+            abilityLevel: queryParams.abilityLevel || undefined,
+            valueType: queryParams.valueType || undefined,
+            personalityTrait: queryParams.personalityTrait || undefined
         })
         const rows = parseTemplateRows(res) || []
         templateList.value = rows
@@ -304,6 +357,16 @@ async function getList() {
     } finally {
         loading.value = false
     }
+}
+
+function handleQuery() {
+    queryParams.pageNum = 1
+    getList()
+}
+
+function resetQuery() {
+    proxy?.resetForm?.('queryRef')
+    handleQuery()
 }
 
 function handleAdd() {

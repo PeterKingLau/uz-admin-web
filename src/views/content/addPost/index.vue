@@ -8,10 +8,13 @@
                             <h2>发布新动态</h2>
                             <p>分享生活，记录精彩瞬间</p>
                         </div>
-                        <el-button link type="primary" @click="handleReset(false)"> <Icon icon="mdi:refresh" class="mr-1" /> 重置内容 </el-button>
+                        <el-button link type="primary" @click="handleReset(false)" class="reset-btn">
+                            <Icon icon="mdi:refresh" class="mr-1" />
+                            重置内容
+                        </el-button>
                     </div>
 
-                    <el-card shadow="hover" class="form-card">
+                    <el-card shadow="never" class="form-card">
                         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="post-form">
                             <el-form-item label="选择发布类型" prop="postType" class="type-form-item">
                                 <div class="type-grid">
@@ -38,15 +41,17 @@
                                             <span class="type-name">{{ type.text }}</span>
                                             <span class="type-desc">{{ type.desc }}</span>
                                         </div>
-                                        <div class="check-mark" v-if="form.postType === type.label">
-                                            <Icon icon="mdi:check-circle" />
-                                        </div>
+                                        <transition name="check-scale">
+                                            <div class="check-mark" v-if="form.postType === type.label">
+                                                <Icon icon="mdi:check-circle" />
+                                            </div>
+                                        </transition>
                                     </div>
                                 </div>
                                 <el-radio-group v-model="form.postType" v-show="false"></el-radio-group>
                             </el-form-item>
 
-                            <el-form-item label="正文内容" prop="content">
+                            <el-form-item label="正文内容" prop="content" class="highlight-label">
                                 <div class="input-wrapper">
                                     <el-input
                                         v-model="form.content"
@@ -62,11 +67,12 @@
                                 </div>
                             </el-form-item>
 
-                            <transition name="el-fade-in">
+                            <transition name="el-zoom-in-top">
                                 <el-form-item
                                     v-if="form.postType !== POST_TYPE.TEXT"
                                     :label="form.postType === POST_TYPE.IMAGE ? '上传图片' : '上传视频'"
                                     prop="files"
+                                    class="highlight-label"
                                 >
                                     <div
                                         class="upload-container"
@@ -127,6 +133,13 @@
                                                 </div>
                                             </template>
                                         </el-upload>
+
+                                        <transition name="drag-fade">
+                                            <div v-if="isDragging" class="drag-overlay">
+                                                <Icon icon="mdi:cloud-upload" class="drag-icon" />
+                                                <span class="drag-text">松开上传文件</span>
+                                            </div>
+                                        </transition>
                                     </div>
                                 </el-form-item>
                             </transition>
@@ -141,7 +154,7 @@
                                     clearable
                                     :loading="interestLoading"
                                     class="custom-select"
-                                    tag-type="primary"
+                                    popper-class="custom-select-popper"
                                 >
                                     <template #prefix>
                                         <Icon icon="mdi:pound" />
@@ -158,7 +171,8 @@
 
                             <div class="form-footer">
                                 <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit" class="submit-btn">
-                                    <Icon icon="mdi:send-outline" class="mr-2 text-[18px]" /> 立即发布
+                                    <Icon icon="mdi:send-outline" class="mr-2 text-[18px]" />
+                                    {{ submitting ? '发布中...' : '立即发布' }}
                                 </el-button>
                             </div>
                         </el-form>
@@ -169,11 +183,18 @@
             <el-col :xs="24" :sm="24" :md="10" :lg="9" :xl="8">
                 <div class="preview-sticky-wrapper">
                     <div class="preview-header">
-                        <span class="label">实时预览</span>
+                        <div class="header-left">
+                            <Icon icon="mdi:cellphone" class="header-icon" />
+                            <span class="label">实时预览</span>
+                        </div>
+                        <el-tag size="small" type="info" effect="plain">{{ currentTime }}</el-tag>
                     </div>
 
                     <div class="mobile-frame">
-                        <div class="notch"></div>
+                        <div class="notch">
+                            <div class="camera"></div>
+                            <div class="speaker"></div>
+                        </div>
                         <div class="side-btn volume-up"></div>
                         <div class="side-btn volume-down"></div>
                         <div class="side-btn power"></div>
@@ -184,7 +205,7 @@
                                 <div class="status-icons">
                                     <Icon icon="mdi:signal-cellular-3" />
                                     <Icon icon="mdi:wifi" />
-                                    <Icon icon="mdi:battery-70" />
+                                    <Icon icon="mdi:battery-80" />
                                 </div>
                             </div>
 
@@ -198,41 +219,54 @@
                             </div>
 
                             <div class="scroll-area">
-                                <div class="media-area" v-if="form.postType !== POST_TYPE.TEXT && previewMediaList.length">
-                                    <el-carousel
-                                        v-if="form.postType === POST_TYPE.IMAGE"
-                                        :autoplay="false"
-                                        indicator-position="none"
-                                        height="375px"
-                                        arrow="always"
-                                        class="media-carousel"
-                                    >
-                                        <el-carousel-item v-for="(url, index) in previewMediaList" :key="index">
-                                            <div class="carousel-img" :style="{ backgroundImage: `url(${url})` }"></div>
-                                        </el-carousel-item>
-                                        <div class="indicator-dots" v-if="previewMediaList.length > 1">
+                                <transition name="media-slide">
+                                    <div class="media-area" v-if="form.postType !== POST_TYPE.TEXT && previewMediaList.length">
+                                        <el-carousel
+                                            v-if="form.postType === POST_TYPE.IMAGE"
+                                            :autoplay="false"
+                                            indicator-position="none"
+                                            height="375px"
+                                            arrow="always"
+                                            class="media-carousel"
+                                        >
+                                            <el-carousel-item v-for="(url, index) in previewMediaList" :key="index">
+                                                <div class="carousel-img" :style="{ backgroundImage: `url(${url})` }"></div>
+                                            </el-carousel-item>
+                                        </el-carousel>
+
+                                        <div v-else-if="form.postType === POST_TYPE.VIDEO" class="video-preview">
+                                            <video :src="previewMediaList[0]" controls></video>
+                                        </div>
+
+                                        <div class="indicator-dots" v-if="form.postType === POST_TYPE.IMAGE && previewMediaList.length > 1">
                                             <span v-for="(_, i) in previewMediaList" :key="i" class="dot" :class="{ active: i === 0 }"></span>
                                         </div>
-                                    </el-carousel>
-
-                                    <div v-else-if="form.postType === POST_TYPE.VIDEO" class="video-preview">
-                                        <video :src="previewMediaList[0]" controls></video>
                                     </div>
-                                </div>
+                                </transition>
 
                                 <div class="content-body">
-                                    <h1 class="post-title" v-if="form.content">{{ form.content.slice(0, 20) }}{{ form.content.length > 20 ? '...' : '' }}</h1>
+                                    <transition name="fade">
+                                        <h1 class="post-title" v-if="form.content">
+                                            {{ form.content.slice(0, 20) }}{{ form.content.length > 20 ? '...' : '' }}
+                                        </h1>
+                                    </transition>
+
                                     <p class="post-text" :class="{ placeholder: !form.content }">
                                         {{ form.content || '填写正文内容，记录当下的想法...' }}
                                     </p>
 
-                                    <div class="tags-row" v-if="selectedTagNames.length">
-                                        <span v-for="(tag, index) in selectedTagNames" :key="index" class="hash-tag"> #{{ tag.name }} </span>
-                                    </div>
+                                    <transition name="tags-slide">
+                                        <div class="tags-row" v-if="selectedTagNames.length">
+                                            <span v-for="(tag, index) in selectedTagNames" :key="index" class="hash-tag"> #{{ tag.name }} </span>
+                                        </div>
+                                    </transition>
 
                                     <div class="meta-row">
                                         <span class="date">刚刚</span>
-                                        <span class="location">四川 · 成都</span>
+                                        <span class="location">
+                                            <Icon icon="mdi:map-marker-outline" class="location-icon" />
+                                            四川 · 成都
+                                        </span>
                                     </div>
                                 </div>
 
@@ -248,11 +282,23 @@
                             </div>
 
                             <div class="app-tabbar">
-                                <div class="input-fake">说点什么...</div>
+                                <div class="input-fake">
+                                    <Icon icon="mdi:emoticon-outline" class="emoji-icon" />
+                                    <span>说点什么...</span>
+                                </div>
                                 <div class="action-icons">
-                                    <div class="icon-item"><Icon icon="mdi:heart-outline" /><span class="count">0</span></div>
-                                    <div class="icon-item"><Icon icon="mdi:star-outline" /><span class="count">0</span></div>
-                                    <div class="icon-item"><Icon icon="mdi:comment-outline" /><span class="count">0</span></div>
+                                    <div class="icon-item">
+                                        <Icon icon="mdi:heart-outline" />
+                                        <span class="count">0</span>
+                                    </div>
+                                    <div class="icon-item">
+                                        <Icon icon="mdi:star-outline" />
+                                        <span class="count">0</span>
+                                    </div>
+                                    <div class="icon-item">
+                                        <Icon icon="mdi:comment-outline" />
+                                        <span class="count">0</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -618,14 +664,15 @@ async function handleReset(afterSubmit = false) {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        margin-bottom: 24px;
+        margin-bottom: 28px;
 
         .title-group {
             h2 {
-                font-size: 24px;
+                font-size: 28px;
                 color: var(--el-text-color-primary);
-                margin: 0 0 8px 0;
+                margin: 0 0 10px 0;
                 font-weight: 700;
+                letter-spacing: -0.5px;
             }
             p {
                 color: var(--el-text-color-secondary);
@@ -633,51 +680,129 @@ async function handleReset(afterSubmit = false) {
                 font-size: 14px;
             }
         }
+
+        .reset-btn {
+            font-weight: 500;
+            transition: all 0.2s;
+
+            &:hover {
+                transform: translateY(-1px);
+            }
+        }
     }
 }
 
 .form-card {
-    border-radius: 16px;
-    border: 1px solid var(--el-border-color-light);
-    box-shadow: var(--el-box-shadow-light);
+    border-radius: 20px;
+    border: none;
+    background: var(--el-bg-color);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.05),
+        0 1px 3px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    background-color: var(--el-bg-color-overlay);
+    transition: box-shadow 0.3s;
+
+    &:hover {
+        box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.08),
+            0 2px 6px rgba(0, 0, 0, 0.12);
+    }
 
     :deep(.el-card__body) {
-        padding: 32px;
+        padding: 36px;
+    }
+}
+
+.post-form {
+    :deep(.el-form-item__label) {
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--el-text-color-primary);
+        margin-bottom: 12px;
+    }
+
+    .highlight-label {
+        :deep(.el-form-item__label) {
+            position: relative;
+            padding-left: 16px;
+
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 4px;
+                height: 20px;
+                background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+                border-radius: 2px;
+                box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.3);
+            }
+        }
     }
 }
 
 .type-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 14px;
     margin-top: 8px;
 
     .type-card {
-        border: 2px solid var(--el-border-color);
-        border-radius: 12px;
-        padding: 16px;
+        border: 2px solid var(--el-border-color-lighter);
+        border-radius: 14px;
+        padding: 18px;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         display: flex;
         align-items: center;
-        gap: 12px;
-        background-color: var(--el-bg-color);
+        gap: 14px;
+        background: var(--el-fill-color-blank);
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
 
         &:hover {
             border-color: var(--el-color-primary-light-5);
-            background-color: var(--el-fill-color-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.12);
+
+            &::before {
+                opacity: 1;
+            }
+
+            .icon-box {
+                transform: scale(1.05);
+            }
+        }
+
+        &:active {
+            transform: translateY(0);
         }
 
         &.active {
             border-color: var(--el-color-primary);
-            background-color: var(--el-color-primary-light-9);
+            background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08), rgba(var(--el-color-primary-rgb), 0.03));
+            box-shadow:
+                0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+                0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1) inset;
+
+            &::before {
+                opacity: 0;
+            }
 
             .icon-box {
-                background: var(--el-color-primary);
+                background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
                 color: var(--el-color-white);
+                box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.35);
             }
 
             .type-name {
@@ -687,53 +812,74 @@ async function handleReset(afterSubmit = false) {
         }
 
         .icon-box {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: var(--el-fill-color);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--el-fill-color-light);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
             color: var(--el-text-color-regular);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
         }
 
         .info-box {
             display: flex;
             flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
 
             .type-name {
-                font-size: 14px;
+                font-size: 15px;
                 font-weight: 600;
                 color: var(--el-text-color-primary);
-                margin-bottom: 2px;
+                transition: color 0.25s;
             }
 
             .type-desc {
-                font-size: 11px;
+                font-size: 12px;
                 color: var(--el-text-color-secondary);
+                line-height: 1.3;
             }
         }
 
         .check-mark {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 10px;
+            right: 10px;
             color: var(--el-color-primary);
-            font-size: 16px;
+            font-size: 18px;
+            filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
         }
     }
 }
 
+.check-scale-enter-active,
+.check-scale-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.check-scale-enter-from {
+    opacity: 0;
+    transform: scale(0);
+}
+
+.check-scale-leave-to {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
 .custom-textarea {
     :deep(.el-textarea__inner) {
-        border-radius: 12px;
-        padding: 16px;
+        border-radius: 14px;
+        padding: 18px;
         font-size: 15px;
-        line-height: 1.6;
-        border: 1px solid var(--el-border-color);
-        background-color: var(--el-input-bg-color, var(--el-fill-color-blank));
+        line-height: 1.7;
+        border: 2px solid var(--el-border-color-lighter);
+        background-color: var(--el-fill-color-blank);
         color: var(--el-text-color-primary);
         box-shadow: none;
         transition: all 0.3s;
@@ -742,22 +888,97 @@ async function handleReset(afterSubmit = false) {
             color: var(--el-text-color-placeholder);
         }
 
+        &:hover {
+            border-color: var(--el-border-color);
+            background-color: var(--el-bg-color);
+        }
+
         &:focus {
             background-color: var(--el-bg-color);
             border-color: var(--el-color-primary);
-            box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+            box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
         }
+    }
+
+    :deep(.el-input__count) {
+        background: transparent;
+        font-size: 12px;
     }
 }
 
 .upload-container {
     width: 100%;
-    border-radius: 12px;
+    position: relative;
+    border-radius: 14px;
+    transition: all 0.3s;
+
+    &.is-dragging {
+        &::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border: 3px dashed var(--el-color-primary);
+            border-radius: 16px;
+            background: rgba(var(--el-color-primary-rgb), 0.03);
+            z-index: 1;
+            pointer-events: none;
+            animation: dash-rotate 20s linear infinite;
+        }
+    }
 }
 
-.upload-container.is-dragging {
-    outline: 2px dashed var(--el-color-primary);
-    outline-offset: 4px;
+@keyframes dash-rotate {
+    to {
+        stroke-dashoffset: -100;
+    }
+}
+
+.drag-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15), rgba(var(--el-color-primary-rgb), 0.08));
+    backdrop-filter: blur(8px);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: none;
+
+    .drag-icon {
+        font-size: 48px;
+        color: var(--el-color-primary);
+        animation: bounce 1s ease-in-out infinite;
+    }
+
+    .drag-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-color-primary);
+    }
+}
+
+@keyframes bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.drag-fade-enter-active,
+.drag-fade-leave-active {
+    transition: all 0.3s;
+}
+
+.drag-fade-enter-from,
+.drag-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.95);
 }
 
 .custom-upload {
@@ -767,26 +988,29 @@ async function handleReset(afterSubmit = false) {
     &.is-empty {
         :deep(.el-upload--picture-card) {
             width: 100%;
-            height: 180px;
-            border: 2px dashed var(--el-border-color);
-            background-color: var(--el-fill-color-lighter);
-            border-radius: 12px;
-            transition: all 0.3s;
+            height: 200px;
+            border: 2px dashed var(--el-border-color-lighter);
+            background: var(--el-fill-color-lighter);
+            border-radius: 14px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
             &:hover {
                 border-color: var(--el-color-primary);
-                background-color: var(--el-color-primary-light-9);
+                background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05), rgba(var(--el-color-primary-rgb), 0.02));
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.12);
             }
         }
         .upload-trigger-content {
             flex-direction: column;
             padding: 32px 0;
-            gap: 12px;
+            gap: 14px;
             .icon-wrapper {
-                font-size: 40px;
+                font-size: 48px;
             }
             .primary-text {
-                font-size: 15px;
+                font-size: 16px;
+                font-weight: 600;
             }
             .secondary-text {
                 display: block;
@@ -796,35 +1020,39 @@ async function handleReset(afterSubmit = false) {
 
     &:not(.is-empty) {
         :deep(.el-upload--picture-card) {
-            width: 110px;
-            height: 110px;
-            margin: 0 8px 8px 0;
-            border: 1px dashed var(--el-border-color);
-            border-radius: 8px;
-            background-color: var(--el-fill-color-lighter);
+            width: 116px;
+            height: 116px;
+            margin: 0 10px 10px 0;
+            border: 2px dashed var(--el-border-color-lighter);
+            border-radius: 12px;
+            background: var(--el-fill-color-lighter);
             vertical-align: top;
-            transition: all 0.3s;
+            transition: all 0.25s;
             display: inline-flex;
 
             &:hover {
                 border-color: var(--el-color-primary);
                 color: var(--el-color-primary);
+                transform: scale(1.02);
+                box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
             }
         }
 
         .upload-trigger-content {
             padding: 0;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
 
             .icon-wrapper {
-                font-size: 24px;
+                font-size: 28px;
                 color: var(--el-text-color-secondary);
+                transition: all 0.25s;
             }
             .primary-text {
-                font-size: 12px;
+                font-size: 13px;
                 color: var(--el-text-color-regular);
                 margin: 0;
+                font-weight: 500;
             }
             .secondary-text {
                 display: none;
@@ -837,14 +1065,22 @@ async function handleReset(afterSubmit = false) {
         vertical-align: top;
 
         .el-upload-list__item {
-            width: 110px;
-            height: 110px;
-            margin: 0 8px 8px 0;
-            border-radius: 8px;
+            width: 116px;
+            height: 116px;
+            margin: 0 10px 10px 0;
+            border-radius: 12px;
             border: none;
             overflow: hidden;
             display: inline-flex;
             vertical-align: top;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.25s;
+
+            &:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+                z-index: 1;
+            }
         }
     }
 
@@ -873,24 +1109,24 @@ async function handleReset(afterSubmit = false) {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        line-height: 1.5;
+        line-height: 1.6;
+        gap: 4px;
 
         .primary-text {
-            font-weight: 500;
+            font-weight: 600;
             color: var(--el-text-color-primary);
         }
 
         .secondary-text {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--el-text-color-secondary);
-            margin-top: 4px;
         }
     }
 }
 
 :deep(.el-upload--picture-card:hover) .icon-wrapper {
     color: var(--el-color-primary);
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.05);
 }
 
 .uploaded-file-wrapper {
@@ -909,12 +1145,13 @@ async function handleReset(afterSubmit = false) {
     .overlay {
         position: absolute;
         inset: 0;
-        background: var(--el-overlay-color-lighter);
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
-        transition: opacity 0.2s;
+        transition: all 0.25s;
     }
 
     &:hover .overlay {
@@ -923,30 +1160,119 @@ async function handleReset(afterSubmit = false) {
 
     .delete-btn {
         color: var(--el-color-white);
-        font-size: 20px;
+        font-size: 24px;
         cursor: pointer;
-        padding: 8px;
+        padding: 10px;
         border-radius: 50%;
-        transition: all 0.2s;
+        background: rgba(0, 0, 0, 0.3);
+        transition: all 0.25s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         &:hover {
-            background: var(--el-fill-color-light);
-            color: var(--el-color-danger);
+            background: var(--el-color-danger);
+            transform: scale(1.1) rotate(90deg);
         }
     }
 }
 
+.custom-select {
+    :deep(.el-select__wrapper) {
+        border-radius: 14px;
+        padding: 12px 16px;
+        border: 2px solid var(--el-border-color-lighter);
+        box-shadow: none;
+        transition: all 0.3s;
+
+        &:hover {
+            border-color: var(--el-border-color);
+        }
+
+        &.is-focused {
+            border-color: var(--el-color-primary);
+            box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+        }
+    }
+
+    :deep(.el-select__prefix) {
+        color: var(--el-color-primary);
+        font-size: 18px;
+    }
+
+    :deep(.el-tag) {
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-weight: 500;
+    }
+}
+
+:deep(.custom-select-popper) {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--el-border-color-light);
+
+    .el-select-dropdown__item {
+        border-radius: 8px;
+        margin: 2px 8px;
+        padding: 10px 12px;
+        transition: all 0.2s;
+
+        &:hover {
+            background: rgba(var(--el-color-primary-rgb), 0.08);
+        }
+
+        &.is-selected {
+            background: rgba(var(--el-color-primary-rgb), 0.12);
+            color: var(--el-color-primary);
+            font-weight: 600;
+        }
+    }
+
+    .el-select-group__title {
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        padding: 10px 16px;
+    }
+}
+
+.hash-symbol {
+    color: var(--el-color-primary);
+    font-weight: 600;
+    margin-right: 4px;
+}
+
 .form-footer {
-    margin-top: 40px;
+    margin-top: 48px;
     display: flex;
     justify-content: flex-end;
 
     .submit-btn {
-        padding: 12px 36px;
-        border-radius: 12px;
+        padding: 14px 42px;
+        border-radius: 14px;
         font-weight: 600;
         font-size: 16px;
-        box-shadow: var(--el-box-shadow);
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        border: none;
+        box-shadow:
+            0 6px 16px rgba(var(--el-color-primary-rgb), 0.3),
+            0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 10px 24px rgba(var(--el-color-primary-rgb), 0.35),
+                0 4px 10px rgba(var(--el-color-primary-rgb), 0.25);
+        }
+
+        &:active {
+            transform: translateY(0);
+        }
+
+        &.is-loading {
+            opacity: 0.8;
+        }
     }
 }
 
@@ -963,12 +1289,23 @@ async function handleReset(afterSubmit = false) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 
-    .label {
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-        font-size: 16px;
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .header-icon {
+            font-size: 20px;
+            color: var(--el-color-primary);
+        }
+
+        .label {
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+            font-size: 16px;
+        }
     }
 }
 
@@ -976,52 +1313,77 @@ async function handleReset(afterSubmit = false) {
     width: 320px;
     height: 650px;
     background: var(--el-bg-color);
-    border-radius: 44px;
+    border-radius: 46px;
     box-shadow:
-        0 0 0 8px #1f1f1f,
-        0 0 0 10px #000000,
-        0 20px 40px rgba(0, 0, 0, 0.4);
+        0 0 0 2px var(--el-border-color-light),
+        0 0 0 10px #1f1f1f,
+        0 0 0 12px #0a0a0a,
+        0 24px 48px rgba(0, 0, 0, 0.45),
+        0 12px 24px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
     z-index: 1;
-    transition: background-color 0.3s;
-}
+    transition: all 0.3s;
 
-.mobile-frame {
     .notch {
         position: absolute;
-        top: 12px;
+        top: 0;
         left: 50%;
         transform: translateX(-50%);
-        width: 100px;
-        height: 30px;
-        background: #000;
-        border-radius: 15px;
+        width: 130px;
+        height: 32px;
+        background: #0a0a0a;
+        border-radius: 0 0 18px 18px;
         z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 20px;
+
+        .camera {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+        }
+
+        .speaker {
+            width: 50px;
+            height: 5px;
+            border-radius: 3px;
+            background: #1a1a1a;
+        }
     }
 
     .side-btn {
         position: absolute;
         background: #1f1f1f;
-        border-radius: 2px 0 0 2px;
+        border: 1px solid #0a0a0a;
     }
+
     .volume-up {
         width: 3px;
-        height: 40px;
-        left: -11px;
-        top: 120px;
+        height: 45px;
+        left: -12px;
+        top: 125px;
+        border-radius: 2px 0 0 2px;
     }
+
     .volume-down {
         width: 3px;
-        height: 40px;
-        left: -11px;
-        top: 170px;
+        height: 45px;
+        left: -12px;
+        top: 180px;
+        border-radius: 2px 0 0 2px;
     }
+
     .power {
         width: 3px;
-        height: 60px;
-        right: -11px;
-        top: 150px;
+        height: 70px;
+        right: -12px;
+        top: 155px;
         border-radius: 0 2px 2px 0;
     }
 }
@@ -1032,43 +1394,54 @@ async function handleReset(afterSubmit = false) {
     flex-direction: column;
     background: var(--el-bg-color);
     color: var(--el-text-color-primary);
-    transition:
-        background-color 0.3s,
-        color 0.3s;
+    transition: all 0.3s;
 }
 
 .status-bar {
-    height: 48px;
+    height: 50px;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    padding: 0 24px 8px;
-    font-size: 12px;
-    font-weight: 600;
+    padding: 0 24px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+
+    .time {
+        color: var(--el-text-color-primary);
+    }
 
     .status-icons {
         display: flex;
-        gap: 6px;
+        gap: 7px;
+        color: var(--el-text-color-primary);
     }
 }
 
 .app-nav {
-    height: 44px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--el-border-color-extra-light);
 
     .nav-icon {
-        font-size: 24px;
+        font-size: 26px;
         color: inherit;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:active {
+            opacity: 0.6;
+        }
     }
 
     .user-brief {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 10px;
+        font-size: 15px;
         font-weight: 600;
     }
 }
@@ -1101,6 +1474,15 @@ async function handleReset(afterSubmit = false) {
         background: var(--el-fill-color-darker);
     }
 
+    :deep(.el-carousel__arrow) {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+    }
+
     .video-preview video {
         width: 100%;
         height: 100%;
@@ -1118,42 +1500,62 @@ async function handleReset(afterSubmit = false) {
 
     .indicator-dots {
         position: absolute;
-        bottom: 12px;
+        bottom: 16px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
-        gap: 6px;
+        gap: 7px;
         z-index: 5;
 
         .dot {
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
-            background: var(--el-fill-color);
+            background: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s;
+
             &.active {
                 background: var(--el-color-white);
+                width: 22px;
+                border-radius: 4px;
             }
         }
     }
 }
 
+.media-slide-enter-active,
+.media-slide-leave-active {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.media-slide-enter-from {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.media-slide-leave-to {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
 .content-body {
-    padding: 16px;
+    padding: 18px;
 
     .post-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin: 0 0 8px;
+        font-size: 19px;
+        font-weight: 700;
+        margin: 0 0 10px;
         line-height: 1.4;
         color: var(--el-text-color-primary);
+        letter-spacing: -0.2px;
     }
 
     .post-text {
         font-size: 15px;
-        line-height: 1.6;
+        line-height: 1.7;
         color: inherit;
         white-space: pre-wrap;
-        margin: 0 0 12px;
+        margin: 0 0 14px;
 
         &.placeholder {
             color: var(--el-text-color-placeholder);
@@ -1162,88 +1564,157 @@ async function handleReset(afterSubmit = false) {
     }
 
     .tags-row {
-        margin-bottom: 12px;
+        margin-bottom: 14px;
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
 
         .hash-tag {
             color: var(--el-color-primary);
             font-size: 14px;
+            font-weight: 600;
+            padding: 4px 10px;
+            background: rgba(var(--el-color-primary-rgb), 0.08);
+            border-radius: 8px;
+            transition: all 0.2s;
+
+            &:hover {
+                background: rgba(var(--el-color-primary-rgb), 0.12);
+            }
         }
     }
 
     .meta-row {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--el-text-color-secondary);
         display: flex;
         justify-content: space-between;
+        align-items: center;
+
+        .location {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            .location-icon {
+                font-size: 14px;
+            }
+        }
     }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: all 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(-5px);
+}
+
+.tags-slide-enter-active,
+.tags-slide-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tags-slide-enter-from {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.tags-slide-leave-to {
+    opacity: 0;
+    transform: translateX(10px);
 }
 
 .mock-divider {
-    margin: 8px 0;
-    border-color: var(--el-border-color-lighter);
+    margin: 10px 0;
+    border-color: var(--el-border-color-extra-light);
 }
 
 .mock-comments {
-    padding: 0 16px 20px;
+    padding: 0 18px 24px;
 
     .comment-count {
-        font-size: 13px;
+        font-size: 14px;
         color: var(--el-text-color-secondary);
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        font-weight: 600;
     }
 
     .empty-comment {
-        height: 100px;
+        height: 110px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         color: var(--el-text-color-placeholder);
-        font-size: 13px;
-        gap: 8px;
+        font-size: 14px;
+        gap: 10px;
 
         .iconify {
-            font-size: 32px;
+            font-size: 36px;
+            opacity: 0.6;
         }
     }
 }
 
 .app-tabbar {
-    height: 50px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    height: 54px;
+    border-top: 1px solid var(--el-border-color-extra-light);
     display: flex;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 18px;
     background: var(--el-bg-color);
     transition: all 0.3s;
+    gap: 14px;
 
     .input-fake {
         flex: 1;
-        height: 34px;
+        height: 36px;
         background: var(--el-fill-color);
-        border-radius: 17px;
-        padding-left: 16px;
-        font-size: 13px;
+        border-radius: 18px;
+        padding: 0 16px;
+        font-size: 14px;
         color: var(--el-text-color-secondary);
-        line-height: 34px;
-        margin-right: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+
+        .emoji-icon {
+            font-size: 18px;
+            color: var(--el-text-color-placeholder);
+        }
+
+        &:active {
+            background: var(--el-fill-color-dark);
+        }
     }
 
     .action-icons {
         display: flex;
-        gap: 20px;
+        gap: 18px;
         color: inherit;
-        font-size: 22px;
+        font-size: 24px;
 
         .icon-item {
             display: flex;
             align-items: center;
-            gap: 2px;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+
             .count {
-                font-size: 12px;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            &:active {
+                opacity: 0.6;
+                transform: scale(0.95);
             }
         }
     }
@@ -1252,6 +1723,15 @@ async function handleReset(afterSubmit = false) {
 @media screen and (max-width: 992px) {
     .type-grid {
         grid-template-columns: 1fr;
+    }
+
+    .preview-sticky-wrapper {
+        position: static;
+        margin-top: 40px;
+    }
+
+    .form-card :deep(.el-card__body) {
+        padding: 24px;
     }
 }
 </style>

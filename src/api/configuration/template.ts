@@ -15,8 +15,10 @@ export interface TemplateListResponse {
 export interface TemplateListParams {
     pageNum?: number
     pageSize?: number
-    name?: string
-    code?: string
+    interestType?: string
+    abilityLevel?: number | string
+    valueType?: string
+    personalityTrait?: string
     status?: string
 }
 
