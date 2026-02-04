@@ -199,6 +199,7 @@ const queryParams = reactive<{
     content: string
     tagId?: number | string
     isQuestion: number | string
+    isCircle: number | string
     lastId?: number
     lastCreateTime?: string
     limit: number
@@ -207,6 +208,7 @@ const queryParams = reactive<{
     content: '',
     tagId: undefined,
     isQuestion: 0,
+    isCircle: 0,
     lastId: undefined,
     lastCreateTime: undefined,
     limit: 10
@@ -705,6 +707,7 @@ async function fetchList(isLoadMore = false) {
             content: queryParams.content?.trim() || undefined,
             tagId: queryParams.tagId || undefined,
             isQuestion: queryParams.isQuestion ?? 0,
+            isCircle: queryParams.isCircle ?? 0,
             lastId: queryParams.lastId,
             lastCreateTime: queryParams.lastCreateTime,
             limit: queryParams.limit
@@ -759,6 +762,7 @@ function resetQuery() {
     queryParams.content = ''
     queryParams.tagId = undefined
     queryParams.isQuestion = 0
+    queryParams.isCircle = 0
     queryParams.limit = 10
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined

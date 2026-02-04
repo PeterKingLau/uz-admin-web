@@ -1,85 +1,43 @@
-<template>
-    <div v-loading="loadingPosts" class="posts-feed">
-        <div v-for="post in postList" :key="post.id" class="feed-card">
-            <div class="card-header">
-                <div class="author-section">
-                    <el-avatar :size="40" :src="getImgUrl(post.authorAvatar || '')" class="author-avatar">
-                        {{ post.authorName?.charAt(0) }}
-                    </el-avatar>
-                    <div class="author-info">
-                        <div class="author-name">{{ post.authorName }}</div>
-                    </div>
-                </div>
-                <div v-if="post.isTop" class="top-badge">
-                    <Icon icon="mdi:pin" />
-                    置顶
-                </div>
-            </div>
+﻿<template>
+    <div v-loading="loadingPosts" class="posts-feed-container">
+        <CircleDetailPostCard
+            v-for="post in postList"
+            :key="post.id"
+            :post="post"
+            :get-img-url="getImgUrl"
+            :format-action-count="formatActionCount"
+            @like="handleLike"
+            @comment="handleComment"
+            @share="handleShare"
+            @collect="handleCollect"
+        />
 
-            <div class="card-content">
-                <div class="content-text">
-                    <span v-if="post.title" class="text-title">{{ post.title }}</span>
-                    <span v-if="post.title && post.content"> </span>
-                    <span v-if="post.content">{{ post.content }}</span>
-                </div>
-
-                <div v-if="post.images?.length" class="content-images" :class="`images-count-${Math.min(post.images.length, 4)}`">
-                    <div v-for="(img, idx) in post.images.slice(0, 9)" :key="idx" class="image-wrapper">
-                        <el-image
-                            :src="getImgUrl(img)"
-                            fit="cover"
-                            class="image-item"
-                            :preview-src-list="post.images.map(i => getImgUrl(i))"
-                            :initial-index="idx"
-                            loading="lazy"
-                        />
-                        <div v-if="idx === 8 && post.images.length > 9" class="image-overlay">+{{ post.images.length - 9 }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-footer">
-                <div class="post-time">{{ formatTime(post.updateTime || post.createTime) }}</div>
-                <div class="action-bar">
-                    <div class="action-item">
-                        <Icon icon="mdi:thumb-up-outline" />
-                        <span>{{ formatActionCount(post.likeCount, '赞同') }}</span>
-                    </div>
-                    <div class="action-item">
-                        <Icon icon="mdi:comment-text-outline" />
-                        <span>{{ formatActionCount(post.commentCount, '条评论') }}</span>
-                    </div>
-                    <div class="action-item">
-                        <Icon icon="mdi:share-variant-outline" />
-                        <span>分享</span>
-                    </div>
-                    <div class="action-item">
-                        <Icon icon="mdi:star-outline" />
-                        <span>收藏</span>
-                    </div>
-                </div>
-            </div>
+        <div v-if="!loadingPosts && postList.length === 0" class="empty-feed">
+            <el-empty description="暂无动态" :image-size="140" />
         </div>
-
-        <el-empty v-if="!loadingPosts && postList.length === 0" description="暂无讨论内容" :image-size="120" />
     </div>
+
+    <CircleCommentsDialog
+        v-model="commentDialogVisible"
+        :post="activeCommentPost"
+        :comments="commentDialogComments"
+        :loading="commentDialogLoading"
+        :get-img-url="getImgUrl"
+        :format-time="formatTime"
+        :user-avatar="currentUserAvatar"
+        :user-name="currentUserName"
+        @submit="handleSubmitComment"
+    />
 </template>
 
 <script setup lang="ts">
-interface PostItem {
-    id: string | number
-    title: string
-    content?: string
-    authorName?: string
-    authorAvatar?: string
-    images?: string[]
-    videoUrl?: string
-    isTop?: boolean
-    likeCount?: number
-    commentCount?: number
-    createTime?: string
-    updateTime?: string
-}
+import { computed, getCurrentInstance, reactive, ref, watch } from 'vue'
+import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
+import { listTopComments } from '@/api/content/postComment'
+import useUserStore from '@/store/modules/user'
+import CircleCommentsDialog from './CircleCommentsDialog.vue'
+import CircleDetailPostCard from './CircleDetailPostCard.vue'
+import type { PostItem } from './types'
 
 defineProps<{
     postList: PostItem[]
@@ -88,205 +46,198 @@ defineProps<{
     formatTime: (time?: string) => string
     formatActionCount: (num?: number, suffix?: string) => string
 }>()
+
+const { proxy } = getCurrentInstance() || {}
+const userStore = useUserStore()
+const currentUserAvatar = computed(() => userStore.avatar)
+const currentUserName = computed(() => userStore.nickName || userStore.name || '')
+
+const likeActionLoading = reactive<Record<string, boolean>>({})
+const collectActionLoading = reactive<Record<string, boolean>>({})
+const commentActionLoading = reactive<Record<string, boolean>>({})
+const shareActionLoading = reactive<Record<string, boolean>>({})
+
+const commentDialogVisible = ref(false)
+const commentDialogLoading = ref(false)
+const commentDialogComments = ref<any[]>([])
+const activeCommentPost = ref<PostItem | null>(null)
+
+const getPostKey = (post: PostItem) => String(post?.id ?? '')
+const getTargetUserId = (post: PostItem) =>
+    post.authorId ??
+    (post as any)?.userId ??
+    (post as any)?.author?.id ??
+    (post as any)?.user?.id ??
+    (post as any)?.createBy ??
+    (post as any)?.creatorId ??
+    undefined
+
+const isLiked = (post: PostItem) => Boolean(post.isLiked ?? post.like)
+const isCollected = (post: PostItem) => Boolean(post.isCollected ?? post.bookmark)
+
+const isLikeLoading = (post: PostItem) => Boolean(likeActionLoading[getPostKey(post)])
+const isCollectLoading = (post: PostItem) => Boolean(collectActionLoading[getPostKey(post)])
+const isCommentLoading = (post: PostItem) => Boolean(commentActionLoading[getPostKey(post)])
+const isShareLoading = (post: PostItem) => Boolean(shareActionLoading[getPostKey(post)])
+
+const handleLike = async (post: PostItem) => {
+    const postId = post?.id
+    const targetUserId = getTargetUserId(post)
+    const key = getPostKey(post)
+    if (!postId || !targetUserId || !key || isLikeLoading(post)) return
+    likeActionLoading[key] = true
+    const wasLiked = isLiked(post)
+    try {
+        const res = await likePost({ postId, targetUserId })
+        const active = res?.data?.active
+        const nextLiked = typeof active === 'boolean' ? active : !wasLiked
+        if (nextLiked !== wasLiked) {
+            post.isLiked = nextLiked
+            post.like = nextLiked
+            const nextCount = Number(post.likeCount || 0) + (nextLiked ? 1 : -1)
+            post.likeCount = Math.max(0, nextCount)
+        }
+    } catch (error) {
+        console.error(error)
+    } finally {
+        likeActionLoading[key] = false
+    }
+}
+
+const handleCollect = async (post: PostItem) => {
+    const postId = post?.id
+    const targetUserId = getTargetUserId(post)
+    const key = getPostKey(post)
+    if (!postId || !targetUserId || !key || isCollectLoading(post)) return
+    collectActionLoading[key] = true
+    const wasCollected = isCollected(post)
+    try {
+        const res = await bookmarkPost({ postId, targetUserId })
+        const active = res?.data?.active
+        const nextCollected = typeof active === 'boolean' ? active : !wasCollected
+        if (nextCollected !== wasCollected) {
+            post.isCollected = nextCollected
+            post.bookmark = nextCollected
+            const baseCount = Number(post.bookmarkCount ?? post.collectCount ?? 0)
+            const nextCount = baseCount + (nextCollected ? 1 : -1)
+            post.bookmarkCount = Math.max(0, nextCount)
+            if (post.collectCount != null) post.collectCount = post.bookmarkCount
+        }
+    } catch (error) {
+        console.error(error)
+    } finally {
+        collectActionLoading[key] = false
+    }
+}
+
+const handleComment = (post: PostItem) => {
+    openCommentDialog(post)
+}
+
+const handleShare = async (post: PostItem) => {
+    const postId = post?.id
+    const key = getPostKey(post)
+    if (!postId || !key || isShareLoading(post)) return
+    let content = ''
+    try {
+        const res = await proxy?.$modal?.prompt?.('请输入转发内容')
+        content = String(res?.value ?? '').trim()
+    } catch {
+        return
+    }
+    if (!content) return
+    shareActionLoading[key] = true
+    try {
+        await repostPost({ originalPostId: postId, content })
+        if (post.shareCount != null) post.shareCount = Number(post.shareCount || 0) + 1
+        if (post.repostCount != null) post.repostCount = Number(post.repostCount || 0) + 1
+    } catch (error) {
+        console.error(error)
+    } finally {
+        shareActionLoading[key] = false
+    }
+}
+
+const resolveCommentList = (raw: any) => {
+    if (!raw) return []
+    if (Array.isArray(raw?.records)) return raw.records
+    if (Array.isArray(raw?.list)) return raw.list
+    if (Array.isArray(raw?.items)) return raw.items
+    if (Array.isArray(raw)) return raw
+    return []
+}
+
+const loadCommentList = async (post: PostItem) => {
+    const postId = post?.id
+    if (!postId) return
+    commentDialogLoading.value = true
+    try {
+        const res = await listTopComments({ postId, limit: 20 })
+        const raw = (res as any)?.data ?? res
+        commentDialogComments.value = resolveCommentList(raw)
+    } catch (error) {
+        console.error(error)
+    } finally {
+        commentDialogLoading.value = false
+    }
+}
+
+const openCommentDialog = async (post: PostItem) => {
+    activeCommentPost.value = post
+    commentDialogVisible.value = true
+    await loadCommentList(post)
+}
+
+const buildLocalComment = (content: string) => ({
+    id: `local-${Date.now()}`,
+    content,
+    createTime: new Date().toISOString(),
+    userName: userStore.nickName || userStore.name || '用户',
+    userAvatar: userStore.avatar
+})
+
+const handleSubmitComment = async (content: string) => {
+    const post = activeCommentPost.value
+    if (!post) return
+    const postId = post?.id
+    const targetUserId = getTargetUserId(post)
+    const key = getPostKey(post)
+    if (!postId || !targetUserId || !key || isCommentLoading(post)) return
+    commentActionLoading[key] = true
+    try {
+        await addComment({ postId, targetUserId, content })
+        post.commentCount = Number(post.commentCount || 0) + 1
+        commentDialogComments.value = [buildLocalComment(content), ...commentDialogComments.value]
+    } catch (error) {
+        console.error(error)
+    } finally {
+        commentActionLoading[key] = false
+    }
+}
+
+watch(
+    () => commentDialogVisible.value,
+    value => {
+        if (!value) {
+            commentDialogComments.value = []
+            activeCommentPost.value = null
+            commentDialogLoading.value = false
+        }
+    }
+)
 </script>
 
 <style scoped lang="scss">
-.posts-feed {
-    min-height: 400px;
+.posts-feed-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
+    padding-bottom: 40px;
 }
 
-.feed-card {
-    background: var(--circle-card-bg);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-
-    &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        border-color: var(--el-border-color-lighter);
-    }
-}
-
-.card-header {
+.empty-feed {
+    padding: 40px 0;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-
-    .author-section {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .author-avatar {
-        flex-shrink: 0;
-    }
-
-    .author-info {
-        flex: 1;
-        min-width: 0;
-
-        .author-name {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--circle-text-main);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-    }
-
-    .top-badge {
-        font-size: 12px;
-        color: var(--el-color-warning);
-        background: var(--el-color-warning-light-9);
-        padding: 3px 8px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-weight: 500;
-        flex-shrink: 0;
-    }
-}
-
-.card-content {
-    margin-bottom: 12px;
-
-    .content-text {
-        font-size: 15px;
-        color: var(--circle-text-main);
-        line-height: 1.7;
-        margin-bottom: 12px;
-        word-wrap: break-word;
-        word-break: break-word;
-
-        .text-title {
-            font-weight: 600;
-        }
-    }
-
-    .content-images {
-        display: grid;
-        gap: 4px;
-        border-radius: 8px;
-        overflow: hidden;
-
-        &.images-count-1 {
-            grid-template-columns: 1fr;
-            max-width: 400px;
-
-            .image-wrapper {
-                aspect-ratio: 4/3;
-                max-height: 300px;
-            }
-        }
-
-        &.images-count-2 {
-            grid-template-columns: repeat(2, 1fr);
-
-            .image-wrapper {
-                aspect-ratio: 1;
-            }
-        }
-
-        &.images-count-3 {
-            grid-template-columns: repeat(3, 1fr);
-
-            .image-wrapper {
-                aspect-ratio: 1;
-            }
-        }
-
-        &.images-count-4 {
-            grid-template-columns: repeat(2, 1fr);
-
-            .image-wrapper {
-                aspect-ratio: 1;
-            }
-        }
-
-        grid-template-columns: repeat(3, 1fr);
-
-        .image-wrapper {
-            position: relative;
-            aspect-ratio: 1;
-            overflow: hidden;
-            background: var(--el-fill-color-light);
-
-            .image-item {
-                width: 100%;
-                height: 100%;
-                display: block;
-                cursor: zoom-in;
-                transition: transform 0.3s ease;
-
-                &:hover {
-                    transform: scale(1.05);
-                }
-            }
-
-            .image-overlay {
-                position: absolute;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.6);
-                color: #fff;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 20px;
-                font-weight: 600;
-                cursor: pointer;
-                backdrop-filter: blur(2px);
-            }
-        }
-    }
-}
-
-.card-footer {
-    padding-top: 12px;
-    border-top: 1px solid var(--el-border-color-lighter);
-
-    .post-time {
-        font-size: 13px;
-        color: var(--circle-text-muted);
-        margin-bottom: 8px;
-    }
-
-    .action-bar {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-    }
-
-    .action-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        color: var(--circle-text-muted);
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 4px;
-        transition: all 0.2s;
-        margin-left: -8px;
-
-        &:hover {
-            color: var(--el-color-primary);
-            background: var(--el-fill-color-light);
-        }
-
-        .iconify {
-            font-size: 16px;
-        }
-    }
+    justify-content: center;
 }
 </style>

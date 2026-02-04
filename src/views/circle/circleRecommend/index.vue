@@ -132,7 +132,6 @@
 <script setup lang="ts" name="CirclePlaza">
 import { ref, onMounted, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
-import { Icon } from '@iconify/vue'
 import { getImgUrl } from '@/utils/img'
 import { listCircles, listMyJoinedCircles, parseCircleRows, joinCircle, exitCircle, getCircleInfo, type CircleItem } from '@/api/content/circleManagement'
 import useUserStore from '@/store/modules/user'

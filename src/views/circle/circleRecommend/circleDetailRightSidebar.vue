@@ -2,15 +2,12 @@
     <aside class="right-sidebar">
         <div class="sidebar-sticky">
             <div class="sidebar-widget widget-publish">
-                <div class="user-row">
+                <div class="publish-row">
                     <el-avatar :size="40" :src="userAvatar" class="current-avatar">
                         {{ userName?.charAt(0) }}
                     </el-avatar>
-                    <span class="publish-hint">分享你的想法...</span>
+                    <el-button type="primary" round class="btn-publish-action" @click="emit('publish')"> <Icon icon="mdi:pencil-outline" /> 发表想法</el-button>
                 </div>
-                <el-button type="primary" round block class="btn-publish-action" @click="emit('publish')">
-                    <Icon icon="mdi:pencil-outline" /> 发布帖子
-                </el-button>
             </div>
 
             <div class="sidebar-widget widget-info">
@@ -36,19 +33,21 @@
                 </div>
                 <div class="widget-body">
                     <div v-if="managers.length" class="manager-list">
-                        <div class="list-label">主理人</div>
-                        <div v-for="member in managers" :key="member.id" class="manager-row">
-                            <el-avatar :size="32" :src="getImgUrl(member.avatar || '')">{{ member.name?.charAt(0) }}</el-avatar>
-                            <span class="manager-name">{{ member.name }}</span>
+                        <div class="list-label">
+                            主理人
+                            <div v-for="member in managers" :key="member.id" class="manager-row">
+                                <el-avatar :size="32" :src="getImgUrl(member.avatar || '')">{{ member.name?.charAt(0) }}</el-avatar>
+                                <span class="manager-name">{{ member.name }}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="member-grid">
-                        <el-tooltip v-for="member in otherMembers.slice(0, 10)" :key="member.id" :content="member.name" placement="top">
-                            <el-avatar :size="36" :src="getImgUrl(member.avatar || '')" class="grid-avatar">
-                                {{ member.name?.charAt(0) }}
-                            </el-avatar>
-                        </el-tooltip>
+                        <div class="member-grid">
+                            <el-tooltip v-for="member in otherMembers.slice(0, 10)" :key="member.id" :content="member.name" placement="top">
+                                <el-avatar :size="36" :src="getImgUrl(member.avatar || '')" class="grid-avatar">
+                                    {{ member.name?.charAt(0) }}
+                                </el-avatar>
+                            </el-tooltip>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -106,31 +105,34 @@ const emit = defineEmits<{
 }
 
 .widget-publish {
-    padding: 20px;
+    padding: 18px;
     background: linear-gradient(180deg, var(--circle-card-bg) 0%, var(--el-fill-color-lighter) 100%);
 
-    .user-row {
+    .publish-row {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 16px;
 
         .current-avatar {
             background: var(--el-fill-color-light);
             color: var(--el-text-color-placeholder);
             border: 1px solid var(--el-border-color-lighter);
         }
-
-        .publish-hint {
-            font-size: 14px;
-            color: var(--el-text-color-placeholder);
-        }
     }
 
     .btn-publish-action {
-        font-weight: 500;
-        height: 40px;
-        box-shadow: 0 4px 12px var(--el-color-primary-light-3);
+        flex: 1;
+        height: 36px;
+        font-weight: 600;
+        border-radius: 999px;
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
+        background: var(--el-color-primary);
+        border-color: var(--el-color-primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        letter-spacing: 0.5px;
     }
 }
 
@@ -149,6 +151,20 @@ const emit = defineEmits<{
         font-size: 16px;
         font-weight: 700;
         color: var(--circle-text-main);
+        position: relative;
+        padding-left: 12px;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 16px;
+            background-color: var(--el-color-primary);
+            border-radius: 2px;
+        }
     }
 
     .link-more {

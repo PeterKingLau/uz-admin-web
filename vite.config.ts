@@ -4,12 +4,14 @@ import createVitePlugins from './vite/plugins'
 import zipPack from 'vite-plugin-zip-pack'
 
 const proxyTargets = {
-    wired: 'http://192.168.10.17:8080/api',
+    wired: 'http://192.168.10.7:8080/api',
     wireless: 'http://192.168.100.26:8080/api',
-    production: 'http://47.109.96.135'
+    // production: 'http://47.109.96.135'
+    production: 'http://47.108.212.205/'
 } as const
 
 const baseUrl = proxyTargets.wireless
+// const baseUrl = proxyTargets.wired
 
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd())

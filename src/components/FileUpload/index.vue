@@ -14,13 +14,16 @@
             :headers="headers"
             class="upload-file-uploader"
             ref="fileUpload"
-            v-if="!disabled"
-            drag
+            :disabled="disabled"
+            v-if="!disabled || !hideWhenDisabled"
+            :drag="drag"
         >
-            <div class="upload-trigger-content">
-                <el-icon class="el-icon--upload"><Icon icon="ep:upload-filled" /></el-icon>
-                <div class="el-upload__text">将文件拖到此处，或 <em>点击上传</em></div>
-            </div>
+            <slot name="trigger">
+                <div class="upload-trigger-content">
+                    <el-icon class="el-icon--upload"><Icon icon="ep:upload-filled" /></el-icon>
+                    <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                </div>
+            </slot>
         </el-upload>
 
         <div class="custom-upload-tip" v-if="showTip && !disabled">
@@ -30,16 +33,16 @@
             <div class="tip-content">
                 <span>请上传</span>
                 <template v-if="fileSize">
-                    大小不超过 <span class="highlight">{{ fileSize }}MB</span>
+                    大小不超过<span class="highlight">{{ fileSize }}MB</span>
                 </template>
                 <template v-if="fileType">
-                    格式为 <span class="highlight">{{ fileType.join('/') }}</span>
+                    格式为<span class="highlight">{{ fileType.join('/') }}</span>
                 </template>
                 的文件
             </div>
         </div>
 
-        <transition-group ref="uploadFileList" class="upload-file-list" name="list-fade" tag="ul">
+        <transition-group v-if="showList" ref="uploadFileList" class="upload-file-list" name="list-fade" tag="ul">
             <li v-for="(file, index) in fileList" :key="file.uid" class="file-item">
                 <div class="file-info">
                     <div class="file-icon">
@@ -84,6 +87,14 @@ const props = defineProps({
     limit: {
         type: Number,
         default: 5
+    },
+    showList: {
+        type: Boolean,
+        default: true
+    },
+    hideWhenDisabled: {
+        type: Boolean,
+        default: true
     },
     fileSize: {
         type: Number,
@@ -165,7 +176,7 @@ function handleBeforeUpload(file) {
 }
 
 function handleExceed() {
-    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
+    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个`)
 }
 
 function handleUploadError(err) {
@@ -219,6 +230,20 @@ function listToString(list, separator) {
     }
     return strs != '' ? strs.substr(0, strs.length - 1) : ''
 }
+
+function open() {
+    const input = proxy?.$refs?.fileUpload?.$el?.querySelector('input[type="file"]')
+    input?.click()
+}
+
+function clear() {
+    uploadList.value = []
+    number.value = 0
+    fileList.value = []
+    emit('update:modelValue', '')
+}
+
+defineExpose({ open, clear })
 
 onMounted(() => {
     if (props.drag && !props.disabled) {

@@ -7,10 +7,20 @@
                 <CircleDetailHeader
                     :circle-info="circleInfo"
                     :join-loading="joinLoading"
+                    :is-owner="isCircleOwner"
+                    :delete-loading="deleteLoading"
                     :get-img-url="getImgUrl"
                     :format-number="formatNumber"
                     @join="handleJoin"
+                    @delete="handleDeleteCircle"
                 />
+                <div class="floating-publish-bar" @click="handlePublish">
+                    <el-avatar :size="36" :src="userAvatar || ''" class="publish-avatar">
+                        {{ userName?.charAt(0) }}
+                    </el-avatar>
+                    <span class="publish-placeholder">与圈友分享你的想法...</span>
+                    <button type="button" class="publish-plus" @click.stop="handlePublish">+</button>
+                </div>
                 <CircleDetailPosts
                     :post-list="postList"
                     :loading-posts="loadingPosts"
@@ -45,6 +55,12 @@
             @load-more="fetchAllMembers(true)"
             @set-admin="handleSetAdmin"
         />
+
+        <CirclePublishDialog
+            v-model="publishVisible"
+            :circle-id="resolveCircleId(circleInfo.id ?? route.params.id ?? route.query.id)"
+            @published="fetchPosts"
+        />
     </div>
 </template>
 
@@ -52,7 +68,8 @@
 import { ref, onMounted, getCurrentInstance, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
-import { getCircleInfo, getCircleMemberList, joinCircle, exitCircle, setCircleAdmin, type CircleItem } from '@/api/content/circleManagement'
+import { POST_TYPE } from '@/utils/enum'
+import { closeCircle, getCircleInfo, getCircleMemberList, joinCircle, exitCircle, setCircleAdmin, type CircleItem } from '@/api/content/circleManagement'
 import { listPostByApp } from '@/api/content/post'
 import useUserStore from '@/store/modules/user'
 import { useCircleJoinStore } from '@/store/modules/circleJoin'
@@ -61,6 +78,8 @@ import CircleDetailHeader from './circleDetailHeader.vue'
 import CircleDetailPosts from './circleDetailPosts.vue'
 import CircleDetailRightSidebar from './circleDetailRightSidebar.vue'
 import CircleMembersDialog from './circleMembersDialog.vue'
+import CirclePublishDialog from './circlePublishDialog.vue'
+import type { PostItem } from './types'
 
 const route = useRoute()
 const router = useRouter()
@@ -80,21 +99,6 @@ interface CircleInfoExtended extends CircleItem {
     rules?: string[]
 }
 
-interface PostItem {
-    id: string | number
-    title: string
-    content?: string
-    authorName?: string
-    authorAvatar?: string
-    images?: string[]
-    videoUrl?: string
-    isTop?: boolean
-    likeCount?: number
-    commentCount?: number
-    createTime?: string
-    updateTime?: string
-}
-
 interface MemberItem {
     id: string | number
     userId?: string | number
@@ -110,6 +114,7 @@ interface MemberItem {
 const loading = ref(false)
 const loadingPosts = ref(false)
 const joinLoading = ref(false)
+const deleteLoading = ref(false)
 const showFullIntro = ref(false)
 const showAllMembers = ref(false)
 const allMembers = ref<MemberItem[]>([])
@@ -120,6 +125,8 @@ const allMembersLastId = ref<number | string | undefined>(undefined)
 const circleInfo = ref<Partial<CircleInfoExtended>>({})
 const postList = ref<PostItem[]>([])
 const memberList = ref<MemberItem[]>([])
+
+const publishVisible = ref(false)
 
 const managers = computed(() => memberList.value.filter(m => m.isManager))
 const otherMembers = computed(() => memberList.value.filter(m => !m.isManager))
@@ -187,18 +194,19 @@ function getArrayFrom(value: any): any[] {
     return []
 }
 
-function resolveImageList(item: any): string[] {
-    const raw = item?.images ?? item?.imageList ?? item?.pictureList ?? item?.pictures ?? item?.mediaUrls ?? item?.files
-    if (Array.isArray(raw)) {
-        return raw.map(entry => (typeof entry === 'string' ? entry : (entry?.url ?? entry?.src ?? entry?.path ?? ''))).filter(Boolean)
-    }
+const VIDEO_URL_RE = /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i
+const isVideoUrl = (url?: string) => VIDEO_URL_RE.test(url || '')
+
+function parseMediaRaw(raw: any): any[] {
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw
     if (typeof raw === 'string') {
         const trimmed = raw.trim()
         if (!trimmed) return []
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             try {
                 const parsed = JSON.parse(trimmed)
-                return Array.isArray(parsed) ? parsed : []
+                return Array.isArray(parsed) ? parsed : [parsed]
             } catch {
                 return trimmed
                     .split(',')
@@ -211,21 +219,82 @@ function resolveImageList(item: any): string[] {
             .map(entry => entry.trim())
             .filter(Boolean)
     }
+    if (typeof raw === 'object') return [raw]
     return []
+}
+
+function normalizeMediaEntry(entry: any): { url: string; isVideo: boolean } {
+    if (typeof entry === 'string') {
+        return { url: entry, isVideo: isVideoUrl(entry) }
+    }
+    const url = entry?.url ?? entry?.src ?? entry?.path ?? entry?.fileUrl ?? ''
+    const typeRaw = entry?.type ?? entry?.fileType ?? entry?.mimeType ?? entry?.mediaType ?? ''
+    const type = String(typeRaw || '').toLowerCase()
+    const isVideo = type.startsWith('video') || type.includes('video') || isVideoUrl(url)
+    return { url, isVideo }
+}
+
+function resolveMediaEntries(item: any): Array<{ url: string; isVideo: boolean }> {
+    const sources = [item?.mediaUrls, item?.mediaList, item?.files, item?.resources, item?.images, item?.imageList, item?.pictureList, item?.pictures]
+    const entries: Array<{ url: string; isVideo: boolean }> = []
+    sources.forEach(source => {
+        parseMediaRaw(source).forEach(entry => {
+            const normalized = normalizeMediaEntry(entry)
+            if (normalized.url) entries.push(normalized)
+        })
+    })
+    const seen = new Set<string>()
+    return entries.filter(entry => {
+        const key = String(entry.url)
+        if (!key) return false
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
+}
+
+function resolveImageList(item: any): string[] {
+    return resolveMediaEntries(item)
+        .filter(entry => !entry.isVideo)
+        .map(entry => entry.url)
+}
+
+function resolveVideoUrl(item: any): string {
+    const direct = item?.videoUrl ?? item?.video ?? item?.url ?? item?.src ?? item?.fileUrl ?? ''
+    if (direct) return direct
+    const entries = resolveMediaEntries(item)
+    const candidate = entries.find(entry => entry.isVideo)
+    if (candidate?.url) return candidate.url
+    if (String(item?.postType ?? '') === POST_TYPE.VIDEO) {
+        return entries[0]?.url ?? ''
+    }
+    return ''
 }
 
 function normalizePostItem(item: any): PostItem {
     const author = item?.author ?? item?.user ?? {}
+    const authorId = item?.authorId ?? item?.userId ?? item?.uid ?? item?.createBy ?? author?.id ?? author?.userId ?? author?.uid
     return {
         id: item?.id ?? item?.postId ?? item?.topicId ?? item?.contentId ?? item?.pk ?? item?.uuid,
         title: item?.title ?? item?.postTitle ?? item?.topicTitle ?? '',
         content: item?.content ?? item?.text ?? item?.summary ?? item?.desc ?? '',
+        authorId,
         authorName: item?.authorName ?? item?.nickName ?? item?.userName ?? author?.nickName ?? author?.name ?? '',
         authorAvatar: item?.authorAvatar ?? item?.avatar ?? item?.userAvatar ?? author?.avatar ?? '',
         images: resolveImageList(item),
+        videoUrl: resolveVideoUrl(item),
+        postType: item?.postType ?? item?.type ?? item?.postTypeCode ?? item?.contentType ?? '',
         isTop: Boolean(item?.isTop ?? item?.top ?? item?.pinned),
         likeCount: item?.likeCount ?? item?.likes ?? item?.thumbCount,
+        isLiked: item?.isLiked ?? item?.like ?? item?.liked ?? item?.thumbed ?? item?.thumb,
+        like: item?.like ?? item?.liked ?? item?.isLiked,
         commentCount: item?.commentCount ?? item?.comments ?? item?.replyCount,
+        isCollected: item?.isCollected ?? item?.bookmark ?? item?.collected ?? item?.collectStatus ?? item?.isCollect,
+        bookmark: item?.bookmark ?? item?.collect ?? item?.isCollected,
+        bookmarkCount: item?.bookmarkCount ?? item?.collectCount ?? item?.favorites,
+        collectCount: item?.collectCount ?? item?.bookmarkCount,
+        shareCount: item?.shareCount ?? item?.repostCount ?? item?.forwardCount,
+        repostCount: item?.repostCount ?? item?.shareCount,
         createTime: item?.createTime ?? item?.createdAt,
         updateTime: item?.updateTime ?? item?.updatedAt
     }
@@ -238,20 +307,13 @@ function normalizeMemberItem(item: any): MemberItem {
     const relationValue = item?.relationType ?? item?.relation
     const relationText = relationValue == null ? '' : String(relationValue).toLowerCase()
     const relationFollowed = relationText !== '' && relationText !== '0' && relationText !== 'false' && relationText !== 'none'
-    const resolvedUserId =
-        item?.userId ??
-        item?.uid ??
-        item?.memberUserId ??
-        item?.accountId ??
-        item?.creatorId ??
-        item?.ownerId
+    const resolvedUserId = item?.userId ?? item?.uid ?? item?.memberUserId ?? item?.accountId ?? item?.creatorId ?? item?.ownerId
     const resolvedId = item?.id ?? item?.memberId ?? item?.memberRecordId ?? null
     const resolvedName = item?.name ?? item?.nickName ?? item?.userName ?? ''
     const selfId = userStore.id
     const selfName = userStore.nickName || userStore.name || ''
     const isSelf =
-        (selfId != null &&
-            (String(resolvedUserId ?? '') === String(selfId) || String(resolvedId ?? '') === String(selfId))) ||
+        (selfId != null && (String(resolvedUserId ?? '') === String(selfId) || String(resolvedId ?? '') === String(selfId))) ||
         (selfName && resolvedName && String(resolvedName) === String(selfName))
     return {
         id: resolvedId ?? item?.userId ?? item?.uid,
@@ -273,6 +335,13 @@ function resolvePersistedJoinState(circleId: string): boolean | null {
 function persistJoinState(circleId: string, joined: boolean) {
     if (!circleId) return
     circleJoinStore.setJoined(userStore.id, circleId, joined)
+}
+
+function resolveCircleId(value: unknown): string | number | undefined {
+    if (value == null) return undefined
+    if (Array.isArray(value)) return resolveCircleId(value[0])
+    if (typeof value === 'string' || typeof value === 'number') return value
+    return undefined
 }
 
 async function fetchCircleInfo() {
@@ -313,7 +382,7 @@ async function fetchPosts() {
     if (!circleId) return
     loadingPosts.value = true
     try {
-        const res = await listPostByApp({ limit: 20, circleId })
+        const res = await listPostByApp({ limit: 20, circleId, isCircle: 1 })
         const raw = (res as any)?.data ?? res
         const list = getArrayFrom(raw)
         postList.value = list.map(normalizePostItem).filter(item => item.id !== undefined && item.id !== null)
@@ -417,6 +486,32 @@ async function handleJoin() {
     }
 }
 
+async function handleDeleteCircle() {
+    if (!isCircleOwner.value || deleteLoading.value) return
+    const circleId = resolveCircleId(circleInfo.value.id ?? route.params.id ?? route.query.id)
+    if (!circleId) {
+        proxy?.$modal?.msgError?.('圈子ID不存在')
+        return
+    }
+    try {
+        await proxy?.$modal?.confirm?.('确定删除该圈子吗？删除后不可恢复。', '提示')
+    } catch {
+        return
+    }
+
+    deleteLoading.value = true
+    try {
+        await closeCircle(circleId)
+        proxy?.$modal?.msgSuccess?.('删除成功')
+        router.push('/circle-manage/circle-recommend')
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('删除失败')
+    } finally {
+        deleteLoading.value = false
+    }
+}
+
 async function handleSetAdmin(member: MemberItem) {
     if (!isCircleOwner.value || member.isManager || member._adminLoading) return
     const circleId = circleInfo.value.id
@@ -435,7 +530,9 @@ async function handleSetAdmin(member: MemberItem) {
     }
 }
 
-function handlePublish() {}
+const handlePublish = () => {
+    publishVisible.value = true
+}
 function goBack() {
     router.push('/circle-manage/circle-recommend')
 }
@@ -459,48 +556,109 @@ watch(
 <style scoped lang="scss">
 .circle-detail-page {
     width: 100%;
+    min-height: 100vh;
     background-color: var(--el-bg-color-page);
     --circle-card-bg: var(--el-bg-color);
-    --circle-card-border: var(--el-border-color-light);
-    --circle-hover-bg: var(--el-fill-color-light);
+    --circle-card-radius: 16px;
+    --circle-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    --circle-primary-color: var(--el-color-primary);
     --circle-text-main: var(--el-text-color-primary);
     --circle-text-sub: var(--el-text-color-regular);
     --circle-text-muted: var(--el-text-color-secondary);
+    --circle-border-color: var(--el-border-color-light);
+}
+
+:global(html.dark) .circle-detail-page {
+    background-color: #0f1115;
+    --circle-card-bg: #1b1f26;
+    --circle-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --circle-text-main: #e5e7eb;
+    --circle-text-sub: #cbd5e1;
+    --circle-text-muted: #94a3b8;
+    --circle-border-color: #2a2f3a;
 }
 
 .page-wrapper {
     display: flex;
-    max-width: 1360px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 24px 32px;
+    padding: 24px;
     gap: 24px;
     align-items: flex-start;
+    position: relative;
 }
 
 .main-content {
     flex: 1;
     min-width: 0;
-    background: transparent;
-    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 90px;
 }
+
+.floating-publish-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 10%;
+    transform: translateX(-50%);
+    width: min(360px, calc(50% - 48px));
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 999px;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    cursor: pointer;
+}
+
+.publish-avatar {
+    flex-shrink: 0;
+}
+
+.publish-placeholder {
+    flex: 1;
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.publish-plus {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--el-color-primary);
+    color: var(--el-color-white);
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
 @media screen and (max-width: 1200px) {
     .page-wrapper {
-        margin: 0 20px;
+        max-width: 100%;
+        padding: 20px;
     }
 }
 
-@media screen and (max-width: 1024px) {
-    .page-wrapper {
-        justify-content: center;
-        margin: 0 16px;
-    }
-}
-
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 992px) {
     .page-wrapper {
         flex-direction: column;
-        padding-top: 0;
-        margin: 0;
+        align-items: stretch;
+        padding: 16px;
+    }
+
+    .main-content {
+        order: 2;
     }
 }
 </style>

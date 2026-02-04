@@ -8,17 +8,6 @@
                             <h2 class="title">创建新圈子</h2>
                             <p class="subtitle">填写基本信息，开启你的社区之旅</p>
                         </div>
-                        <div class="step-indicator">
-                            <div class="step-item active">
-                                <span class="step-num">1</span>
-                                <span class="step-label">基础信息</span>
-                            </div>
-                            <div class="step-line"></div>
-                            <div class="step-item">
-                                <span class="step-num">2</span>
-                                <span class="step-label">提交审核</span>
-                            </div>
-                        </div>
                     </div>
                 </template>
 
@@ -47,35 +36,14 @@
                                 </el-form-item>
 
                                 <el-form-item label="封面图片" prop="coverUrl">
-                                    <div class="upload-wrapper">
-                                        <div class="upload-box" v-if="!form.coverUrl">
-                                            <el-upload
-                                                class="avatar-uploader"
-                                                action="#"
-                                                :show-file-list="false"
-                                                :auto-upload="false"
-                                                :on-change="handleFileChange"
-                                                accept="image/*"
-                                            >
-                                                <div class="upload-placeholder">
-                                                    <div class="icon-bg">
-                                                        <Icon icon="mdi:cloud-upload-outline" />
-                                                    </div>
-                                                    <div class="upload-text">点击或拖拽上传封面</div>
-                                                    <div class="upload-hint">建议尺寸 800x450，支持 JPG/PNG/WebP</div>
-                                                </div>
-                                            </el-upload>
-                                        </div>
-
-                                        <div class="upload-preview" v-else>
-                                            <el-image :src="form.coverUrl" fit="cover" class="uploaded-img" />
-                                            <div class="preview-actions">
-                                                <el-button type="danger" circle @click="form.coverUrl = ''">
-                                                    <Icon icon="mdi:delete-outline" />
-                                                </el-button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <ImageUpload
+                                        v-model="form.coverUrl"
+                                        :limit="1"
+                                        :file-size="5"
+                                        :file-type="['png', 'jpg', 'jpeg', 'webp']"
+                                        :is-show-tip="true"
+                                        class="cover-uploader"
+                                    />
                                 </el-form-item>
                             </div>
                         </el-col>
@@ -92,7 +60,7 @@
                                             <Icon icon="mdi:dots-horizontal" />
                                         </div>
                                         <div class="mockup-cover">
-                                            <el-image v-if="form.coverUrl" :src="form.coverUrl" fit="cover" class="mockup-img" />
+                                            <el-image v-if="form.coverUrl" :src="coverPreviewUrl" fit="cover" class="mockup-img" />
                                             <div v-else class="mockup-img-placeholder">
                                                 <Icon icon="mdi:image-outline" />
                                             </div>
@@ -101,8 +69,8 @@
                                         <div class="mockup-body">
                                             <div class="mockup-title">{{ form.name || '圈子名称' }}</div>
                                             <div class="mockup-meta">
-                                                <div class="meta-item"><Icon icon="mdi:account-group-outline" /> 1.2k 成员</div>
-                                                <div class="meta-item"><Icon icon="mdi:message-text-outline" /> 328 动态</div>
+                                                <div class="meta-item"><Icon icon="mdi:account-group-outline" /> {{ mockMemberCount }} 成员</div>
+                                                <div class="meta-item"><Icon icon="mdi:message-text-outline" /> {{ mockPostCount }} 动态</div>
                                             </div>
                                             <div class="mockup-desc">
                                                 {{ form.description || '这里将显示圈子的简介内容...' }}
@@ -130,9 +98,10 @@
 
 <script setup lang="ts" name="CircleManagementCreate">
 import { ref, reactive, computed, getCurrentInstance } from 'vue'
-import { Icon } from '@iconify/vue'
-import type { FormInstance, FormRules, UploadFile } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { createCircle, type CreateCirclePayload } from '@/api/content/circleManagement'
+import { getImgUrl } from '@/utils/img'
+import { formatMockNumber } from '@/utils/utils'
 
 const { proxy } = getCurrentInstance() || {}
 
@@ -145,6 +114,9 @@ const initialForm = () => ({
 const form = reactive<CreateCirclePayload>(initialForm())
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+const coverPreviewUrl = computed(() => getImgUrl(form.coverUrl || ''))
+const mockMemberCount = ref(formatMockNumber(800, 5200))
+const mockPostCount = ref(formatMockNumber(120, 980))
 
 const rules: FormRules = {
     name: [
@@ -156,13 +128,6 @@ const rules: FormRules = {
         { min: 5, max: 200, message: '简介长度需在 5-200 个字符之间', trigger: 'blur' }
     ],
     coverUrl: [{ required: true, message: '请上传封面图', trigger: 'change' }]
-}
-
-// 模拟文件上传改变，实际项目中请对接 ImageUpload 组件或 upload 逻辑
-const handleFileChange = (uploadFile: UploadFile) => {
-    if (uploadFile.raw) {
-        form.coverUrl = URL.createObjectURL(uploadFile.raw)
-    }
 }
 
 const handleReset = () => {
@@ -248,57 +213,6 @@ const handleSubmit = async () => {
             color: var(--el-text-color-secondary);
         }
     }
-
-    .step-indicator {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .step-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            opacity: 0.5;
-            transition: opacity 0.3s;
-
-            &.active {
-                opacity: 1;
-
-                .step-num {
-                    background-color: var(--el-color-primary);
-                    color: white;
-                    border-color: var(--el-color-primary);
-                }
-
-                .step-label {
-                    color: var(--el-text-color-primary);
-                    font-weight: 600;
-                }
-            }
-
-            .step-num {
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                border: 1px solid var(--el-text-color-secondary);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 12px;
-                font-weight: 700;
-            }
-
-            .step-label {
-                font-size: 14px;
-            }
-        }
-
-        .step-line {
-            width: 40px;
-            height: 1px;
-            background-color: var(--el-border-color);
-        }
-    }
 }
 
 .main-form {
@@ -344,93 +258,8 @@ const handleSubmit = async () => {
     }
 }
 
-.upload-wrapper {
+.cover-uploader {
     width: 100%;
-}
-
-.upload-box {
-    width: 100%;
-
-    :deep(.el-upload) {
-        width: 100%;
-        display: block;
-    }
-
-    .upload-placeholder {
-        width: 100%;
-        height: 200px;
-        border: 2px dashed var(--el-border-color);
-        border-radius: 12px;
-        background-color: var(--el-fill-color-lighter);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s;
-
-        &:hover {
-            border-color: var(--el-color-primary);
-            background-color: var(--el-color-primary-light-9);
-
-            .icon-bg {
-                transform: scale(1.1);
-                background-color: var(--el-color-white);
-                color: var(--el-color-primary);
-            }
-        }
-
-        .icon-bg {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background-color: var(--el-fill-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: var(--el-text-color-secondary);
-            margin-bottom: 12px;
-            transition: all 0.3s;
-        }
-
-        .upload-text {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--el-text-color-regular);
-            margin-bottom: 4px;
-        }
-
-        .upload-hint {
-            font-size: 12px;
-            color: var(--el-text-color-secondary);
-        }
-    }
-}
-
-.upload-preview {
-    position: relative;
-    width: 100%;
-    height: 200px;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--el-border-color-lighter);
-
-    .uploaded-img {
-        width: 100%;
-        height: 100%;
-    }
-
-    .preview-actions {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        display: none;
-    }
-
-    &:hover .preview-actions {
-        display: block;
-    }
 }
 
 .preview-container {

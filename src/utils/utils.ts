@@ -249,3 +249,14 @@ export function getNormalPath(p: any) {
 export function blobValidate(data: any) {
     return data.type !== 'application/json'
 }
+
+/**
+ * 生成区间随机数并格式化为 k 缩写
+ */
+export function formatMockNumber(min: number, max: number) {
+    const value = Math.floor(Math.random() * (max - min + 1)) + min
+    if (value >= 1000) {
+        return `${(value / 1000).toFixed(1)}k`
+    }
+    return String(value)
+}

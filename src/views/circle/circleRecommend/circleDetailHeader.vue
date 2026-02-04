@@ -47,6 +47,10 @@
                         <span class="text-hover">退出圈子</span>
                     </template>
                 </el-button>
+
+                <el-button v-if="isOwner" type="danger" plain round class="btn-action btn-delete" :loading="deleteLoading" @click="emit('delete')">
+                    <Icon icon="mdi:trash-can-outline" />删除</el-button
+                >
             </div>
         </div>
     </div>
@@ -66,12 +70,15 @@ interface CircleInfoHeader {
 defineProps<{
     circleInfo: CircleInfoHeader
     joinLoading: boolean
+    isOwner: boolean
+    deleteLoading: boolean
     getImgUrl: (url: string) => string
     formatNumber: (num?: number) => string
 }>()
 
 const emit = defineEmits<{
     (e: 'join'): void
+    (e: 'delete'): void
 }>()
 </script>
 
@@ -111,17 +118,20 @@ const emit = defineEmits<{
 }
 
 .header-content {
-    padding: 0 32px;
-    margin-top: -48px;
+    padding: 16px 32px 20px;
+    margin-top: -32px;
     position: relative;
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
+    background: var(--circle-card-bg);
+    border-top: 1px solid var(--el-border-color-lighter);
+    border-radius: 0 0 16px 16px;
 
     .header-main {
         display: flex;
-        align-items: flex-end;
-        gap: 24px;
+        align-items: center;
+        gap: 18px;
         flex: 1;
         min-width: 0;
     }
@@ -131,6 +141,7 @@ const emit = defineEmits<{
         background: var(--circle-card-bg);
         border-radius: 20px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        margin-top: -28px;
 
         .main-avatar {
             display: block;
@@ -141,16 +152,16 @@ const emit = defineEmits<{
     }
 
     .info-wrapper {
-        padding-bottom: 6px;
+        padding: 2px 0 0;
         flex: 1;
         min-width: 0;
 
         .title-row {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
 
             .circle-name {
                 margin: 0;
-                font-size: 26px;
+                font-size: 24px;
                 font-weight: 700;
                 color: var(--circle-text-main);
                 line-height: 1.2;
@@ -184,10 +195,11 @@ const emit = defineEmits<{
             }
 
             .stat-divider {
-                width: 1px;
-                height: 12px;
-                background: var(--el-border-color);
-                margin: 0 16px;
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background: var(--circle-text-muted);
+                margin: 0 10px;
             }
         }
     }
@@ -233,6 +245,10 @@ const emit = defineEmits<{
                     }
                 }
             }
+
+            &.btn-delete {
+                box-shadow: none;
+            }
         }
     }
 }
@@ -242,11 +258,16 @@ const emit = defineEmits<{
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
-        margin-top: -30px;
+        margin-top: -20px;
+        padding: 14px 20px 18px;
 
         .header-actions {
             width: 100%;
             justify-content: flex-end;
+        }
+
+        .avatar-wrapper {
+            margin-top: -18px;
         }
     }
 }

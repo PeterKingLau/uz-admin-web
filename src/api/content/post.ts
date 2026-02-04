@@ -6,6 +6,7 @@ export interface AddPostPayload {
     tagStr?: string
     files?: File[]
     mediaUrls?: string
+    circleId?: string | number
 }
 
 export interface UpdatePostTagPayload {
@@ -45,6 +46,9 @@ export function addPost(data: AddPostPayload) {
     if (data.mediaUrls) {
         formData.append('mediaUrls', data.mediaUrls)
     }
+    if (data.circleId !== undefined && data.circleId !== null) {
+        formData.append('circleId', String(data.circleId))
+    }
 
     data.files?.forEach(file => {
         formData.append('files', file)
@@ -79,6 +83,7 @@ export function listPostByApp(params: {
     content?: string
     targetUserId?: number | string
     circleId?: number | string
+    isCircle?: number | string
 }): Promise<any> {
     return request({
         url: '/content/postInfo/app/v1/listByApp',

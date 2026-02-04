@@ -127,7 +127,6 @@ import { computed } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { resolveTextCoverPalette } from '@/utils/textCover'
-import { Icon } from '@iconify/vue'
 
 const props = defineProps<{
     post: any

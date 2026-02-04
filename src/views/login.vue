@@ -260,6 +260,7 @@ function togglePassword() {
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 100%;
     min-height: 100vh;
     background-image: url('../assets/images/login-background.jpg');
     background-size: cover;
@@ -273,6 +274,14 @@ function togglePassword() {
         background: rgba(30, 41, 59, 0.25);
         z-index: 0;
     }
+}
+
+:global(html, body, #app) {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    scrollbar-gutter: auto;
 }
 
 .animate-in {

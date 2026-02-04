@@ -6,11 +6,7 @@
 @import './mixin.scss';
 @import './transition.scss';
 
-// ===============================================
-// 1. 全局主题变量定义 (CSS Variables)
-// ===============================================
 :root {
-    /* 亮色模式默认值 */
     --sidebar-bg: #{$menuBg};
     --sidebar-text: #{$menuText};
     --menu-hover: #{$menuHover};
@@ -24,24 +20,6 @@
     --app-text: #303133;
 }
 
-// 暗黑模式映射
-html.dark {
-    --app-bg: #1a1b1e;
-    --app-text: #e1e3e5;
-
-    --sidebar-bg: #141517;
-    --sidebar-text: #a6a7ab;
-    --menu-hover: #2c2e33;
-    --menu-active-text: #5c7cfa;
-
-    --navbar-bg: #1a1b1e;
-    --navbar-text: #e1e3e5;
-    --navbar-hover: #25262b;
-}
-
-// ===============================================
-// 2. 全局重置 (Reset)
-// ===============================================
 html,
 body,
 #app {
@@ -72,6 +50,12 @@ body {
 
 body.el-popup-parent--hidden {
     padding-right: 0 !important;
+    width: 100% !important;
+    scrollbar-gutter: auto;
+}
+
+html:has(body.el-popup-parent--hidden) {
+    scrollbar-gutter: auto;
 }
 
 *,
@@ -97,22 +81,6 @@ div:focus {
     outline: none;
 }
 
-// 链接样式 - 使用主色调变量
-.link-type,
-.link-type:focus {
-    color: $blue; // 使用 variables 中的变量
-    cursor: pointer;
-    &:hover {
-        color: $light-blue;
-    }
-}
-
-// ===============================================
-// 3. 通用工具类 (Utilities)
-// ===============================================
-
-// 自动生成间距类: .mt5, .pr10, .pb20 等
-// 替代了原文件中的 .pr-5 等手动写法
 $directions: (
     t: top,
     r: right,
@@ -148,7 +116,7 @@ $directions: (
 }
 .inlineBlock {
     display: inline-block;
-} // 修正原代码 block 错误
+}
 .pointer {
     cursor: pointer;
 }
@@ -167,21 +135,25 @@ $directions: (
     }
 }
 
-// ===============================================
-// 4. 全局组件样式
-// ===============================================
+.link-type,
+.link-type:focus {
+    color: $blue;
+    cursor: pointer;
+    &:hover {
+        color: $light-blue;
+    }
+}
 
-// 侧边提示块 (Aside) - 现代化改造
 aside {
-    background: var(--el-color-primary-light-9); // 使用 Element 浅色背景变量
+    background: var(--el-color-primary-light-9);
     padding: 8px 24px;
     margin-bottom: 20px;
-    border-radius: 4px; // 圆角稍微大一点
+    border-radius: 4px;
     display: block;
     line-height: 32px;
     font-size: 16px;
     color: var(--el-text-color-primary);
-    border-left: 5px solid var(--el-color-primary); // 左侧加个强调条
+    border-left: 5px solid var(--el-color-primary);
 
     a {
         color: var(--el-color-primary);
@@ -193,10 +165,9 @@ aside {
     }
 }
 
-// 主容器
 .app-container {
     padding: 20px;
-    background-color: var(--el-bg-color); // 确保暗黑模式下背景正确
+    background-color: var(--el-bg-color);
     min-height: 100%;
 }
 
@@ -205,7 +176,6 @@ aside {
     position: relative;
 }
 
-// 顶部子导航 (保留了你的渐变，但做了变量优化)
 .sub-navbar {
     height: 50px;
     line-height: 50px;
@@ -214,8 +184,8 @@ aside {
     text-align: right;
     padding-right: 20px;
     transition: 600ms ease position;
-    background: linear-gradient(90deg, $blue 0%, $light-blue 100%); // 使用 SCSS 变量
-    border-radius: 4px; // 稍微加点圆角更现代
+    background: linear-gradient(90deg, $blue 0%, $light-blue 100%);
+    border-radius: 4px;
 
     .subtitle {
         font-size: 20px;
@@ -237,46 +207,48 @@ aside {
     }
 }
 
-// ===============================================
-// 5. 强制修复 Tab栏 (TagsView) 的暗黑模式
-//    (添加到 index.scss 底部以确保覆盖优先级)
-// ===============================================
 html.dark {
-    // 整个标签栏容器
-    .tags-view-container {
-        background-color: #141414 !important; // 背景变黑
-        border-bottom: 1px solid #363637 !important; // 底部边框变深灰
+    --app-bg: #1a1b1e;
+    --app-text: #e1e3e5;
 
-        // 标签页签滚动区域
+    --sidebar-bg: #141517;
+    --sidebar-text: #a6a7ab;
+    --menu-hover: #2c2e33;
+    --menu-active-text: #5c7cfa;
+
+    --navbar-bg: #1a1b1e;
+    --navbar-text: #e1e3e5;
+    --navbar-hover: #25262b;
+
+    .tags-view-container {
+        background-color: #141414 !important;
+        border-bottom: 1px solid #363637 !important;
+
         .tags-view-wrapper {
             .tags-view-item {
-                background-color: #1d1e1f !important; // 未选中标签：深灰背景
-                color: #a3a6ad !important; // 未选中标签：灰字
-                border: 1px solid #363637 !important; // 边框
+                background-color: #1d1e1f !important;
+                color: #a3a6ad !important;
+                border: 1px solid #363637 !important;
 
-                // 鼠标悬停
                 &:hover {
                     background-color: #262727 !important;
                     color: #fff !important;
                 }
 
-                // 选中状态 (Active)
                 &.active {
-                    background-color: rgba(59, 130, 246, 0.15) !important; // 选中时：微透蓝背景
-                    color: #5c7cfa !important; // 选中时：亮蓝色文字
-                    border-color: #5c7cfa !important; // 选中时：亮蓝色边框
+                    background-color: rgba(59, 130, 246, 0.15) !important;
+                    color: #5c7cfa !important;
+                    border-color: #5c7cfa !important;
 
-                    // 选中状态前的小圆点
                     &::before {
                         background-color: #5c7cfa !important;
                     }
                 }
 
-                // 关闭图标 (x)
                 .el-icon-close {
                     color: #a3a6ad !important;
                     &:hover {
-                        background-color: #ef4444 !important; // 红色背景
+                        background-color: #ef4444 !important;
                         color: #fff !important;
                     }
                 }
@@ -284,7 +256,6 @@ html.dark {
         }
     }
 
-    // 右键菜单 (Context Menu) - 如果有的话
     .contextmenu {
         background-color: #1d1e1f !important;
         border: 1px solid #363637 !important;
@@ -299,13 +270,7 @@ html.dark {
         }
     }
 }
-// ===============================================
-// 5. 模块引入 (顺序很重要)
-// ===============================================
-// Element Plus 覆盖样式
-// ===============================================
-// 6. Layering
-// ===============================================
+
 .post-preview-mask {
     z-index: 1990;
 }
@@ -315,9 +280,6 @@ html.dark {
 }
 
 @import './element-ui.scss';
-// 侧边栏样式
 @import './sidebar.scss';
-// 按钮样式
 @import './btn.scss';
-// 业务特定布局
 @import './primary.scss';

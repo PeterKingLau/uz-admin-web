@@ -4,7 +4,7 @@
             multiple
             :disabled="disabled"
             :action="uploadImgUrl"
-            list-type="picture-card"
+            :list-type="listType"
             :accept="accept"
             :on-success="handleUploadSuccess"
             :before-upload="handleBeforeUpload"
@@ -14,16 +14,18 @@
             :on-exceed="handleExceed"
             ref="imageUpload"
             :before-remove="handleDelete"
-            :show-file-list="true"
+            :show-file-list="showFileList"
             :headers="headers"
             :file-list="fileList"
             :on-preview="handlePictureCardPreview"
             :class="{ hide: fileList.length >= limit, 'is-disabled': disabled }"
             class="upload-none-tip"
         >
-            <div class="upload-slot-trigger">
-                <Icon icon="ep:plus" class="uploader-icon" />
-            </div>
+            <slot name="trigger">
+                <div class="upload-slot-trigger">
+                    <Icon icon="ep:plus" class="uploader-icon" />
+                </div>
+            </slot>
         </el-upload>
 
         <div class="custom-upload-tip" v-if="showTip && !disabled">
@@ -31,10 +33,10 @@
             <div class="tip-content">
                 <span>请上传</span>
                 <template v-if="fileSize">
-                    大小不超过 <span class="highlight">{{ fileSize }}MB</span>
+                    大小不超过<span class="highlight">{{ fileSize }}MB</span>
                 </template>
                 <template v-if="fileType">
-                    格式为 <span class="highlight">{{ fileType.join('/') }}</span>
+                    格式为<span class="highlight">{{ fileType.join('/') }}</span>
                 </template>
                 的文件
             </div>
@@ -72,6 +74,14 @@ const props = defineProps({
     limit: {
         type: Number,
         default: 5
+    },
+    showFileList: {
+        type: Boolean,
+        default: true
+    },
+    listType: {
+        type: String,
+        default: 'picture-card'
     },
     fileSize: {
         type: Number,
@@ -176,7 +186,7 @@ function handleBeforeUpload(file) {
 }
 
 function handleExceed() {
-    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
+    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个`)
 }
 
 function handleUploadSuccess(res, file) {
@@ -236,6 +246,20 @@ function listToString(list, separator) {
     }
     return strs != '' ? strs.substr(0, strs.length - 1) : ''
 }
+
+function open() {
+    const input = proxy?.$refs?.imageUpload?.$el?.querySelector('input[type="file"]')
+    input?.click()
+}
+
+function clear() {
+    uploadList.value = []
+    number.value = 0
+    fileList.value = []
+    emit('update:modelValue', '')
+}
+
+defineExpose({ open, clear })
 
 onMounted(() => {
     if (props.drag && !props.disabled) {
