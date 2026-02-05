@@ -34,6 +34,7 @@
             </div>
             <div class="header-actions">
                 <el-button
+                    v-if="!isOwner"
                     :type="circleInfo.joined ? 'default' : 'primary'"
                     round
                     class="btn-action btn-join"

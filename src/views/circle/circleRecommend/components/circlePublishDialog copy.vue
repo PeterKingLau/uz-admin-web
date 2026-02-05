@@ -79,6 +79,7 @@ import { computed, reactive, ref, getCurrentInstance } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
+import { getImgUrl } from '@/utils/img'
 
 const props = defineProps<{
     modelValue: boolean
@@ -107,8 +108,6 @@ const publishForm = reactive({
 
 const imageUrls = ref('')
 const videoUrls = ref('')
-const baseApi = import.meta.env.VITE_APP_BASE_API || ''
-
 const parseMediaUrls = (value: string | string[]) => {
     if (!value) return []
     const list = Array.isArray(value) ? value : value.split(',')
@@ -119,8 +118,7 @@ const resolveMediaUrl = (url: string) => {
     if (!url) return ''
     if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
     if (proxy?.$imgUrl) return proxy.$imgUrl(url)
-    if (!baseApi) return url
-    return url.startsWith(baseApi) ? url : `${baseApi}${url}`
+    return getImgUrl(url)
 }
 
 const imageUrlList = computed(() => parseMediaUrls(imageUrls.value))
@@ -158,7 +156,7 @@ const submitPublish = async () => {
     if (!publishFormRef.value || publishSubmitting.value) return
 
     if (!imageUrlList.value.length && !videoUrlList.value.length && !publishForm.content.trim()) {
-        proxy?.$modal?.msgWarning?.('����д���ݻ��ϴ�ͼƬ/��Ƶ')
+        proxy?.$modal?.msgWarning?.('请填写内容或上传图片/视频')
         return
     }
 

@@ -215,6 +215,7 @@ import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
+import { getImgUrl } from '@/utils/img'
 
 const { proxy } = getCurrentInstance() || {}
 const userStore = useUserStore()
@@ -253,8 +254,6 @@ const userNickName = computed(() => {
     return userStore.nickName || userStore.name || '未设置昵称'
 })
 
-const baseApi = import.meta.env.VITE_APP_BASE_API || ''
-
 const parseMediaUrls = (value: string | string[]) => {
     if (!value) return []
     const list = Array.isArray(value) ? value : value.split(',')
@@ -265,8 +264,7 @@ const resolveMediaUrl = (url: string) => {
     if (!url) return ''
     if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
     if (proxy?.$imgUrl) return proxy.$imgUrl(url)
-    if (!baseApi) return url
-    return url.startsWith(baseApi) ? url : `${baseApi}${url}`
+    return getImgUrl(url)
 }
 
 const imageUrlList = computed(() => parseMediaUrls(imageUrls.value))

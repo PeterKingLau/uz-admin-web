@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="user-avatar-wrapper" @click="editCropper()">
         <img :src="options.img" title="点击上传头像" class="avatar-img" />
 
@@ -23,8 +23,8 @@
                     </el-col>
                     <el-col :span="10" class="preview-col">
                         <div class="preview-box">
-                            <div class="preview-img-wrapper" :style="previewStyle">
-                                <div :style="options.previews.div" class="preview-inner">
+                            <div class="preview-img-wrapper">
+                                <div :style="previewStyle" class="preview-inner">
                                     <img :src="options.previews.url" :style="options.previews.img" />
                                 </div>
                             </div>
@@ -37,19 +37,17 @@
             <template #footer>
                 <div class="dialog-footer">
                     <div class="left-actions">
-                        <el-upload action="#" :http-request="requestUpload" :show-file-list="false" :before-upload="beforeUpload">
-                            <el-button
-                                >选择图片 <el-icon class="el-icon--right"><Upload /></el-icon
-                            ></el-button>
+                        <el-upload action="#" accept="image/*" :http-request="requestUpload" :show-file-list="false" :before-upload="beforeUpload">
+                            <el-button> 选择图片 <Icon icon="ep:upload" class="el-icon--right" /> </el-button>
                         </el-upload>
                     </div>
 
                     <div class="center-actions">
                         <el-button-group>
-                            <el-button icon="Plus" @click="changeScale(1)" title="放大"></el-button>
-                            <el-button icon="Minus" @click="changeScale(-1)" title="缩小"></el-button>
-                            <el-button icon="RefreshLeft" @click="rotateLeft()" title="左旋转"></el-button>
-                            <el-button icon="RefreshRight" @click="rotateRight()" title="右旋转"></el-button>
+                            <el-button @click="changeScale(1)" title="放大"><Icon icon="ep:plus" class="action-icon" /></el-button>
+                            <el-button @click="changeScale(-1)" title="缩小"><Icon icon="ep:minus" class="action-icon" /></el-button>
+                            <el-button @click="rotateLeft()" title="左旋转"><Icon icon="ep:refresh-left" class="action-icon" /></el-button>
+                            <el-button @click="rotateRight()" title="右旋转"><Icon icon="ep:refresh-right" class="action-icon" /></el-button>
                         </el-button-group>
                     </div>
 
@@ -68,6 +66,7 @@ import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
 import { ref, reactive, getCurrentInstance, computed } from 'vue'
+import { getImgUrl } from '@/utils/img'
 
 const userStore = useUserStore()
 const { proxy } = getCurrentInstance()
@@ -84,16 +83,31 @@ const options = reactive({
     fixedBox: true,
     outputType: 'png',
     filename: 'avatar',
-    previews: {}
+    previews: {
+        url: '',
+        img: '',
+        div: {},
+        w: 0,
+        h: 0
+    }
 })
 
 const previewStyle = computed(() => {
+    if (!options.previews || !options.previews.div) {
+        return {
+            width: '200px',
+            height: '200px',
+            overflow: 'hidden',
+            borderRadius: '50%',
+            margin: '0'
+        }
+    }
+
     return {
-        width: options.previews.w + 'px',
-        height: options.previews.h + 'px',
+        ...options.previews.div,
+        borderRadius: '50%',
         overflow: 'hidden',
-        margin: '0',
-        zoom: 200 / options.previews.w // 缩放预览图以适应容器
+        margin: '0'
     }
 })
 
@@ -123,6 +137,7 @@ function changeScale(num) {
 function beforeUpload(file) {
     if (file.type.indexOf('image/') == -1) {
         proxy.$modal.msgError('文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。')
+        return false
     } else {
         const reader = new FileReader()
         reader.readAsDataURL(file)
@@ -131,6 +146,7 @@ function beforeUpload(file) {
             options.filename = file.name
         }
     }
+    return false
 }
 
 function uploadImg() {
@@ -139,7 +155,7 @@ function uploadImg() {
         formData.append('avatarfile', data, options.filename)
         uploadAvatar(formData).then(response => {
             open.value = false
-            options.img = import.meta.env.VITE_APP_BASE_API + response.imgUrl
+            options.img = getImgUrl(response.imgUrl)
             userStore.avatar = options.img
             proxy.$modal.msgSuccess('修改成功')
             visible.value = false
@@ -165,7 +181,7 @@ function closeDialog() {
     height: 100%;
     cursor: pointer;
     overflow: hidden;
-    border-radius: 50%; /* 保持圆形 */
+    border-radius: 50%;
 
     .avatar-img {
         width: 100%;
@@ -209,16 +225,28 @@ function closeDialog() {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 16px;
 
     .preview-img-wrapper {
+        width: 200px;
+        height: 200px;
         border-radius: 50%;
-        box-shadow: 0 0 4px #ccc;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        background-color: var(--el-bg-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .preview-inner {
+        display: block;
     }
 
     .preview-text {
-        margin-top: 10px;
         color: var(--el-text-color-secondary);
         font-size: 14px;
+        font-weight: 500;
     }
 }
 
@@ -232,6 +260,26 @@ function closeDialog() {
         flex: 1;
         display: flex;
         justify-content: center;
+    }
+}
+
+.action-icon {
+    font-size: 16px;
+}
+
+:deep(.avatar-dialog) {
+    .el-dialog__header {
+        padding: 20px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    .el-dialog__body {
+        padding: 20px;
+    }
+
+    .el-dialog__footer {
+        padding: 15px 20px;
+        border-top: 1px solid var(--el-border-color-lighter);
     }
 }
 </style>

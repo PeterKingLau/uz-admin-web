@@ -49,7 +49,7 @@
                         <Icon icon="mdi:file-document-outline" width="20" />
                     </div>
                     <div class="file-details">
-                        <el-link :href="`${baseUrl}${file.url}`" :underline="false" target="_blank" class="file-name" :title="getFileName(file.name)">
+                        <el-link :href="resolveFileUrl(file.url)" :underline="false" target="_blank" class="file-name" :title="getFileName(file.name)">
                             {{ getFileName(file.name) }}
                         </el-link>
                     </div>
@@ -73,6 +73,7 @@
 
 <script setup>
 import { getToken } from '@/utils/auth'
+import { getImgUrl } from '@/utils/img'
 import Sortable from 'sortablejs'
 
 const props = defineProps({
@@ -122,7 +123,7 @@ const { proxy } = getCurrentInstance()
 const emit = defineEmits()
 const number = ref(0)
 const uploadList = ref([])
-const baseUrl = import.meta.env.VITE_APP_BASE_API
+const baseUrl = import.meta.env.VITE_APP_FILE_BASE_URL || ''
 const uploadFileUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
@@ -225,10 +226,18 @@ function listToString(list, separator) {
     separator = separator || ','
     for (let i in list) {
         if (list[i].url) {
-            strs += list[i].url + separator
+            const rawUrl = String(list[i].url || '')
+            const cleaned = baseUrl ? rawUrl.replace(baseUrl, '') : rawUrl
+            strs += cleaned + separator
         }
     }
     return strs != '' ? strs.substr(0, strs.length - 1) : ''
+}
+
+function resolveFileUrl(url) {
+    if (!url) return ''
+    if (/^https?:\/\//.test(url) || String(url).startsWith('blob:')) return url
+    return getImgUrl(String(url))
 }
 
 function open() {

@@ -142,6 +142,14 @@ export function setCircleAdmin(circleId: number | string, targetUserId: number |
     })
 }
 
+export function removeCircleMember(circleId: number | string, targetUserId: number | string) {
+    return request({
+        url: '/content/circleManagement/kickMember',
+        method: 'post',
+        params: { circleId, targetUserId }
+    })
+}
+
 export function parseCircleRows(payload: CircleListResponse | any): CircleItem[] {
     const rows = payload?.rows ?? payload?.data ?? payload
     if (Array.isArray(rows)) return rows

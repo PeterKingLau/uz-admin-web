@@ -271,7 +271,7 @@ function togglePassword() {
         content: '';
         position: absolute;
         inset: 0;
-        background: rgba(30, 41, 59, 0.25);
+        background: color-mix(in srgb, var(--el-color-black) 25%, transparent);
         z-index: 0;
     }
 }
@@ -304,11 +304,11 @@ function togglePassword() {
     z-index: 10;
     width: 420px;
     padding: 48px 40px;
-    background: rgba(255, 255, 255, 0.95);
+    background: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
     border-radius: 24px;
     box-shadow:
-        0 25px 50px -12px rgba(0, 0, 0, 0.15),
-        0 0 0 1px rgba(0, 0, 0, 0.05) inset;
+        0 25px 50px -12px color-mix(in srgb, var(--el-color-black) 15%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--el-color-black) 5%, transparent) inset;
     transition: all 0.3s ease;
 }
 
@@ -320,7 +320,7 @@ function togglePassword() {
         margin: 0;
         font-size: 26px;
         font-weight: 800;
-        color: #1e293b;
+        color: var(--el-text-color-primary);
         letter-spacing: -0.5px;
         transition: color 0.3s;
     }
@@ -328,7 +328,7 @@ function togglePassword() {
     .sub-title {
         margin-top: 8px;
         font-size: 14px;
-        color: #64748b;
+        color: var(--el-text-color-secondary);
         transition: color 0.3s;
     }
 }
@@ -336,7 +336,7 @@ function togglePassword() {
 .login-type-switch {
     position: relative;
     display: flex;
-    background: #f1f5f9;
+    background: var(--el-fill-color-light);
     padding: 4px;
     border-radius: 12px;
     width: 100%;
@@ -349,9 +349,9 @@ function togglePassword() {
         left: 4px;
         width: calc(50% - 4px);
         height: calc(100% - 8px);
-        background: #ffffff;
+        background: var(--el-bg-color);
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 8%, transparent);
         transition:
             transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
             background-color 0.3s;
@@ -366,7 +366,7 @@ function togglePassword() {
         justify-content: center;
         align-items: center;
         font-size: 14px;
-        color: #64748b;
+        color: var(--el-text-color-secondary);
         cursor: pointer;
         border-radius: 8px;
         transition: color 0.3s;
@@ -374,10 +374,10 @@ function togglePassword() {
         user-select: none;
 
         &:hover {
-            color: #334155;
+            color: var(--el-text-color-regular);
         }
         &.active {
-            color: #3b82f6;
+            color: var(--el-color-primary);
             font-weight: 600;
         }
     }
@@ -393,9 +393,9 @@ function togglePassword() {
 
 /* 覆盖输入框样式：使用特定设计而不是全局默认 */
 :deep(.el-input__wrapper) {
-    background-color: #f8fafc;
+    background-color: var(--el-fill-color-extra-light);
     box-shadow: none !important;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--el-border-color-lighter);
     border-radius: 12px;
     padding: 0 16px;
     height: 48px;
@@ -403,14 +403,14 @@ function togglePassword() {
     transition: all 0.3s ease;
 
     &:hover {
-        background-color: #ffffff;
-        border-color: #cbd5e1;
+        background-color: var(--el-bg-color);
+        border-color: var(--el-border-color-light);
     }
 
     &.is-focus {
-        background-color: #ffffff;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        background-color: var(--el-bg-color);
+        border-color: var(--el-color-primary);
+        box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15) !important;
     }
 }
 
@@ -423,23 +423,23 @@ function togglePassword() {
 
 .input-icon {
     font-size: 18px;
-    color: #94a3b8;
+    color: var(--el-text-color-placeholder);
     margin-right: 8px;
     transition: color 0.3s;
 }
 
 :deep(.el-input__wrapper.is-focus) .input-icon {
-    color: #3b82f6;
+    color: var(--el-color-primary);
 }
 
 .password-toggle {
     cursor: pointer;
-    color: #94a3b8;
+    color: var(--el-text-color-placeholder);
     font-size: 18px;
     transition: color 0.2s;
     margin-right: 8px;
     &:hover {
-        color: #64748b;
+        color: var(--el-text-color-secondary);
     }
 }
 
@@ -456,21 +456,21 @@ function togglePassword() {
         border-radius: 12px;
         font-size: 14px;
         font-weight: 500;
-        background: rgba(59, 130, 246, 0.1);
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        color: #3b82f6;
+        background: rgba(var(--el-color-primary-rgb), 0.1);
+        border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
+        color: var(--el-color-primary);
         transition: all 0.2s;
 
         &:hover:not(.is-disabled) {
-            background: #3b82f6;
-            color: #ffffff;
-            border-color: #3b82f6;
+            background: var(--el-color-primary);
+            color: var(--el-color-white);
+            border-color: var(--el-color-primary);
         }
 
         &.is-disabled {
-            background: #f1f5f9;
-            border-color: #e2e8f0;
-            color: #94a3b8;
+            background: var(--el-fill-color-light);
+            border-color: var(--el-border-color-lighter);
+            color: var(--el-text-color-placeholder);
         }
     }
 }
@@ -484,7 +484,7 @@ function togglePassword() {
     padding: 0 4px;
 
     :deep(.el-checkbox__label) {
-        color: #64748b;
+        color: var(--el-text-color-secondary);
         font-size: 14px;
     }
 
@@ -493,13 +493,13 @@ function togglePassword() {
     }
 
     .register-link {
-        color: #3b82f6;
+        color: var(--el-color-primary);
         font-size: 14px;
         text-decoration: none;
         font-weight: 500;
         transition: color 0.2s;
         &:hover {
-            color: #2563eb;
+            color: var(--el-color-primary-dark-2);
         }
     }
 }
@@ -510,19 +510,19 @@ function togglePassword() {
     font-size: 16px;
     font-weight: 600;
     border-radius: 12px;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
     border: none;
-    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 10px 20px -5px rgba(var(--el-color-primary-rgb), 0.4);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.5);
+        box-shadow: 0 15px 25px -5px rgba(var(--el-color-primary-rgb), 0.5);
     }
 
     &:active {
         transform: translateY(0);
-        box-shadow: 0 5px 15px -5px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 5px 15px -5px rgba(var(--el-color-primary-rgb), 0.4);
     }
 }
 
@@ -531,7 +531,7 @@ function togglePassword() {
     bottom: 24px;
     width: 100%;
     text-align: center;
-    color: #ffffff;
+    color: var(--el-color-white);
     font-size: 13px;
     pointer-events: none;
     z-index: 5;
@@ -546,82 +546,78 @@ function togglePassword() {
     }
 }
 
-/* ========================================= */
-/* Login Page Specific Dark Mode Overrides   */
-/* (Depends on element-ui.scss for autofill) */
-/* ========================================= */
 html.dark {
     .login::before {
-        background: rgba(15, 23, 42, 0.7);
+        background: color-mix(in srgb, var(--el-color-black) 70%, transparent);
     }
 
     .login-form {
-        background: rgba(30, 41, 59, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        background: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
+        border: 1px solid color-mix(in srgb, var(--el-color-white) 5%, transparent);
+        box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--el-color-black) 50%, transparent);
     }
 
     .header-box .title {
-        color: #f8fafc;
+        color: var(--el-text-color-primary);
     }
     .header-box .sub-title {
-        color: #94a3b8;
+        color: var(--el-text-color-secondary);
     }
 
     .login-type-switch {
-        background: #0f172a;
+        background: var(--el-fill-color);
         .switch-active-bar {
-            background: #334155;
+            background: var(--el-fill-color-light);
             box-shadow: none;
         }
         .switch-item {
-            color: #64748b;
+            color: var(--el-text-color-secondary);
             &:hover {
-                color: #94a3b8;
+                color: var(--el-text-color-regular);
             }
             &.active {
-                color: #ffffff;
+                color: var(--el-text-color-primary);
             }
         }
     }
 
     /* 输入框 - 使用深色半透明风格适配卡片 */
     :deep(.el-input__wrapper) {
-        background-color: rgba(15, 23, 42, 0.6) !important;
-        border-color: #334155;
+        background-color: color-mix(in srgb, var(--el-bg-color) 60%, transparent) !important;
+        border-color: var(--el-border-color);
     }
 
     :deep(.el-input__wrapper:hover) {
-        border-color: #475569;
+        border-color: var(--el-border-color-light);
     }
 
     :deep(.el-input__wrapper.is-focus) {
-        border-color: #3b82f6;
-        background-color: rgba(15, 23, 42, 0.8) !important;
+        border-color: var(--el-color-primary);
+        background-color: color-mix(in srgb, var(--el-bg-color) 80%, transparent) !important;
     }
 
     .input-icon {
-        color: #475569;
+        color: var(--el-text-color-placeholder);
     }
     :deep(.el-input__wrapper.is-focus) .input-icon {
-        color: #3b82f6;
+        color: var(--el-color-primary);
     }
 
     .form-options :deep(.el-checkbox__label) {
-        color: #94a3b8;
+        color: var(--el-text-color-secondary);
     }
     .form-options .register-link {
-        color: #60a5fa;
+        color: var(--el-color-primary-light-3);
     }
 
     .sms-input-group .sms-btn {
-        background: rgba(59, 130, 246, 0.15);
-        border-color: rgba(59, 130, 246, 0.3);
-        color: #60a5fa;
+        background: rgba(var(--el-color-primary-rgb), 0.15);
+        border-color: rgba(var(--el-color-primary-rgb), 0.3);
+        color: var(--el-color-primary-light-3);
         &.is-disabled {
-            background: #1e293b;
-            border-color: #334155;
-            color: #475569;
+            background: var(--el-fill-color);
+            border-color: var(--el-border-color);
+            color: var(--el-text-color-placeholder);
         }
     }
 }

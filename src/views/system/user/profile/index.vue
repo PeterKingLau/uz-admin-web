@@ -92,8 +92,12 @@ import userAvatar from './userAvatar.vue'
 import userInfo from './userInfo.vue'
 import resetPwd from './resetPwd.vue'
 import { getUserProfile } from '@/api/system/user'
+import useUserStore from '@/store/modules/user'
+import { isHttp, isEmpty } from '@/utils/validate'
+import { getImgUrl } from '@/utils/img'
 
 const route = useRoute()
+const userStore = useUserStore()
 const selectedTab = ref('userinfo')
 const state = reactive({
     user: {},
@@ -101,9 +105,21 @@ const state = reactive({
     postGroup: ''
 })
 
+const normalizeAvatar = avatar => {
+    const raw = String(avatar || '').trim()
+    if (!raw) return ''
+    if (isHttp(raw) || raw.startsWith('//')) return raw
+    return getImgUrl(raw)
+}
+
 function getUser() {
     getUserProfile().then(response => {
-        state.user = response.data || {}
+        const nextUser = response.data || {}
+        if (!isEmpty(nextUser.avatar)) {
+            nextUser.avatar = normalizeAvatar(nextUser.avatar)
+            userStore.avatar = nextUser.avatar
+        }
+        state.user = nextUser
         state.roleGroup = response.roleGroup || ''
         state.postGroup = response.postGroup || ''
     })

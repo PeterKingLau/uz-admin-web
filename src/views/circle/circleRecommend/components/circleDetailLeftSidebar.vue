@@ -103,9 +103,30 @@ const emit = defineEmits<{
     }
 }
 
-@media screen and (max-width: 1024px) {
+@media screen and (max-width: 992px) {
     .left-sidebar {
-        display: none;
+        width: 100%;
+    }
+
+    .sidebar-sticky {
+        position: static;
+    }
+
+    .nav-menu {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-item {
+        height: 40px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        flex: 0 0 auto;
+
+        .nav-text {
+            max-width: 140px;
+        }
     }
 }
 </style>

@@ -56,6 +56,7 @@
 
 <script setup>
 import { getToken } from '@/utils/auth'
+import { getImgUrl } from '@/utils/img'
 import { isExternal } from '@/utils/validate'
 import Sortable from 'sortablejs'
 import { Icon } from '@iconify/vue'
@@ -109,7 +110,7 @@ const { proxy } = getCurrentInstance()
 const emit = defineEmits(['update:modelValue'])
 const number = ref(0)
 const uploadList = ref([])
-const baseUrl = import.meta.env.VITE_APP_BASE_API
+const baseUrl = import.meta.env.VITE_APP_FILE_BASE_URL || ''
 const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
@@ -133,11 +134,8 @@ watch(
             const list = Array.isArray(val) ? val : props.modelValue.split(',')
             fileList.value = list.map(item => {
                 if (typeof item === 'string') {
-                    if (item.indexOf(baseUrl) === -1 && !isExternal(item)) {
-                        item = { name: baseUrl + item, url: baseUrl + item }
-                    } else {
-                        item = { name: item, url: item }
-                    }
+                    const resolved = isExternal(item) ? item : getImgUrl(item)
+                    item = { name: resolved, url: resolved }
                 }
                 return item
             })
@@ -241,7 +239,9 @@ function listToString(list, separator) {
     separator = separator || ','
     for (let i in list) {
         if (undefined !== list[i].url && list[i].url.indexOf('blob:') !== 0) {
-            strs += list[i].url.replace(baseUrl, '') + separator
+            const rawUrl = String(list[i].url || '')
+            const cleaned = baseUrl ? rawUrl.replace(baseUrl, '') : rawUrl
+            strs += cleaned + separator
         }
     }
     return strs != '' ? strs.substr(0, strs.length - 1) : ''

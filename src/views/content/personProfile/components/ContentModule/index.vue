@@ -368,6 +368,7 @@ import Sortable from 'sortablejs'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
+import { deletePost } from '@/api/content/post'
 import { addCollection, addPostToCollection, deleteCollections, getPostByCollection, listMyCollections, updateCollection } from '@/api/content/collection'
 
 type AnyObj = Record<string, any>
@@ -400,7 +401,16 @@ const props = defineProps({
     targetUserId: { type: [String, Number] as any, default: null }
 })
 
-const emit = defineEmits(['update:modelValue', 'tab-click', 'load-more', 'preview', 'works-filter-change', 'collection-open', 'collection-changed'])
+const emit = defineEmits([
+    'update:modelValue',
+    'tab-click',
+    'load-more',
+    'preview',
+    'works-filter-change',
+    'collection-open',
+    'collection-changed',
+    'posts-deleted'
+])
 
 const activeTabValue = computed({
     get: () => props.modelValue,
@@ -578,11 +588,35 @@ const toggleBulkMode = () => {
 
 const handleBulkAction = async () => {
     if (!bulkMode.value || bulkSelectedCount.value === 0) return
-    if (!bulkIsCollectionContext.value) return
-    const ids = bulkSelectedCollectionIds.value.filter(id => id != null)
+    if (bulkIsCollectionContext.value) {
+        const ids = bulkSelectedCollectionIds.value.filter(id => id != null)
+        if (!ids.length) return
+        try {
+            await proxy?.$modal?.confirm?.('确认删除选中合集？删除后不可恢复。', '提示', {
+                type: 'warning',
+                confirmButtonText: '删除',
+                cancelButtonText: '取消'
+            })
+        } catch {
+            return
+        }
+        try {
+            await deleteCollections(ids)
+            proxy?.$modal?.msgSuccess?.('删除成功')
+            await syncCollections()
+            resetBulkSelection()
+        } catch (error) {
+            console.error(error)
+            proxy?.$modal?.msgError?.('删除失败')
+        }
+        return
+    }
+
+    if (activeTabValue.value !== 'works') return
+    const ids = bulkSelectedWorkIds.value.filter((id): id is number => Number.isFinite(id))
     if (!ids.length) return
     try {
-        await proxy?.$modal?.confirm?.('确认删除选中合集？删除后不可恢复。', '提示', {
+        await proxy?.$modal?.confirm?.('确认删除选中作品？删除后不可恢复。', '提示', {
             type: 'warning',
             confirmButtonText: '删除',
             cancelButtonText: '取消'
@@ -591,9 +625,9 @@ const handleBulkAction = async () => {
         return
     }
     try {
-        await deleteCollections(ids)
+        await deletePost({ postIds: ids })
         proxy?.$modal?.msgSuccess?.('删除成功')
-        await syncCollections()
+        emit('posts-deleted', { ids, tab: activeTabValue.value })
         resetBulkSelection()
     } catch (error) {
         console.error(error)

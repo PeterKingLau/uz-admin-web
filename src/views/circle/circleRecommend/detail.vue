@@ -19,7 +19,7 @@
                         {{ userName?.charAt(0) }}
                     </el-avatar>
                     <span class="publish-placeholder">与圈友分享你的想法...</span>
-                    <button type="button" class="publish-plus" @click.stop="handlePublish">+</button>
+                    <el-button class="publish-plus" type="primary" circle size="small" @click.stop="handlePublish"> + </el-button>
                 </div>
                 <CircleDetailPosts
                     :post-list="postList"
@@ -47,6 +47,7 @@
             :dialog-managers="dialogManagers"
             :dialog-others="dialogOthers"
             :is-circle-owner="isCircleOwner"
+            :can-manage-members="canManageMembers"
             :current-user-id="userStore.id"
             :all-members-loading="allMembersLoading"
             :all-members="allMembers"
@@ -54,6 +55,7 @@
             :get-img-url="getImgUrl"
             @load-more="fetchAllMembers(true)"
             @set-admin="handleSetAdmin"
+            @kick-member="handleKickMember"
         />
 
         <CirclePublishDialog
@@ -69,17 +71,17 @@ import { ref, onMounted, getCurrentInstance, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
-import { closeCircle, getCircleInfo, getCircleMemberList, joinCircle, exitCircle, setCircleAdmin, type CircleItem } from '@/api/content/circleManagement'
+import { closeCircle, getCircleInfo, getCircleMemberList, joinCircle, exitCircle, setCircleAdmin, removeCircleMember, type CircleItem } from '@/api/content/circleManagement'
 import { listPostByApp } from '@/api/content/post'
 import useUserStore from '@/store/modules/user'
 import { useCircleJoinStore } from '@/store/modules/circleJoin'
-import CircleDetailLeftSidebar from './circleDetailLeftSidebar.vue'
-import CircleDetailHeader from './circleDetailHeader.vue'
-import CircleDetailPosts from './circleDetailPosts.vue'
-import CircleDetailRightSidebar from './circleDetailRightSidebar.vue'
-import CircleMembersDialog from './circleMembersDialog.vue'
-import CirclePublishDialog from './circlePublishDialog.vue'
-import type { PostItem } from './types'
+import CircleDetailLeftSidebar from './components/circleDetailLeftSidebar.vue'
+import CircleDetailHeader from './components/circleDetailHeader.vue'
+import CircleDetailPosts from './components/circleDetailPosts.vue'
+import CircleDetailRightSidebar from './components/circleDetailRightSidebar.vue'
+import CircleMembersDialog from './components/circleMembersDialog.vue'
+import CirclePublishDialog from './components/circlePublishDialog.vue'
+import type { PostItem } from '@/types/circle'
 
 const route = useRoute()
 const router = useRouter()
@@ -109,13 +111,13 @@ interface MemberItem {
     followed?: boolean
     isSelf?: boolean
     _adminLoading?: boolean
+    _kickLoading?: boolean
 }
 
 const loading = ref(false)
 const loadingPosts = ref(false)
 const joinLoading = ref(false)
 const deleteLoading = ref(false)
-const showFullIntro = ref(false)
 const showAllMembers = ref(false)
 const allMembers = ref<MemberItem[]>([])
 const allMembersLoading = ref(false)
@@ -138,6 +140,16 @@ const isCircleOwner = computed(() => {
     const creator = circleInfo.value.createBy
     if (!creator) return false
     return String(creator) === String(userStore.id) || creator === userStore.name || creator === userStore.nickName
+})
+const canManageMembers = computed(() => {
+    if (isCircleOwner.value) return true
+    const selfId = userStore.id
+    if (selfId == null) return false
+    return memberList.value.some(member => {
+        if (!member?.isManager) return false
+        const memberId = member.userId ?? member.id
+        return memberId != null && String(memberId) === String(selfId)
+    })
 })
 
 function formatNumber(num?: number): string {
@@ -465,6 +477,10 @@ async function handleJoin() {
     if (joinLoading.value) return
     const id = circleInfo.value.id
     if (!id) return
+    if (isCircleOwner.value && circleInfo.value.joined) {
+        proxy?.$modal?.msgWarning?.('圈主无法退出圈子')
+        return
+    }
 
     try {
         joinLoading.value = true
@@ -512,8 +528,37 @@ async function handleDeleteCircle() {
     }
 }
 
+async function handleKickMember(member: MemberItem) {
+    if (!canManageMembers.value || member._kickLoading) return
+    if (member.isSelf) return
+    const circleId = circleInfo.value.id
+    const targetUserId = member.userId ?? member.id
+    if (!circleId || !targetUserId) return
+
+    try {
+        await proxy?.$modal?.confirm?.(`确定将「${member.name || '该成员'}」移出圈子吗？`, '提示')
+    } catch {
+        return
+    }
+
+    try {
+        member._kickLoading = true
+        await removeCircleMember(circleId, targetUserId)
+        proxy?.$modal?.msgSuccess?.('已踢出成员')
+        await fetchMembers()
+        if (showAllMembers.value) {
+            await fetchAllMembers()
+        }
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('踢出失败')
+    } finally {
+        member._kickLoading = false
+    }
+}
+
 async function handleSetAdmin(member: MemberItem) {
-    if (!isCircleOwner.value || member.isManager || member._adminLoading) return
+    if (!canManageMembers.value || member.isManager || member._adminLoading) return
     const circleId = circleInfo.value.id
     if (!circleId || !member.id) return
 
@@ -603,6 +648,7 @@ watch(
     bottom: 10%;
     transform: translateX(-50%);
     width: min(360px, calc(50% - 48px));
+    min-width: 240px;
     z-index: 100;
     display: flex;
     align-items: center;
@@ -659,6 +705,10 @@ watch(
 
     .main-content {
         order: 2;
+    }
+
+    .floating-publish-bar {
+        border-radius: 16px;
     }
 }
 </style>

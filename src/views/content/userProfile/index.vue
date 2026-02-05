@@ -115,6 +115,7 @@
             @preview="handlePreview"
             @works-filter-change="handleWorksFilterChange"
             @collection-changed="handleCollectionChanged"
+            @posts-deleted="handlePostsDeleted"
             @create-collection="handleCreateCollection"
         />
 
@@ -942,6 +943,23 @@ const removePostFromList = postId => {
     if (nextList.length === postList.value.length) return false
     postList.value = nextList
     return true
+}
+
+const handlePostsDeleted = payload => {
+    const ids = Array.isArray(payload?.ids) ? payload.ids : Array.isArray(payload) ? payload : []
+    if (!ids.length) return
+    const idSet = new Set(ids.map(id => String(id)))
+    const nextList = postList.value.filter(item => !idSet.has(String(resolvePostId(item))))
+    const removed = postList.value.length - nextList.length
+    if (!removed) return
+    postList.value = nextList
+    if (payload?.tab === 'likes') {
+        likeTotal.value = Math.max(0, likeTotal.value - removed)
+    } else if (payload?.tab === 'bookmarks') {
+        bookmarkTotal.value = Math.max(0, bookmarkTotal.value - removed)
+    } else {
+        total.value = Math.max(0, total.value - removed)
+    }
 }
 
 const getPreviewPostId = post => resolvePostId(post)

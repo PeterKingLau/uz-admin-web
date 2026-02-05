@@ -30,6 +30,7 @@
                                         :rows="6"
                                         maxlength="200"
                                         show-word-limit
+                                        resize="none"
                                         placeholder="简要介绍圈子的主题、规则或愿景..."
                                         class="custom-textarea"
                                     />

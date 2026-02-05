@@ -187,6 +187,7 @@ import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
 import { POST_TYPE } from '@/utils/enum'
 import { parseTime } from '@/utils/utils'
+import { getImgUrl } from '@/utils/img'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
 
 const { proxy } = getCurrentInstance() || {}
@@ -399,7 +400,7 @@ function resolveMediaUrl(url: string) {
     if (!raw) return ''
     if (typeof (proxy as any)?.$imgUrl === 'function') return (proxy as any).$imgUrl(raw)
     if (/^https?:\/\//.test(raw)) return raw
-    return (import.meta.env.VITE_APP_BASE_API || '') + raw
+    return getImgUrl(raw)
 }
 
 const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')

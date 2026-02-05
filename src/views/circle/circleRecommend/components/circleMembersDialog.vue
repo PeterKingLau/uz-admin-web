@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <el-dialog :model-value="modelValue" width="560px" class="members-dialog" :lock-scroll="false" @update:model-value="emit('update:modelValue', $event)">
         <template #header>
             <div class="dialog-header-title">
@@ -7,27 +7,36 @@
         </template>
         <div class="members-list" v-loading="allMembersLoading && allMembers.length === 0">
             <div v-if="dialogManagers.length" class="members-section">
-                <div class="section-title">主理人({{ dialogManagers.length }})</div>
+                <div class="section-title">管理员({{ dialogManagers.length }})</div>
                 <div v-for="member in dialogManagers" :key="member.id" class="member-row">
                     <el-avatar :size="44" :src="getImgUrl(member.avatar || '')">{{ member.name?.charAt(0) }}</el-avatar>
                     <div class="member-meta">
-                        <div class="member-name">
-                            {{ member.name }}
-                        </div>
+                        <div class="member-name">{{ member.name }}</div>
                         <div class="member-desc">{{ member.description || '暂无简介' }}</div>
                     </div>
                     <div class="member-actions">
                         <el-button
-                            v-if="isCircleOwner"
+                            v-if="canManageMembers"
                             size="small"
                             round
                             plain
                             :type="member.isManager ? 'info' : 'warning'"
                             :disabled="member.isManager"
-                            :loading="member.adminLoading"
+                            :loading="member._adminLoading"
                             @click="emit('set-admin', member)"
                         >
                             {{ member.isManager ? '管理员' : '设为管理员' }}
+                        </el-button>
+                        <el-button
+                            v-if="canKickMember(member)"
+                            size="small"
+                            round
+                            plain
+                            type="danger"
+                            :loading="member._kickLoading"
+                            @click="emit('kick-member', member)"
+                        >
+                            踢出
                         </el-button>
                         <el-button size="small" round plain :type="isSelf(member) ? 'info' : member.followed ? 'info' : 'primary'" :disabled="isSelf(member)">
                             {{ isSelf(member) ? '自己' : member.followed ? '已关注' : '+关注' }}
@@ -46,16 +55,27 @@
                     </div>
                     <div class="member-actions">
                         <el-button
-                            v-if="isCircleOwner"
+                            v-if="canManageMembers"
                             size="small"
                             round
                             plain
                             :type="member.isManager ? 'info' : 'warning'"
                             :disabled="member.isManager"
-                            :loading="member.adminLoading"
+                            :loading="member._adminLoading"
                             @click="emit('set-admin', member)"
                         >
                             {{ member.isManager ? '管理员' : '设为管理员' }}
+                        </el-button>
+                        <el-button
+                            v-if="canKickMember(member)"
+                            size="small"
+                            round
+                            plain
+                            type="danger"
+                            :loading="member._kickLoading"
+                            @click="emit('kick-member', member)"
+                        >
+                            踢出
                         </el-button>
                         <el-button size="small" round plain :type="isSelf(member) ? 'info' : member.followed ? 'info' : 'primary'" :disabled="isSelf(member)">
                             {{ isSelf(member) ? '自己' : member.followed ? '已关注' : '+关注' }}
@@ -82,7 +102,8 @@ interface MemberItem {
     isManager?: boolean
     followed?: boolean
     isSelf?: boolean
-    adminLoading?: boolean
+    _adminLoading?: boolean
+    _kickLoading?: boolean
 }
 
 const props = defineProps<{
@@ -90,6 +111,7 @@ const props = defineProps<{
     dialogManagers: MemberItem[]
     dialogOthers: MemberItem[]
     isCircleOwner: boolean
+    canManageMembers: boolean
     currentUserId: string | number | null | undefined
     allMembersLoading: boolean
     allMembers: MemberItem[]
@@ -106,10 +128,17 @@ const isSelf = (member: MemberItem) => {
     return String(memberId) === String(selfId)
 }
 
+const canKickMember = (member: MemberItem) => {
+    if (!props.canManageMembers) return false
+    if (isSelf(member)) return false
+    return true
+}
+
 const emit = defineEmits<{
     (e: 'update:modelValue', value: boolean): void
     (e: 'load-more'): void
     (e: 'set-admin', member: MemberItem): void
+    (e: 'kick-member', member: MemberItem): void
 }>()
 </script>
 

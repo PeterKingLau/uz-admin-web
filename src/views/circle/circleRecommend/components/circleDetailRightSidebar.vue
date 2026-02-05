@@ -273,4 +273,32 @@ const emit = defineEmits<{
         padding: 0 16px;
     }
 }
+
+@media screen and (max-width: 992px) {
+    .right-sidebar {
+        width: 100%;
+        padding: 0;
+    }
+
+    .sidebar-sticky {
+        position: static;
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .widget-publish {
+        .publish-row {
+            flex-direction: column;
+            align-items: stretch;
+
+            .current-avatar {
+                align-self: flex-start;
+            }
+        }
+
+        .btn-publish-action {
+            width: 100%;
+        }
+    }
+}
 </style>
