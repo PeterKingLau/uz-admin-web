@@ -1,5 +1,5 @@
 <template>
-    <el-scrollbar ref="scrollContainer" :vertical="false" class="scroll-container" @wheel.prevent="handleScroll">
+    <el-scrollbar ref="scrollContainerRef" :vertical="false" class="scroll-container" @wheel.prevent="handleScroll">
         <slot />
     </el-scrollbar>
 </template>
@@ -8,21 +8,25 @@
 import useTagsViewStore from '@/store/modules/tagsView'
 
 const tagAndTagSpacing = ref(4)
-const { proxy } = getCurrentInstance()
+const scrollContainerRef = ref(null)
 
-const scrollWrapper = computed(() => proxy.$refs.scrollContainer.$refs.wrapRef)
+const scrollWrapper = computed(() => {
+    const container = scrollContainerRef.value
+    return container?.wrapRef || container?.$refs?.wrapRef || null
+})
 
 onMounted(() => {
-    scrollWrapper.value.addEventListener('scroll', emitScroll, true)
+    scrollWrapper.value?.addEventListener?.('scroll', emitScroll, true)
 })
 
 onBeforeUnmount(() => {
-    scrollWrapper.value.removeEventListener('scroll', emitScroll)
+    scrollWrapper.value?.removeEventListener?.('scroll', emitScroll)
 })
 
 function handleScroll(e) {
-    const eventDelta = e.wheelDelta || -e.deltaY * 40
     const $scrollWrapper = scrollWrapper.value
+    if (!$scrollWrapper) return
+    const eventDelta = e.wheelDelta || -e.deltaY * 40
     $scrollWrapper.scrollLeft = $scrollWrapper.scrollLeft + eventDelta / 4
 }
 
@@ -35,7 +39,8 @@ const tagsViewStore = useTagsViewStore()
 const visitedViews = computed(() => tagsViewStore.visitedViews)
 
 function moveToTarget(currentTag) {
-    const $container = proxy.$refs.scrollContainer.$el
+    const $container = scrollContainerRef.value?.$el
+    if (!$container || !scrollWrapper.value) return
     const $containerWidth = $container.offsetWidth
     const $scrollWrapper = scrollWrapper.value
 
@@ -55,6 +60,7 @@ function moveToTarget(currentTag) {
     } else {
         const tagListDom = document.getElementsByClassName('tags-view-item')
         const currentIndex = visitedViews.value.findIndex(item => item === currentTag)
+        if (currentIndex <= 0 || currentIndex >= visitedViews.value.length - 1) return
         let prevTag = null
         let nextTag = null
         for (const k in tagListDom) {
@@ -67,6 +73,7 @@ function moveToTarget(currentTag) {
                 }
             }
         }
+        if (!prevTag || !nextTag) return
 
         // the tag's offsetLeft after of nextTag
         const afterNextTagOffsetLeft = nextTag.offsetLeft + nextTag.offsetWidth + tagAndTagSpacing.value

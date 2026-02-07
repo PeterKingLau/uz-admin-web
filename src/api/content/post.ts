@@ -4,8 +4,11 @@ import request from '@/utils/request'
 const POST_UPLOAD_CREDENTIALS_URL = '/content/postInfo/upload/credentials'
 const POST_CREATE_URL = '/content/postInfo/create'
 const REQUEST_TIMEOUT = 300000
+const DEFAULT_OSS_CREDENTIAL_TYPE = 'posts'
+const VALID_OSS_CREDENTIAL_TYPES = ['posts', 'collections', 'circles'] as const
 
 type UnknownRecord = Record<string, unknown>
+type OssCredentialType = (typeof VALID_OSS_CREDENTIAL_TYPES)[number]
 
 interface CreatePostPayload {
     postType: string
@@ -19,8 +22,8 @@ interface CreatePostPayload {
 
 interface UploadCredentialParams {
     postType?: string
-    fileCount?: string | number
-    type?: string
+    fileCount?: string
+    type?: OssCredentialType
 }
 
 export interface AddPostPayload {
@@ -33,7 +36,7 @@ export interface AddPostPayload {
     originalPostId?: number | string
     circleId?: string | number
     isQuestion?: string | number | boolean
-    ossType?: string
+    ossType?: OssCredentialType | string
 }
 
 export interface UpdatePostTagPayload {
@@ -87,6 +90,14 @@ const firstString = (...values: unknown[]): string | undefined => {
         if (value) return value
     }
     return undefined
+}
+
+const normalizeOssCredentialType = (value?: string): OssCredentialType => {
+    const normalized = toStringOrUndefined(value)?.toLowerCase()
+    if (normalized && VALID_OSS_CREDENTIAL_TYPES.includes(normalized as OssCredentialType)) {
+        return normalized as OssCredentialType
+    }
+    return DEFAULT_OSS_CREDENTIAL_TYPE
 }
 
 const stripUrlQuery = (url: string): string => {
@@ -313,10 +324,28 @@ const uploadByPost = async (host: string, file: File, credential: UnknownRecord,
     })
     formData.append('file', file)
 
-    const response = await axios.post(resolvedHost, formData, {
-        timeout: REQUEST_TIMEOUT,
-        withCredentials: false
-    })
+    let response
+    try {
+        response = await axios.post(resolvedHost, formData, {
+            timeout: REQUEST_TIMEOUT,
+            withCredentials: false,
+            headers: {
+                'Content-Type': null
+            }
+        })
+    } catch (error: any) {
+        const status = Number(error?.response?.status || 0)
+        // Some credentials are PUT-style but may be misclassified; 405 on POST usually indicates wrong method.
+        if (status === 405) {
+            const fallbackTarget =
+                firstString(credential.putUrl, credential.signedUrl, credential.presignedUrl, credential.uploadUrl, credential.url) ||
+                (formFields.key ? `${resolvedHost.replace(/\/+$/, '')}/${String(formFields.key).replace(/^\/+/, '')}` : '')
+            if (fallbackTarget) {
+                return uploadByPut(fallbackTarget, file, credential)
+            }
+        }
+        throw error
+    }
 
     const responseData = response?.data
     const responseDataObj = isRecord(responseData) ? responseData : undefined
@@ -386,13 +415,25 @@ const uploadSingleFile = async (file: File, credentialRaw: unknown, index: numbe
     const putTarget = firstString(credential.putUrl, credential.signedUrl, credential.presignedUrl)
     const uploadUrl = firstString(credential.uploadUrl, credential.url)
     const host = firstString(credential.host, credential.uploadHost, credential.endpoint)
-    const hasPostPolicy = Boolean(firstString(credential.policy, credential.signature, credential.Signature))
+    const hasPostPolicy = Boolean(
+        firstString(credential.policy) &&
+            firstString(credential.signature, credential.Signature) &&
+            firstString(credential.OSSAccessKeyId, credential.accessId, credential.accessKeyId)
+    )
     const hasStsSecret = Boolean(firstString(credential.accessKeyId) && firstString(credential.accessKeySecret))
 
-    if (putTarget || method === 'PUT' || (!hasPostPolicy && uploadUrl)) {
+    if (method === 'PUT' || putTarget) {
         const target = putTarget || uploadUrl
         if (!target) throw new Error('缺少 OSS PUT 上传地址')
         return uploadByPut(target, file, credential)
+    }
+
+    if (method === 'POST' || hasPostPolicy) {
+        const postHost = host || uploadUrl
+        if (!postHost) {
+            throw new Error('缺少 OSS 上传地址')
+        }
+        return uploadByPost(postHost, file, credential, index)
     }
 
     if (!hasPostPolicy && hasStsSecret) {
@@ -400,19 +441,21 @@ const uploadSingleFile = async (file: File, credentialRaw: unknown, index: numbe
         return uploadByPost(ossHost, file, credential, index, fields)
     }
 
-    const postHost = host || uploadUrl
-    if (!postHost) {
-        throw new Error('缺少 OSS 上传地址')
+    if (uploadUrl) {
+        return uploadByPut(uploadUrl, file, credential)
     }
+
+    const postHost = host
+    if (!postHost) throw new Error('缺少 OSS 上传地址')
     return uploadByPost(postHost, file, credential, index)
 }
 
-const uploadFilesToOss = async (postType: string, files: File[], ossType?: string): Promise<string[]> => {
+export const uploadFilesToOss = async (postType: string, files: File[], ossType?: string): Promise<string[]> => {
     if (!files.length) return []
     const credentialResponse = await getPostUploadCredentials({
-        postType,
+        postType: toStringOrUndefined(postType),
         fileCount: String(files.length),
-        type: ossType
+        type: normalizeOssCredentialType(ossType)
     })
     const credentialList = resolveCredentialList(credentialResponse)
     if (!credentialList.length) {

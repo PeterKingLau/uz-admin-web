@@ -120,7 +120,7 @@
         />
 
         <PostPreviewModal
-            :ref="setPreviewModalRef"
+            ref="previewModalRef"
             v-model="previewVisible"
             :post="previewPost"
             :media-list="previewMediaList"
@@ -158,7 +158,7 @@
         />
 
         <FollowDialog
-            :ref="setFollowDialogRef"
+            ref="followDialogRef"
             v-model="followDialogVisible"
             v-model:activeTab="followActiveTab"
             :show-mutual="isSelfProfile"
@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance, shallowRef } from 'vue'
+import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
@@ -235,10 +235,7 @@ const repostActionLoading = ref(false)
 const previewCommentsLoading = ref(false)
 const commentDraft = ref('')
 
-const previewModalRef = shallowRef(null)
-const setPreviewModalRef = el => {
-    previewModalRef.value = el
-}
+const previewModalRef = ref(null)
 
 const isActionInputFocused = ref(false)
 const deleteCommentLoading = reactive({})
@@ -251,10 +248,7 @@ const followActiveTab = ref('following')
 const followList = ref([])
 const followLoading = ref(false)
 const followNoMore = ref(false)
-const followDialogRef = shallowRef(null)
-const setFollowDialogRef = el => {
-    followDialogRef.value = el
-}
+const followDialogRef = ref(null)
 const followLastId = ref(undefined)
 const followPageSize = 20
 

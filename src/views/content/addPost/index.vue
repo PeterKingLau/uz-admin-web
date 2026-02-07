@@ -141,6 +141,7 @@
                                             </div>
                                         </transition>
                                     </div>
+                                    <div v-if="hasUploadingMedia" class="uploading-tip">素材上传中，请稍候...</div>
                                 </el-form-item>
                             </transition>
 
@@ -170,7 +171,14 @@
                             </el-form-item>
 
                             <div class="form-footer">
-                                <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit" class="submit-btn">
+                                <el-button
+                                    type="primary"
+                                    size="large"
+                                    :loading="submitting"
+                                    :disabled="hasUploadingMedia"
+                                    @click="handleSubmit"
+                                    class="submit-btn"
+                                >
                                     <Icon icon="mdi:send-outline" class="mr-2 text-[18px]" />
                                     {{ submitting ? '发布中...' : '立即发布' }}
                                 </el-button>
@@ -312,7 +320,7 @@
 <script setup name="ContentPost" lang="ts">
 import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick } from 'vue'
 import type { UploadUserFile, UploadFile, UploadFiles, FormInstance } from 'element-plus'
-import { addPost } from '@/api/content/post'
+import { addPost, uploadFilesToOss } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
@@ -339,6 +347,8 @@ const interestLoading = ref(false)
 const selectedTagIds = ref<number[]>([])
 const suppressTagValidate = ref(false)
 const autoFilledContent = ref<string | null>(null)
+const uploadedMediaUrlMap = ref<Record<string, string>>({})
+const uploadingMediaMap = ref<Record<string, boolean>>({})
 
 const isDragging = ref(false)
 const dragDepth = ref(0)
@@ -372,6 +382,8 @@ const uploadLimitReached = computed(() => {
     if (form.postType === POST_TYPE.VIDEO) return fileList.value.length >= 1
     return false
 })
+
+const hasUploadingMedia = computed(() => Object.values(uploadingMediaMap.value).some(Boolean))
 
 const selectedTagNames = computed(() => {
     const tags: { id: number; name: string }[] = []
@@ -457,6 +469,101 @@ const clearFilesValidate = () => {
     if (fileList.value.length) formRef.value.clearValidate(['files'])
 }
 
+const getFileUid = (file: UploadFile | UploadUserFile): string => String((file as any)?.uid ?? '')
+
+const isUploadingUid = (uid: string): boolean => Boolean(uid && uploadingMediaMap.value[uid])
+
+const setUploadingUid = (uid: string, uploading: boolean) => {
+    if (!uid) return
+    const next = { ...uploadingMediaMap.value }
+    if (uploading) next[uid] = true
+    else delete next[uid]
+    uploadingMediaMap.value = next
+}
+
+const setUploadedMediaUrl = (uid: string, url: string) => {
+    if (!uid || !url) return
+    uploadedMediaUrlMap.value = {
+        ...uploadedMediaUrlMap.value,
+        [uid]: url
+    }
+}
+
+const removeUploadCacheByUid = (uid: string) => {
+    if (!uid) return
+    if (uploadedMediaUrlMap.value[uid]) {
+        const nextUploaded = { ...uploadedMediaUrlMap.value }
+        delete nextUploaded[uid]
+        uploadedMediaUrlMap.value = nextUploaded
+    }
+    if (uploadingMediaMap.value[uid]) {
+        const nextUploading = { ...uploadingMediaMap.value }
+        delete nextUploading[uid]
+        uploadingMediaMap.value = nextUploading
+    }
+}
+
+const syncUploadCacheWithFileList = () => {
+    const currentUids = new Set(fileList.value.map(file => getFileUid(file)))
+    Object.keys(uploadedMediaUrlMap.value).forEach(uid => {
+        if (!currentUids.has(uid)) removeUploadCacheByUid(uid)
+    })
+    Object.keys(uploadingMediaMap.value).forEach(uid => {
+        if (!currentUids.has(uid)) removeUploadCacheByUid(uid)
+    })
+}
+
+let pendingUploadTask: Promise<boolean> | null = null
+
+const uploadPendingFilesToOss = async (): Promise<boolean> => {
+    if (form.postType === POST_TYPE.TEXT) return true
+    while (true) {
+        const pendingEntries = fileList.value.filter(file => {
+            const uid = getFileUid(file)
+            const raw = (file as any)?.raw
+            if (!(raw instanceof File)) return false
+            if (uploadedMediaUrlMap.value[uid]) return false
+            if (isUploadingUid(uid)) return false
+            return true
+        })
+        if (!pendingEntries.length) return true
+
+        const entries = [...pendingEntries]
+        entries.forEach(file => setUploadingUid(getFileUid(file), true))
+
+        try {
+            const rawFiles = entries.map(file => (file as any).raw as File)
+            const uploadedUrls = await uploadFilesToOss(form.postType, rawFiles)
+            entries.forEach((file, index) => {
+                const uid = getFileUid(file)
+                const url = uploadedUrls[index]
+                if (!url) return
+                const stillExists = fileList.value.some(item => getFileUid(item) === uid)
+                if (stillExists) setUploadedMediaUrl(uid, url)
+            })
+        } catch (error) {
+            console.error(error)
+            proxy?.$modal?.msgError('素材上传失败，请重试')
+            return false
+        } finally {
+            entries.forEach(file => setUploadingUid(getFileUid(file), false))
+            syncUploadCacheWithFileList()
+        }
+    }
+}
+
+const ensurePendingFilesUploaded = async (): Promise<boolean> => {
+    if (pendingUploadTask) return pendingUploadTask
+    pendingUploadTask = uploadPendingFilesToOss().finally(() => {
+        pendingUploadTask = null
+    })
+    return pendingUploadTask
+}
+
+const getUploadedMediaUrlsInOrder = (): string[] => {
+    return fileList.value.map(file => uploadedMediaUrlMap.value[getFileUid(file)]).filter((url): url is string => Boolean(url))
+}
+
 const addFilesByDrop = async (files: File[]) => {
     const valid = files.filter(f => f && isAccepted(f))
     if (!valid.length) return
@@ -510,9 +617,14 @@ const handleFileChange = (uploadFile: UploadFile, uploadFiles: UploadFiles) => {
     setTimeout(() => updatePreviewMedia(), 0)
     if (form.postType !== POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('files'))
     applyVideoNameToContent(uploadFile)
+    syncUploadCacheWithFileList()
+    if (form.postType !== POST_TYPE.TEXT) {
+        void ensurePendingFilesUploaded()
+    }
 }
 
 const handleRemove = (file: UploadFile) => {
+    removeUploadCacheByUid(getFileUid(file))
     uploadRef.value?.handleRemove(file)
     setTimeout(() => updatePreviewMedia(), 0)
     nextTick(() => formRef.value?.validateField('files'))
@@ -529,6 +641,9 @@ const handleTypeChange = async () => {
     fileList.value = []
     uploadRef.value?.clearFiles?.()
     updatePreviewMedia()
+    uploadedMediaUrlMap.value = {}
+    uploadingMediaMap.value = {}
+    pendingUploadTask = null
     autoFilledContent.value = null
     isDragging.value = false
     dragDepth.value = 0
@@ -611,12 +726,21 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
-        const files = form.postType !== POST_TYPE.TEXT ? (fileList.value.map(f => (f as any).raw).filter(Boolean) as File[]) : []
+        const uploadOk = await ensurePendingFilesUploaded()
+        if (!uploadOk) return
+        const mediaUrls = form.postType !== POST_TYPE.TEXT ? getUploadedMediaUrlsInOrder() : []
+        if (form.postType !== POST_TYPE.TEXT && mediaUrls.length !== fileList.value.length) {
+            proxy?.$modal?.msgError('部分素材未上传成功，请删除后重试')
+            return
+        }
         await addPost({
             postType: form.postType,
             content: form.content?.trim() || '',
-            tagStr: form.tagStr,
-            files
+            mediaUrls,
+            originalPostId: 0,
+            tags: form.tagStr,
+            circleId: '',
+            isQuestion: '0'
         })
         proxy?.$modal?.msgSuccess('发布成功')
         await handleReset(true)
@@ -633,6 +757,9 @@ async function handleReset(afterSubmit = false) {
     previewMediaList.value = []
     fileList.value = []
     uploadRef.value?.clearFiles?.()
+    uploadedMediaUrlMap.value = {}
+    uploadingMediaMap.value = {}
+    pendingUploadTask = null
     selectedTagIds.value = []
     autoFilledContent.value = null
     isDragging.value = false
@@ -925,6 +1052,13 @@ async function handleReset(afterSubmit = false) {
             animation: dash-rotate 20s linear infinite;
         }
     }
+}
+
+.uploading-tip {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--el-color-primary);
+    font-weight: 500;
 }
 
 @keyframes dash-rotate {

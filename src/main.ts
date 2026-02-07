@@ -64,6 +64,62 @@ videojs.addLanguage('zh-CN', zhCN as Record<string, string>)
 
 const app = createApp(App)
 
+type ExposeContext = {
+    exposed?: Record<string, any>
+    setupState: Record<string, any>
+    exposeProxy?: Record<string, any>
+    [key: string]: any
+}
+
+const hasOwn = (target: Record<string, any>, key: PropertyKey) => Object.prototype.hasOwnProperty.call(target, key)
+
+function proxyDefine(context: ExposeContext, proxyContext: Record<string, any>, proxyKey: 'exposed' | 'setupState') {
+    const source = context[proxyKey]
+    if (!source) return
+    Object.keys(source).forEach(key => {
+        if (hasOwn(proxyContext, key)) return
+        Object.defineProperty(proxyContext, key, {
+            configurable: true,
+            enumerable: true,
+            get() {
+                return source[key]
+            },
+            set(newValue) {
+                source[key] = newValue
+            }
+        })
+    })
+}
+
+function defineDev(context: ExposeContext) {
+    const proxy = {}
+    proxyDefine(context, proxy, 'exposed')
+    proxyDefine(context, proxy, 'setupState')
+    return proxy
+}
+
+function helpProxy(context: ExposeContext, key: PropertyKey, update: boolean, value?: any) {
+    const get = (proxyContext: Record<string, any>) => Reflect.get(proxyContext, key)
+    const set = (proxyContext: Record<string, any>, newValue: any) => Reflect.set(proxyContext, key, newValue)
+    if (context.exposed && hasOwn(context.exposed, key)) return update ? set(context.exposed, value) : get(context.exposed)
+    if (hasOwn(context.setupState, key)) return update ? set(context.setupState, value) : get(context.setupState)
+    return Reflect.get(context, key)
+}
+
+const onVnodeBeforeMountRef_ = (vNode: any) => {
+    const { component } = vNode
+    if (!component) return
+    const proxyContext = defineDev(component)
+    component.exposeProxy = new Proxy(proxyContext, {
+        get(_, key) {
+            return helpProxy(component, key, false)
+        },
+        set(_, key, value) {
+            return helpProxy(component, key, true, value)
+        }
+    })
+}
+
 app.config.globalProperties.$videojs = videojs
 app.config.globalProperties.useDict = useDict
 app.config.globalProperties.download = download
@@ -89,6 +145,7 @@ app.use(router)
 app.use(store)
 app.use(plugins)
 app.use(elementIcons)
+app.config.globalProperties.onVnodeBeforeMountRef_ = onVnodeBeforeMountRef_
 // app.component('svg-icon', SvgIcon)
 app.component('Icon', AppIcon)
 

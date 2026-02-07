@@ -8,6 +8,7 @@
                     <el-col :span="14" class="cropper-col">
                         <div class="cropper-box">
                             <vue-cropper
+                                v-if="visible"
                                 ref="cropper"
                                 :img="options.img"
                                 :info="true"
@@ -16,8 +17,8 @@
                                 :autoCropHeight="options.autoCropHeight"
                                 :fixedBox="options.fixedBox"
                                 :outputType="options.outputType"
+                                @real-time="realTime"
                                 @realTime="realTime"
-                                v-if="visible"
                             />
                         </div>
                     </el-col>
@@ -25,7 +26,7 @@
                         <div class="preview-box">
                             <div class="preview-img-wrapper">
                                 <div :style="previewStyle" class="preview-inner">
-                                    <img :src="options.previews.url" :style="options.previews.img" />
+                                    <img :src="previewImageUrl" :style="previewImageStyle" />
                                 </div>
                             </div>
                             <div class="preview-text">头像预览</div>
@@ -52,7 +53,7 @@
                     </div>
 
                     <div class="right-actions">
-                        <el-button type="primary" @click="uploadImg()">提 交</el-button>
+                        <el-button type="primary" :loading="submitting" @click="uploadImg()">提 交</el-button>
                     </div>
                 </div>
             </template>
@@ -65,7 +66,7 @@ import 'vue-cropper/dist/index.css'
 import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
-import { ref, reactive, getCurrentInstance, computed } from 'vue'
+import { ref, reactive, getCurrentInstance, computed, nextTick } from 'vue'
 import { getImgUrl } from '@/utils/img'
 
 const userStore = useUserStore()
@@ -74,9 +75,20 @@ const { proxy } = getCurrentInstance()
 const open = ref(false)
 const visible = ref(false)
 const title = ref('修改头像')
+const submitting = ref(false)
+const cropPreviewUrl = ref('')
+
+const MAX_AVATAR_SIZE_MB = 10
+
+const resolveImageSource = source => {
+    const raw = String(source || '').trim()
+    if (!raw) return ''
+    if (/^(data:|blob:|https?:\/\/|\/\/)/i.test(raw)) return raw
+    return getImgUrl(raw)
+}
 
 const options = reactive({
-    img: userStore.avatar,
+    img: resolveImageSource(userStore.avatar),
     autoCrop: true,
     autoCropWidth: 200,
     autoCropHeight: 200,
@@ -92,23 +104,69 @@ const options = reactive({
     }
 })
 
+const toPxNumber = value => {
+    const n = parseFloat(
+        String(value ?? '')
+            .replace('px', '')
+            .trim()
+    )
+    return Number.isFinite(n) ? n : 0
+}
+
 const previewStyle = computed(() => {
-    if (!options.previews || !options.previews.div) {
+    const previewDiv = options?.previews?.div
+    if (!previewDiv || typeof previewDiv !== 'object' || Array.isArray(previewDiv) || Object.keys(previewDiv).length === 0) {
         return {
             width: '200px',
             height: '200px',
             overflow: 'hidden',
             borderRadius: '50%',
-            margin: '0'
+            margin: '0 auto'
+        }
+    }
+    const width = toPxNumber(previewDiv.width)
+    const height = toPxNumber(previewDiv.height)
+    if (width <= 0 || height <= 0) {
+        return {
+            width: '200px',
+            height: '200px',
+            overflow: 'hidden',
+            borderRadius: '50%',
+            margin: '0 auto'
         }
     }
 
     return {
-        ...options.previews.div,
+        ...previewDiv,
         borderRadius: '50%',
-        overflow: 'hidden',
-        margin: '0'
+        overflow: 'hidden'
     }
+})
+
+const previewImageUrl = computed(() => {
+    if (cropPreviewUrl.value) return cropPreviewUrl.value
+    const previewUrl = String(options?.previews?.url || '').trim()
+    if (previewUrl) return previewUrl
+    return options.img
+})
+
+const previewImageStyle = computed(() => {
+    if (cropPreviewUrl.value) {
+        return {
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+        }
+    }
+    const previewImg = options?.previews?.img
+    if (!previewImg || typeof previewImg !== 'object' || Array.isArray(previewImg)) {
+        return {
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+        }
+    }
+    return previewImg
 })
 
 function editCropper() {
@@ -117,58 +175,131 @@ function editCropper() {
 
 function modalOpened() {
     visible.value = true
+    nextTick(() => {
+        updateCropPreview()
+    })
 }
 
-function requestUpload() {}
+function requestUpload() {
+    return Promise.resolve()
+}
 
 function rotateLeft() {
-    proxy.$refs.cropper.rotateLeft()
+    proxy?.$refs?.cropper?.rotateLeft()
 }
 
 function rotateRight() {
-    proxy.$refs.cropper.rotateRight()
+    proxy?.$refs?.cropper?.rotateRight()
 }
 
 function changeScale(num) {
     num = num || 1
-    proxy.$refs.cropper.changeScale(num)
+    proxy?.$refs?.cropper?.changeScale(num)
 }
 
 function beforeUpload(file) {
-    if (file.type.indexOf('image/') == -1) {
+    const fileType = String(file?.type || '')
+    if (!fileType.startsWith('image/')) {
         proxy.$modal.msgError('文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。')
         return false
-    } else {
-        const reader = new FileReader()
-        reader.readAsDataURL(file)
-        reader.onload = () => {
-            options.img = reader.result
-            options.filename = file.name
-        }
+    }
+    const isLtMaxSize = file.size / 1024 / 1024 <= MAX_AVATAR_SIZE_MB
+    if (!isLtMaxSize) {
+        proxy.$modal.msgError(`图片大小不能超过 ${MAX_AVATAR_SIZE_MB}MB`)
+        return false
+    }
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => {
+        cropPreviewUrl.value = ''
+        options.img = String(reader.result || '')
+        options.filename = file.name
+        nextTick(() => {
+            updateCropPreview()
+        })
+    }
+    reader.onerror = () => {
+        proxy.$modal.msgError('读取图片失败，请重新选择')
     }
     return false
 }
 
-function uploadImg() {
-    proxy.$refs.cropper.getCropBlob(data => {
-        let formData = new FormData()
-        formData.append('avatarfile', data, options.filename)
-        uploadAvatar(formData).then(response => {
-            open.value = false
-            options.img = getImgUrl(response.imgUrl)
-            userStore.avatar = options.img
-            proxy.$modal.msgSuccess('修改成功')
-            visible.value = false
+function ensureAvatarFileName() {
+    const rawName = String(options.filename || 'avatar').trim() || 'avatar'
+    const hasExt = /\.[^./\\]+$/.test(rawName)
+    if (hasExt) return rawName
+    const outputType =
+        String(options.outputType || 'png')
+            .replace('.', '')
+            .trim() || 'png'
+    return `${rawName}.${outputType}`
+}
+
+function getCropBlob() {
+    return new Promise((resolve, reject) => {
+        const cropper = proxy?.$refs?.cropper
+        if (!cropper) {
+            reject(new Error('裁剪组件未就绪，请重试'))
+            return
+        }
+        cropper.getCropBlob(blob => {
+            if (!blob) {
+                reject(new Error('获取裁剪图片失败'))
+                return
+            }
+            resolve(blob)
         })
     })
 }
 
+function updateCropPreview() {
+    const cropper = proxy?.$refs?.cropper
+    if (!cropper || typeof cropper.getCropData !== 'function') return
+    cropper.getCropData(dataUrl => {
+        if (!dataUrl) return
+        cropPreviewUrl.value = dataUrl
+    })
+}
+
+async function uploadImg() {
+    if (submitting.value) return
+
+    submitting.value = true
+    proxy.$modal.loading('正在上传头像，请稍候...')
+    try {
+        const blob = await getCropBlob()
+        const avatarFile = new File([blob], ensureAvatarFileName(), { type: blob.type || `image/${options.outputType || 'png'}` })
+        const formData = new FormData()
+        formData.append('avatarfile', avatarFile, avatarFile.name)
+        const response = await uploadAvatar(formData)
+        const latestAvatar = getImgUrl(response?.imgUrl || '')
+        if (!latestAvatar) {
+            throw new Error('头像上传失败，未返回有效地址')
+        }
+
+        open.value = false
+        options.img = latestAvatar
+        userStore.avatar = latestAvatar
+        proxy.$modal.msgSuccess('修改成功')
+        visible.value = false
+    } catch (error) {
+        console.error(error)
+        proxy.$modal.msgError(error?.message || '上传失败')
+    } finally {
+        submitting.value = false
+        proxy.$modal.closeLoading()
+    }
+}
+
 function realTime(data) {
+    if (!data || typeof data !== 'object') return
     options.previews = data
+    updateCropPreview()
 }
 
 function closeDialog() {
-    options.img = userStore.avatar
+    cropPreviewUrl.value = ''
+    options.img = resolveImageSource(userStore.avatar)
     visible.value = false
 }
 </script>

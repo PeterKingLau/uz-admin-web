@@ -1,6 +1,6 @@
 <template>
     <div id="tags-view-container" class="tags-view-container">
-        <scroll-pane ref="scrollPaneRef" class="tags-view-wrapper" @scroll="handleScroll">
+        <ScrollPane ref="scrollPaneRef" class="tags-view-wrapper" @scroll="handleScroll">
             <router-link
                 v-for="tag in visitedViews"
                 :key="tag.path"
@@ -18,7 +18,7 @@
                     <Icon icon="ep:close" class="el-icon-close" />
                 </span>
             </router-link>
-        </scroll-pane>
+        </ScrollPane>
         <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
             <li @click="refreshSelectedTag(selectedTag)"><Icon icon="ep:refresh-right" /> 刷新页面</li>
             <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)"><Icon icon="ep:close" /> 关闭当前</li>
@@ -148,7 +148,7 @@ function moveToCurrentTag() {
     nextTick(() => {
         for (const r of visitedViews.value) {
             if (r.path === route.path) {
-                scrollPaneRef.value.moveToTarget(r)
+                scrollPaneRef.value?.moveToTarget?.(r)
                 if (r.fullPath !== route.fullPath) {
                     useTagsViewStore().updateVisitedView(route)
                 }
