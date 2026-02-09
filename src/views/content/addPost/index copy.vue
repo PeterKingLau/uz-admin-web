@@ -70,7 +70,7 @@
                                 </template>
                                 <template v-else-if="form.postType === POST_TYPE.VIDEO">
                                     <el-form-item label="上传视频" prop="files">
-                                        <FileUpload v-model="videoUrls" :limit="1" :file-size="0" :file-type="['mp4', 'mov']" />
+                                        <FileUpload v-model="videoUrls" :limit="1" :file-size="0" :file-type="['mp4', 'mov']" oss-type="posts" />
                                     </el-form-item>
                                 </template>
                             </transition>

@@ -50,7 +50,7 @@
         <div v-if="posts.length" class="load-more">
             <div ref="sentinelRef" class="sentinel"></div>
 
-            <el-button v-if="!finished" :loading="loadingMore" text bg size="small" @click="emit('load-more')">
+            <el-button v-if="!finished" :loading="loadingMore" text bg size="small" @click="emit('load-more', { source: 'manual' })">
                 {{ loadingMore ? '加载中...' : '加载更多' }}
             </el-button>
             <span v-else class="finished">已无更多数据</span>
@@ -72,7 +72,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'load-more'): void
+    (e: 'load-more', payload?: { source: 'auto' | 'manual' }): void
     (e: 'select', payload: { id: string | number; checked: boolean }): void
     (e: 'delete', id: string | number): void
     (e: 'edit-tag', post: any): void
@@ -116,7 +116,7 @@ const createObserver = () => {
             if (props.finished || props.loading || props.loadingMore || loadLock) return
 
             loadLock = true
-            emit('load-more')
+            emit('load-more', { source: 'auto' })
             setTimeout(() => {
                 loadLock = false
             }, 200)

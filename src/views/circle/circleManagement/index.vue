@@ -43,6 +43,7 @@
                                         :file-size="5"
                                         :file-type="['png', 'jpg', 'jpeg', 'webp']"
                                         :is-show-tip="true"
+                                        oss-type="circles"
                                         class="cover-uploader"
                                     />
                                 </el-form-item>

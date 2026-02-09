@@ -330,7 +330,16 @@
 
             <el-form ref="formRef" :model="createForm" :rules="rules" label-position="top" class="form-body">
                 <el-form-item label="封面" prop="coverUrl">
-                    <ImageUpload v-model="createForm.coverUrl" :limit="1" :file-type="[]" :file-size="0" :is-show-tip="false" class="avatar-uploader" />
+                    <ImageUpload
+                        v-model="createForm.coverUrl"
+                        :limit="1"
+                        :file-type="[]"
+                        :file-size="0"
+                        :is-show-tip="false"
+                        oss-type="collections"
+                        :oss-post-type="POST_TYPE.IMAGE"
+                        class="avatar-uploader"
+                    />
                 </el-form-item>
 
                 <el-form-item label="名称" prop="title">

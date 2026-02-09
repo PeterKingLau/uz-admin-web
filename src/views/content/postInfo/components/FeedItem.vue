@@ -1,121 +1,92 @@
-<template>
-    <div v-if="!isOriginalMissing" class="feed-card" :class="{ checked }">
-        <div class="card-media" :class="{ 'is-clickable': canPreview }" @click="handleMediaClick">
-            <div v-if="isTextPost" class="text-cover" :style="textCoverStyle">
-                <span class="text-cover-quote">"</span>
-                <div class="text-cover-text">{{ textCoverText }}</div>
-                <span class="text-cover-accent"></span>
+﻿<template>
+    <div v-if="!isOriginalMissing" class="feed-card" :class="{ checked, 'is-batch': isBatchMode }">
+        <div class="card-media-wrapper" :class="{ 'is-clickable': canPreview }" @click="handleMediaClick">
+            <div class="media-top-bar" @click.stop>
+                <div class="type-tag" :data-type="post?.postType">
+                    <Icon :icon="typeIcon" class="tag-icon" />
+                    <span>{{ typeText }}</span>
+                </div>
+
+                <div class="admin-toolbar">
+                    <el-tooltip content="编辑标签" placement="bottom" :show-after="500">
+                        <div class="tool-btn" @click="emit('edit-tag', post)">
+                            <Icon icon="mdi:tag-outline" />
+                        </div>
+                    </el-tooltip>
+                    <el-tooltip :content="post.isTop ? '取消置顶' : '置顶'" placement="bottom" :show-after="500">
+                        <div class="tool-btn" :class="{ active: post.isTop }" @click="handleTogglePin">
+                            <Icon :icon="post.isTop ? 'mdi:pin-off-outline' : 'mdi:pin-outline'" />
+                        </div>
+                    </el-tooltip>
+                    <el-tooltip content="删除" placement="bottom" :show-after="500">
+                        <div class="tool-btn danger" @click="emit('delete', currentPostId)">
+                            <Icon icon="mdi:trash-can-outline" />
+                        </div>
+                    </el-tooltip>
+                </div>
             </div>
+
+            <div v-if="isBatchMode" class="batch-select-layer" @click.stop="handleCheckboxChange(!checked)">
+                <div class="checkbox-circle" :class="{ active: checked }">
+                    <Icon icon="mdi:check" v-if="checked" />
+                </div>
+            </div>
+
+            <div v-if="isTextPost" class="text-cover" :style="textCoverStyle">
+                <div class="quote-symbol">“</div>
+                <div class="text-content-inner">{{ textCoverText }}</div>
+                <div class="quote-symbol-end">”</div>
+            </div>
+
             <el-image v-else-if="coverUrl" :src="coverUrl" fit="cover" class="media-image" loading="lazy">
                 <template #placeholder>
-                    <div class="media-placeholder">
-                        <Icon icon="mdi:loading" class="placeholder-icon" />
+                    <div class="image-slot">
+                        <Icon icon="mdi:loading" class="spin-icon" />
                     </div>
                 </template>
                 <template #error>
-                    <div class="media-placeholder">
-                        <Icon icon="mdi:image-broken-variant" class="placeholder-icon" />
+                    <div class="image-slot error">
+                        <Icon icon="mdi:image-broken-variant" />
                     </div>
                 </template>
             </el-image>
-            <div v-else class="media-placeholder">
-                <Icon icon="mdi:image-off-outline" class="placeholder-icon" />
-                <span>暂无图片</span>
+
+            <div v-else class="media-empty">
+                <Icon icon="mdi:image-off-outline" />
             </div>
 
-            <div class="media-overlay" @click.stop>
-                <div class="overlay-left">
-                    <div class="batch-checkbox" :class="{ 'is-hidden': !isBatchMode }">
-                        <el-checkbox :model-value="checked" @change="handleCheckboxChange" />
-                    </div>
-                    <div class="type-badge" :data-type="post?.postType ?? ''">
-                        <Icon :icon="typeIcon" class="type-icon" />
-                        <span class="type-text">{{ typeText }}</span>
-                    </div>
+            <div v-if="isVideoPost" class="play-overlay">
+                <div class="play-button">
+                    <Icon icon="mdi:play" />
                 </div>
-
-                <div class="overlay-right">
-                    <el-tooltip content="编辑标签" placement="top">
-                        <template #default>
-                            <span class="tooltip-trigger">
-                                <el-button circle class="icon-btn" @click="emit('edit-tag', post)">
-                                    <Icon icon="mdi:tag-outline" />
-                                </el-button>
-                            </span>
-                        </template>
-                    </el-tooltip>
-
-                    <el-tooltip content="人工置顶" placement="top">
-                        <template #default>
-                            <span class="tooltip-trigger">
-                                <el-button circle class="icon-btn" @click="emit('pin', post)">
-                                    <Icon icon="mdi:pin-outline" />
-                                </el-button>
-                            </span>
-                        </template>
-                    </el-tooltip>
-
-                    <el-tooltip content="取消置顶" placement="top">
-                        <template #default>
-                            <span class="tooltip-trigger">
-                                <el-button circle class="icon-btn" @click="emit('unpin', post)">
-                                    <Icon icon="mdi:pin-off-outline" />
-                                </el-button>
-                            </span>
-                        </template>
-                    </el-tooltip>
-
-                    <el-tooltip content="删除该条" placement="top">
-                        <template #default>
-                            <span class="tooltip-trigger">
-                                <el-button circle class="icon-btn danger" @click="emit('delete', post.id)">
-                                    <Icon icon="mdi:trash-can-outline" />
-                                </el-button>
-                            </span>
-                        </template>
-                    </el-tooltip>
-                </div>
-            </div>
-
-            <div v-if="isVideoPost" class="media-play">
-                <Icon icon="mdi:play" />
             </div>
         </div>
 
-        <div class="card-body">
-            <div v-if="post.content" class="content-text">{{ post.content }}</div>
-            <div v-else class="content-text empty">（无正文内容）</div>
+        <div class="card-bottom">
+            <div class="content-text" :class="{ 'is-empty': !post.content }">
+                {{ post.content || '无正文内容' }}
+            </div>
 
-            <div class="card-meta">
-                <el-button link class="author" @click="emit('view-profile', post)">
-                    <el-avatar :size="24" :src="resolveAvatar(post.avatar)" class="avatar">
+            <div class="card-footer">
+                <div class="footer-user" @click.stop="emit('view-profile', post)">
+                    <el-avatar :size="28" :src="resolveAvatar(post.avatar)" class="user-avatar">
                         {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
                     </el-avatar>
-                    <span class="author-name">{{ post.nickName || '未知用户' }}</span>
-                </el-button>
+                    <span class="user-name">{{ post.nickName || '未知用户' }}</span>
+                </div>
 
-                <div class="meta-actions">
-                    <el-tooltip content="生成二维码" placement="top">
-                        <template #default>
-                            <span class="tooltip-trigger">
-                                <el-button v-if="isVideoPost" circle class="action-btn qrcode-btn" @click="emit('qrcode', post)">
-                                    <Icon icon="mdi:qrcode" />
-                                </el-button>
-                                <span v-else></span>
-                            </span>
-                        </template>
+                <div class="footer-actions">
+                    <el-tooltip content="二维码" placement="top" v-if="isVideoPost">
+                        <div class="action-item" @click.stop="emit('qrcode', post)">
+                            <Icon icon="mdi:qrcode" />
+                        </div>
                     </el-tooltip>
-
-                    <el-tooltip :content="isLiked ? '取消点赞' : '点赞'" placement="top">
-                        <template #default>
-                            <span class="tooltip-trigger">
-                                <el-button class="action-btn like-btn" :class="{ 'is-liked': isLiked }" @click="handleLike">
-                                    <Icon :icon="isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
-                                    <span>{{ post.likeCount ?? 0 }}</span>
-                                </el-button>
-                            </span>
-                        </template>
-                    </el-tooltip>
+                    <div class="action-item like-btn" :class="{ active: post.isLiked }" @click.stop="emit('like', post)">
+                        <div class="icon-anim-wrapper">
+                            <Icon :icon="post.isLiked ? 'mdi:heart' : 'mdi:heart-outline'" />
+                        </div>
+                        <span class="count" v-if="post.likeCount">{{ post.likeCount }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,519 +118,478 @@ const emit = defineEmits<{
 }>()
 
 const post = computed(() => props.post || {})
+const currentPostId = computed(() => props.post?.id ?? props.post?.postId ?? '')
 const isBatchMode = computed(() => Boolean(props.batchMode))
-const isOriginalMissing = computed(() => props.post?.originalPostId != null && props.post?.originalPost === null)
+const isOriginalMissing = computed(() => {
+    const originalPostId = Number(props.post?.originalPostId ?? 0)
+    return originalPostId > 0 && props.post?.originalPost === null
+})
 const postType = computed(() => String(props.post?.postType ?? ''))
 const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
 const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
 
-const isLiked = computed(() => {
-    const value = props.post?.like ?? props.post?.isLiked ?? props.post?.liked ?? props.post?.likeStatus ?? props.post?.isLike
-    if (typeof value === 'boolean') return value
-    return value != null ? String(value) === '1' : false
-})
-
 const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
     [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },
-    [POST_TYPE.IMAGE]: { text: '图文', icon: 'mdi:image' },
-    [POST_TYPE.VIDEO]: { text: '视频', icon: 'mdi:video' }
+    [POST_TYPE.IMAGE]: { text: '图文', icon: 'mdi:image-outline' },
+    [POST_TYPE.VIDEO]: { text: '视频', icon: 'mdi:video-outline' }
 }
 
 const typeText = computed(() => TYPE_CONFIG[postType.value]?.text || '未知')
-const typeIcon = computed(() => TYPE_CONFIG[postType.value]?.icon || 'mdi:help')
+const typeIcon = computed(() => TYPE_CONFIG[postType.value]?.icon || 'mdi:help-circle-outline')
 
 const parseMediaArray = (raw: any): any[] => {
     if (!raw) return []
     if (Array.isArray(raw)) return raw
     if (typeof raw === 'string') {
-        const trimmed = raw.trim()
-        if (!trimmed) return []
-        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-            try {
-                const parsed = JSON.parse(trimmed)
-                return Array.isArray(parsed) ? parsed : [parsed]
-            } catch {
-                return trimmed
-                    .split(',')
-                    .map(item => item.trim())
-                    .filter(Boolean)
-            }
+        try {
+            const parsed = JSON.parse(raw)
+            return Array.isArray(parsed) ? parsed : [parsed]
+        } catch {
+            return raw
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
         }
-        return trimmed
-            .split(',')
-            .map(item => item.trim())
-            .filter(Boolean)
     }
-    if (typeof raw === 'object') return [raw]
-    return []
+    return [raw]
 }
 
-const getFirstValidMediaList = (...sources: any[]) => {
-    for (const source of sources) {
-        const list = parseMediaArray(source)
-        if (list.length) return list
-    }
-    return []
+const mediaRawList = computed(() => {
+    const p = props.post
+    return parseMediaArray(p?.mediaUrls || p?.originalPost?.mediaUrls || p?.files || p?.originalPost?.files)
+})
+
+const mediaFiles = computed(() => mediaRawList.value.map((item: any) => (typeof item === 'string' ? item : item?.url || item?.src || '')).filter(Boolean))
+
+const resolveMediaUrl = (url: string) => {
+    const raw = String(url || '').trim()
+    if (!raw) return ''
+    if (/^https?:\/\//i.test(raw)) return raw
+    return getImgUrl(raw)
 }
 
-const mediaRawList = computed(() =>
-    getFirstValidMediaList(props.post?.mediaUrls, props.post?.originalPost?.mediaUrls, props.post?.files, props.post?.originalPost?.files)
-)
-
-const mediaFiles = computed(() =>
-    mediaRawList.value
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.url || item?.src || item?.path || ''
-        })
-        .filter(Boolean)
-)
-
-const resolveMediaUrl = (url: string) => (url ? getImgUrl(url) : '')
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
 
-const isVideoUrl = (url: string) => {
-    if (!url) return false
-    return /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url)
-}
-
-const extractCoverFromItem = (item: any): string => {
-    if (!item) return ''
-    if (typeof item === 'string') return item
-    if (typeof item !== 'object') return ''
-    return item.cover || item.coverUrl || item.thumbnail || item.thumb || item.poster || item.image || item.url || item.src || item.path || ''
-}
+const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|webm)(\?|$)/i.test(url)
 
 const coverUrl = computed(() => {
-    const directCover = props.post?.cover ?? props.post?.coverUrl ?? props.post?.thumbnail ?? props.post?.poster ?? props.post?.image ?? props.post?.coverImage
-    if (directCover) return resolveMediaUrl(directCover)
+    const p = props.post
+    const direct = p?.cover ?? p?.coverUrl ?? p?.thumbnail ?? p?.poster ?? p?.image
+    if (direct) return resolveMediaUrl(direct)
 
-    const coverCandidates = mediaRawList.value.map(extractCoverFromItem).filter(Boolean)
-    const imageCover = coverCandidates.find(url => url && !isVideoUrl(resolveMediaUrl(url)))
-    if (imageCover) return resolveMediaUrl(imageCover)
-
-    if (coverCandidates.length > 0 && !isVideoUrl(resolveMediaUrl(coverCandidates[0]))) return resolveMediaUrl(coverCandidates[0])
-
-    const mediaImageUrl = mediaFiles.value.map(resolveMediaUrl).find(url => url && !isVideoUrl(url))
-    return mediaImageUrl || ''
+    const candidates = mediaRawList.value.map((item: any) => (typeof item === 'object' ? item.cover || item.url : item)).filter(Boolean)
+    const img = candidates.find(u => !isVideoUrl(u))
+    if (img) return resolveMediaUrl(img)
+    return candidates[0] ? resolveMediaUrl(candidates[0]) : ''
 })
 
-const canPreview = computed(() => {
-    if (isTextPost.value) return Boolean(textCoverText.value)
-    return Boolean(coverUrl.value || mediaFiles.value.length > 0)
-})
+const canPreview = computed(() => isTextPost.value || Boolean(coverUrl.value || mediaFiles.value.length))
 
 const textCoverStyle = computed(() => {
     if (!isTextPost.value) return {}
-    const seed = String(props.post?.id ?? props.post?.postId ?? textCoverText.value)
-    const palette = resolveTextCoverPalette(seed)
+    const palette = resolveTextCoverPalette(String(currentPostId.value || textCoverText.value))
     return {
-        '--text-cover-bg': palette.bg,
-        '--text-cover-accent': palette.accent,
-        '--text-cover-quote': palette.quote
+        '--card-accent': palette.accent,
+        '--card-bg-gradient': `linear-gradient(135deg, ${palette.bg}, ${palette.accent}40)`
     } as Record<string, string>
 })
 
 const handleMediaClick = () => {
     if (isBatchMode.value) {
         emit('select', !props.checked)
-        return
+    } else if (canPreview.value) {
+        emit('preview', props.post)
     }
-    if (canPreview.value) emit('preview', props.post)
 }
 
 const handleCheckboxChange = (value: boolean) => {
-    if (isBatchMode.value) emit('select', value)
+    emit('select', value)
 }
 
-let likeDebounceTimer: number | null = null
-const handleLike = () => {
-    if (likeDebounceTimer) clearTimeout(likeDebounceTimer)
-    likeDebounceTimer = window.setTimeout(() => {
-        emit('like', props.post)
-        likeDebounceTimer = null
-    }, 300)
+const handleTogglePin = () => {
+    if (post.value?.isTop) {
+        emit('unpin', post.value)
+        return
+    }
+    emit('pin', post.value)
 }
 </script>
 
 <style scoped lang="scss">
 .feed-card {
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 18px;
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--el-color-black) 8%, transparent);
-    overflow: hidden;
-    transition:
-        transform 0.18s ease,
-        box-shadow 0.18s ease,
-        border-color 0.18s ease;
+    position: relative;
     display: flex;
     flex-direction: column;
+    background: var(--el-bg-color);
+    border-radius: 18px;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+    height: 100%;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+        border-color: var(--el-color-primary-light-7);
+    }
+
+    &.checked {
+        border-color: var(--el-color-primary);
+        box-shadow: 0 0 0 2px var(--el-color-primary-light-5);
+    }
 }
 
-.feed-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 40px color-mix(in srgb, var(--el-color-black) 12%, transparent);
-    border-color: var(--el-border-color);
-}
-
-.feed-card.checked {
-    border-color: var(--el-border-color-lighter);
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--el-color-black) 8%, transparent);
-}
-
-.card-media {
+.card-media-wrapper {
     position: relative;
     width: 100%;
-    aspect-ratio: 3 / 4;
-    background: var(--el-fill-color-light);
+    aspect-ratio: 9 / 14;
+    background: var(--el-fill-color-lighter);
     overflow: hidden;
+    cursor: default;
+
+    &.is-clickable {
+        cursor: pointer;
+    }
 }
 
-.card-media.is-clickable {
-    cursor: pointer;
+.media-top-bar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    z-index: 12;
+}
+
+.type-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--el-color-black) 35%, transparent);
+    color: var(--el-color-white);
+    backdrop-filter: blur(4px);
+
+    .tag-icon {
+        font-size: 12px;
+    }
+
+    &[data-type='1'] {
+        background: color-mix(in srgb, var(--el-color-primary) 78%, transparent);
+    }
+    &[data-type='2'] {
+        background: color-mix(in srgb, var(--el-color-success) 78%, transparent);
+    }
+    &[data-type='3'] {
+        background: color-mix(in srgb, var(--el-color-warning) 78%, transparent);
+    }
 }
 
 .media-image {
     width: 100%;
     height: 100%;
     display: block;
+    transition: transform 0.3s ease;
+
+    &:hover {
+        transform: scale(1.03);
+    }
+}
+
+.image-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-secondary);
+    font-size: 24px;
+
+    .spin-icon {
+        animation: spin 1s linear infinite;
+    }
+}
+
+.media-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--el-text-color-disabled);
+    font-size: 32px;
+    background: var(--el-fill-color-light);
 }
 
 .text-cover {
     width: 100%;
     height: 100%;
-    padding: 18px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-white) 22%, transparent), transparent)
-        var(--text-cover-bg, var(--el-color-primary-light-8));
-    color: var(--el-text-color-primary);
-    text-align: center;
-    overflow: hidden;
-}
-
-.text-cover-quote {
-    position: absolute;
-    top: 42px;
-    left: 16px;
-    font-size: 28px;
-    line-height: 1;
-    color: var(--text-cover-quote, color-mix(in srgb, var(--el-color-white) 45%, transparent));
-    font-weight: 700;
-}
-
-.text-cover-text {
-    font-size: 24px;
-    line-height: 1.6;
-    font-weight: 600;
-    letter-spacing: 0.4px;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    white-space: pre-wrap;
-}
-
-.text-cover-accent {
-    position: absolute;
-    bottom: 14px;
-    right: 14px;
-    width: 28px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--text-cover-accent, var(--el-color-primary));
-    opacity: 0.9;
-}
-
-.media-placeholder {
-    width: 100%;
-    height: 100%;
+    padding: 24px;
+    background: var(--card-bg-gradient);
+    color: var(--el-color-white);
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    gap: 6px;
-    color: var(--el-text-color-placeholder);
-    background: var(--el-fill-color-light);
-    font-size: 13px;
+    position: relative;
+    text-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+
+    .quote-symbol {
+        font-size: 32px;
+        line-height: 1;
+        opacity: 0.6;
+        margin-bottom: 4px;
+        font-family: serif;
+    }
+
+    .text-content-inner {
+        font-size: 15px;
+        line-height: 1.5;
+        font-weight: 600;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .quote-symbol-end {
+        font-size: 32px;
+        line-height: 1;
+        opacity: 0.6;
+        align-self: flex-end;
+        margin-top: 4px;
+        font-family: serif;
+    }
 }
 
-.placeholder-icon {
-    font-size: 22px;
-}
-
-.media-overlay {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    z-index: 2;
-}
-
-.overlay-left,
-.overlay-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.batch-checkbox {
-    width: 0;
-    height: 22px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    overflow: hidden;
-    transition:
-        width 0.16s ease,
-        margin-right 0.16s ease,
-        opacity 0.16s ease;
-}
-
-.batch-checkbox.is-hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    width: 0;
-    margin-right: 0;
-}
-
-.batch-checkbox:not(.is-hidden) {
-    width: 22px;
-    margin-right: 6px;
-}
-
-.media-play {
+.play-overlay {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--el-color-white);
-    font-size: 24px;
-    background: color-mix(in srgb, var(--el-color-black) 18%, transparent);
-    z-index: 1;
+    background: color-mix(in srgb, var(--el-color-black) 20%, transparent);
     pointer-events: none;
+
+    .play-button {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--el-color-white) 90%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--el-color-primary);
+        font-size: 26px;
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 20%, transparent);
+        backdrop-filter: blur(4px);
+    }
 }
 
-.type-badge {
-    height: 24px;
-    padding: 0 8px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
+.admin-toolbar {
+    display: flex;
     gap: 6px;
-    font-size: 11px;
-    color: var(--el-text-color-regular);
-    background: var(--el-fill-color-light);
-    border: 1px solid var(--el-border-color-extra-light);
-    user-select: none;
-    white-space: nowrap;
+    z-index: 12;
+
+    .tool-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--el-color-white) 90%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--el-text-color-primary);
+        cursor: pointer;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 12%, transparent);
+        font-size: 14px;
+        transition: all 0.2s;
+
+        &:hover {
+            background: var(--el-color-white);
+            color: var(--el-color-primary);
+            transform: scale(1.04);
+        }
+
+        &.active {
+            background: var(--el-color-primary);
+            color: var(--el-color-white);
+        }
+
+        &.danger:hover {
+            color: var(--el-color-danger);
+        }
+    }
 }
 
-.type-badge .type-icon {
-    font-size: 12px;
+.batch-select-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--el-color-white) 15%, transparent);
+    display: flex;
+    padding: 12px;
+    cursor: pointer;
+
+    .checkbox-circle {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid var(--el-color-white);
+        background: color-mix(in srgb, var(--el-color-black) 40%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--el-color-white);
+        font-size: 16px;
+        box-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-black) 20%, transparent);
+        transition: all 0.2s;
+
+        &.active {
+            background: var(--el-color-primary);
+            border-color: var(--el-color-primary);
+        }
+    }
 }
 
-.type-badge[data-type='1'] {
-    background: rgba(var(--el-color-primary-rgb), 0.12);
-    border-color: rgba(var(--el-color-primary-rgb), 0.22);
-    color: var(--el-color-primary);
-}
-
-.type-badge[data-type='2'] {
-    background: rgba(var(--el-color-success-rgb), 0.12);
-    border-color: rgba(var(--el-color-success-rgb), 0.22);
-    color: var(--el-color-success);
-}
-
-.type-badge[data-type='3'] {
-    background: rgba(var(--el-color-warning-rgb), 0.12);
-    border-color: rgba(var(--el-color-warning-rgb), 0.22);
-    color: var(--el-color-warning);
-}
-
-.tooltip-trigger {
-    display: inline-flex;
-    align-items: center;
-}
-
-.icon-btn.el-button {
-    width: 22px;
-    height: 22px;
-    border-radius: 8px;
-    padding: 0;
-    border: 1px solid transparent;
-    background: var(--el-fill-color);
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
-    transition:
-        background 0.16s ease,
-        color 0.16s ease,
-        border-color 0.16s ease;
-}
-
-.icon-btn.el-button:hover {
-    background: var(--el-fill-color-dark);
-    color: var(--el-text-color-primary);
-    border-color: var(--el-border-color);
-}
-
-.icon-btn.el-button.danger:hover {
-    background: var(--el-color-danger-light-9);
-    color: var(--el-color-danger);
-    border-color: rgba(var(--el-color-danger-rgb), 0.35);
-}
-
-.card-body {
-    padding: 10px 12px 12px;
+.card-bottom {
+    flex: 1;
+    background: color-mix(in srgb, var(--el-fill-color-light) 70%, var(--el-color-white));
+    border-top: 1px solid var(--el-border-color-extra-light);
+    padding: 12px 14px 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+
+    .content-text {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--el-text-color-regular);
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-all;
+
+        &.is-empty {
+            color: var(--el-text-color-placeholder);
+            font-style: italic;
+            font-size: 12px;
+        }
+    }
 }
 
-.content-text {
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--el-text-color-regular);
-    white-space: pre-wrap;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.content-text.empty {
-    color: var(--el-text-color-placeholder);
-    font-style: italic;
-}
-
-.card-meta {
+.card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
+
+    .footer-user {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        cursor: pointer;
+
+        .user-avatar {
+            border: 1px solid var(--el-border-color);
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .footer-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .action-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 1px solid var(--el-border-color);
+        background: transparent;
+        color: var(--el-text-color-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+
+        &:hover {
+            border-color: var(--el-text-color-secondary);
+            background: transparent;
+            color: var(--el-text-color-primary);
+        }
+
+        &.like-btn {
+            width: auto;
+            min-width: 28px;
+            padding: 0 6px;
+            border-radius: 999px;
+            gap: 4px;
+
+            &:hover {
+                color: var(--el-color-danger);
+                border-color: color-mix(in srgb, var(--el-color-danger) 55%, var(--el-border-color));
+                background: transparent;
+            }
+
+            &.active {
+                color: var(--el-color-danger);
+                border-color: color-mix(in srgb, var(--el-color-danger) 55%, var(--el-border-color));
+
+                .icon-anim-wrapper {
+                    animation: heart-bounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+            }
+
+            .count {
+                font-size: 11px;
+                font-weight: 600;
+                line-height: 1;
+            }
+        }
+    }
 }
 
-.author {
-    display: inline-flex;
-    align-items: center;
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: var(--el-text-color-primary);
-    min-width: 0;
-    height: auto;
-}
-
-.author :deep(.el-button__content) {
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-    min-width: 0;
-}
-
-.avatar {
-    flex-shrink: 0;
-}
-
-.author-name {
-    font-size: 12px;
-    font-weight: 600;
-    margin-left: 6px;
-    max-width: 90px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.meta-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.action-btn.el-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 10px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    background: transparent;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 999px;
-    cursor: pointer;
-    transition:
-        background 0.16s ease,
-        color 0.16s ease,
-        border-color 0.16s ease,
-        transform 0.16s ease;
-    user-select: none;
-}
-
-.action-btn.el-button:hover {
-    background: var(--el-fill-color-light);
-    border-color: var(--el-border-color);
-    color: var(--el-text-color-primary);
-}
-
-.action-btn.el-button:active {
-    transform: scale(0.95);
-}
-
-.action-btn.el-button :deep(svg) {
-    font-size: 14px;
-    transition: transform 0.2s ease;
-}
-
-.qrcode-btn.el-button {
-    padding: 0;
-    width: 28px;
-}
-
-.like-btn.el-button.is-liked {
-    color: var(--el-color-danger);
-    border-color: rgba(var(--el-color-danger-rgb), 0.3);
-    background: rgba(var(--el-color-danger-rgb), 0.08);
-}
-
-.like-btn.el-button.is-liked:hover {
-    background: rgba(var(--el-color-danger-rgb), 0.12);
-    border-color: rgba(var(--el-color-danger-rgb), 0.4);
-}
-
-.like-btn.el-button.is-liked :deep(svg) {
-    animation: heartbeat 0.3s ease;
-}
-
-@keyframes heartbeat {
-    0%,
+@keyframes heart-bounce {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.4);
+    }
     100% {
         transform: scale(1);
     }
-    25% {
-        transform: scale(1.2);
-    }
-    50% {
-        transform: scale(0.95);
-    }
-    75% {
-        transform: scale(1.1);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }
 </style>

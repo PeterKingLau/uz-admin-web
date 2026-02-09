@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
+﻿import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus'
 import { getToken } from '@/utils/auth'
 import errorCode from '@/utils/errorCode'
@@ -24,6 +24,24 @@ const service: AxiosInstance = axios.create({
 
 const pendingRequests = new Map<string, AbortController>()
 
+interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
+    rawResponse?: boolean
+    silentError?: boolean
+    skipPending?: boolean
+    isToken?: boolean
+    repeatSubmit?: boolean
+}
+
+interface ExtendedInternalAxiosRequestConfig extends InternalAxiosRequestConfig {
+    rawResponse?: boolean
+    silentError?: boolean
+    skipPending?: boolean
+    isToken?: boolean
+    repeatSubmit?: boolean
+}
+
+const isAbsoluteHttpUrl = (url?: string): boolean => /^https?:\/\//i.test(String(url || '').trim())
+
 function generateRequestKey(config: InternalAxiosRequestConfig): string {
     const { method, url, params, data } = config
     return [method, url, JSON.stringify(params), JSON.stringify(data)].join('&')
@@ -42,7 +60,8 @@ function addPendingRequest(config: InternalAxiosRequestConfig) {
     pendingRequests.set(requestKey, controller)
 }
 
-function removePendingRequest(config: InternalAxiosRequestConfig | AxiosResponse) {
+function removePendingRequest(config?: InternalAxiosRequestConfig | AxiosResponse | null) {
+    if (!config) return
     const requestKey = generateRequestKey(config as InternalAxiosRequestConfig)
     pendingRequests.delete(requestKey)
 }
@@ -68,9 +87,9 @@ interface RepeatSubmitCache {
     time: number
 }
 
-function checkRepeatSubmit(config: InternalAxiosRequestConfig): boolean {
-    const headers: Record<string, any> = config.headers as any
-    const isRepeatSubmit = headers?.repeatSubmit !== false
+function checkRepeatSubmit(config: ExtendedInternalAxiosRequestConfig): boolean {
+    const headers: Record<string, any> = (config.headers || {}) as any
+    const isRepeatSubmit = config.repeatSubmit !== false && headers?.repeatSubmit !== false
 
     if (!isRepeatSubmit) return true
     if (config.method !== 'post' && config.method !== 'put') return true
@@ -78,14 +97,13 @@ function checkRepeatSubmit(config: InternalAxiosRequestConfig): boolean {
 
     const requestObj: RepeatSubmitCache = {
         url: config.url || '',
-        data: typeof config.data === 'object' ? JSON.stringify(config.data) : config.data,
+        data: typeof config.data === 'object' ? JSON.stringify(config.data) : String(config.data || ''),
         time: Date.now()
     }
 
     const requestSize = new Blob([JSON.stringify(requestObj)]).size
-
     if (requestSize >= REQUEST_SIZE_LIMIT) {
-        console.warn(`[${config.url}]: 请求数据大小超出允许的5M限制，无法进行防重复提交验证。`)
+        console.warn(`[${config.url}]: request payload too large, skip repeat-submit check`)
         return true
     }
 
@@ -97,9 +115,8 @@ function checkRepeatSubmit(config: InternalAxiosRequestConfig): boolean {
     }
 
     const isDuplicate = sessionObj.data === requestObj.data && sessionObj.url === requestObj.url && requestObj.time - sessionObj.time < REPEAT_SUBMIT_INTERVAL
-
     if (isDuplicate) {
-        const message = '数据正在处理，请勿重复提交'
+        const message = 'Data is being processed, please do not resubmit'
         console.warn(`[${sessionObj.url}]: ${message}`)
         return false
     }
@@ -109,27 +126,47 @@ function checkRepeatSubmit(config: InternalAxiosRequestConfig): boolean {
 }
 
 service.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const headers: Record<string, any> = config.headers as any
-        const needToken = headers?.isToken !== false
+    (config: ExtendedInternalAxiosRequestConfig) => {
+        const headers = axios.AxiosHeaders.from(config.headers || {})
+        const headerFlags = headers as unknown as Record<string, any>
+        config.headers = headers as any
 
+        const isExternalRequest = isAbsoluteHttpUrl(config.url)
+        if (isExternalRequest) {
+            config.isToken = false
+            config.repeatSubmit = false
+            config.skipPending = true
+            config.withCredentials = false
+            if (config.rawResponse === undefined) config.rawResponse = true
+            if (config.silentError === undefined) config.silentError = true
+        }
+
+        const needToken = config.isToken !== false && headerFlags?.isToken !== false
         if (getToken() && needToken) {
-            headers['Authorization'] = `Bearer ${getToken()}`
+            headers.set('Authorization', `Bearer ${getToken()}`)
         }
 
         handleGetParams(config)
 
         if (config.data instanceof FormData) {
-            delete headers['Content-Type']
-            delete headers['content-type']
+            headers.delete('Content-Type')
+            headers.delete('content-type')
             return config
         }
 
         if (!checkRepeatSubmit(config)) {
-            return Promise.reject(new Error('数据正在处理，请勿重复提交'))
+            return Promise.reject(new Error('Data is being processed, please do not resubmit'))
         }
 
-        addPendingRequest(config)
+        const shouldSkipPending = Boolean(config.skipPending || headerFlags?.skipPending)
+        if (!shouldSkipPending) {
+            addPendingRequest(config)
+        }
+
+        // Strip internal meta flags to avoid leaking custom headers in cross-origin requests.
+        headers.delete('isToken')
+        headers.delete('repeatSubmit')
+        headers.delete('skipPending')
 
         return config
     },
@@ -139,18 +176,12 @@ service.interceptors.request.use(
     }
 )
 
-interface ApiResponse<T = any> {
-    code: number
-    msg?: string
-    data?: T
-}
-
 const ERROR_HANDLERS: Record<number, (msg: string) => void> = {
     401: () => {
         if (isRelogin.show) return
 
         isRelogin.show = true
-        ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', {
+        ElMessageBox.confirm('登录状态已过期，您可以继续停留在该页面，或者重新登录', '系统提示', {
             confirmButtonText: '重新登录',
             cancelButtonText: '取消',
             type: 'warning'
@@ -177,7 +208,12 @@ const ERROR_HANDLERS: Record<number, (msg: string) => void> = {
 
 service.interceptors.response.use(
     (res: AxiosResponse) => {
-        removePendingRequest(res)
+        removePendingRequest(res.config)
+
+        const config = (res.config || {}) as ExtendedAxiosRequestConfig
+        if (config.rawResponse) {
+            return res.data
+        }
 
         if (res.request?.responseType === 'blob' || res.request?.responseType === 'arraybuffer') {
             return res.data
@@ -194,7 +230,7 @@ service.interceptors.response.use(
 
         if (code !== 200) {
             ElNotification.error({ title: msg })
-            return Promise.reject(new Error('error'))
+            return Promise.reject(new Error(msg))
         }
 
         return res.data as any
@@ -205,15 +241,14 @@ service.interceptors.response.use(
             return Promise.reject(error)
         }
 
-        removePendingRequest(error.config)
+        removePendingRequest(error?.config)
 
         console.error('Response error:', error)
 
-        let message = error.message || '未知错误'
-
+        let message = error?.message || 'Unknown error'
         const ERROR_MESSAGES: Record<string, string> = {
-            'Network Error': '后端接口连接异常',
-            timeout: '系统接口请求超时'
+            'Network Error': 'Network error',
+            timeout: 'Request timeout'
         }
 
         for (const [key, value] of Object.entries(ERROR_MESSAGES)) {
@@ -225,13 +260,33 @@ service.interceptors.response.use(
 
         if (message.includes('Request failed with status code')) {
             const statusCode = message.slice(-3)
-            message = `系统接口${statusCode}异常`
+            message = `Request failed: ${statusCode}`
         }
 
-        ElMessage({ message, type: 'error', duration: 5000 })
+        const silentError = Boolean((error?.config as ExtendedAxiosRequestConfig | undefined)?.silentError)
+        if (!silentError) {
+            ElMessage({ message, type: 'error', duration: 5000 })
+        }
+
         return Promise.reject(error)
     }
 )
+
+export function requestOss(config: AxiosRequestConfig): Promise<any> {
+    const baseHeaders = (config.headers || {}) as Record<string, any>
+    return service({
+        ...config,
+        withCredentials: false,
+        rawResponse: true,
+        silentError: true,
+        skipPending: true,
+        isToken: false,
+        repeatSubmit: false,
+        headers: {
+            ...baseHeaders
+        }
+    } as ExtendedAxiosRequestConfig)
+}
 
 export function download(url: string, params: Record<string, any>, filename: string, config?: AxiosRequestConfig): Promise<void> {
     downloadLoadingInstance = ElLoading.service({
@@ -261,7 +316,7 @@ export function download(url: string, params: Record<string, any>, filename: str
         })
         .catch(err => {
             console.error('Download error:', err)
-            ElMessage.error('下载文件出现错误，请联系管理员！')
+            ElMessage.error('下载文件出现错误，请联系管理员')
         })
         .finally(() => {
             downloadLoadingInstance?.close()

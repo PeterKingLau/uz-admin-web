@@ -71,7 +71,16 @@ import { ref, onMounted, getCurrentInstance, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
-import { closeCircle, getCircleInfo, getCircleMemberList, joinCircle, exitCircle, setCircleAdmin, removeCircleMember, type CircleItem } from '@/api/content/circleManagement'
+import {
+    closeCircle,
+    getCircleInfo,
+    getCircleMemberList,
+    joinCircle,
+    exitCircle,
+    setCircleAdmin,
+    removeCircleMember,
+    type CircleItem
+} from '@/api/content/circleManagement'
 import { listPostByApp } from '@/api/content/post'
 import useUserStore from '@/store/modules/user'
 import { useCircleJoinStore } from '@/store/modules/circleJoin'

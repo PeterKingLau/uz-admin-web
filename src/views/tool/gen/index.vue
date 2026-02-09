@@ -114,7 +114,7 @@
                     :name="key.substring(key.lastIndexOf('/') + 1, key.indexOf('.vm'))"
                     :key="key"
                 >
-                    <el-link :underline="false" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float: right">
+                    <el-link underline="never" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float: right">
                         <Icon icon="mdi:content-copy" class="mr-1 text-[16px] align-middle" />
                         复制
                     </el-link>

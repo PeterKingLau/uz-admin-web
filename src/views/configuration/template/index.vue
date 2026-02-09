@@ -242,6 +242,7 @@
                                                     v-model="item.image"
                                                     :limit="1"
                                                     :is-show-tip="false"
+                                                    oss-type="templates"
                                                     class="mini-upload"
                                                     :file-type="['png', 'jpg', 'jpeg']"
                                                 />

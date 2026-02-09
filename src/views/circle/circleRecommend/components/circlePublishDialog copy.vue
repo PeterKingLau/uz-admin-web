@@ -52,6 +52,7 @@
                         :limit="1"
                         :file-size="0"
                         :file-type="['mp4', 'mov']"
+                        oss-type="circles"
                         :is-show-tip="false"
                         :show-list="false"
                         :drag="false"

@@ -1,9 +1,10 @@
-<template>
+﻿<template>
     <div class="component-upload-image">
         <el-upload
             multiple
             :disabled="disabled"
             :action="uploadImgUrl"
+            :http-request="useOssUpload ? handleOssUploadRequest : undefined"
             :list-type="listType"
             :accept="accept"
             :on-success="handleUploadSuccess"
@@ -58,6 +59,7 @@
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
 import { isExternal } from '@/utils/validate'
+import { uploadFilesToOss } from '@/api/content/post'
 import Sortable from 'sortablejs'
 import { Icon } from '@iconify/vue'
 import { ElImageViewer } from 'element-plus'
@@ -68,6 +70,14 @@ const props = defineProps({
     action: {
         type: String,
         default: '/common/upload'
+    },
+    ossType: {
+        type: String,
+        default: ''
+    },
+    ossPostType: {
+        type: String,
+        default: '2'
     },
     data: {
         type: Object
@@ -124,27 +134,53 @@ const accept = computed(() => {
     }
     return 'image/*'
 })
+const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
 
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
+const toListSignature = list =>
+    list
+        .map(item => String(item?.url || item?.name || ''))
+        .filter(Boolean)
+        .join(',')
+
+async function handleOssUploadRequest(options) {
+    const rawFile = options?.file
+    if (!(rawFile instanceof File)) {
+        options?.onError?.(new Error('invalid file'))
+        return
+    }
+
+    try {
+        const uploaded = await uploadFilesToOss(props.ossPostType || '2', [rawFile], props.ossType)
+        const url = String(uploaded?.[0] || '').trim()
+        if (!url) throw new Error('empty upload url')
+        options?.onSuccess?.({ code: 200, fileName: url }, rawFile)
+    } catch (error) {
+        options?.onError?.(error)
+    }
+}
 
 watch(
     () => props.modelValue,
     val => {
         if (val) {
-            const list = Array.isArray(val) ? val : props.modelValue.split(',')
-            fileList.value = list.map(item => {
+            const list = Array.isArray(val) ? val : String(props.modelValue).split(',')
+            const nextList = list.map(item => {
                 if (typeof item === 'string') {
                     const resolved = isExternal(item) ? item : getImgUrl(item)
-                    item = { name: resolved, url: resolved }
+                    return { name: resolved, url: resolved }
                 }
-                return item
+                return item && typeof item === 'object' ? { ...item } : { name: String(item || ''), url: String(item || '') }
             })
+            if (toListSignature(nextList) === toListSignature(fileList.value)) return
+            fileList.value = nextList
         } else {
+            if (!fileList.value.length) return
             fileList.value = []
             return []
         }
     },
-    { deep: true, immediate: true }
+    { immediate: true }
 )
 
 function handleBeforeUpload(file) {
@@ -175,16 +211,16 @@ function handleBeforeUpload(file) {
     if (props.fileSize) {
         const isLt = file.size / 1024 / 1024 < props.fileSize
         if (!isLt) {
-            proxy.$modal.msgError(`上传头像图片大小不能超过 ${props.fileSize} MB!`)
+            proxy.$modal.msgError(`上传图片大小不能超过 ${props.fileSize} MB!`)
             return false
         }
     }
-    proxy.$modal.loading('正在上传图片，请稍候...')
     number.value++
+    return true
 }
 
 function handleExceed() {
-    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个`)
+    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
 }
 
 function handleUploadSuccess(res, file) {
@@ -193,7 +229,6 @@ function handleUploadSuccess(res, file) {
         uploadedSuccessfully()
     } else {
         number.value--
-        proxy.$modal.closeLoading()
         proxy.$modal.msgError(res.msg)
         proxy.$refs.imageUpload.handleRemove(file)
         uploadedSuccessfully()
@@ -215,13 +250,12 @@ function uploadedSuccessfully() {
         uploadList.value = []
         number.value = 0
         emit('update:modelValue', listToString(fileList.value))
-        proxy.$modal.closeLoading()
     }
 }
 
 function handleUploadError() {
     proxy.$modal.msgError('上传图片失败')
-    proxy.$modal.closeLoading()
+    if (number.value > 0) number.value--
 }
 
 function handlePictureCardPreview(file) {

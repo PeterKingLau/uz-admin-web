@@ -1,8 +1,9 @@
-<template>
+﻿<template>
     <div class="upload-file">
         <el-upload
             multiple
             :action="uploadFileUrl"
+            :http-request="useOssUpload ? handleOssUploadRequest : undefined"
             :before-upload="handleBeforeUpload"
             :file-list="fileList"
             :data="data"
@@ -49,7 +50,7 @@
                         <Icon icon="mdi:file-document-outline" width="20" />
                     </div>
                     <div class="file-details">
-                        <el-link :href="resolveFileUrl(file.url)" :underline="false" target="_blank" class="file-name" :title="getFileName(file.name)">
+                        <el-link :href="resolveFileUrl(file.url)" underline="never" target="_blank" class="file-name" :title="getFileName(file.name)">
                             {{ getFileName(file.name) }}
                         </el-link>
                     </div>
@@ -74,6 +75,7 @@
 <script setup>
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
+import { uploadFilesToOss } from '@/api/content/post'
 import Sortable from 'sortablejs'
 
 const props = defineProps({
@@ -81,6 +83,14 @@ const props = defineProps({
     action: {
         type: String,
         default: '/common/upload'
+    },
+    ossType: {
+        type: String,
+        default: ''
+    },
+    ossPostType: {
+        type: String,
+        default: ''
     },
     data: {
         type: Object
@@ -127,27 +137,71 @@ const baseUrl = import.meta.env.VITE_APP_FILE_BASE_URL || ''
 const uploadFileUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
+const rawFileMap = new Map()
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
+const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
+const toListSignature = list =>
+    list
+        .map(item => normalizeUploadUrl(item?.url || item?.name || ''))
+        .filter(Boolean)
+        .join(',')
+
+const normalizeUploadUrl = url => {
+    const raw = String(url || '').trim()
+    if (!raw) return ''
+    return baseUrl ? raw.replace(baseUrl, '') : raw
+}
+
+const resolveOssPostType = () => {
+    const explicit = String(props.ossPostType || '').trim()
+    if (explicit) return explicit
+    const lowerTypes = Array.isArray(props.fileType) ? props.fileType.map(type => String(type).toLowerCase()) : []
+    const videoExtSet = new Set(['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'm4v', 'webm'])
+    const hasVideoType = lowerTypes.some(type => videoExtSet.has(type))
+    return hasVideoType ? '3' : '2'
+}
+
+async function handleOssUploadRequest(options) {
+    const rawFile = options?.file
+    if (!(rawFile instanceof File)) {
+        options?.onError?.(new Error('invalid file'))
+        return
+    }
+
+    try {
+        const uploaded = await uploadFilesToOss(resolveOssPostType(), [rawFile], props.ossType)
+        const url = String(uploaded?.[0] || '').trim()
+        if (!url) throw new Error('empty upload url')
+        options?.onSuccess?.({ code: 200, fileName: url }, rawFile)
+    } catch (error) {
+        options?.onError?.(error)
+    }
+}
 
 watch(
     () => props.modelValue,
     val => {
         if (val) {
             let temp = 1
-            const list = Array.isArray(val) ? val : props.modelValue.split(',')
-            fileList.value = list.map(item => {
+            const list = Array.isArray(val) ? val : String(props.modelValue).split(',')
+            const nextList = list.map(item => {
                 if (typeof item === 'string') {
-                    item = { name: item, url: item }
+                    return { name: item, url: item, uid: new Date().getTime() + temp++ }
                 }
-                item.uid = item.uid || new Date().getTime() + temp++
-                return item
+                const normalizedItem = item && typeof item === 'object' ? { ...item } : { name: String(item || ''), url: String(item || '') }
+                normalizedItem.uid = normalizedItem.uid || new Date().getTime() + temp++
+                return normalizedItem
             })
+            if (toListSignature(nextList) === toListSignature(fileList.value)) return
+            fileList.value = nextList
         } else {
+            if (!fileList.value.length) return
             fileList.value = []
+            rawFileMap.clear()
             return []
         }
     },
-    { deep: true, immediate: true }
+    { immediate: true }
 )
 
 function handleBeforeUpload(file) {
@@ -171,27 +225,30 @@ function handleBeforeUpload(file) {
             return false
         }
     }
-    proxy.$modal.loading('正在上传文件，请稍候...')
     number.value++
     return true
 }
 
 function handleExceed() {
-    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个`)
+    proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
 }
 
 function handleUploadError(err) {
     proxy.$modal.msgError('上传文件失败')
-    proxy.$modal.closeLoading()
+    if (number.value > 0) number.value--
 }
 
 function handleUploadSuccess(res, file) {
     if (res.code === 200) {
+        const normalizedUrl = normalizeUploadUrl(res.fileName)
+        const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
+        if (normalizedUrl && rawFile) {
+            rawFileMap.set(normalizedUrl, rawFile)
+        }
         uploadList.value.push({ name: res.fileName, url: res.fileName })
         uploadedSuccessfully()
     } else {
         number.value--
-        proxy.$modal.closeLoading()
         proxy.$modal.msgError(res.msg)
         proxy.$refs.fileUpload.handleRemove(file)
         uploadedSuccessfully()
@@ -199,6 +256,11 @@ function handleUploadSuccess(res, file) {
 }
 
 function handleDelete(index) {
+    const target = fileList.value[index]
+    const normalizedUrl = normalizeUploadUrl(target?.url || target?.name)
+    if (normalizedUrl) {
+        rawFileMap.delete(normalizedUrl)
+    }
     fileList.value.splice(index, 1)
     emit('update:modelValue', listToString(fileList.value))
 }
@@ -209,7 +271,6 @@ function uploadedSuccessfully() {
         uploadList.value = []
         number.value = 0
         emit('update:modelValue', listToString(fileList.value))
-        proxy.$modal.closeLoading()
     }
 }
 
@@ -249,10 +310,21 @@ function clear() {
     uploadList.value = []
     number.value = 0
     fileList.value = []
+    rawFileMap.clear()
     emit('update:modelValue', '')
 }
 
-defineExpose({ open, clear })
+function getRawFiles() {
+    return fileList.value
+        .map(item => {
+            const normalizedUrl = normalizeUploadUrl(item?.url || item?.name)
+            if (!normalizedUrl) return null
+            return rawFileMap.get(normalizedUrl) || null
+        })
+        .filter(file => file instanceof File)
+}
+
+defineExpose({ open, clear, getRawFiles })
 
 onMounted(() => {
     if (props.drag && !props.disabled) {

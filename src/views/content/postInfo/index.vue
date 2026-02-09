@@ -160,7 +160,7 @@
 </template>
 
 <script setup name="ContentList" lang="ts">
-import { ref, reactive, computed, onMounted, onActivated, onBeforeUnmount, getCurrentInstance, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onDeactivated, onBeforeUnmount, getCurrentInstance, nextTick, watch } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import ContentQueryForm from './components/ContentQueryForm.vue'
@@ -224,6 +224,7 @@ const deleting = ref(false)
 const selectedIds = ref(new Set<number | string>()) // 优化：使用 Set
 const batchMode = ref(false)
 const totalCount = ref<number | null>(null)
+const isResettingQuery = ref(false)
 
 // 预览相关
 const previewVisible = ref(false)
@@ -276,6 +277,9 @@ const qrcodeFileName = ref('')
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
 const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
+const hasUserScrolledAfterQuery = ref(false)
+const skipFirstActivatedRefresh = ref(true)
+let windowScrollBound = false
 
 // ==================== 计算属性 ====================
 const selectedCount = computed(() => selectedIds.value.size)
@@ -588,6 +592,24 @@ const appendPreviewComment = (post: any, comment: any) => {
 
 const getCommentName = (comment: any) => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || comment?.user?.nickName || '用户'
 
+const handleWindowScroll = () => {
+    if (typeof window === 'undefined') return
+    if (window.scrollY > 0) hasUserScrolledAfterQuery.value = true
+}
+
+const bindWindowScroll = () => {
+    if (windowScrollBound || typeof window === 'undefined') return
+    window.addEventListener('scroll', handleWindowScroll, { passive: true })
+    windowScrollBound = true
+    handleWindowScroll()
+}
+
+const unbindWindowScroll = () => {
+    if (!windowScrollBound || typeof window === 'undefined') return
+    window.removeEventListener('scroll', handleWindowScroll)
+    windowScrollBound = false
+}
+
 // ==================== 标签管理 ====================
 async function loadTags() {
     if (loadingTags.value) return
@@ -729,16 +751,55 @@ async function fetchList(isLoadMore = false) {
         }
 
         const normalizedRecords = records.map(item => normalizePostFlags(item))
-        if (!isLoadMore) postList.value = normalizedRecords
-        else postList.value = postList.value.concat(normalizedRecords)
+        if (!isLoadMore) {
+            postList.value = normalizedRecords
+        } else {
+            const existingIds = new Set(
+                postList.value
+                    .map(item => {
+                        const id = getPreviewPostId(item)
+                        return id == null || id === '' ? '' : String(id)
+                    })
+                    .filter(Boolean)
+            )
+
+            const uniqueRecords = normalizedRecords.filter(item => {
+                const id = getPreviewPostId(item)
+                if (id == null || id === '') return true
+                const key = String(id)
+                if (existingIds.has(key)) return false
+                existingIds.add(key)
+                return true
+            })
+
+            postList.value = postList.value.concat(uniqueRecords)
+            if (uniqueRecords.length === 0) {
+                finished.value = true
+                return
+            }
+        }
 
         if (records.length > 0) {
             const last = records[records.length - 1]
-            queryParams.lastId = last.id
-            queryParams.lastCreateTime = last.createTime
+            const nextLastIdRaw = last?.id ?? last?.postId
+            const nextLastCreateTime = String(last?.createTime ?? '')
+            const currentLastIdRaw = queryParams.lastId
+            const currentLastCreateTime = String(queryParams.lastCreateTime ?? '')
+
+            if (isLoadMore && String(nextLastIdRaw ?? '') === String(currentLastIdRaw ?? '') && nextLastCreateTime === currentLastCreateTime) {
+                finished.value = true
+                return
+            }
+
+            const nextLastId = Number(nextLastIdRaw)
+            queryParams.lastId = Number.isFinite(nextLastId) ? nextLastId : undefined
+            queryParams.lastCreateTime = nextLastCreateTime || undefined
+        } else if (isLoadMore) {
+            finished.value = true
+            return
         }
 
-        finished.value = records.length < queryParams.limit
+        finished.value = finished.value || records.length < queryParams.limit
     } catch (e) {
         console.error(e)
         ;(proxy as any)?.$modal?.msgError?.('获取内容列表失败')
@@ -749,6 +810,8 @@ async function fetchList(isLoadMore = false) {
 }
 
 function handleQuery() {
+    if (isResettingQuery.value) return
+    hasUserScrolledAfterQuery.value = false
     finished.value = false
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
@@ -757,7 +820,10 @@ function handleQuery() {
     fetchList(false)
 }
 
-function resetQuery() {
+async function resetQuery() {
+    if (isResettingQuery.value) return
+    isResettingQuery.value = true
+    hasUserScrolledAfterQuery.value = false
     queryFormRef.value?.reset()
     queryParams.postType = undefined
     queryParams.content = ''
@@ -770,10 +836,15 @@ function resetQuery() {
     finished.value = false
     selectedIds.value.clear()
     totalCount.value = null
-    fetchList(false)
+    try {
+        await fetchList(false)
+    } finally {
+        isResettingQuery.value = false
+    }
 }
 
-function loadMore() {
+function loadMore(payload?: { source?: 'auto' | 'manual' }) {
+    if (payload?.source === 'auto' && !hasUserScrolledAfterQuery.value) return
     if (finished.value) return
     fetchList(true)
 }
@@ -783,9 +854,9 @@ function handleSelect(payload: { id: string | number; checked: boolean }) {
     if (!batchMode.value) return
     const { id, checked } = payload
     if (checked) {
-        selectedIds.value.add(id) // 优化：Set 的 add 方法
+        selectedIds.value.add(id)
     } else {
-        selectedIds.value.delete(id) // 优化：Set 的 delete 方法
+        selectedIds.value.delete(id)
     }
 }
 
@@ -1375,12 +1446,22 @@ async function handleVideoAction(type: 'follow' | 'like' | 'collect' | 'comment'
 }
 
 onMounted(() => {
+    bindWindowScroll()
     loadTags()
     resetQuery()
 })
 
 onActivated(() => {
+    bindWindowScroll()
+    if (skipFirstActivatedRefresh.value) {
+        skipFirstActivatedRefresh.value = false
+        return
+    }
     resetQuery()
+})
+
+onDeactivated(() => {
+    unbindWindowScroll()
 })
 
 watch([previewVisible, videoPreviewVisible], ([previewOpen, videoOpen]) => {
@@ -1388,6 +1469,7 @@ watch([previewVisible, videoPreviewVisible], ([previewOpen, videoOpen]) => {
 })
 
 onBeforeUnmount(() => {
+    unbindWindowScroll()
     isBodyScrollLocked.value = false
 })
 </script>

@@ -8,7 +8,7 @@
                             <h2>发布新动态</h2>
                             <p>分享生活，记录精彩瞬间</p>
                         </div>
-                        <el-button link type="primary" @click="handleReset(false)" class="reset-btn">
+                        <el-button link type="primary" @click="handleReset()" class="reset-btn">
                             <Icon icon="mdi:refresh" class="mr-1" />
                             重置内容
                         </el-button>
@@ -76,72 +76,59 @@
                                 >
                                     <div
                                         class="upload-container"
-                                        @dragenter.prevent.stop="onDragEnter"
-                                        @dragover.prevent.stop="onDragOver"
-                                        @dragleave.prevent.stop="onDragLeave"
-                                        @drop.prevent.stop="onDrop"
-                                        :class="{ 'is-dragging': isDragging }"
+                                        :class="{
+                                            'image-mode': form.postType === POST_TYPE.IMAGE,
+                                            'video-mode': form.postType === POST_TYPE.VIDEO
+                                        }"
                                     >
-                                        <el-upload
-                                            ref="uploadRef"
-                                            v-model:file-list="fileList"
-                                            :auto-upload="false"
-                                            :multiple="form.postType === POST_TYPE.IMAGE"
-                                            :limit="form.postType === POST_TYPE.IMAGE ? 9 : 1"
-                                            :accept="uploadAccept"
-                                            :on-exceed="handleExceed"
-                                            :on-change="handleFileChange"
-                                            :before-upload="beforeUpload"
-                                            list-type="picture-card"
-                                            class="custom-upload"
-                                            :class="{
-                                                'hide-upload-trigger': uploadLimitReached,
-                                                'is-empty': fileList.length === 0
-                                            }"
-                                        >
-                                            <div class="upload-trigger-content">
-                                                <div class="icon-wrapper">
-                                                    <Icon :icon="fileList.length === 0 ? 'mdi:cloud-upload-outline' : 'mdi:plus'" />
+                                        <template v-if="form.postType === POST_TYPE.IMAGE">
+                                            <ImageUpload
+                                                ref="imageUploadRef"
+                                                v-model="imageUrls"
+                                                :limit="9"
+                                                :file-size="5"
+                                                :file-type="['jpg', 'jpeg', 'png', 'gif']"
+                                                :is-show-tip="false"
+                                                oss-type="posts"
+                                                :oss-post-type="POST_TYPE.IMAGE"
+                                                class="custom-upload image-upload"
+                                            />
+                                            <div class="upload-hint">
+                                                <div class="hint-item">
+                                                    <Icon icon="mdi:image-multiple-outline" />
+                                                    <span>支持 JPG / PNG / GIF，最多 9 张，单张不超过 5MB</span>
                                                 </div>
-                                                <div class="text-wrapper" v-if="fileList.length === 0">
-                                                    <span class="primary-text">点击或拖拽上传</span>
-                                                    <span class="secondary-text">
-                                                        {{
-                                                            form.postType === POST_TYPE.IMAGE
-                                                                ? '支持 JPG/PNG，最多9张，单张不超过 5MB'
-                                                                : '支持 MP4/MOV，建议时长 1 分钟以内'
-                                                        }}
-                                                    </span>
+                                                <div class="hint-item">
+                                                    <Icon icon="mdi:swap-horizontal-bold" />
+                                                    <span>可拖拽调整顺序，发布后将按当前顺序展示</span>
                                                 </div>
                                             </div>
+                                        </template>
 
-                                            <template #file="{ file }">
-                                                <div class="uploaded-file-wrapper">
-                                                    <img v-if="form.postType === POST_TYPE.IMAGE" class="thumbnail" :src="file.url" alt="" />
-                                                    <video
-                                                        v-else-if="form.postType === POST_TYPE.VIDEO"
-                                                        class="thumbnail video-thumbnail"
-                                                        :src="file.url"
-                                                        muted
-                                                        preload="metadata"
-                                                    ></video>
-                                                    <div class="overlay">
-                                                        <span class="delete-btn" @click.stop="handleRemove(file)">
-                                                            <Icon icon="mdi:trash-can-outline" />
-                                                        </span>
-                                                    </div>
+                                        <template v-else>
+                                            <FileUpload
+                                                ref="videoUploadRef"
+                                                v-model="videoUrls"
+                                                :limit="1"
+                                                :file-size="0"
+                                                :file-type="['mp4', 'mov']"
+                                                :is-show-tip="false"
+                                                oss-type="posts"
+                                                :oss-post-type="POST_TYPE.VIDEO"
+                                                class="custom-upload video-upload"
+                                            />
+                                            <div class="upload-hint">
+                                                <div class="hint-item">
+                                                    <Icon icon="mdi:video-outline" />
+                                                    <span>支持 MP4 / MOV，仅可上传 1 个视频</span>
                                                 </div>
-                                            </template>
-                                        </el-upload>
-
-                                        <transition name="drag-fade">
-                                            <div v-if="isDragging" class="drag-overlay">
-                                                <Icon icon="mdi:cloud-upload" class="drag-icon" />
-                                                <span class="drag-text">松开上传文件</span>
+                                                <div class="hint-item">
+                                                    <Icon icon="mdi:clock-outline" />
+                                                    <span>建议时长控制在 60 秒以内，画质不低于 720P</span>
+                                                </div>
                                             </div>
-                                        </transition>
+                                        </template>
                                     </div>
-                                    <div v-if="hasUploadingMedia" class="uploading-tip">素材上传中，请稍候...</div>
                                 </el-form-item>
                             </transition>
 
@@ -171,14 +158,7 @@
                             </el-form-item>
 
                             <div class="form-footer">
-                                <el-button
-                                    type="primary"
-                                    size="large"
-                                    :loading="submitting"
-                                    :disabled="hasUploadingMedia"
-                                    @click="handleSubmit"
-                                    class="submit-btn"
-                                >
+                                <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit" class="submit-btn">
                                     <Icon icon="mdi:send-outline" class="mr-2 text-[18px]" />
                                     {{ submitting ? '发布中...' : '立即发布' }}
                                 </el-button>
@@ -318,13 +298,14 @@
 </template>
 
 <script setup name="ContentPost" lang="ts">
-import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick } from 'vue'
-import type { UploadUserFile, UploadFile, UploadFiles, FormInstance } from 'element-plus'
-import { addPost, uploadFilesToOss } from '@/api/content/post'
+import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick, shallowRef } from 'vue'
+import type { FormInstance } from 'element-plus'
+import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
+import { getImgUrl } from '@/utils/img'
 
 const { proxy } = getCurrentInstance() || {}
 const userStore = useUserStore()
@@ -338,20 +319,16 @@ const initialForm = {
 const form = reactive({ ...initialForm })
 
 const formRef = ref<FormInstance>()
-const fileList = ref<UploadUserFile[]>([])
-const uploadRef = ref<any>()
+const imageUploadRef = shallowRef<any>()
+const videoUploadRef = shallowRef<any>()
+const imageUrls = ref('')
+const videoUrls = ref('')
 const submitting = ref(false)
-const previewMediaList = ref<string[]>([])
 const interestTree = ref<any[]>([])
 const interestLoading = ref(false)
 const selectedTagIds = ref<number[]>([])
 const suppressTagValidate = ref(false)
 const autoFilledContent = ref<string | null>(null)
-const uploadedMediaUrlMap = ref<Record<string, string>>({})
-const uploadingMediaMap = ref<Record<string, boolean>>({})
-
-const isDragging = ref(false)
-const dragDepth = ref(0)
 
 const currentTime = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
@@ -371,19 +348,29 @@ const userNickName = computed(() => {
     return userStore.nickName || userStore.name || '未设置昵称'
 })
 
-const uploadAccept = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return '.jpg,.jpeg,.png,.gif'
-    if (form.postType === POST_TYPE.VIDEO) return '.mp4,.mov'
-    return ''
-})
+const normalizeMediaUrls = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return value
+            .map(item => (typeof item === 'string' ? item : String((item as any)?.url || (item as any)?.name || '')))
+            .map(item => item.trim())
+            .filter(Boolean)
+    }
+    const text = String(value || '').trim()
+    if (!text) return []
+    return text
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean)
+}
 
-const uploadLimitReached = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return fileList.value.length >= 9
-    if (form.postType === POST_TYPE.VIDEO) return fileList.value.length >= 1
-    return false
+const imageMediaUrls = computed(() => normalizeMediaUrls(imageUrls.value))
+const videoMediaUrls = computed(() => normalizeMediaUrls(videoUrls.value))
+const currentMediaUrls = computed(() => {
+    if (form.postType === POST_TYPE.IMAGE) return imageMediaUrls.value
+    if (form.postType === POST_TYPE.VIDEO) return videoMediaUrls.value
+    return []
 })
-
-const hasUploadingMedia = computed(() => Object.values(uploadingMediaMap.value).some(Boolean))
+const previewMediaList = computed(() => currentMediaUrls.value.map(url => getImgUrl(url)))
 
 const selectedTagNames = computed(() => {
     const tags: { id: number; name: string }[] = []
@@ -397,6 +384,21 @@ const selectedTagNames = computed(() => {
 })
 
 const getBaseName = (name: string) => name.replace(/\.[^/.]+$/, '').trim()
+const getBaseNameFromMediaUrl = (url: string) => {
+    const clean = String(url || '')
+        .split('?')[0]
+        .split('#')[0]
+    const rawName = clean.slice(clean.lastIndexOf('/') + 1)
+    if (!rawName) return ''
+    let decoded = rawName
+    try {
+        decoded = decodeURIComponent(rawName)
+    } catch {
+        decoded = rawName
+    }
+    const normalized = decoded.replace(/^\d+_\d+_/, '')
+    return getBaseName(normalized)
+}
 
 const appendVideoTitleToContent = (title: string) => {
     const t = (title || '').trim()
@@ -406,30 +408,6 @@ const appendVideoTitleToContent = (title: string) => {
     form.content = t
     autoFilledContent.value = t
     nextTick(() => formRef.value?.validateField('content'))
-}
-
-const applyVideoNameToContent = (file?: UploadFile) => {
-    if (form.postType !== POST_TYPE.VIDEO) return
-    const fileName = file?.name || (file as any)?.raw?.name
-    if (!fileName) return
-    const baseName = getBaseName(fileName)
-    if (!baseName) return
-    appendVideoTitleToContent(baseName)
-}
-
-const isAccepted = (file: File) => {
-    const accept = uploadAccept.value
-    if (!accept) return true
-    const ext = `.${(file.name.split('.').pop() || '').toLowerCase()}`
-    const allow = accept
-        .split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean)
-    if (allow.includes(ext)) return true
-    const t = (file.type || '').toLowerCase()
-    if (form.postType === POST_TYPE.IMAGE) return t.startsWith('image/')
-    if (form.postType === POST_TYPE.VIDEO) return t.startsWith('video/')
-    return true
 }
 
 const rules = {
@@ -447,7 +425,7 @@ const rules = {
     files: [
         {
             validator: (rule: any, value: any, callback: any) => {
-                if (form.postType !== POST_TYPE.TEXT && !fileList.value.length) callback(new Error('请上传素材文件'))
+                if (form.postType !== POST_TYPE.TEXT && !currentMediaUrls.value.length) callback(new Error('请上传素材文件'))
                 else callback()
             },
             trigger: 'change'
@@ -455,218 +433,56 @@ const rules = {
     ]
 }
 
-const updatePreviewMedia = () => {
-    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
-    previewMediaList.value = []
-    if (form.postType === POST_TYPE.TEXT) return
-    fileList.value.forEach(file => {
-        if ((file as any).raw) previewMediaList.value.push(URL.createObjectURL((file as any).raw))
-    })
-}
-
-const clearFilesValidate = () => {
-    if (!formRef.value) return
-    if (fileList.value.length) formRef.value.clearValidate(['files'])
-}
-
-const getFileUid = (file: UploadFile | UploadUserFile): string => String((file as any)?.uid ?? '')
-
-const isUploadingUid = (uid: string): boolean => Boolean(uid && uploadingMediaMap.value[uid])
-
-const setUploadingUid = (uid: string, uploading: boolean) => {
-    if (!uid) return
-    const next = { ...uploadingMediaMap.value }
-    if (uploading) next[uid] = true
-    else delete next[uid]
-    uploadingMediaMap.value = next
-}
-
-const setUploadedMediaUrl = (uid: string, url: string) => {
-    if (!uid || !url) return
-    uploadedMediaUrlMap.value = {
-        ...uploadedMediaUrlMap.value,
-        [uid]: url
-    }
-}
-
-const removeUploadCacheByUid = (uid: string) => {
-    if (!uid) return
-    if (uploadedMediaUrlMap.value[uid]) {
-        const nextUploaded = { ...uploadedMediaUrlMap.value }
-        delete nextUploaded[uid]
-        uploadedMediaUrlMap.value = nextUploaded
-    }
-    if (uploadingMediaMap.value[uid]) {
-        const nextUploading = { ...uploadingMediaMap.value }
-        delete nextUploading[uid]
-        uploadingMediaMap.value = nextUploading
-    }
-}
-
-const syncUploadCacheWithFileList = () => {
-    const currentUids = new Set(fileList.value.map(file => getFileUid(file)))
-    Object.keys(uploadedMediaUrlMap.value).forEach(uid => {
-        if (!currentUids.has(uid)) removeUploadCacheByUid(uid)
-    })
-    Object.keys(uploadingMediaMap.value).forEach(uid => {
-        if (!currentUids.has(uid)) removeUploadCacheByUid(uid)
-    })
-}
-
-let pendingUploadTask: Promise<boolean> | null = null
-
-const uploadPendingFilesToOss = async (): Promise<boolean> => {
-    if (form.postType === POST_TYPE.TEXT) return true
-    while (true) {
-        const pendingEntries = fileList.value.filter(file => {
-            const uid = getFileUid(file)
-            const raw = (file as any)?.raw
-            if (!(raw instanceof File)) return false
-            if (uploadedMediaUrlMap.value[uid]) return false
-            if (isUploadingUid(uid)) return false
-            return true
-        })
-        if (!pendingEntries.length) return true
-
-        const entries = [...pendingEntries]
-        entries.forEach(file => setUploadingUid(getFileUid(file), true))
-
-        try {
-            const rawFiles = entries.map(file => (file as any).raw as File)
-            const uploadedUrls = await uploadFilesToOss(form.postType, rawFiles)
-            entries.forEach((file, index) => {
-                const uid = getFileUid(file)
-                const url = uploadedUrls[index]
-                if (!url) return
-                const stillExists = fileList.value.some(item => getFileUid(item) === uid)
-                if (stillExists) setUploadedMediaUrl(uid, url)
-            })
-        } catch (error) {
-            console.error(error)
-            proxy?.$modal?.msgError('素材上传失败，请重试')
-            return false
-        } finally {
-            entries.forEach(file => setUploadingUid(getFileUid(file), false))
-            syncUploadCacheWithFileList()
-        }
-    }
-}
-
-const ensurePendingFilesUploaded = async (): Promise<boolean> => {
-    if (pendingUploadTask) return pendingUploadTask
-    pendingUploadTask = uploadPendingFilesToOss().finally(() => {
-        pendingUploadTask = null
-    })
-    return pendingUploadTask
-}
-
-const getUploadedMediaUrlsInOrder = (): string[] => {
-    return fileList.value.map(file => uploadedMediaUrlMap.value[getFileUid(file)]).filter((url): url is string => Boolean(url))
-}
-
-const addFilesByDrop = async (files: File[]) => {
-    const valid = files.filter(f => f && isAccepted(f))
-    if (!valid.length) return
-    if (!uploadRef.value) return
-
-    if (form.postType === POST_TYPE.VIDEO) {
-        const f = valid[0]
-        uploadRef.value.clearFiles?.()
-        uploadRef.value.handleStart?.(f)
-        appendVideoTitleToContent(getBaseName(f.name))
-        await nextTick()
-        updatePreviewMedia()
-        clearFilesValidate()
-        return
-    }
-
-    const remaining = Math.max(0, 9 - fileList.value.length)
-    if (remaining <= 0) return
-    valid.slice(0, remaining).forEach(f => uploadRef.value.handleStart?.(f))
-    await nextTick()
-    updatePreviewMedia()
-    clearFilesValidate()
-}
-
-const onDragEnter = () => {
-    dragDepth.value += 1
-    isDragging.value = true
-}
-
-const onDragOver = () => {
-    isDragging.value = true
-}
-
-const onDragLeave = () => {
-    dragDepth.value = Math.max(0, dragDepth.value - 1)
-    if (dragDepth.value === 0) isDragging.value = false
-}
-
-const onDrop = async (e: DragEvent) => {
-    dragDepth.value = 0
-    isDragging.value = false
-    if (uploadLimitReached.value) return
-    const dt = e.dataTransfer
-    if (!dt) return
-    const files = Array.from(dt.files || [])
-    if (!files.length) return
-    await addFilesByDrop(files)
-}
-
-const handleFileChange = (uploadFile: UploadFile, uploadFiles: UploadFiles) => {
-    setTimeout(() => updatePreviewMedia(), 0)
-    if (form.postType !== POST_TYPE.TEXT) nextTick(() => formRef.value?.validateField('files'))
-    applyVideoNameToContent(uploadFile)
-    syncUploadCacheWithFileList()
-    if (form.postType !== POST_TYPE.TEXT) {
-        void ensurePendingFilesUploaded()
-    }
-}
-
-const handleRemove = (file: UploadFile) => {
-    removeUploadCacheByUid(getFileUid(file))
-    uploadRef.value?.handleRemove(file)
-    setTimeout(() => updatePreviewMedia(), 0)
-    nextTick(() => formRef.value?.validateField('files'))
-    if (form.postType === POST_TYPE.VIDEO) {
-        if (autoFilledContent.value && form.content === autoFilledContent.value) {
-            form.content = ''
-        }
-        autoFilledContent.value = null
-        nextTick(() => formRef.value?.validateField('content'))
-    }
-}
-
 const handleTypeChange = async () => {
-    fileList.value = []
-    uploadRef.value?.clearFiles?.()
-    updatePreviewMedia()
-    uploadedMediaUrlMap.value = {}
-    uploadingMediaMap.value = {}
-    pendingUploadTask = null
+    imageUrls.value = ''
+    videoUrls.value = ''
+    imageUploadRef.value?.clear?.()
+    videoUploadRef.value?.clear?.()
     autoFilledContent.value = null
-    isDragging.value = false
-    dragDepth.value = 0
     await nextTick()
     formRef.value?.clearValidate()
 }
 
 watch(
-    () => selectedTagIds.value,
+    () => selectedTagIds.value.slice(),
     ids => {
-        form.tagStr = ids.join(',')
+        const nextTagStr = ids.join(',')
+        if (form.tagStr === nextTagStr) return
+        form.tagStr = nextTagStr
         if (suppressTagValidate.value) return
         nextTick(() => formRef.value?.validateField('tagStr'))
-    },
-    { deep: true }
+    }
 )
 
 watch(
-    () => fileList.value.length,
+    () => currentMediaUrls.value.length,
     len => {
         if (form.postType === POST_TYPE.TEXT) return
         if (len > 0) nextTick(() => formRef.value?.clearValidate(['files']))
         else nextTick(() => formRef.value?.validateField('files'))
+    }
+)
+
+watch(
+    () => videoUrls.value,
+    (nextVal, prevVal) => {
+        if (form.postType !== POST_TYPE.VIDEO) return
+
+        const nextList = normalizeMediaUrls(nextVal)
+        const prevSet = new Set(normalizeMediaUrls(prevVal))
+        const addedUrl = nextList.find(item => !prevSet.has(item))
+        if (addedUrl) {
+            const baseName = getBaseNameFromMediaUrl(addedUrl)
+            if (baseName) appendVideoTitleToContent(baseName)
+        }
+
+        if (!nextList.length) {
+            if (autoFilledContent.value && form.content === autoFilledContent.value) {
+                form.content = ''
+            }
+            autoFilledContent.value = null
+            nextTick(() => formRef.value?.validateField('content'))
+        }
     }
 )
 
@@ -677,7 +493,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
     if (timer) clearInterval(timer)
 })
 
@@ -689,14 +504,6 @@ async function loadInterest() {
     } finally {
         interestLoading.value = false
     }
-}
-
-function handleExceed() {
-    proxy?.$modal?.msgWarning(form.postType === POST_TYPE.IMAGE ? '最多上传 9 张图片' : '仅支持 1 个视频')
-}
-
-function beforeUpload(file: File) {
-    return true
 }
 
 function handleContentInput() {
@@ -713,7 +520,8 @@ async function handleSubmit() {
     const ok = await formRef.value.validate().catch(() => false)
     if (!ok) return
 
-    if (form.postType !== POST_TYPE.TEXT && fileList.value.length === 0) {
+    const mediaUrls = currentMediaUrls.value
+    if (form.postType !== POST_TYPE.TEXT && mediaUrls.length === 0) {
         proxy?.$modal?.msgError(form.postType === POST_TYPE.IMAGE ? '请至少上传一张图片' : '请上传视频')
         return
     }
@@ -726,24 +534,19 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
-        const uploadOk = await ensurePendingFilesUploaded()
-        if (!uploadOk) return
-        const mediaUrls = form.postType !== POST_TYPE.TEXT ? getUploadedMediaUrlsInOrder() : []
-        if (form.postType !== POST_TYPE.TEXT && mediaUrls.length !== fileList.value.length) {
-            proxy?.$modal?.msgError('部分素材未上传成功，请删除后重试')
-            return
-        }
+        const videoFiles = form.postType === POST_TYPE.VIDEO ? videoUploadRef.value?.getRawFiles?.() || [] : []
         await addPost({
             postType: form.postType,
             content: form.content?.trim() || '',
             mediaUrls,
+            files: videoFiles,
             originalPostId: 0,
             tags: form.tagStr,
             circleId: '',
             isQuestion: '0'
         })
         proxy?.$modal?.msgSuccess('发布成功')
-        await handleReset(true)
+        await handleReset()
     } catch (e) {
         console.error(e)
     } finally {
@@ -751,19 +554,14 @@ async function handleSubmit() {
     }
 }
 
-async function handleReset(afterSubmit = false) {
+async function handleReset() {
     suppressTagValidate.value = true
-    previewMediaList.value.forEach(url => URL.revokeObjectURL(url))
-    previewMediaList.value = []
-    fileList.value = []
-    uploadRef.value?.clearFiles?.()
-    uploadedMediaUrlMap.value = {}
-    uploadingMediaMap.value = {}
-    pendingUploadTask = null
+    imageUrls.value = ''
+    videoUrls.value = ''
+    imageUploadRef.value?.clear?.()
+    videoUploadRef.value?.clear?.()
     selectedTagIds.value = []
     autoFilledContent.value = null
-    isDragging.value = false
-    dragDepth.value = 0
 
     if (formRef.value?.resetFields) {
         formRef.value.resetFields()
@@ -776,7 +574,6 @@ async function handleReset(afterSubmit = false) {
 
     await nextTick()
     suppressTagValidate.value = false
-    updatePreviewMedia()
 }
 </script>
 
@@ -1035,278 +832,111 @@ async function handleReset(afterSubmit = false) {
 
 .upload-container {
     width: 100%;
-    position: relative;
+    padding: 16px;
+    border: 2px solid var(--el-border-color-lighter);
     border-radius: 14px;
-    transition: all 0.3s;
+    background: var(--el-fill-color-blank);
+    transition: all 0.25s ease;
 
-    &.is-dragging {
-        &::before {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border: 3px dashed var(--el-color-primary);
-            border-radius: 16px;
-            background: rgba(var(--el-color-primary-rgb), 0.03);
-            z-index: 1;
-            pointer-events: none;
-            animation: dash-rotate 20s linear infinite;
-        }
-    }
-}
-
-.uploading-tip {
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--el-color-primary);
-    font-weight: 500;
-}
-
-@keyframes dash-rotate {
-    to {
-        stroke-dashoffset: -100;
-    }
-}
-
-.drag-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15), rgba(var(--el-color-primary-rgb), 0.08));
-    backdrop-filter: blur(8px);
-    border-radius: 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    pointer-events: none;
-
-    .drag-icon {
-        font-size: 48px;
-        color: var(--el-color-primary);
-        animation: bounce 1s ease-in-out infinite;
+    &.image-mode {
+        background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.03), transparent);
     }
 
-    .drag-text {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--el-color-primary);
+    &.video-mode {
+        background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.04), rgba(var(--el-color-primary-rgb), 0.01));
     }
-}
-
-@keyframes bounce {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-8px);
-    }
-}
-
-.drag-fade-enter-active,
-.drag-fade-leave-active {
-    transition: all 0.3s;
-}
-
-.drag-fade-enter-from,
-.drag-fade-leave-to {
-    opacity: 0;
-    transform: scale(0.95);
 }
 
 .custom-upload {
     width: 100%;
-    display: inline-block;
-
-    &.is-empty {
-        :deep(.el-upload--picture-card) {
-            width: 100%;
-            height: 200px;
-            border: 2px dashed var(--el-border-color-lighter);
-            background: var(--el-fill-color-lighter);
-            border-radius: 14px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-            &:hover {
-                border-color: var(--el-color-primary);
-                background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05), rgba(var(--el-color-primary-rgb), 0.02));
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.12);
-            }
-        }
-        .upload-trigger-content {
-            flex-direction: column;
-            padding: 32px 0;
-            gap: 14px;
-            .icon-wrapper {
-                font-size: 48px;
-            }
-            .primary-text {
-                font-size: 16px;
-                font-weight: 600;
-            }
-            .secondary-text {
-                display: block;
-            }
-        }
-    }
-
-    &:not(.is-empty) {
-        :deep(.el-upload--picture-card) {
-            width: 116px;
-            height: 116px;
-            margin: 0 10px 10px 0;
-            border: 2px dashed var(--el-border-color-lighter);
-            border-radius: 12px;
-            background: var(--el-fill-color-lighter);
-            vertical-align: top;
-            transition: all 0.25s;
-            display: inline-flex;
-
-            &:hover {
-                border-color: var(--el-color-primary);
-                color: var(--el-color-primary);
-                transform: scale(1.02);
-                box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
-            }
-        }
-
-        .upload-trigger-content {
-            padding: 0;
-            justify-content: center;
-            gap: 6px;
-
-            .icon-wrapper {
-                font-size: 28px;
-                color: var(--el-text-color-secondary);
-                transition: all 0.25s;
-            }
-            .primary-text {
-                font-size: 13px;
-                color: var(--el-text-color-regular);
-                margin: 0;
-                font-weight: 500;
-            }
-            .secondary-text {
-                display: none;
-            }
-        }
-    }
-
-    :deep(.el-upload-list--picture-card) {
-        display: inline;
-        vertical-align: top;
-
-        .el-upload-list__item {
-            width: 116px;
-            height: 116px;
-            margin: 0 10px 10px 0;
-            border-radius: 12px;
-            border: none;
-            overflow: hidden;
-            display: inline-flex;
-            vertical-align: top;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: all 0.25s;
-
-            &:hover {
-                transform: scale(1.05);
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-                z-index: 1;
-            }
-        }
-    }
-
-    &.hide-upload-trigger {
-        :deep(.el-upload--picture-card) {
-            display: none;
-        }
-    }
 }
 
-.upload-trigger-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-
-    .icon-wrapper {
-        color: var(--el-text-color-secondary);
-        transition: transform 0.3s;
-    }
-
-    .text-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        line-height: 1.6;
-        gap: 4px;
-
-        .primary-text {
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-        }
-
-        .secondary-text {
-            font-size: 13px;
-            color: var(--el-text-color-secondary);
-        }
-    }
-}
-
-:deep(.el-upload--picture-card:hover) .icon-wrapper {
-    color: var(--el-color-primary);
-    transform: translateY(-3px) scale(1.05);
-}
-
-.uploaded-file-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: var(--el-fill-color-dark);
-
-    .thumbnail {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .overlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(2px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: all 0.25s;
-    }
-
-    &:hover .overlay {
-        opacity: 1;
-    }
-
-    .delete-btn {
-        color: var(--el-color-white);
-        font-size: 24px;
-        cursor: pointer;
-        padding: 10px;
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.3);
-        transition: all 0.25s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+.image-upload {
+    :deep(.el-upload--picture-card) {
+        width: 120px;
+        height: 120px;
+        border-radius: 12px;
+        border: 2px dashed var(--el-border-color);
+        background: var(--el-fill-color-lighter);
+        transition: all 0.2s ease;
 
         &:hover {
-            background: var(--el-color-danger);
-            transform: scale(1.1) rotate(90deg);
+            border-color: var(--el-color-primary);
+            background: rgba(var(--el-color-primary-rgb), 0.06);
+            transform: translateY(-1px);
+        }
+    }
+
+    :deep(.el-upload-list--picture-card .el-upload-list__item) {
+        width: 120px;
+        height: 120px;
+        border-radius: 12px;
+        margin: 0 10px 10px 0;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+    }
+}
+
+.video-upload {
+    :deep(.upload-file-uploader .el-upload) {
+        width: 100%;
+    }
+
+    :deep(.upload-file-uploader .el-upload-dragger) {
+        height: 190px;
+        border: 2px dashed rgba(var(--el-color-primary-rgb), 0.32);
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05), rgba(var(--el-color-primary-rgb), 0.02));
+        transition: all 0.2s ease;
+
+        &:hover {
+            border-color: var(--el-color-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.12);
+        }
+
+        .el-icon--upload {
+            color: var(--el-color-primary);
+        }
+
+        .el-upload__text {
+            font-size: 14px;
+        }
+    }
+
+    :deep(.upload-file-list) {
+        margin-top: 12px;
+    }
+
+    :deep(.upload-file-list .file-item) {
+        border-radius: 10px;
+        border: 1px solid var(--el-border-color-lighter);
+        background: var(--el-fill-color-blank);
+    }
+}
+
+.upload-hint {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--el-fill-color-light);
+    border: 1px solid var(--el-border-color-lighter);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .hint-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--el-text-color-secondary);
+
+        .iconify {
+            font-size: 16px;
+            color: var(--el-color-primary);
+            margin-top: 1px;
+            flex-shrink: 0;
         }
     }
 }
