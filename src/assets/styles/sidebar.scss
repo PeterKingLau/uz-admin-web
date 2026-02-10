@@ -189,6 +189,21 @@ html.dark {
     }
 }
 
+@media (min-width: 992px) {
+    #app .main-container {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+    }
+}
+
+@media (max-width: 991px) {
+    #app .main-container {
+        scrollbar-gutter: auto;
+    }
+}
+
 .el-menu--vertical {
     & > .el-menu {
         .svg-icon {

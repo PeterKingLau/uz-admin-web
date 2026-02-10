@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="circle-detail-page">
         <div class="page-wrapper">
             <CircleDetailLeftSidebar :circle-name="circleInfo.name" @go-back="goBack" />
@@ -99,7 +99,7 @@ const userStore = useUserStore()
 const circleJoinStore = useCircleJoinStore()
 
 const userAvatar = computed(() => userStore.avatar)
-const userName = computed(() => userStore.nickName || userStore.name || '我')
+const userName = computed(() => userStore.nickName || userStore.name || '用户')
 
 interface CircleInfoExtended extends CircleItem {
     joined?: boolean
@@ -358,6 +358,61 @@ function persistJoinState(circleId: string, joined: boolean) {
     circleJoinStore.setJoined(userStore.id, circleId, joined)
 }
 
+function toFiniteNumber(value: unknown): number | undefined {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function resolveMemberCountFromResponse(payload: any): number | undefined {
+    const data = payload?.data ?? payload
+    const candidates = [
+        data?.memberCount,
+        data?.memberNum,
+        data?.memberTotal,
+        data?.circleMemberCount,
+        payload?.memberCount,
+        payload?.memberNum,
+        payload?.memberTotal
+    ]
+    for (const candidate of candidates) {
+        const parsed = toFiniteNumber(candidate)
+        if (parsed != null) return Math.max(0, Math.floor(parsed))
+    }
+    return undefined
+}
+
+function applyJoinState(nextJoined: boolean, nextMemberCount?: number) {
+    const previousJoined = Boolean(circleInfo.value.joined)
+    circleInfo.value.joined = nextJoined
+
+    if (nextMemberCount != null && Number.isFinite(nextMemberCount)) {
+        circleInfo.value.memberCount = Math.max(0, Math.floor(nextMemberCount))
+        return
+    }
+
+    if (previousJoined === nextJoined) return
+    const explicitCount = toFiniteNumber(circleInfo.value.memberCount)
+    const fallbackCount = memberList.value.length > 0 ? memberList.value.length : undefined
+    const baseCount = explicitCount ?? fallbackCount
+    if (baseCount == null) return
+    circleInfo.value.memberCount = Math.max(0, baseCount + (nextJoined ? 1 : -1))
+}
+
+function resolveCurrentRouteCircleId(): string | number | undefined {
+    return resolveCircleId(route.params.id ?? route.query.id)
+}
+
+function hydrateJoinedStateFromCache() {
+    const currentCircleId = resolveCircleId(circleInfo.value.id ?? resolveCurrentRouteCircleId())
+    if (!currentCircleId) return
+    const persistedJoined = resolvePersistedJoinState(String(currentCircleId))
+    if (persistedJoined == null) return
+    if (circleInfo.value.id == null) {
+        circleInfo.value.id = currentCircleId as any
+    }
+    circleInfo.value.joined = persistedJoined
+}
+
 function resolveCircleId(value: unknown): string | number | undefined {
     if (value == null) return undefined
     if (Array.isArray(value)) return resolveCircleId(value[0])
@@ -494,13 +549,13 @@ async function handleJoin() {
     try {
         joinLoading.value = true
         if (circleInfo.value.joined) {
-            await exitCircle(id)
-            circleInfo.value.joined = false
+            const response = await exitCircle(id)
+            applyJoinState(false, resolveMemberCountFromResponse(response))
             persistJoinState(String(id), false)
             proxy?.$modal?.msgSuccess?.('已退出')
         } else {
-            await joinCircle(id)
-            circleInfo.value.joined = true
+            const response = await joinCircle(id)
+            applyJoinState(true, resolveMemberCountFromResponse(response))
             persistJoinState(String(id), true)
             proxy?.$modal?.msgSuccess?.('加入成功')
         }
@@ -592,10 +647,19 @@ function goBack() {
 }
 
 onMounted(() => {
+    hydrateJoinedStateFromCache()
     fetchCircleInfo()
     fetchPosts()
     fetchMembers()
 })
+
+watch(
+    () => [userStore.id, route.params.id, route.query.id],
+    () => {
+        hydrateJoinedStateFromCache()
+    },
+    { immediate: true }
+)
 
 watch(
     () => showAllMembers.value,

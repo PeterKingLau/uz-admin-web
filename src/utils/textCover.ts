@@ -109,16 +109,15 @@ const buildTextCoverLines = (value: string, maxCharsPerLine = 10, maxLines = 4) 
 
 export const buildTextCoverDataUrl = (content: string, seed: string) => {
     const palette = resolveTextCoverPalette(seed || '')
-    const height = 1200
-    const fontSize = 64
-    const lineHeight = Math.round(fontSize * 1.45)
+    const fontSizePercent = 5.4
+    const lineHeightPercent = 7.8
     const lines = buildTextCoverLines(content, 10, 4)
-    const totalHeight = (lines.length - 1) * lineHeight
-    const startY = height / 2 - totalHeight / 2
+    const totalHeightPercent = (lines.length - 1) * lineHeightPercent
+    const startYPercent = 50 - totalHeightPercent / 2
     const textNodes = lines
         .map((line, index) => {
-            const y = Math.round(startY + index * lineHeight)
-            return `<text x="50%" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}" font-weight="600" fill="#2f2f2f" font-family="Microsoft YaHei, PingFang SC, sans-serif">${escapeXml(line)}</text>`
+            const yPercent = (startYPercent + index * lineHeightPercent).toFixed(2)
+            return `<text x="50%" y="${yPercent}%" text-anchor="middle" dominant-baseline="middle" font-size="${fontSizePercent}%" font-weight="600" fill="#2f2f2f" font-family="Microsoft YaHei, PingFang SC, sans-serif">${escapeXml(line)}</text>`
         })
         .join('')
 

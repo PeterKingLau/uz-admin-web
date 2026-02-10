@@ -7,7 +7,11 @@ export function getToken() {
 }
 
 export function setToken(token: string) {
-    return Cookies.set(TokenKey, token)
+    const normalized = typeof token === 'string' ? token.trim() : ''
+    if (!normalized || normalized === 'undefined' || normalized === 'null') {
+        return Cookies.remove(TokenKey)
+    }
+    return Cookies.set(TokenKey, normalized)
 }
 
 export function removeToken() {

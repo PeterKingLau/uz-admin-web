@@ -197,7 +197,7 @@
                                 <img v-if="item.postType === POST_TYPE.IMAGE" :src="getCover(item)" alt="cover" loading="lazy" />
 
                                 <div v-else-if="item.postType === POST_TYPE.VIDEO" class="video-container">
-                                    <video :src="getVideoUrl(item)" muted playsinline preload="metadata"></video>
+                                    <img :src="getVideoCover(item)" alt="video cover" loading="lazy" />
                                     <div class="play-indicator">
                                         <Icon icon="mdi:play" />
                                     </div>
@@ -310,7 +310,7 @@
                         <div class="thumb">
                             <img v-if="item.postType === POST_TYPE.IMAGE" :src="getCover(item)" alt="cover" loading="lazy" />
                             <div v-else-if="item.postType === POST_TYPE.VIDEO" class="thumb-video">
-                                <video :src="getVideoUrl(item)" muted playsinline preload="metadata"></video>
+                                <img :src="getVideoCover(item)" alt="video cover" loading="lazy" />
                                 <div class="thumb-play"><Icon icon="mdi:play" /></div>
                             </div>
                             <div v-else class="thumb-text">
@@ -535,6 +535,15 @@ const getTextCover = (item: any) => {
     const content = String(item?.content ?? '').trim()
     const seed = String(resolvePostId(item) ?? '')
     return buildTextCoverDataUrl(content, seed || content || 'text')
+}
+const isVideoSource = (url: string) => /\.(mp4|mov|m3u8|webm|avi|mkv)(\?|$)/i.test(String(url || ''))
+const getVideoCover = (item: any) => {
+    const cover = props.getCover?.(item) || ''
+    if (cover && !isVideoSource(cover)) return cover
+    const mediaList = Array.isArray(item?.mediaList) ? item.mediaList : []
+    const imageCandidate = mediaList.find((src: string) => src && !isVideoSource(src))
+    if (imageCandidate) return imageCandidate
+    return getTextCover(item)
 }
 
 const bulkMode = ref(false)
@@ -1096,11 +1105,19 @@ watch(
     next => {
         if (!next) {
             loadPending.value = false
-            if (loadObserver && loadTriggerRef.value) {
-                loadObserver.unobserve(loadTriggerRef.value)
-                loadObserver.observe(loadTriggerRef.value)
-            }
+            nextTick(() => {
+                setupObserver()
+            })
         }
+    }
+)
+
+watch(
+    () => [activeTabValue.value, showCollections.value, worksPostList.value.length] as const,
+    () => {
+        nextTick(() => {
+            setupObserver()
+        })
     }
 )
 

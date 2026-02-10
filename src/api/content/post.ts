@@ -34,6 +34,7 @@ export interface AddPostPayload {
     tagStr?: string
     tags?: string
     files?: File[]
+    coverFile?: File | null
     mediaUrls?: string | string[]
     originalPostId?: number | string
     circleId?: string | number
@@ -884,6 +885,7 @@ const buildVideoCoverFile = async (source: { mediaUrl?: string; file?: File }): 
 
 export async function addPost(data: AddPostPayload) {
     const files = Array.isArray(data.files) ? data.files.filter(file => file instanceof File) : []
+    const customCoverFile = data.coverFile instanceof File ? data.coverFile : null
     const customMediaUrls = normalizeMediaUrls(data.mediaUrls)
     const shouldUploadMediaFiles = !customMediaUrls.length && files.length > 0
     const uploadedMediaUrls = shouldUploadMediaFiles ? await uploadFilesToOss(data.postType, files, data.ossType) : []
@@ -897,7 +899,7 @@ export async function addPost(data: AddPostPayload) {
 
         if (!coverUrl) {
             const videoFile = files.find(f => f instanceof File && /\.(mp4|mov|webm|avi|mkv)$/i.test(f.name || ''))
-            const coverFile = await buildVideoCoverFile({ file: videoFile, mediaUrl: videoUrl })
+            const coverFile = customCoverFile || (await buildVideoCoverFile({ file: videoFile, mediaUrl: videoUrl }))
             if (!coverFile) throw new Error('视频封面生成失败')
             const coverUrls = await uploadFilesToOss(IMAGE_POST_TYPE, [coverFile], data.ossType)
             const uploadedCover = String(coverUrls?.[0] || '').trim()

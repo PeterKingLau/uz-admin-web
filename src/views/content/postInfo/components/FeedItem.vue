@@ -33,9 +33,11 @@
             </div>
 
             <div v-if="isTextPost" class="text-cover" :style="textCoverStyle">
-                <div class="quote-symbol">“</div>
-                <div class="text-content-inner">{{ textCoverText }}</div>
-                <div class="quote-symbol-end">”</div>
+                <div class="text-content-inner" :class="textCoverSizeClass">
+                    <span class="quote quote-start">“</span>
+                    <span class="text-value">{{ textCoverText }}</span>
+                    <span class="quote quote-end">”</span>
+                </div>
             </div>
 
             <el-image v-else-if="coverUrl" :src="coverUrl" fit="cover" class="media-image" loading="lazy">
@@ -128,6 +130,14 @@ const postType = computed(() => String(props.post?.postType ?? ''))
 const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
 const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
+const textCoverCharCount = computed(() => Array.from(textCoverText.value).length)
+const textCoverSizeClass = computed(() => {
+    const count = textCoverCharCount.value
+    if (count <= 8) return 'size-xl'
+    if (count <= 20) return 'size-lg'
+    if (count <= 40) return 'size-md'
+    return 'size-sm'
+})
 
 const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
     [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },
@@ -232,7 +242,7 @@ const handleTogglePin = () => {
     &:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-black) 8%, transparent);
-        border-color: var(--el-color-primary-light-7);
+        border-color: var(--el-border-color);
     }
 
     &.checked {
@@ -333,41 +343,87 @@ const handleTogglePin = () => {
 .text-cover {
     width: 100%;
     height: 100%;
-    padding: 24px;
+    padding: 0;
     background: var(--card-bg-gradient);
     color: var(--el-color-white);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    display: block;
     position: relative;
     text-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-black) 10%, transparent);
-
-    .quote-symbol {
-        font-size: 32px;
-        line-height: 1;
-        opacity: 0.6;
-        margin-bottom: 4px;
-        font-family: serif;
-    }
+    overflow: hidden;
 
     .text-content-inner {
-        font-size: 15px;
-        line-height: 1.5;
-        font-weight: 600;
-        display: -webkit-box;
-        -webkit-line-clamp: 4;
-        line-clamp: 4;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 86%;
+        padding: 7% 9%;
+        text-align: center;
+        position: relative;
 
-    .quote-symbol-end {
-        font-size: 32px;
-        line-height: 1;
-        opacity: 0.6;
-        align-self: flex-end;
-        margin-top: 4px;
-        font-family: serif;
+        .text-value {
+            font-size: clamp(15px, 5.2%, 22px);
+            line-height: 1.52;
+            font-weight: 600;
+            text-align: center;
+            display: -webkit-box;
+            -webkit-line-clamp: 6;
+            line-clamp: 6;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .quote {
+            position: absolute;
+            font-size: clamp(32px, 11%, 56px);
+            line-height: 1;
+            opacity: 0.62;
+            font-family: serif;
+            pointer-events: none;
+        }
+
+        .quote-start {
+            top: 0;
+            left: 0;
+            transform: translate(-20%, -10%);
+        }
+
+        .quote-end {
+            right: 0;
+            bottom: 0;
+            transform: translate(20%, 10%);
+        }
+
+        &.size-xl {
+            .text-value {
+                font-size: clamp(28px, 9.8%, 44px);
+                line-height: 1.28;
+                font-weight: 700;
+            }
+        }
+
+        &.size-lg {
+            .text-value {
+                font-size: clamp(22px, 8%, 34px);
+                line-height: 1.34;
+                font-weight: 680;
+            }
+        }
+
+        &.size-md {
+            .text-value {
+                font-size: clamp(17px, 6.2%, 26px);
+                line-height: 1.42;
+            }
+        }
+
+        &.size-sm {
+            .text-value {
+                font-size: clamp(14px, 4.8%, 18px);
+                line-height: 1.55;
+            }
+        }
     }
 }
 

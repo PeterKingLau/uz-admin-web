@@ -545,7 +545,7 @@ onMounted(() => {
         .card-body {
             display: flex;
             gap: 20px;
-            align-items: stretch;
+            align-items: flex-start;
 
             .left-inputs {
                 flex: 1;
@@ -556,23 +556,45 @@ onMounted(() => {
             }
 
             .right-upload {
-                width: 80px;
+                width: 96px;
                 flex-shrink: 0;
                 display: flex;
                 align-items: flex-start;
 
+                :deep(.mini-upload.glass-upload-container) {
+                    width: 96px;
+                    padding: 0;
+                    background: transparent;
+                    border: none;
+                    box-shadow: none;
+                }
+
+                :deep(.mini-upload .upload-wrapper) {
+                    width: 96px;
+                }
+
+                :deep(.mini-upload .glass-uploader) {
+                    --item-size: 96px;
+                    --radius: 10px;
+                }
+
+                :deep(.mini-upload .el-upload-list--picture-card) {
+                    grid-template-columns: 1fr;
+                    gap: 0;
+                }
+
                 :deep(.el-upload) {
-                    width: 80px;
-                    height: 80px;
+                    width: 96px;
+                    height: 96px;
                 }
 
                 :deep(.el-upload-list) {
-                    width: 80px;
+                    width: 96px;
                 }
 
                 :deep(.el-upload-list__item) {
-                    width: 80px;
-                    height: 80px;
+                    width: 96px;
+                    height: 96px;
                     margin: 0;
                 }
             }

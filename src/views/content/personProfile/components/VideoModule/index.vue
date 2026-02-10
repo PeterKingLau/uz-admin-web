@@ -10,12 +10,22 @@
         >
             <div class="stage" @click.stop>
                 <div ref="playerFrameRef" class="player-frame" :class="{ 'comment-open': commentPanelVisible }">
-                    <div ref="videoWrapperRef" class="player-shell" :class="[videoFitClass, { 'is-watermarked': showWatermark }]">
+                    <div
+                        ref="videoWrapperRef"
+                        class="player-shell"
+                        :class="[videoFitClass, { 'is-watermarked': showWatermark, 'is-portrait-video': usePortraitGlass }]"
+                        :style="playerShellStyle"
+                    >
                         <div class="player-bg" :style="bgStyle"></div>
+                        <div v-if="usePortraitGlass" class="portrait-glass-sides" aria-hidden="true">
+                            <div class="glass-side left" :style="glassSideStyle"></div>
+                            <div class="glass-side right" :style="glassSideStyle"></div>
+                        </div>
 
                         <video
                             ref="playerRef"
                             :src="src"
+                            :poster="videoPosterUrl || undefined"
                             class="video-element"
                             playsinline
                             autoplay
@@ -26,10 +36,20 @@
                             @timeupdate="onTimeUpdate"
                             @durationchange="onDurationChange"
                             @play="onPlay"
+                            @playing="onPlaying"
                             @pause="onPause"
                             @volumechange="onVolumeChange"
                             @ratechange="onRateChange"
                         ></video>
+
+                        <transition name="video-cover-fade">
+                            <div v-if="videoCoverOverlayVisible && videoPosterUrl" class="video-cover-overlay" @click.stop="togglePlay">
+                                <img :src="videoPosterUrl" alt="video cover" class="video-cover-image" />
+                                <div class="video-cover-play">
+                                    <Icon icon="mdi:play" />
+                                </div>
+                            </div>
+                        </transition>
 
                         <div v-if="showPauseOverlay" class="pause-overlay" @click.stop="togglePlay">
                             <Icon icon="mdi:play" class="pause-overlay-icon" />
@@ -325,7 +345,7 @@
                             </template>
                         </div>
 
-                        <div class="comment-panel-footer">
+                        <div v-if="activePanelTab === 'comments'" class="comment-panel-footer">
                             <div v-if="replyTarget" class="reply-context-bar">
                                 <span class="reply-text">回复 @{{ replyTarget.replyUserName }}</span>
                                 <div class="cancel-reply" @click="clearReplyTarget">
@@ -463,6 +483,8 @@ const commentInputRef = ref(null)
 
 const showWatermark = ref(false)
 const videoFitMode = ref('height')
+const videoPillarSize = ref(0)
+const isPortraitVideo = ref(false)
 const commentPanelVisible = ref(false)
 const commentDraft = ref('')
 const commentBodyRef = ref(null)
@@ -483,7 +505,8 @@ const repostInputRef = ref(null)
 const canSubmitRepost = computed(() => Boolean(repostContent.value.trim()))
 
 const isPlaying = ref(false)
-const showPauseOverlay = computed(() => !isPlaying.value)
+const videoCoverOverlayVisible = ref(false)
+const showPauseOverlay = computed(() => !isPlaying.value && !videoCoverOverlayVisible.value)
 
 const duration = ref(0)
 const currentTime = ref(0)
@@ -499,6 +522,11 @@ const playbackRate = ref(1)
 
 const controlsVisible = ref(true)
 let hideControlsTimer = null
+let prevHtmlOverflow = ''
+let prevBodyOverflow = ''
+let prevHtmlScrollbarGutter = ''
+let prevBodyScrollbarGutter = ''
+let pageScrollLockedByPlayer = false
 
 const clampRate = v => {
     const n = Number(v)
@@ -663,6 +691,14 @@ const resolveCollectionCover = post => {
         .filter(Boolean)[0]
     return resolveMediaUrl(candidate || '')
 }
+
+const resolveVideoPoster = post => {
+    const poster = resolveCollectionCover(post)
+    if (poster && !isVideoUrl(poster)) return poster
+    return ''
+}
+
+const videoPosterUrl = computed(() => resolveVideoPoster(postData.value))
 
 const resolveCollectionTitle = post => {
     const title = post?.title || post?.postTitle || post?.content || post?.description || ''
@@ -1012,12 +1048,26 @@ const bgStyle = computed(() => {
     return { backgroundImage: `url(${s})` }
 })
 
+const glassSideStyle = computed(() => {
+    const bg = String(resolveBackgroundUrl() || videoPosterUrl.value || '').trim()
+    if (!bg) return {}
+    return { backgroundImage: `url(${bg})` }
+})
+
+const playerShellStyle = computed(() => ({
+    '--pillar-size': `${Math.max(0, Math.round(videoPillarSize.value))}px`
+}))
+
+const usePortraitGlass = computed(() => isPortraitVideo.value && videoPillarSize.value > 20)
+
 const updateWatermarkAndFit = () => {
     const wrapper = videoWrapperRef.value
     const videoEl = playerRef.value
     if (!wrapper || !videoEl) {
         showWatermark.value = false
         videoFitMode.value = 'height'
+        videoPillarSize.value = 0
+        isPortraitVideo.value = false
         return
     }
     const containerWidth = wrapper.clientWidth || 0
@@ -1026,12 +1076,21 @@ const updateWatermarkAndFit = () => {
     const vh = videoEl.videoHeight || 0
     if (!containerWidth || !containerHeight || !vw || !vh) {
         showWatermark.value = false
+        videoPillarSize.value = 0
+        isPortraitVideo.value = false
         return
     }
     const containerRatio = containerWidth / containerHeight
     const videoRatio = vw / vh
     showWatermark.value = Math.abs(containerRatio - videoRatio) > 0.12
     videoFitMode.value = videoRatio >= containerRatio ? 'width' : 'height'
+    isPortraitVideo.value = videoRatio < 0.98
+    if (videoFitMode.value === 'height') {
+        const renderedWidth = containerHeight * videoRatio
+        videoPillarSize.value = Math.max(0, (containerWidth - renderedWidth) / 2)
+    } else {
+        videoPillarSize.value = 0
+    }
 }
 
 const handleResize = () => {
@@ -1201,8 +1260,18 @@ const onPlay = () => {
     isPlaying.value = true
 }
 
+const onPlaying = () => {
+    isPlaying.value = true
+    videoCoverOverlayVisible.value = false
+}
+
 const onPause = () => {
     isPlaying.value = false
+    const el = playerRef.value
+    if (!el) return
+    if (Number(el.currentTime || 0) <= 0.08 && videoPosterUrl.value) {
+        videoCoverOverlayVisible.value = true
+    }
 }
 
 const onVolumeChange = () => {
@@ -1391,16 +1460,47 @@ const onKeydown = e => {
     togglePlay()
 }
 
+const lockPageScroll = () => {
+    if (pageScrollLockedByPlayer || typeof document === 'undefined') return
+    const html = document.documentElement
+    const body = document.body
+    if (!html || !body) return
+    prevHtmlOverflow = html.style.overflow
+    prevBodyOverflow = body.style.overflow
+    prevHtmlScrollbarGutter = html.style.scrollbarGutter
+    prevBodyScrollbarGutter = body.style.scrollbarGutter
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    html.style.scrollbarGutter = 'auto'
+    body.style.scrollbarGutter = 'auto'
+    pageScrollLockedByPlayer = true
+}
+
+const unlockPageScroll = () => {
+    if (!pageScrollLockedByPlayer || typeof document === 'undefined') return
+    const html = document.documentElement
+    const body = document.body
+    if (!html || !body) return
+    html.style.overflow = prevHtmlOverflow
+    body.style.overflow = prevBodyOverflow
+    html.style.scrollbarGutter = prevHtmlScrollbarGutter
+    body.style.scrollbarGutter = prevBodyScrollbarGutter
+    pageScrollLockedByPlayer = false
+}
+
 const stopPlayer = () => {
     const el = playerRef.value
-    if (!el) return
-    try {
-        el.pause?.()
-    } catch (e) {
-        console.error(e)
+    if (el) {
+        try {
+            el.pause?.()
+        } catch (e) {
+            console.error(e)
+        }
     }
     isPlaying.value = false
     showWatermark.value = false
+    videoPillarSize.value = 0
+    isPortraitVideo.value = false
     pipActive.value = false
     commentPanelVisible.value = false
     commentDraft.value = ''
@@ -1417,6 +1517,7 @@ const stopPlayer = () => {
         clearTimeout(hideControlsTimer)
         hideControlsTimer = null
     }
+    unlockPageScroll()
 }
 
 const initPlayer = async () => {
@@ -1428,6 +1529,7 @@ const initPlayer = async () => {
     window.addEventListener('resize', handleResize)
     document.addEventListener('fullscreenchange', handleResize)
     window.addEventListener('keydown', onKeydown)
+    lockPageScroll()
     el.playbackRate = Number(playbackRate.value || 1)
     el.volume = Math.min(1, Math.max(0, Number(volume.value)))
     updateWatermarkAndFit()
@@ -1478,6 +1580,14 @@ watch(
     ([v]) => {
         if (v) initPlayer()
         else stopPlayer()
+    },
+    { immediate: true }
+)
+
+watch(
+    () => [visible.value, props.src, videoPosterUrl.value],
+    ([v]) => {
+        videoCoverOverlayVisible.value = Boolean(v && videoPosterUrl.value)
     },
     { immediate: true }
 )
@@ -1574,7 +1684,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 0;
     box-sizing: border-box;
 }
 
@@ -1582,12 +1692,12 @@ onBeforeUnmount(() => {
     position: relative;
     height: 100%;
     width: 100%;
-    max-width: 1200px;
+    max-width: none;
     display: flex;
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: 0;
     background: #000;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    box-shadow: none;
     transition: all 0.3s ease;
 }
 
@@ -1598,6 +1708,10 @@ onBeforeUnmount(() => {
     overflow: hidden;
     min-width: 0;
     cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    --pillar-size: 0px;
 }
 
 .player-bg {
@@ -1615,10 +1729,101 @@ onBeforeUnmount(() => {
 .video-element {
     position: relative;
     width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    z-index: 2;
+}
+
+.player-shell.fit-height .video-element {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+}
+
+.portrait-glass-sides {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.glass-side {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--pillar-size);
+    background-position: center;
+    background-size: cover;
+    filter: blur(26px) saturate(1.2) brightness(0.62);
+    opacity: 0.92;
+    transform: scale(1.08);
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at center, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.02) 62%),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.24));
+        backdrop-filter: blur(12px);
+    }
+}
+
+.glass-side.left {
+    left: 0;
+}
+
+.glass-side.right {
+    right: 0;
+    transform: scale(1.08) scaleX(-1);
+}
+
+.player-shell.is-portrait-video .video-cover-overlay {
+    background: transparent;
+}
+
+.video-cover-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: #000;
+    cursor: pointer;
+}
+
+.video-cover-image {
+    width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
-    z-index: 1;
+}
+
+.video-cover-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    backdrop-filter: blur(4px);
+}
+
+.video-cover-fade-enter-active,
+.video-cover-fade-leave-active {
+    transition: opacity 0.22s ease;
+}
+
+.video-cover-fade-enter-from,
+.video-cover-fade-leave-to {
+    opacity: 0;
 }
 
 .pause-overlay {
@@ -2219,6 +2424,8 @@ onBeforeUnmount(() => {
 .comment-panel-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: auto;
     padding: 0 20px;
 
     &::-webkit-scrollbar {

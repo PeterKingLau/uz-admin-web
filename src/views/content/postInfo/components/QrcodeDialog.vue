@@ -1,18 +1,30 @@
 <template>
-    <el-dialog v-model="visible" width="360px" :lock-scroll="false" class="qrcode-dialog">
-        <template #header>
-            <div class="dialog-title">{{ title || '二维码' }}</div>
-        </template>
+    <el-dialog v-model="visible" width="380px" :show-close="false" class="modern-qrcode-dialog" align-center destroy-on-close>
+        <div class="dialog-content-wrapper">
+            <div class="dialog-header">
+                <span class="title">{{ title || '二维码分享' }}</span>
+                <div class="close-icon" @click="visible = false">
+                    <Icon icon="mdi:close" />
+                </div>
+            </div>
 
-        <div class="dialog-body">
-            <Vue3NextQrcode ref="qrcodeRef" :text="text" :size="220" :margin="8" color-dark="#111827" color-light="#ffffff" />
-            <div v-if="description" class="dialog-desc">{{ description }}</div>
+            <div class="qr-container">
+                <div class="qr-card">
+                    <Vue3NextQrcode ref="qrcodeRef" :text="text" :size="240" :margin="10" color-dark="#000000" color-light="#ffffff" error-level="H" />
+                </div>
+            </div>
+
+            <div v-if="description" class="description-box">
+                {{ description }}
+            </div>
+
+            <div class="dialog-footer">
+                <el-button type="primary" class="download-btn" :disabled="!text" @click="handleDownload">
+                    <Icon icon="mdi:download" class="btn-icon" />
+                    <span>保存二维码图片</span>
+                </el-button>
+            </div>
         </div>
-
-        <template #footer>
-            <el-button @click="visible = false">关闭</el-button>
-            <el-button type="primary" :disabled="!text" @click="handleDownload">下载二维码</el-button>
-        </template>
     </el-dialog>
 </template>
 
@@ -59,29 +71,117 @@ const handleDownload = async () => {
 </script>
 
 <style scoped lang="scss">
-.qrcode-dialog {
-    :deep(.el-dialog__body) {
-        padding: 16px 20px 10px;
+:deep(.modern-qrcode-dialog) {
+    border-radius: 20px;
+    background: var(--el-bg-color);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    padding: 0;
+
+    .el-dialog__header {
+        display: none;
+    }
+
+    .el-dialog__body {
+        padding: 0;
     }
 }
 
-.dialog-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-}
-
-.dialog-body {
+.dialog-content-wrapper {
+    padding: 16px 24px 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    background: var(--el-bg-color);
 }
 
-.dialog-desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+.dialog-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    height: 32px;
+
+    .title {
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+    }
+
+    .close-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--el-text-color-regular);
+        transition: all 0.2s;
+        font-size: 18px;
+        margin-right: -4px;
+
+        &:hover {
+            background: var(--el-fill-color);
+            color: var(--el-text-color-primary);
+        }
+    }
+}
+
+.qr-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.qr-card {
+    padding: 10px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--el-border-color-lighter);
+}
+
+.description-box {
+    font-size: 13px;
+    color: var(--el-text-color-regular);
     text-align: center;
-    word-break: break-all;
+    line-height: 1.5;
+    margin-bottom: 24px;
+    max-width: 90%;
+    opacity: 0.8;
+}
+
+.dialog-footer {
+    width: 100%;
+}
+
+.download-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+    transition: all 0.2s;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    .btn-icon {
+        font-size: 18px;
+    }
 }
 </style>

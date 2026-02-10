@@ -12,7 +12,6 @@
                         height="100%"
                         :autoplay="false"
                         :loop="false"
-                        indicator-position="outside"
                         class="preview-carousel"
                         @change="handleCarouselChange"
                     >
@@ -451,6 +450,7 @@ defineExpose({ focusInput })
     gap: 12px;
     padding: 18px 20px;
     overflow: hidden;
+    min-height: 0;
     background: var(--el-bg-color);
 }
 
@@ -559,6 +559,7 @@ defineExpose({ focusInput })
 .detail-comments {
     flex: 1;
     overflow: auto;
+    min-height: 0;
     padding-right: 6px;
 }
 

@@ -1,31 +1,39 @@
 ﻿<template>
     <div class="upload-file">
-        <el-upload
-            multiple
-            :action="uploadFileUrl"
-            :http-request="useOssUpload ? handleOssUploadRequest : undefined"
-            :before-upload="handleBeforeUpload"
-            :file-list="fileList"
-            :data="data"
-            :limit="limit"
-            :on-error="handleUploadError"
-            :on-exceed="handleExceed"
-            :on-success="handleUploadSuccess"
-            :show-file-list="false"
-            :headers="headers"
-            class="upload-file-uploader"
-            ref="fileUpload"
-            :disabled="disabled"
-            v-if="!disabled || !hideWhenDisabled"
-            :drag="drag"
-        >
-            <slot name="trigger">
-                <div class="upload-trigger-content">
-                    <el-icon class="el-icon--upload"><Icon icon="ep:upload-filled" /></el-icon>
-                    <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <div v-if="!disabled || !hideWhenDisabled" class="upload-file-uploader-wrap">
+            <el-upload
+                multiple
+                :action="uploadFileUrl"
+                :http-request="useOssUpload ? handleOssUploadRequest : undefined"
+                :before-upload="handleBeforeUpload"
+                :file-list="fileList"
+                :data="data"
+                :limit="limit"
+                :on-error="handleUploadError"
+                :on-exceed="handleExceed"
+                :on-success="handleUploadSuccess"
+                :show-file-list="false"
+                :headers="headers"
+                class="upload-file-uploader"
+                ref="fileUpload"
+                :disabled="disabled || isUploading"
+                :drag="drag"
+            >
+                <slot name="trigger">
+                    <div class="upload-trigger-content">
+                        <el-icon class="el-icon--upload"><Icon icon="ep:upload-filled" /></el-icon>
+                        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                    </div>
+                </slot>
+            </el-upload>
+
+            <transition name="upload-mask-fade">
+                <div v-if="isUploading" class="upload-loading-mask">
+                    <Icon icon="mdi:loading" class="loading-icon" />
+                    <span class="loading-text">上传中...</span>
                 </div>
-            </slot>
-        </el-upload>
+            </transition>
+        </div>
 
         <div class="custom-upload-tip" v-if="showTip && !disabled">
             <div class="tip-icon">
@@ -130,7 +138,7 @@ const props = defineProps({
 })
 
 const { proxy } = getCurrentInstance()
-const emit = defineEmits()
+const emit = defineEmits(['update:modelValue', 'uploading-change'])
 const number = ref(0)
 const uploadList = ref([])
 const baseUrl = import.meta.env.VITE_APP_FILE_BASE_URL || ''
@@ -138,8 +146,18 @@ const uploadFileUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
 const rawFileMap = new Map()
+const uploadingCount = ref(0)
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
+const isUploading = computed(() => uploadingCount.value > 0)
+
+watch(
+    isUploading,
+    value => {
+        emit('uploading-change', value)
+    },
+    { immediate: true }
+)
 const toListSignature = list =>
     list
         .map(item => normalizeUploadUrl(item?.url || item?.name || ''))
@@ -168,6 +186,7 @@ async function handleOssUploadRequest(options) {
         return
     }
 
+    uploadingCount.value++
     try {
         const uploaded = await uploadFilesToOss(resolveOssPostType(), [rawFile], props.ossType)
         const url = String(uploaded?.[0] || '').trim()
@@ -175,6 +194,8 @@ async function handleOssUploadRequest(options) {
         options?.onSuccess?.({ code: 200, fileName: url }, rawFile)
     } catch (error) {
         options?.onError?.(error)
+    } finally {
+        if (uploadingCount.value > 0) uploadingCount.value--
     }
 }
 
@@ -324,7 +345,7 @@ function getRawFiles() {
         .filter(file => file instanceof File)
 }
 
-defineExpose({ open, clear, getRawFiles })
+defineExpose({ open, clear, getRawFiles, isUploading })
 
 onMounted(() => {
     if (props.drag && !props.disabled) {
@@ -350,6 +371,47 @@ onMounted(() => {
 <style scoped lang="scss">
 .upload-file {
     width: 100%;
+}
+
+.upload-file-uploader-wrap {
+    position: relative;
+}
+
+.upload-loading-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--el-color-white) 72%, transparent);
+    backdrop-filter: blur(1px);
+    pointer-events: all;
+
+    .loading-icon {
+        font-size: 22px;
+        color: var(--el-color-primary);
+        animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+        font-size: 13px;
+        color: var(--el-text-color-primary);
+        font-weight: 600;
+    }
+}
+
+.upload-mask-fade-enter-active,
+.upload-mask-fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.upload-mask-fade-enter-from,
+.upload-mask-fade-leave-to {
+    opacity: 0;
 }
 
 .upload-file-uploader {
@@ -529,5 +591,11 @@ onMounted(() => {
 .list-fade-leave-to {
     opacity: 0;
     transform: translateX(10px);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>

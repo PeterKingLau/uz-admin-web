@@ -176,8 +176,15 @@ service.interceptors.request.use(
     }
 )
 
-const ERROR_HANDLERS: Record<number, (msg: string) => void> = {
-    401: () => {
+const ERROR_HANDLERS: Record<number, (msg: string, res: AxiosResponse) => void> = {
+    401: (msg: string, res: AxiosResponse) => {
+        const config = (res?.config || {}) as ExtendedAxiosRequestConfig
+        const isAnonymousRequest = config.isToken === false
+        if (isAnonymousRequest) {
+            ElMessage({ message: msg, type: 'error' })
+            return
+        }
+
         if (isRelogin.show) return
 
         isRelogin.show = true
@@ -189,7 +196,7 @@ const ERROR_HANDLERS: Record<number, (msg: string) => void> = {
             .then(() => {
                 isRelogin.show = false
                 useUserStore()
-                    .logOut()
+                    .logOut(false)
                     .then(() => {
                         location.href = '/index'
                     })
@@ -224,7 +231,7 @@ service.interceptors.response.use(
 
         const errorHandler = ERROR_HANDLERS[code]
         if (errorHandler) {
-            errorHandler(msg)
+            errorHandler(msg, res)
             return Promise.reject(new Error(msg))
         }
 
