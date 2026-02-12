@@ -10,12 +10,61 @@ const proxyTargets = {
     production: 'http://47.108.212.205/'
 } as const
 
-const baseUrl = proxyTargets.wireless
-// const baseUrl = proxyTargets.wired
+type ProxyMode = keyof typeof proxyTargets
+
+interface ViteRuntimeEnv {
+    VITE_BUILD_COMPRESS?: string
+    VITE_PROXY_TARGET?: string
+    VITE_PROXY_MODE?: ProxyMode
+    VITE_DROP_CONSOLE?: string
+    VITE_GENERATE_SOURCEMAP?: string
+    VITE_ENABLE_OBFUSCATION?: string
+}
+
+function resolveProxyTarget(env: ViteRuntimeEnv): string {
+    const targetFromEnv = env.VITE_PROXY_TARGET?.trim()
+    if (targetFromEnv) return targetFromEnv
+
+    const proxyMode = env.VITE_PROXY_MODE as ProxyMode | undefined
+    if (proxyMode && proxyTargets[proxyMode]) {
+        return proxyTargets[proxyMode]
+    }
+
+    return proxyTargets.wireless
+}
+
+function manualChunks(id: string): string | undefined {
+    if (!id.includes('node_modules')) return undefined
+    const normalizedId = id.replace(/\\/g, '/')
+
+    // Keep framework ecosystem in one chunk to avoid circular chunk warnings.
+    if (
+        normalizedId.includes('/vue/') ||
+        normalizedId.includes('/vue-router/') ||
+        normalizedId.includes('/pinia/') ||
+        normalizedId.includes('/element-plus/')
+    ) {
+        return 'vendor-framework'
+    }
+    if (normalizedId.includes('/echarts/')) return 'vendor-echarts'
+    if (normalizedId.includes('/video.js/')) return 'vendor-videojs'
+    if (normalizedId.includes('/@iconify-json/mdi/')) return 'vendor-iconify-mdi'
+    if (normalizedId.includes('/@iconify-json/ep/')) return 'vendor-iconify-ep'
+    if (normalizedId.includes('/@iconify-json/simple-icons/')) return 'vendor-iconify-simple'
+    if (normalizedId.includes('/@iconify-json/material-symbols/')) return 'vendor-iconify-material'
+    if (normalizedId.includes('/@iconify/')) return 'vendor-iconify-core'
+    if (normalizedId.includes('/@vueup/vue-quill/') || normalizedId.includes('/quill/')) return 'vendor-editor'
+    return 'vendor-misc'
+}
 
 export default defineConfig(({ mode, command }) => {
-    const env = loadEnv(mode, process.cwd())
+    const env = loadEnv(mode, process.cwd()) as ViteRuntimeEnv
     const isBuild = command === 'build'
+    const isProductionMode = mode === 'production'
+    const proxyTarget = resolveProxyTarget(env)
+    const enableObfuscation = isBuild && isProductionMode && env.VITE_ENABLE_OBFUSCATION === 'true'
+    const shouldDropConsole = isBuild && isProductionMode && env.VITE_DROP_CONSOLE !== 'false'
+    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProductionMode)
 
     return {
         base: '/',
@@ -30,20 +79,37 @@ export default defineConfig(({ mode, command }) => {
         },
 
         build: {
-            sourcemap: false,
+            sourcemap: shouldGenerateSourceMap,
             outDir: 'dist',
             assetsDir: 'assets',
             chunkSizeWarningLimit: 2000,
-            minify: 'esbuild',
+            reportCompressedSize: false,
+            minify: enableObfuscation ? 'terser' : 'esbuild',
+            terserOptions: enableObfuscation
+                ? {
+                      compress: {
+                          passes: 2,
+                          drop_console: shouldDropConsole,
+                          drop_debugger: shouldDropConsole
+                      },
+                      mangle: {
+                          safari10: true
+                      },
+                      format: {
+                          comments: false
+                      }
+                  }
+                : undefined,
             rollupOptions: {
                 output: {
+                    manualChunks,
                     chunkFileNames: 'static/js/[name]-[hash].js',
                     entryFileNames: 'static/js/[name]-[hash].js',
                     assetFileNames: 'static/[ext]/[name]-[hash].[ext]'
                 }
             },
             esbuild: {
-                drop: isBuild ? ['console', 'debugger'] : []
+                drop: enableObfuscation ? [] : shouldDropConsole ? ['console', 'debugger'] : []
             }
         },
 
@@ -53,12 +119,12 @@ export default defineConfig(({ mode, command }) => {
             open: false,
             proxy: {
                 '/api': {
-                    target: baseUrl,
+                    target: proxyTarget,
                     changeOrigin: true,
                     rewrite: p => p.replace(/^\/api/, '')
                 },
                 '^/v3/api-docs/(.*)': {
-                    target: baseUrl,
+                    target: proxyTarget,
                     changeOrigin: true
                 }
             }

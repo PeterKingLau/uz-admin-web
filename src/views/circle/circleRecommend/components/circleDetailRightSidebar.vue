@@ -2,25 +2,39 @@
     <aside class="right-sidebar">
         <div class="sidebar-sticky">
             <div class="sidebar-widget widget-publish">
-                <div class="publish-row">
-                    <el-avatar :size="40" :src="userAvatar" class="current-avatar">
-                        {{ userName?.charAt(0) }}
-                    </el-avatar>
-                    <el-button type="primary" round class="btn-publish-action" @click="emit('publish')"> <Icon icon="mdi:pencil-outline" /> 发表想法</el-button>
+                <div class="publish-content">
+                    <div class="user-welcome">
+                        <el-avatar :size="48" :src="userAvatar" class="user-avatar">
+                            {{ userName?.charAt(0) }}
+                        </el-avatar>
+                        <div class="welcome-text">
+                            <span class="hi">Hi, {{ userName }}</span>
+                            <span class="sub">分享你的新鲜事</span>
+                        </div>
+                    </div>
+                    <el-button type="primary" class="btn-publish" @click="emit('publish')">
+                        <Icon icon="mdi:fountain-pen-tip" class="btn-icon" />
+                        立即发布
+                    </el-button>
                 </div>
             </div>
 
             <div class="sidebar-widget widget-info">
                 <div class="widget-header">
-                    <span class="widget-title">关于圈子</span>
+                    <span class="widget-title">
+                        <Icon icon="mdi:information-slab-circle-outline" class="title-icon" />
+                        关于圈子
+                    </span>
                 </div>
                 <div class="widget-body">
                     <p class="circle-desc">{{ circleInfo.description || '暂无简介' }}</p>
                     <div v-if="circleInfo.rules?.length" class="circle-rules">
-                        <div class="rules-label">圈规</div>
-                        <div v-for="(rule, idx) in circleInfo.rules.slice(0, 3)" :key="idx" class="rule-row">
-                            <span class="rule-idx">{{ idx + 1 }}</span>
-                            <span class="rule-text">{{ rule }}</span>
+                        <div class="rules-header">圈规必读</div>
+                        <div class="rules-list">
+                            <div v-for="(rule, idx) in circleInfo.rules.slice(0, 3)" :key="idx" class="rule-item">
+                                <span class="rule-badge">{{ idx + 1 }}</span>
+                                <span class="rule-text">{{ rule }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -28,26 +42,64 @@
 
             <div class="sidebar-widget widget-members">
                 <div class="widget-header">
-                    <span class="widget-title">活跃成员</span>
-                    <span class="link-more" @click="emit('show-all')">全部 <Icon icon="mdi:chevron-right" /></span>
+                    <span class="widget-title">
+                        <Icon icon="mdi:account-group" class="title-icon" />
+                        活跃成员
+                    </span>
+                    <span class="link-more" @click="emit('show-all')">
+                        查看全部
+                        <Icon icon="mdi:arrow-right" />
+                    </span>
                 </div>
                 <div class="widget-body">
-                    <div v-if="managers.length" class="manager-list">
-                        <div class="list-label">
-                            主理人
-                            <div v-for="member in managers" :key="member.id" class="manager-row">
-                                <el-avatar :size="32" :src="getImgUrl(member.avatar || '')">{{ member.name?.charAt(0) }}</el-avatar>
-                                <span class="manager-name">{{ member.name }}</span>
+                    <div v-if="managers.length || otherMembers.length" class="members-container">
+                        <div v-if="managers.length" class="member-group group-managers">
+                            <div class="group-label group-label-with-count">
+                                <span>主理人</span>
+                                <span class="group-count">{{ managers.length }}人</span>
+                            </div>
+                            <div class="manager-list">
+                                <div
+                                    v-for="member in showAllManagers ? managers : managers.slice(0, MANAGER_COLLAPSE_LIMIT)"
+                                    :key="member.id"
+                                    class="manager-row"
+                                >
+                                    <el-avatar :size="32" :src="getImgUrl(member.avatar || '')" class="manager-avatar">
+                                        {{ member.name?.charAt(0) }}
+                                    </el-avatar>
+                                    <div class="manager-main">
+                                        <span class="manager-name">{{ member.name }}</span>
+                                        <span class="role-badge"><Icon icon="mdi:crown" /> 管理员</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="managers.length > MANAGER_COLLAPSE_LIMIT" class="manager-fold" @click="showAllManagers = !showAllManagers">
+                                <span>{{ showAllManagers ? '收起' : `展开全部（${managers.length}）` }}</span>
+                                <Icon :icon="showAllManagers ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
                             </div>
                         </div>
 
-                        <div class="member-grid">
-                            <el-tooltip v-for="member in otherMembers.slice(0, 10)" :key="member.id" :content="member.name" placement="top">
-                                <el-avatar :size="36" :src="getImgUrl(member.avatar || '')" class="grid-avatar">
-                                    {{ member.name?.charAt(0) }}
-                                </el-avatar>
-                            </el-tooltip>
+                        <div v-if="otherMembers.length" class="member-group group-others">
+                            <div class="group-label group-label-with-count">
+                                <span>其余成员</span>
+                                <span class="group-count">{{ otherMembers.length }}人</span>
+                            </div>
+                            <div class="others-grid">
+                                <div v-for="member in otherMembers.slice(0, 10)" :key="member.id" class="other-card">
+                                    <el-tooltip :content="member.name" placement="top" :show-after="500">
+                                        <div class="avatar-wrapper">
+                                            <el-avatar :size="34" :src="getImgUrl(member.avatar || '')">
+                                                {{ member.name?.charAt(0) }}
+                                            </el-avatar>
+                                        </div>
+                                    </el-tooltip>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <Icon icon="mdi:account-off-outline" class="empty-icon" />
+                        <span>暂无活跃成员</span>
                     </div>
                 </div>
             </div>
@@ -56,6 +108,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+
 interface CircleInfoSummary {
     description?: string
     rules?: string[]
@@ -80,6 +134,9 @@ const emit = defineEmits<{
     (e: 'publish'): void
     (e: 'show-all'): void
 }>()
+
+const MANAGER_COLLAPSE_LIMIT = 3
+const showAllManagers = ref(false)
 </script>
 
 <style scoped lang="scss">
@@ -92,47 +149,81 @@ const emit = defineEmits<{
         top: 24px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 20px;
     }
 }
 
 .sidebar-widget {
     background: var(--circle-card-bg);
     border-radius: 16px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    box-shadow: var(--circle-card-shadow);
+    border: 1px solid var(--circle-border-color);
     overflow: hidden;
-    border: 1px solid transparent;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+
+    &:hover {
+        box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+    }
 }
 
 .widget-publish {
-    padding: 18px;
     background: linear-gradient(180deg, var(--circle-card-bg) 0%, var(--el-fill-color-lighter) 100%);
+    border: 1px solid var(--circle-border-color);
 
-    .publish-row {
+    .publish-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .user-welcome {
         display: flex;
         align-items: center;
         gap: 12px;
 
-        .current-avatar {
-            background: var(--el-fill-color-light);
-            color: var(--el-text-color-placeholder);
-            border: 1px solid var(--el-border-color-lighter);
+        .user-avatar {
+            border: 2px solid var(--circle-card-bg);
+            box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+        }
+
+        .welcome-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.3;
+
+            .hi {
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--circle-text-main);
+            }
+            .sub {
+                font-size: 12px;
+                color: var(--circle-text-muted);
+            }
         }
     }
 
-    .btn-publish-action {
-        flex: 1;
-        height: 36px;
+    .btn-publish {
+        width: 100%;
+        height: 40px;
+        border-radius: 10px;
         font-weight: 600;
-        border-radius: 999px;
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
-        background: var(--el-color-primary);
-        border-color: var(--el-color-primary);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        letter-spacing: 0.5px;
+        font-size: 14px;
+        box-shadow: var(--el-box-shadow-light);
+        transition: all 0.2s;
+
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--el-box-shadow);
+        }
+
+        .btn-icon {
+            margin-right: 6px;
+            font-size: 16px;
+        }
     }
 }
 
@@ -146,24 +237,20 @@ const emit = defineEmits<{
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--circle-border-color);
 
     .widget-title {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 700;
         color: var(--circle-text-main);
-        position: relative;
-        padding-left: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
 
-        &::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 16px;
-            background-color: var(--el-color-primary);
-            border-radius: 2px;
+        .title-icon {
+            color: var(--circle-primary-color);
+            font-size: 18px;
         }
     }
 
@@ -173,10 +260,11 @@ const emit = defineEmits<{
         cursor: pointer;
         display: flex;
         align-items: center;
+        gap: 2px;
         transition: color 0.2s;
 
         &:hover {
-            color: var(--el-color-primary);
+            color: var(--circle-primary-color);
         }
     }
 }
@@ -185,120 +273,218 @@ const emit = defineEmits<{
     font-size: 14px;
     color: var(--circle-text-sub);
     line-height: 1.6;
-    margin: 0 0 20px;
+    margin-bottom: 20px;
+    text-align: justify;
 }
 
 .circle-rules {
     background: var(--el-fill-color);
     padding: 16px;
     border-radius: 12px;
+    border: 1px dashed var(--circle-border-color);
 
-    .rules-label {
-        font-size: 13px;
-        font-weight: 600;
+    .rules-header {
+        font-size: 12px;
+        font-weight: 700;
         color: var(--circle-text-main);
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        opacity: 0.8;
     }
 
-    .rule-row {
+    .rules-list {
         display: flex;
-        gap: 8px;
-        font-size: 13px;
-        color: var(--circle-text-muted);
-        margin-bottom: 6px;
-        line-height: 1.5;
+        flex-direction: column;
+        gap: 10px;
+    }
 
-        .rule-idx {
-            color: var(--el-color-primary);
+    .rule-item {
+        display: flex;
+        gap: 10px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--circle-text-sub);
+
+        .rule-badge {
+            background: var(--circle-card-bg);
+            color: var(--circle-primary-color);
+            border: 1px solid var(--el-color-primary-light-8);
             font-weight: 700;
-            background: var(--el-color-primary-light-9);
-            width: 18px;
+            font-size: 11px;
+            min-width: 18px;
             height: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            font-size: 11px;
-            margin-top: 2px;
-            flex-shrink: 0;
+            border-radius: 6px;
+            margin-top: 1px;
         }
+    }
+}
+
+.members-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.member-group {
+    .group-label {
+        font-size: 12px;
+        color: var(--circle-text-muted);
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .group-label-with-count {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .group-count {
+        font-size: 12px;
+        color: var(--circle-text-muted);
+        font-weight: 500;
     }
 }
 
 .manager-list {
-    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 
-    .list-label {
-        font-size: 12px;
-        color: var(--el-text-color-placeholder);
-        margin-bottom: 10px;
-        font-weight: 500;
-    }
+.manager-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 10px;
+    transition: background 0.2s ease;
 
-    .manager-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
-
-        .manager-name {
-            font-size: 14px;
-            color: var(--circle-text-main);
-            font-weight: 500;
-        }
+    &:hover {
+        background: var(--el-fill-color);
     }
 }
 
-.member-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+.manager-avatar {
+    border: 1px solid var(--circle-border-color);
+    flex-shrink: 0;
+}
 
-    .grid-avatar {
+.manager-main {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.manager-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--circle-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--circle-primary-color);
+    background: var(--el-color-primary-light-9);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.manager-fold {
+    margin-top: 8px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--circle-text-muted);
+    background: var(--el-fill-color-lighter);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        color: var(--circle-primary-color);
+        background: var(--el-fill-color);
+    }
+}
+
+.others-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px 8px;
+}
+
+.other-card {
+    display: flex;
+    justify-content: center;
+
+    .avatar-wrapper {
+        transition: transform 0.2s;
         cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.2s;
 
         &:hover {
-            border-color: var(--el-color-primary);
             transform: scale(1.1);
-            z-index: 2;
         }
     }
 }
 
-@media screen and (max-width: 768px) {
-    .right-sidebar {
-        width: 100%;
-        padding: 0 16px;
+.empty-state {
+    padding: 30px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--circle-text-muted);
+    gap: 8px;
+
+    .empty-icon {
+        font-size: 48px;
+        opacity: 0.5;
+    }
+
+    span {
+        font-size: 13px;
     }
 }
 
 @media screen and (max-width: 992px) {
     .right-sidebar {
         width: 100%;
-        padding: 0;
+        margin-top: 20px;
     }
 
     .sidebar-sticky {
         position: static;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
 }
 
 @media screen and (max-width: 520px) {
-    .widget-publish {
-        .publish-row {
-            flex-direction: column;
-            align-items: stretch;
+    .sidebar-sticky {
+        display: flex;
+    }
 
-            .current-avatar {
-                align-self: flex-start;
-            }
-        }
-
-        .btn-publish-action {
-            width: 100%;
-        }
+    .others-grid {
+        grid-template-columns: repeat(5, 1fr);
     }
 }
 </style>

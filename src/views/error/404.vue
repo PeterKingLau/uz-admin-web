@@ -22,36 +22,46 @@
 </template>
 
 <script setup>
-let message = computed(() => {
-    return '找不到网页！'
-})
+const message = '找不到网页！'
 </script>
 
 <style lang="scss" scoped>
 .wscn-http404-container {
-    transform: translate(-50%, -50%);
-    position: absolute;
-    top: 40%;
-    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: var(--el-bg-color-page);
 }
+
 .wscn-http404 {
-    position: relative;
-    width: 1200px;
-    padding: 0 50px;
+    width: 1000px;
+    max-width: 100%;
+    padding: 20px 0;
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 48px;
 
     .pic-404 {
         position: relative;
-        width: 600px;
+        width: 560px;
+        max-width: 100%;
         overflow: hidden;
+        flex-shrink: 0;
+
         &__parent {
             width: 100%;
+            display: block;
         }
+
         &__child {
             position: absolute;
+
             &.left {
                 width: 80px;
                 top: 17px;
@@ -153,12 +163,14 @@ let message = computed(() => {
             }
         }
     }
+
     .bullshit {
         position: relative;
-        width: 300px;
-        padding: 30px 0;
+        flex: 1;
+        max-width: 360px;
+        min-width: 260px;
+        padding: 10px 0;
         overflow: hidden;
-        margin-left: 50px;
 
         &__oops {
             font-size: 32px;
@@ -195,7 +207,7 @@ let message = computed(() => {
             animation-fill-mode: forwards;
         }
         &__return-home {
-            display: block;
+            display: inline-block;
             width: 110px;
             height: 36px;
             background: var(--el-color-primary);
@@ -224,6 +236,56 @@ let message = computed(() => {
             100% {
                 transform: translateY(0);
                 opacity: 1;
+            }
+        }
+    }
+}
+
+@media (max-width: 992px) {
+    .wscn-http404 {
+        padding: 0;
+        gap: 24px;
+        flex-direction: column;
+        text-align: center;
+
+        .pic-404 {
+            width: min(520px, 100%);
+        }
+
+        .bullshit {
+            min-width: 0;
+            max-width: 100%;
+
+            &__return-home {
+                margin: 0 auto;
+            }
+        }
+    }
+}
+
+@media (max-width: 576px) {
+    .wscn-http404-container {
+        padding: 12px;
+    }
+
+    .wscn-http404 {
+        padding: 0;
+
+        .pic-404 {
+            .pic-404__child {
+                display: none;
+            }
+        }
+
+        .bullshit {
+            &__oops {
+                font-size: 28px;
+                line-height: 34px;
+            }
+
+            &__headline {
+                font-size: 18px;
+                line-height: 24px;
             }
         }
     }

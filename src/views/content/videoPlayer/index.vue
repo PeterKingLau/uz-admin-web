@@ -15,12 +15,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
 import { toggleFollowUser } from '@/api/content/userFollow'
-import cache from '@/plugins/cache'
-import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
 import { getImgUrl } from '@/utils/img'
 import VideoModule from '@/views/content/personProfile/components/VideoModule/index.vue'
@@ -30,6 +28,7 @@ const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { proxy } = getCurrentInstance() || {}
 
 const visible = ref(true)
 const currentPost = ref({})
@@ -65,7 +64,7 @@ const loadPayload = () => {
         return false
     }
     const cacheKey = `${VIDEO_PLAYER_CACHE_KEY}:${postId}`
-    const cached = cache.session.getJSON(cacheKey)
+    const cached = proxy?.$cache?.session?.getJSON(cacheKey)
     if (!cached || typeof cached !== 'object') {
         currentUserInfo.value = resolveFallbackUser()
         return false
@@ -247,7 +246,7 @@ const handleAction = async (type, payload) => {
         let content = String(payload?.content ?? '').trim()
         if (!content) {
             try {
-                const res = await modal.prompt('Please enter a comment')
+                const res = await proxy?.$modal?.prompt?.('Please enter a comment')
                 content = String(res?.value ?? '').trim()
             } catch (error) {
                 return
@@ -272,7 +271,7 @@ const handleAction = async (type, payload) => {
         let content = String(payload?.content ?? '').trim()
         if (!content) {
             try {
-                const res = await modal.prompt('请输入转发内容')
+                const res = await proxy?.$modal?.prompt?.('请输入转发内容')
                 content = String(res?.value ?? '').trim()
             } catch (error) {
                 return

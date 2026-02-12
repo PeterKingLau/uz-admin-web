@@ -183,7 +183,6 @@ import { deleteComment, listTopComments, listCommentReplies } from '@/api/conten
 import { getInterestAll } from '@/api/content/interest'
 import { toggleFollowUser } from '@/api/content/userFollow'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
-import modal from '@/plugins/modal'
 import useUserStore from '@/store/modules/user'
 import { POST_TYPE } from '@/utils/enum'
 import { parseTime } from '@/utils/utils'
@@ -1311,7 +1310,7 @@ async function handlePreviewAction(type: 'like' | 'collect' | 'share') {
         if (repostActionLoading.value) return
         let content = ''
         try {
-            const res = await modal.prompt('请输入转发内容')
+            const res = await proxy?.$modal?.prompt?.('请输入转发内容')
             content = String((res as any)?.value ?? '').trim()
         } catch {
             return
@@ -1425,7 +1424,7 @@ async function handleVideoAction(type: 'follow' | 'like' | 'collect' | 'comment'
         let content = String(payload?.content ?? '').trim()
         if (!content) {
             try {
-                const res = await modal.prompt('请输入转发内容')
+                const res = await proxy?.$modal?.prompt?.('请输入转发内容')
                 content = String((res as any)?.value ?? '').trim()
             } catch {
                 return

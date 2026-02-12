@@ -74,7 +74,10 @@
         </el-form>
 
         <div class="el-login-footer">
-            <span>Copyright © 2025 All Rights Reserved.</span>
+            <span>Copyright © 2026 All Rights Reserved.</span>
+            <a class="beian-link" href="https://beian.miit.gov.cn/#/Integrated/recordQuery" rel="noopener noreferrer" @click.prevent="handleBeianClick">
+                蜀ICP备2026006423号-1
+            </a>
         </div>
     </div>
 </template>
@@ -251,6 +254,67 @@ function handleLogin() {
 const showPassword = ref(false)
 function togglePassword() {
     showPassword.value = !showPassword.value
+}
+
+const beianNumber = '蜀ICP备2026006423号-1'
+const beianQueryUrl = 'https://beian.miit.gov.cn/#/Integrated/recordQuery'
+const beianOpenDelayMs = 2000
+
+function copyByExecCommand(text) {
+    const textArea = document.createElement('textarea')
+    const previousFocus = document.activeElement
+
+    textArea.value = text
+    textArea.setAttribute('readonly', '')
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-9999px'
+    textArea.style.fontSize = '12pt'
+    document.body.appendChild(textArea)
+
+    textArea.focus()
+    textArea.select()
+    textArea.selectionStart = 0
+    textArea.selectionEnd = text.length
+
+    let copied = false
+    try {
+        const execCommand = document['execCommand']
+        copied = typeof execCommand === 'function' ? execCommand.call(document, 'copy') : false
+    } catch (error) {
+        copied = false
+    }
+
+    document.body.removeChild(textArea)
+    if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus()
+    }
+    return copied
+}
+
+async function copyText(text) {
+    if (window.isSecureContext && navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text)
+            return true
+        } catch (error) {
+            // Fall through to legacy copy for compatibility in restricted environments.
+        }
+    }
+
+    return copyByExecCommand(text)
+}
+
+async function handleBeianClick() {
+    const copied = await copyText(beianNumber)
+    if (copied) {
+        proxy?.$modal?.msgSuccess?.('已复制到剪贴板')
+    } else {
+        proxy?.$modal?.msgWarning?.(`自动复制失败，请手动复制：${beianNumber}`)
+    }
+
+    window.setTimeout(() => {
+        window.open(beianQueryUrl, '_blank', 'noopener,noreferrer')
+    }, beianOpenDelayMs)
 }
 </script>
 
@@ -530,12 +594,28 @@ function togglePassword() {
     position: fixed;
     bottom: 24px;
     width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
     text-align: center;
     color: var(--el-color-white);
     font-size: 13px;
     pointer-events: none;
     z-index: 5;
     opacity: 0.8;
+}
+
+.beian-link {
+    color: var(--el-color-white);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    pointer-events: auto;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: var(--el-color-danger);
+    }
 }
 
 @media (max-width: 768px) {
