@@ -74,7 +74,7 @@
                                 </div>
                             </div>
                             <div v-if="managers.length > MANAGER_COLLAPSE_LIMIT" class="manager-fold" @click="showAllManagers = !showAllManagers">
-                                <span>{{ showAllManagers ? '收起' : `展开全部（${managers.length}）` }}</span>
+                                <span>{{ showAllManagers ? '收起' : `展开全部（${managers.length})` }}</span>
                                 <Icon :icon="showAllManagers ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
                             </div>
                         </div>

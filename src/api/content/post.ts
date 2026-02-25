@@ -368,6 +368,11 @@ const appendFormField = (target: Record<string, string>, key: string, value: unk
     target[key] = normalized
 }
 
+const buildQueryString = (params: Record<string, string>): string =>
+    Object.keys(params)
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key] || '')}`)
+        .join('&')
+
 const collectFormFields = (credential: UnknownRecord): Record<string, string> => {
     const fields: Record<string, string> = {}
     const nestedFields = [credential.formData, credential.fields, credential.formFields, credential.params]
@@ -413,7 +418,7 @@ const buildObjectKey = (credential: UnknownRecord, file: File, index: number): s
     const templateKey = firstString(credential.key, credential.objectKey)
     if (templateKey) {
         if (templateKey.includes('${filename}')) {
-            return templateKey.replaceAll('${filename}', fileName)
+            return templateKey.split('${filename}').join(fileName)
         }
         return templateKey
     }
@@ -628,14 +633,14 @@ const uploadByStsPut = async (credential: UnknownRecord, file: File, index: numb
 
     let lastError: any
     for (const tokenParam of tokenParams) {
-        const params = new URLSearchParams({
+        const params: Record<string, string> = {
             OSSAccessKeyId: accessKeyId,
             Expires: expires,
             Signature: signature
-        })
-        if (securityToken && tokenParam) params.set(tokenParam, securityToken)
+        }
+        if (securityToken && tokenParam) params[tokenParam] = securityToken
 
-        const signedUrl = `${resourceUrl}?${params.toString()}`
+        const signedUrl = `${resourceUrl}?${buildQueryString(params)}`
 
         try {
             await requestOss({

@@ -39,7 +39,7 @@
                     <el-radio-group v-model="props.form.postType" v-show="false"></el-radio-group>
                 </el-form-item>
 
-                <el-form-item label="正文内容" prop="content" class="highlight-label">
+                <el-form-item v-if="!isBatchVideoMode" label="正文内容" prop="content" class="highlight-label">
                     <div class="input-wrapper">
                         <el-input
                             v-model="props.form.content"
@@ -94,11 +94,11 @@
                                     :is-show-tip="false"
                                     oss-type="posts"
                                     :oss-post-type="POST_TYPE.VIDEO"
+                                    :sortable="false"
                                     class="custom-upload video-upload"
-                                    :class="{ 'video-upload--locked': hasVideoUploaded }"
                                     @uploading-change="handleVideoUploadingChange"
                                 />
-                                <div class="video-cover-picker" v-if="hasVideoUploaded">
+                                <div class="video-cover-picker" v-if="hasSingleVideoUploaded">
                                     <div class="cover-picker-header">
                                         <span class="cover-picker-title">视频封面</span>
                                         <el-button link type="primary" :disabled="capturingCover || !videoCoverSourceUrl" @click="captureCurrentFrame">
@@ -123,12 +123,78 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="video-cover-batch-tip" v-else-if="hasVideoUploaded">已选择多个视频，发布时将为每条视频自动生成封面</div>
                             </template>
                         </div>
                     </el-form-item>
                 </transition>
 
-                <el-form-item label="添加话题标签" prop="tagStr">
+                <el-form-item v-if="isBatchVideoMode" label="逐条填写正文" class="highlight-label video-batch-form-item">
+                    <div class="video-batch-editor">
+                        <div
+                            v-for="item in videoBatchItems"
+                            :key="item.key"
+                            class="video-batch-item"
+                            :class="{
+                                'is-error': videoBatchErrorSet.has(item.index) || videoBatchTagErrorSet.has(item.index),
+                                'is-active': item.index === safeBatchPreviewIndex
+                            }"
+                            @click="setBatchPreviewIndex(item.index)"
+                        >
+                            <div class="video-batch-item-header">
+                                <span class="video-batch-index">视频 {{ item.index + 1 }}</span>
+                                <div class="video-batch-head-right">
+                                    <span class="video-batch-name">{{ item.name }}</span>
+                                    <el-tag v-if="item.index === safeBatchPreviewIndex" size="small" type="primary" effect="dark" class="status-tag"
+                                        >预览中</el-tag
+                                    >
+                                </div>
+                            </div>
+                            <el-input
+                                :model-value="videoBatchContentsModel[item.index] || ''"
+                                type="textarea"
+                                :rows="4"
+                                maxlength="2000"
+                                show-word-limit
+                                resize="none"
+                                placeholder="请输入该视频对应的正文内容..."
+                                class="video-batch-textarea"
+                                @update:model-value="onVideoBatchContentChange(item.index, $event)"
+                            />
+                            <div v-if="videoBatchErrorSet.has(item.index)" class="video-batch-error-text">请填写该视频的正文内容</div>
+                            <div class="video-batch-tags" :class="{ 'is-error': videoBatchTagErrorSet.has(item.index) }">
+                                <el-select
+                                    :model-value="getVideoBatchTagIds(item.index)"
+                                    multiple
+                                    filterable
+                                    placeholder="请选择该视频的话题标签"
+                                    style="width: 100%"
+                                    clearable
+                                    :loading="props.interestLoading"
+                                    class="video-batch-tag-select"
+                                    popper-class="custom-select-popper custom-select-popper--batch"
+                                    @update:model-value="onVideoBatchTagChange(item.index, $event)"
+                                >
+                                    <template #prefix>
+                                        <Icon icon="mdi:pound" />
+                                    </template>
+                                    <template v-for="cate in props.interestTree" :key="`${item.index}-${cate.id}`">
+                                        <el-option-group v-if="cate.children?.length" :label="cate.name">
+                                            <el-option v-for="child in cate.children" :key="`${item.index}-${child.id}`" :label="child.name" :value="child.id">
+                                                <span class="option-tag-pill">
+                                                    <span class="option-tag-text">{{ child.name }}</span>
+                                                </span>
+                                            </el-option>
+                                        </el-option-group>
+                                    </template>
+                                </el-select>
+                                <div v-if="videoBatchTagErrorSet.has(item.index)" class="video-batch-error-text">请为该视频选择至少一个标签</div>
+                            </div>
+                        </div>
+                    </div>
+                </el-form-item>
+
+                <el-form-item v-if="!isBatchVideoMode" label="添加话题标签" prop="tagStr">
                     <el-select
                         v-model="selectedTagIdsModel"
                         multiple
@@ -138,7 +204,7 @@
                         clearable
                         :loading="props.interestLoading"
                         class="custom-select"
-                        popper-class="custom-select-popper"
+                        popper-class="custom-select-popper custom-select-popper--normal"
                     >
                         <template #prefix>
                             <Icon icon="mdi:pound" />
@@ -146,7 +212,9 @@
                         <template v-for="cate in props.interestTree" :key="cate.id">
                             <el-option-group v-if="cate.children?.length" :label="cate.name">
                                 <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id">
-                                    <span class="hash-symbol">#</span> {{ child.name }}
+                                    <span class="option-tag-pill">
+                                        <span class="option-tag-text">{{ child.name }}</span>
+                                    </span>
                                 </el-option>
                             </el-option-group>
                         </template>
@@ -195,6 +263,11 @@ const props = defineProps<{
     rules: FormRules
     imageUrls: string
     videoUrls: string
+    videoBatchContents: string[]
+    videoBatchErrorIndexes: number[]
+    videoBatchTagIds: Array<Array<number | string>>
+    videoBatchTagErrorIndexes: number[]
+    batchPreviewIndex: number
     selectedTagIds: Array<number | string>
     interestTree: any[]
     interestLoading: boolean
@@ -204,6 +277,9 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'update:imageUrls', value: string): void
     (e: 'update:videoUrls', value: string): void
+    (e: 'update:videoBatchContents', value: string[]): void
+    (e: 'update:videoBatchTagIds', value: Array<Array<number | string>>): void
+    (e: 'update:batchPreviewIndex', value: number): void
     (e: 'update:selectedTagIds', value: Array<number | string>): void
     (e: 'video-cover-change', value: string): void
     (e: 'change-post-type', value: string): void
@@ -247,26 +323,103 @@ const selectedTagIdsModel = computed({
     set: value => emit('update:selectedTagIds', value)
 })
 
-const hasVideoUploaded = computed(() => {
-    const value = String(props.videoUrls || '').trim()
-    if (!value) return false
-    return (
-        value
-            .split(',')
-            .map(item => item.trim())
-            .filter(Boolean).length > 0
-    )
+const videoBatchContentsModel = computed({
+    get: () => (Array.isArray(props.videoBatchContents) ? props.videoBatchContents : []),
+    set: value => emit('update:videoBatchContents', Array.isArray(value) ? value : [])
 })
+
+const videoBatchTagIdsModel = computed({
+    get: () => (Array.isArray(props.videoBatchTagIds) ? props.videoBatchTagIds : []),
+    set: value => emit('update:videoBatchTagIds', Array.isArray(value) ? value : [])
+})
+
+const videoUrlList = computed(() => parseVideoUrlList(props.videoUrls))
+const isBatchVideoMode = computed(() => props.form.postType === POST_TYPE.VIDEO && videoUrlList.value.length > 1)
+const videoBatchErrorSet = computed(() => new Set((props.videoBatchErrorIndexes || []).map(index => Number(index))))
+const videoBatchTagErrorSet = computed(() => new Set((props.videoBatchTagErrorIndexes || []).map(index => Number(index))))
+const safeBatchPreviewIndex = computed(() => {
+    const maxIndex = Math.max(videoUrlList.value.length - 1, 0)
+    const raw = Number(props.batchPreviewIndex || 0)
+    if (!Number.isFinite(raw)) return 0
+    if (raw < 0) return 0
+    if (raw > maxIndex) return maxIndex
+    return raw
+})
+
+const hasVideoUploaded = computed(() => {
+    return videoUrlList.value.length > 0
+})
+
+const hasSingleVideoUploaded = computed(() => videoUrlList.value.length === 1)
+
+const videoBatchItems = computed(() =>
+    videoUrlList.value.map((url, index) => ({
+        key: `${index}-${url}`,
+        index,
+        name: resolveVideoDisplayName(url, index)
+    }))
+)
 
 const isUploading = computed(() => imageUploading.value || videoUploading.value)
 
-const parseVideoUrlList = (value: unknown): string[] => {
+function parseVideoUrlList(value: unknown): string[] {
     const text = String(value || '').trim()
     if (!text) return []
     return text
         .split(',')
         .map(item => item.trim())
         .filter(Boolean)
+}
+
+function resolveVideoNameFromUrl(url: string): string {
+    const clean = String(url || '')
+        .split('?')[0]
+        .split('#')[0]
+    const raw = clean.slice(clean.lastIndexOf('/') + 1)
+    if (!raw) return ''
+    try {
+        return decodeURIComponent(raw)
+    } catch {
+        return raw
+    }
+}
+
+function resolveVideoDisplayName(url: string, index: number): string {
+    const rawFile = getVideoRawFiles()[index]
+    if (rawFile instanceof File && String(rawFile.name || '').trim()) return rawFile.name
+    const nameFromUrl = resolveVideoNameFromUrl(url)
+    if (nameFromUrl) return nameFromUrl
+    return `视频 ${index + 1}`
+}
+
+function updateVideoBatchContent(index: number, value: string): void {
+    const next = [...videoBatchContentsModel.value]
+    next[index] = String(value || '')
+    videoBatchContentsModel.value = next
+}
+
+function onVideoBatchContentChange(index: number, value: string | number | null | undefined): void {
+    updateVideoBatchContent(index, String(value || ''))
+}
+
+function getVideoBatchTagIds(index: number): Array<number | string> {
+    const value = videoBatchTagIdsModel.value[index]
+    if (!Array.isArray(value)) return []
+    return value
+}
+
+function updateVideoBatchTagIds(index: number, value: Array<number | string>): void {
+    const next = [...videoBatchTagIdsModel.value]
+    next[index] = Array.isArray(value) ? value : []
+    videoBatchTagIdsModel.value = next
+}
+
+function onVideoBatchTagChange(index: number, value: unknown): void {
+    updateVideoBatchTagIds(index, Array.isArray(value) ? (value as Array<number | string>) : [])
+}
+
+function setBatchPreviewIndex(index: number): void {
+    emit('update:batchPreviewIndex', Math.max(0, Number(index) || 0))
 }
 
 const revokeVideoCoverSourceObjectUrl = () => {
@@ -289,6 +442,10 @@ const clearSelectedCover = () => {
 
 const syncVideoCoverSource = () => {
     revokeVideoCoverSourceObjectUrl()
+    if (!hasSingleVideoUploaded.value) {
+        videoCoverSourceUrl.value = ''
+        return
+    }
     const rawFile = getVideoRawFiles()[0]
     if (rawFile instanceof File) {
         videoCoverObjectUrl = URL.createObjectURL(rawFile)
@@ -296,7 +453,7 @@ const syncVideoCoverSource = () => {
         return
     }
 
-    const firstVideoUrl = parseVideoUrlList(props.videoUrls)[0] || ''
+    const firstVideoUrl = videoUrlList.value[0] || ''
     videoCoverSourceUrl.value = firstVideoUrl ? getImgUrl(firstVideoUrl) : ''
 }
 
@@ -443,33 +600,45 @@ defineExpose({
 
 <style lang="scss" scoped>
 .edit-section {
+    max-width: 800px;
+    margin: 0 auto;
+
     .section-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        margin-bottom: 28px;
+        margin-bottom: 24px;
+        padding: 0 4px;
 
         .title-group {
             h2 {
-                font-size: 28px;
-                color: var(--el-text-color-primary);
-                margin: 0 0 10px 0;
-                font-weight: 700;
+                font-size: 26px;
+                background: linear-gradient(135deg, var(--el-text-color-primary) 0%, var(--el-text-color-regular) 100%);
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin: 0 0 6px 0;
+                font-weight: 800;
                 letter-spacing: -0.5px;
             }
             p {
                 color: var(--el-text-color-secondary);
                 margin: 0;
                 font-size: 14px;
+                opacity: 0.8;
             }
         }
 
         .reset-btn {
             font-weight: 500;
+            color: var(--el-text-color-regular);
             transition: all 0.2s;
+            font-size: 13px;
 
             &:hover {
-                transform: translateY(-1px);
+                color: var(--el-color-primary);
+                transform: rotate(180deg);
+                transform-origin: center;
             }
         }
     }
@@ -477,50 +646,33 @@ defineExpose({
 
 .form-card {
     border-radius: 20px;
-    border: none;
-    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
+    backdrop-filter: blur(20px);
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.05),
-        0 1px 3px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-        box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.08),
-            0 2px 6px rgba(0, 0, 0, 0.12);
-    }
+        0 4px 6px -1px color-mix(in srgb, var(--el-color-black) 2%, transparent),
+        0 2px 4px -1px color-mix(in srgb, var(--el-color-black) 2%, transparent),
+        0 20px 40px -8px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+    overflow: visible;
 
     :deep(.el-card__body) {
-        padding: 36px;
+        padding: 40px;
     }
 }
 
 .post-form {
     :deep(.el-form-item__label) {
         font-weight: 600;
-        font-size: 15px;
+        font-size: 14px;
         color: var(--el-text-color-primary);
-        margin-bottom: 12px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
     }
 
     .highlight-label {
         :deep(.el-form-item__label) {
-            position: relative;
-            padding-left: 16px;
-
-            &::before {
-                content: '';
-                position: absolute;
-                left: 0;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 4px;
-                height: 20px;
-                background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
-                border-radius: 2px;
-                box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.3);
-            }
+            font-size: 15px;
         }
     }
 }
@@ -528,143 +680,108 @@ defineExpose({
 .type-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-top: 8px;
+    gap: 16px;
+    width: 100%;
 
     .type-card {
-        border: 2px solid var(--el-border-color-lighter);
-        border-radius: 14px;
-        padding: 18px;
+        border-radius: 16px;
+        padding: 16px;
         cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 14px;
-        background: var(--el-fill-color-blank);
-
-        &::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 12px;
-            background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05), transparent);
-            opacity: 0;
-            transition: opacity 0.25s;
-        }
+        text-align: center;
+        gap: 10px;
+        background: var(--el-fill-color-light);
+        border: 2px solid transparent;
+        overflow: hidden;
 
         &:hover {
-            border-color: var(--el-color-primary-light-5);
+            background: var(--el-fill-color);
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.12);
-
-            &::before {
-                opacity: 1;
-            }
-
-            .icon-box {
-                transform: scale(1.05);
-            }
-        }
-
-        &:active {
-            transform: translateY(0);
         }
 
         &.active {
+            background: var(--el-color-primary-light-9);
             border-color: var(--el-color-primary);
-            background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08), rgba(var(--el-color-primary-rgb), 0.03));
-            box-shadow:
-                0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
-                0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1) inset;
-
-            &::before {
-                opacity: 0;
-            }
+            box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.15);
 
             .icon-box {
-                background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+                background: var(--el-color-primary);
                 color: var(--el-color-white);
-                box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.35);
+                transform: scale(1.1);
+                box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.3);
             }
 
             .type-name {
                 color: var(--el-color-primary);
-                font-weight: 700;
             }
         }
 
         .icon-box {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: var(--el-fill-color-light);
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--el-bg-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 24px;
             color: var(--el-text-color-regular);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-black) 4%, transparent);
         }
 
         .info-box {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            flex: 1;
-            min-width: 0;
+            gap: 4px;
 
             .type-name {
                 font-size: 15px;
-                font-weight: 600;
+                font-weight: 700;
                 color: var(--el-text-color-primary);
-                transition: color 0.25s;
             }
 
             .type-desc {
                 font-size: 12px;
-                color: var(--el-text-color-secondary);
-                line-height: 1.3;
+                color: var(--el-text-color-placeholder);
             }
         }
 
         .check-mark {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 8px;
+            right: 8px;
             color: var(--el-color-primary);
             font-size: 18px;
-            filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
         }
     }
 }
 
 .check-scale-enter-active,
 .check-scale-leave-active {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.check-scale-enter-from {
+.check-scale-enter-from,
+.check-scale-leave-to {
     opacity: 0;
     transform: scale(0);
 }
 
-.check-scale-leave-to {
-    opacity: 0;
-    transform: scale(0.8);
-}
-
 .custom-textarea {
     :deep(.el-textarea__inner) {
-        border-radius: 14px;
-        padding: 18px;
+        border-radius: 16px;
+        padding: 20px;
         font-size: 15px;
-        line-height: 1.7;
-        border: 2px solid var(--el-border-color-lighter);
-        background-color: var(--el-fill-color-blank);
+        line-height: 1.6;
+        border: none;
+        background-color: var(--el-fill-color-light);
         color: var(--el-text-color-primary);
-        box-shadow: none;
+        box-shadow: inset 0 2px 4px color-mix(in srgb, var(--el-color-black) 2%, transparent);
         transition: all 0.3s;
 
         &::placeholder {
@@ -672,271 +789,588 @@ defineExpose({
         }
 
         &:hover {
-            border-color: var(--el-border-color);
-            background-color: var(--el-bg-color);
+            background-color: var(--el-fill-color);
         }
 
         &:focus {
             background-color: var(--el-bg-color);
-            border-color: var(--el-color-primary);
-            box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+            box-shadow:
+                0 0 0 2px var(--el-color-primary),
+                0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
         }
     }
 
     :deep(.el-input__count) {
         background: transparent;
         font-size: 12px;
+        bottom: 12px;
+        right: 16px;
+        opacity: 0.6;
     }
 }
 
-/* 校验错误时统一使用 danger 语义色，避免与 hover/focus 的 primary 混色冲突 */
+/* Error States */
 .post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner),
-.post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner:hover),
 .post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner:focus) {
-    border-color: var(--el-color-danger);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 18%, transparent);
+    box-shadow:
+        0 0 0 2px var(--el-color-danger),
+        0 4px 12px rgba(var(--el-color-danger-rgb), 0.1);
     background-color: var(--el-bg-color);
 }
 
 .upload-container {
     width: 100%;
-    padding: 16px;
-    border: 2px solid var(--el-border-color-lighter);
-    border-radius: 14px;
-    background: var(--el-fill-color-blank);
-    transition: all 0.25s ease;
+    padding: 20px;
+    border: 2px dashed var(--el-border-color);
+    border-radius: 16px;
+    background: var(--el-fill-color-lighter);
+    transition: all 0.3s ease;
+    text-align: center;
+
+    &:hover {
+        border-color: var(--el-color-primary);
+        background: var(--el-fill-color-light);
+    }
 
     &.image-mode {
-        background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.03), transparent);
+        background: radial-gradient(circle at center, var(--el-fill-color-light) 0%, transparent 100%);
     }
 
     &.video-mode {
-        background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.04), rgba(var(--el-color-primary-rgb), 0.01));
+        background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.02) 0%, transparent 100%);
     }
 }
 
-.custom-upload {
-    width: 100%;
+.post-form :deep(.el-form-item.is-error .upload-container) {
+    border-color: var(--el-color-danger);
+    background-color: var(--el-color-danger-light-9);
 }
 
 .image-upload {
     :deep(.el-upload--picture-card) {
-        width: 120px;
-        height: 120px;
-        border-radius: 12px;
-        border: 2px dashed var(--el-border-color);
-        background: var(--el-fill-color-lighter);
-        transition: all 0.2s ease;
+        width: 110px;
+        height: 110px;
+        border-radius: 16px;
+        border: none;
+        background: var(--el-bg-color-overlay);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 5%, transparent);
+        transition: all 0.2s;
 
         &:hover {
-            border-color: var(--el-color-primary);
-            background: rgba(var(--el-color-primary-rgb), 0.06);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.15);
+            color: var(--el-color-primary);
         }
     }
 
     :deep(.el-upload-list--picture-card .el-upload-list__item) {
-        width: 120px;
-        height: 120px;
-        border-radius: 12px;
-        margin: 0 10px 10px 0;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+        width: 110px;
+        height: 110px;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 8%, transparent);
     }
 }
 
 .video-upload {
-    &.video-upload--locked {
-        :deep(.upload-file-uploader) {
-            display: none;
-        }
-    }
-
-    :deep(.upload-file-uploader .el-upload) {
-        width: 100%;
-    }
-
     :deep(.upload-file-uploader .el-upload-dragger) {
-        height: 190px;
-        border: 2px dashed rgba(var(--el-color-primary-rgb), 0.32);
-        border-radius: 12px;
-        background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05), rgba(var(--el-color-primary-rgb), 0.02));
-        transition: all 0.2s ease;
+        height: 200px;
+        border: none;
+        border-radius: 16px;
+        background: var(--el-bg-color-overlay);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transition: all 0.3s;
 
         &:hover {
-            border-color: var(--el-color-primary);
-            transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.15);
+            background: var(--el-color-primary-light-9);
         }
 
         .el-icon--upload {
+            font-size: 56px;
             color: var(--el-color-primary);
+            margin-bottom: 12px;
+            filter: drop-shadow(0 4px 6px rgba(var(--el-color-primary-rgb), 0.2));
         }
 
         .el-upload__text {
-            font-size: 14px;
+            font-size: 15px;
+            color: var(--el-text-color-regular);
+            em {
+                color: var(--el-color-primary);
+                font-style: normal;
+                font-weight: 600;
+            }
         }
     }
 
-    :deep(.upload-file-list) {
-        margin-top: 12px;
-    }
-
     :deep(.upload-file-list .file-item) {
-        border-radius: 10px;
+        border-radius: 12px;
+        background: var(--el-bg-color-overlay);
         border: 1px solid var(--el-border-color-lighter);
-        background: var(--el-fill-color-blank);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-black) 2%, transparent);
     }
 }
 
 .video-cover-picker {
-    margin-top: 14px;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 12px;
-    padding: 12px;
-    background: color-mix(in srgb, var(--el-fill-color-light) 65%, var(--el-color-white));
+    margin-top: 16px;
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+    border: 1px solid var(--el-border-color-lighter);
 
     .cover-picker-header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        margin-bottom: 10px;
-        gap: 10px;
-    }
+        align-items: center;
+        margin-bottom: 12px;
 
-    .cover-picker-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
+        .cover-picker-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--el-text-color-primary);
+        }
     }
 
     .cover-picker-video {
         width: 100%;
-        max-height: 240px;
-        border-radius: 10px;
-        display: block;
-        background: #000;
+        max-height: 260px;
+        border-radius: 12px;
+        background: var(--el-color-black);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 10%, transparent);
     }
 
     .cover-picked {
-        margin-top: 12px;
+        margin-top: 16px;
+        padding: 12px;
+        background: var(--el-fill-color-lighter);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .cover-thumb {
+            width: 90px;
+            height: 90px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid var(--el-bg-color-overlay);
+            box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+        }
+
+        .cover-picked-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--el-text-color-regular);
+        }
+    }
+}
+
+.video-cover-batch-tip {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--el-color-warning-light-9);
+    color: var(--el-color-warning-dark-2);
+    border-radius: 12px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+        content: '';
+        display: block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+}
+
+.video-batch-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.video-batch-item {
+    border-radius: 16px;
+    padding: 20px;
+    background: var(--el-fill-color-blank);
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s ease;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 20px;
+        bottom: 20px;
+        width: 4px;
+        background: var(--el-color-primary);
+        border-radius: 0 4px 4px 0;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    &:hover {
+        border-color: var(--el-border-color);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 5%, transparent);
+    }
+
+    &.is-active {
+        background: var(--el-bg-color-overlay);
+        border-color: var(--el-color-primary-light-5);
+        box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.08);
+
+        &::before {
+            opacity: 1;
+        }
+    }
+
+    &.is-error {
+        border-color: var(--el-color-danger-light-5);
+        background: var(--el-color-danger-light-9);
+    }
+}
+
+.video-batch-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .video-batch-index {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--el-text-color-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .video-batch-head-right {
         display: flex;
         align-items: center;
         gap: 10px;
-    }
 
-    .cover-thumb {
-        width: 78px;
-        height: 78px;
-        border-radius: 8px;
-        object-fit: cover;
-        border: 1px solid var(--el-border-color);
-        flex-shrink: 0;
-    }
+        .video-batch-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--el-text-color-primary);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-    .cover-picked-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        color: var(--el-text-color-secondary);
-        font-size: 13px;
+        .status-tag {
+            border-radius: 6px;
+            font-weight: 600;
+        }
     }
+}
+
+.video-batch-textarea {
+    :deep(.el-textarea__inner) {
+        border-radius: 12px;
+        background-color: var(--el-fill-color-light);
+        border: 1px solid transparent;
+        transition: all 0.2s;
+
+        &:focus {
+            background-color: var(--el-bg-color-overlay);
+            box-shadow: 0 0 0 2px var(--el-color-primary-light-5);
+        }
+    }
+}
+
+.video-batch-tags {
+    margin-top: 12px;
 }
 
 .custom-select {
     :deep(.el-select__wrapper) {
-        border-radius: 14px;
-        padding: 12px 16px;
-        border: 2px solid var(--el-border-color-lighter);
+        border-radius: 12px;
+        padding: 8px 16px;
+        min-height: 44px;
+        background-color: var(--el-fill-color-light);
         box-shadow: none;
-        transition: all 0.3s;
+        transition: all 0.2s;
 
         &:hover {
-            border-color: var(--el-border-color);
+            background-color: var(--el-fill-color);
         }
 
         &.is-focused {
-            border-color: var(--el-color-primary);
-            box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+            background-color: var(--el-bg-color-overlay);
+            box-shadow: 0 0 0 2px var(--el-color-primary);
         }
     }
 
     :deep(.el-select__prefix) {
-        color: var(--el-color-primary);
+        color: var(--el-text-color-placeholder);
         font-size: 18px;
     }
 
     :deep(.el-tag) {
-        border-radius: 8px;
-        padding: 4px 10px;
-        font-weight: 500;
+        border-radius: 6px;
+        background-color: var(--el-bg-color-overlay);
+        border-color: var(--el-border-color-lighter);
+        color: var(--el-text-color-primary);
+        box-shadow: 0 1px 2px color-mix(in srgb, var(--el-color-black) 5%, transparent);
     }
 }
 
-:deep(.custom-select-popper) {
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    border: 1px solid var(--el-border-color-light);
-
-    .el-select-dropdown__item {
-        border-radius: 8px;
-        margin: 2px 8px;
-        padding: 10px 12px;
+.video-batch-tag-select {
+    :deep(.el-select__wrapper) {
+        border-radius: 12px;
+        padding: 8px 16px;
+        min-height: 44px;
+        background: color-mix(in srgb, var(--el-color-primary) 6%, var(--el-fill-color-light));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
         transition: all 0.2s;
 
         &:hover {
-            background: rgba(var(--el-color-primary-rgb), 0.08);
+            background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-fill-color));
         }
 
-        &.is-selected {
-            background: rgba(var(--el-color-primary-rgb), 0.12);
-            color: var(--el-color-primary);
-            font-weight: 600;
+        &.is-focused {
+            background-color: var(--el-bg-color-overlay);
+            box-shadow: 0 0 0 2px var(--el-color-primary-light-5);
         }
     }
 
-    .el-select-group__title {
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-        padding: 10px 16px;
+    :deep(.el-select__prefix) {
+        color: color-mix(in srgb, var(--el-color-primary) 72%, var(--el-text-color-secondary));
+        font-size: 18px;
+    }
+
+    :deep(.el-tag) {
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color-overlay));
+        border-color: color-mix(in srgb, var(--el-color-primary) 40%, var(--el-border-color));
+        color: var(--el-color-primary);
+        box-shadow: none;
     }
 }
 
-.hash-symbol {
+:deep(.custom-select-popper .el-select-dropdown__item) {
+    height: auto;
+    min-height: 38px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+}
+
+:deep(.custom-select-popper .el-select-dropdown__item .option-tag-pill) {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--el-border-color);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-regular);
+    transition: all 0.2s ease;
+}
+
+:deep(.custom-select-popper .el-select-dropdown__item .option-tag-text) {
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+:deep(.custom-select-popper .el-select-dropdown__item:hover .option-tag-pill),
+:deep(.custom-select-popper .el-select-dropdown__item.hovering .option-tag-pill) {
+    border-color: var(--el-color-primary-light-5);
+    background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-fill-color-light));
+}
+
+:deep(.custom-select-popper .el-select-dropdown__item.is-selected .option-tag-pill) {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
-    font-weight: 600;
-    margin-right: 4px;
+}
+
+:deep(.custom-select-popper--normal .el-select-dropdown__item .option-tag-pill) {
+    border-radius: 10px;
+}
+
+:deep(.custom-select-popper--batch .el-select-dropdown__item .option-tag-pill) {
+    border-radius: 8px;
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--el-color-primary) 42%, var(--el-border-color));
+    background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-fill-color-light));
+}
+
+:deep(.custom-select-popper--batch .el-select-dropdown__item:hover .option-tag-pill),
+:deep(.custom-select-popper--batch .el-select-dropdown__item.hovering .option-tag-pill) {
+    border-color: color-mix(in srgb, var(--el-color-primary) 60%, var(--el-border-color));
+    background: color-mix(in srgb, var(--el-color-primary) 14%, var(--el-fill-color));
+}
+
+:deep(.custom-select-popper--batch .el-select-dropdown__item.is-selected .option-tag-pill) {
+    border-style: solid;
+    border-color: var(--el-color-primary);
+    background: color-mix(in srgb, var(--el-color-primary) 16%, var(--el-fill-color-light));
+}
+
+.post-form :deep(.el-form-item.is-error .custom-select .el-select__wrapper),
+.post-form :deep(.el-form-item.is-error .custom-select .el-select__wrapper:hover),
+.post-form :deep(.el-form-item.is-error .custom-select .el-select__wrapper.is-focused) {
+    box-shadow: 0 0 0 2px var(--el-color-danger);
+    background-color: var(--el-bg-color-overlay);
+}
+
+.video-batch-tags.is-error .video-batch-tag-select {
+    :deep(.el-select__wrapper),
+    :deep(.el-select__wrapper:hover),
+    :deep(.el-select__wrapper.is-focused) {
+        box-shadow: 0 0 0 2px var(--el-color-danger);
+        background-color: var(--el-bg-color-overlay);
+    }
+}
+
+:global(html.dark) .edit-section {
+    .form-card {
+        border-color: var(--el-border-color);
+        box-shadow:
+            0 8px 20px -10px color-mix(in srgb, var(--el-color-black) 70%, transparent),
+            0 20px 40px -24px color-mix(in srgb, var(--el-color-black) 78%, transparent);
+    }
+
+    .type-grid .type-card {
+        background: var(--el-fill-color-dark);
+        border-color: color-mix(in srgb, var(--el-border-color) 70%, transparent);
+
+        &:hover {
+            background: var(--el-fill-color-darker);
+        }
+
+        &.active {
+            background: color-mix(in srgb, var(--el-color-primary) 20%, var(--el-fill-color-dark));
+            border-color: color-mix(in srgb, var(--el-color-primary) 80%, var(--el-border-color));
+            box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+
+            .type-name {
+                color: var(--el-color-primary-light-3);
+            }
+        }
+    }
+
+    .custom-textarea :deep(.el-textarea__inner),
+    .upload-container,
+    .video-cover-picker,
+    .video-batch-item,
+    .video-batch-textarea :deep(.el-textarea__inner),
+    .custom-select :deep(.el-select__wrapper),
+    .video-batch-tag-select :deep(.el-select__wrapper),
+    .image-upload :deep(.el-upload--picture-card),
+    .video-upload :deep(.upload-file-uploader .el-upload-dragger),
+    .video-upload :deep(.upload-file-list .file-item) {
+        background-color: var(--el-fill-color-dark);
+    }
+
+    .custom-textarea :deep(.el-textarea__inner:hover),
+    .upload-container:hover,
+    .video-batch-textarea :deep(.el-textarea__inner:focus),
+    .custom-select :deep(.el-select__wrapper:hover),
+    .video-batch-tag-select :deep(.el-select__wrapper:hover),
+    .custom-select :deep(.el-select__wrapper.is-focused),
+    .video-batch-tag-select :deep(.el-select__wrapper.is-focused) {
+        background-color: var(--el-fill-color-darker);
+    }
+
+    .video-upload :deep(.upload-file-uploader .el-upload-dragger:hover) {
+        background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-fill-color-darker));
+    }
+
+    .custom-select :deep(.el-select__wrapper) {
+        background-color: var(--el-fill-color-dark);
+        box-shadow: none;
+    }
+
+    .custom-select :deep(.el-select__wrapper:hover),
+    .custom-select :deep(.el-select__wrapper.is-focused) {
+        background-color: var(--el-fill-color-darker);
+    }
+
+    .video-batch-tag-select :deep(.el-select__wrapper) {
+        background: color-mix(in srgb, var(--el-color-primary) 16%, var(--el-fill-color-dark));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 50%, transparent);
+    }
+
+    .video-batch-tag-select :deep(.el-select__wrapper:hover),
+    .video-batch-tag-select :deep(.el-select__wrapper.is-focused) {
+        background: color-mix(in srgb, var(--el-color-primary) 22%, var(--el-fill-color-darker));
+    }
+
+    .video-batch-tag-select :deep(.el-tag) {
+        background: color-mix(in srgb, var(--el-color-primary) 18%, var(--el-fill-color-darker));
+        border-color: color-mix(in srgb, var(--el-color-primary) 56%, var(--el-border-color));
+        color: var(--el-color-primary-light-3);
+    }
+
+    .video-cover-batch-tip {
+        background: color-mix(in srgb, var(--el-color-warning) 18%, transparent);
+        color: var(--el-color-warning-light-3);
+    }
+
+    :deep(.custom-select-popper--normal .el-select-dropdown__item .option-tag-pill) {
+        background: var(--el-fill-color-darker);
+    }
+
+    :deep(.custom-select-popper--normal .el-select-dropdown__item.is-selected .option-tag-pill) {
+        background: color-mix(in srgb, var(--el-color-primary) 20%, var(--el-fill-color-darker));
+    }
+
+    :deep(.custom-select-popper--batch .el-select-dropdown__item .option-tag-pill) {
+        background: color-mix(in srgb, var(--el-color-primary) 18%, var(--el-fill-color-darker));
+        border-color: color-mix(in srgb, var(--el-color-primary) 60%, var(--el-border-color));
+    }
+
+    :deep(.custom-select-popper--batch .el-select-dropdown__item.is-selected .option-tag-pill) {
+        background: color-mix(in srgb, var(--el-color-primary) 28%, var(--el-fill-color-darker));
+    }
 }
 
 .form-footer {
-    margin-top: 48px;
+    margin-top: 40px;
     display: flex;
     justify-content: flex-end;
 
     .submit-btn {
-        padding: 14px 42px;
-        border-radius: 14px;
-        font-weight: 600;
+        height: 52px;
+        padding: 0 48px;
+        border-radius: 26px;
         font-size: 16px;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         border: none;
-        box-shadow:
-            0 6px 16px rgba(var(--el-color-primary-rgb), 0.3),
-            0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 20px -5px rgba(var(--el-color-primary-rgb), 0.4);
+        transition: all 0.3s;
 
         &:hover {
             transform: translateY(-2px);
-            box-shadow:
-                0 10px 24px rgba(var(--el-color-primary-rgb), 0.35),
-                0 4px 10px rgba(var(--el-color-primary-rgb), 0.25);
+            box-shadow: 0 14px 24px -5px rgba(var(--el-color-primary-rgb), 0.5);
         }
 
         &:active {
             transform: translateY(0);
         }
 
-        &.is-loading {
-            opacity: 0.8;
+        &.is-disabled {
+            background: var(--el-button-disabled-bg-color);
+            box-shadow: none;
         }
     }
 }
@@ -944,6 +1378,16 @@ defineExpose({
 @media screen and (max-width: 992px) {
     .type-grid {
         grid-template-columns: 1fr;
+
+        .type-card {
+            flex-direction: row;
+            text-align: left;
+            padding: 12px;
+
+            .info-box {
+                align-items: flex-start;
+            }
+        }
     }
 
     .form-card :deep(.el-card__body) {

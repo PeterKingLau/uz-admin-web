@@ -71,7 +71,7 @@
                         </template>
                         删除
                     </el-button>
-                    <div class="drag-handle" v-if="drag">
+                    <div class="drag-handle" v-if="enableSort">
                         <Icon icon="mdi:drag" />
                     </div>
                 </div>
@@ -134,6 +134,10 @@ const props = defineProps({
     drag: {
         type: Boolean,
         default: true
+    },
+    sortable: {
+        type: Boolean,
+        default: true
     }
 })
 
@@ -150,6 +154,7 @@ const uploadingCount = ref(0)
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
 const isUploading = computed(() => uploadingCount.value > 0)
+const enableSort = computed(() => props.drag && props.sortable)
 
 watch(
     isUploading,
@@ -348,7 +353,7 @@ function getRawFiles() {
 defineExpose({ open, clear, getRawFiles, isUploading })
 
 onMounted(() => {
-    if (props.drag && !props.disabled) {
+    if (enableSort.value && !props.disabled) {
         nextTick(() => {
             const element = proxy.$refs.uploadFileList?.$el || proxy.$refs.uploadFileList
             if (element) {

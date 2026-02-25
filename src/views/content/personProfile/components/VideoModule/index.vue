@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <component :is="teleportWrapper" v-bind="teleportAttrs">
         <div
             v-if="visible"
@@ -15,6 +15,7 @@
                         class="player-shell"
                         :class="[videoFitClass, { 'is-watermarked': showWatermark, 'is-portrait-video': usePortraitGlass }]"
                         :style="playerShellStyle"
+                        @click="togglePlay"
                     >
                         <div class="player-bg" :style="bgStyle"></div>
                         <div v-if="usePortraitGlass" class="portrait-glass-sides" aria-hidden="true">
@@ -31,7 +32,6 @@
                             autoplay
                             preload="auto"
                             controlslist="nodownload noremoteplayback"
-                            @click="togglePlay"
                             @loadedmetadata="onLoadedMeta"
                             @timeupdate="onTimeUpdate"
                             @durationchange="onDurationChange"
@@ -108,21 +108,29 @@
                                     </div>
 
                                     <div class="right-controls">
-                                        <div class="volume-control">
-                                            <div class="volume-btn" @click="toggleMute">
+                                        <div class="volume-control" @mouseenter="openVolumePanel" @mouseleave="scheduleCloseVolumePanel">
+                                            <div class="volume-btn" @click.stop="handleVolumeButtonClick">
                                                 <Icon :icon="muted || volume === 0 ? 'mdi:volume-mute' : volume < 0.5 ? 'mdi:volume-low' : 'mdi:volume-high'" />
                                             </div>
-                                            <div class="volume-slider-wrapper">
+                                            <div
+                                                class="volume-slider-wrapper"
+                                                :class="{ open: volumePanelVisible }"
+                                                @mouseenter="openVolumePanel"
+                                                @mouseleave="scheduleCloseVolumePanel"
+                                                @click.stop
+                                            >
+                                                <div class="volume-value">{{ volumePercent }}</div>
                                                 <el-slider
                                                     v-model="volume"
                                                     :min="0"
                                                     :max="1"
                                                     :step="0.01"
+                                                    :vertical="true"
+                                                    height="110px"
                                                     :show-tooltip="false"
                                                     @input="applyVolume"
                                                     class="volume-slider"
                                                 />
-                                                <div class="volume-percent">{{ Math.round(volume * 100) }}%</div>
                                             </div>
                                         </div>
 
@@ -202,7 +210,7 @@
                             <div class="header-left">
                                 <el-tabs v-model="activePanelTab" class="panel-tabs" @tab-click="handlePanelTabClick">
                                     <el-tab-pane name="detail" label="详情" />
-                                    <el-tab-pane name="comments" label="评论" />
+                                    <el-tab-pane name="comments" :label="`评论 ${formatCount(localCommentCount)}`" />
                                     <el-tab-pane v-if="showCollectionTab" name="collection" label="合集" />
                                 </el-tabs>
                             </div>
@@ -213,75 +221,73 @@
 
                         <div class="comment-panel-body" ref="commentBodyRef" @scroll="handleCommentScroll">
                             <template v-if="activePanelTab === 'comments'">
-                                <div class="comment-panel-count">全部评论 ({{ formatCount(localCommentCount) }})</div>
                                 <div v-if="commentItems.length === 0 && !commentLoading" class="comment-empty">
                                     <Icon icon="mdi:comment-outline" class="empty-icon" />
                                     <span>暂无评论，快来抢沙发~</span>
                                 </div>
 
-                                <div v-for="(comment, index) in commentItems" :key="comment.id ?? index" class="comment-item">
-                                    <el-avatar :size="36" :src="getCommentAvatar(comment)" class="comment-avatar" />
-                                    <div class="comment-main">
-                                        <div class="comment-user-info">
-                                            <span class="comment-name">{{ getCommentName(comment) }}</span>
-                                            <span class="comment-time">{{ formatCommentTime(comment.createTime) }}</span>
-                                        </div>
-                                        <div class="comment-content" @click="handleReplyToComment(comment)">
-                                            {{ comment.content }}
-                                        </div>
-
-                                        <div class="comment-actions">
-                                            <span class="action-text reply-btn" @click="handleReplyToComment(comment)">回复</span>
-                                            <span
-                                                v-if="canDeleteComment(comment)"
-                                                class="action-text delete-btn danger"
-                                                @click.stop="handleDeleteComment(comment)"
-                                                >删除</span
-                                            >
-                                            <div
-                                                v-if="Number(comment.replyCount || 0) > 0"
-                                                class="action-text toggle-reply-btn"
-                                                @click="toggleReplies(comment)"
-                                            >
-                                                <span class="divider"></span>
-                                                <span>{{ resolveReplyState(comment).open ? '收起' : `展开 ${comment.replyCount} 条回复` }}</span>
-                                                <Icon :icon="resolveReplyState(comment).open ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+                                <div class="comment-list-wrapper">
+                                    <div v-for="(comment, index) in commentItems" :key="comment.id ?? index" class="comment-item">
+                                        <el-avatar :size="32" :src="getCommentAvatar(comment)" class="comment-avatar" />
+                                        <div class="comment-main">
+                                            <div class="comment-header">
+                                                <span class="comment-name">{{ getCommentName(comment) }}</span>
+                                                <span class="comment-time">{{ formatCommentTime(comment.createTime) }}</span>
                                             </div>
-                                        </div>
+                                            <div class="comment-content" @click="handleReplyToComment(comment)">
+                                                {{ comment.content }}
+                                            </div>
 
-                                        <div class="comment-replies" v-if="resolveReplyState(comment).open">
-                                            <div v-for="(reply, rIndex) in resolveReplyState(comment).list" :key="reply.id ?? rIndex" class="reply-item">
-                                                <el-avatar :size="24" :src="getCommentAvatar(reply)" class="reply-avatar" />
-                                                <div class="reply-main">
-                                                    <div class="reply-user-info">
-                                                        <span class="reply-name">{{ getCommentName(reply) }}</span>
-                                                        <span v-if="reply.replyUserNickName" class="reply-arrow">
-                                                            <Icon icon="mdi:menu-right" />
-                                                            <span class="target-name">{{ reply.replyUserNickName }}</span>
-                                                        </span>
-                                                    </div>
-                                                    <div class="reply-content" @click="handleReplyToReply(reply, comment)">
-                                                        {{ reply.content }}
-                                                    </div>
-                                                    <div class="reply-meta">
-                                                        <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
-                                                        <span class="action-text reply-btn" @click="handleReplyToReply(reply, comment)">回复</span>
-                                                        <span
-                                                            v-if="canDeleteComment(reply)"
-                                                            class="action-text reply-btn delete-btn danger"
-                                                            @click.stop="handleDeleteComment(reply, comment)"
-                                                        >
-                                                            删除
-                                                        </span>
-                                                    </div>
+                                            <div class="comment-footer">
+                                                <div class="footer-actions">
+                                                    <span class="action-btn" @click="handleReplyToComment(comment)">回复</span>
+                                                    <span v-if="canDeleteComment(comment)" class="action-btn delete" @click.stop="handleDeleteComment(comment)"
+                                                        >删除</span
+                                                    >
+                                                </div>
+
+                                                <div v-if="Number(comment.replyCount || 0) > 0" class="expand-reply-btn" @click="toggleReplies(comment)">
+                                                    <span class="line"></span>
+                                                    <span>{{ resolveReplyState(comment).open ? '收起回复' : `展开 ${comment.replyCount} 条回复` }}</span>
+                                                    <Icon
+                                                        :icon="resolveReplyState(comment).open ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+                                                        class="icon-chevron"
+                                                    />
                                                 </div>
                                             </div>
 
-                                            <div v-if="!resolveReplyState(comment).noMore" class="load-more-replies">
-                                                <span class="load-more-text" @click="loadReplies(comment)">
-                                                    {{ resolveReplyState(comment).loading ? '加载中...' : '查看更多回复' }}
-                                                    <Icon icon="mdi:chevron-down" v-if="!resolveReplyState(comment).loading" />
-                                                </span>
+                                            <div class="comment-replies" v-if="resolveReplyState(comment).open">
+                                                <div v-for="(reply, rIndex) in resolveReplyState(comment).list" :key="reply.id ?? rIndex" class="reply-item">
+                                                    <el-avatar :size="24" :src="getCommentAvatar(reply)" class="reply-avatar" />
+                                                    <div class="reply-main">
+                                                        <div class="reply-header">
+                                                            <span class="reply-name">{{ getCommentName(reply) }}</span>
+                                                            <span v-if="reply.replyUserNickName" class="reply-target">
+                                                                <Icon icon="mdi:menu-right" class="arrow-icon" />
+                                                                <span>{{ reply.replyUserNickName }}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div class="reply-content" @click="handleReplyToReply(reply, comment)">
+                                                            {{ reply.content }}
+                                                        </div>
+                                                        <div class="reply-footer">
+                                                            <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
+                                                            <span class="action-btn" @click="handleReplyToReply(reply, comment)">回复</span>
+                                                            <span
+                                                                v-if="canDeleteComment(reply)"
+                                                                class="action-btn delete"
+                                                                @click.stop="handleDeleteComment(reply, comment)"
+                                                                >删除</span
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div v-if="!resolveReplyState(comment).noMore" class="load-more-replies">
+                                                    <span class="load-more-text" @click="loadReplies(comment)">
+                                                        {{ resolveReplyState(comment).loading ? '正在加载...' : '查看更多回复' }}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -289,9 +295,8 @@
 
                                 <div v-if="commentLoading" class="comment-loading">
                                     <div class="loading-spinner"></div>
-                                    <span>正在加载评论...</span>
                                 </div>
-                                <div v-if="commentNoMore && commentItems.length > 0" class="comment-end">- 到底了 -</div>
+                                <div v-if="commentNoMore && commentItems.length > 0" class="comment-end">- 没有更多评论了 -</div>
                             </template>
 
                             <template v-else-if="activePanelTab === 'detail'">
@@ -312,7 +317,10 @@
                             </template>
 
                             <template v-else>
-                                <div class="collection-panel-title">合集 · {{ activeCollectionName || '未命名合集' }}</div>
+                                <div class="collection-panel-title">
+                                    <Icon icon="mdi:playlist-play" class="collection-icon" />
+                                    合集 · {{ activeCollectionName || '未命名合集' }}
+                                </div>
                                 <div v-if="collectionLoading" class="collection-loading">加载中...</div>
                                 <div v-else-if="collectionVideoPosts.length === 0" class="collection-empty">暂无合集视频</div>
                                 <div v-else class="collection-list">
@@ -334,24 +342,31 @@
                                             <div v-else class="collection-thumb-empty">
                                                 <Icon icon="mdi:video-outline" />
                                             </div>
+                                            <div v-if="isCurrentCollectionPost(item)" class="playing-overlay">
+                                                <div class="bar-anim"><span></span><span></span><span></span></div>
+                                            </div>
                                         </div>
                                         <div class="collection-info">
                                             <div class="collection-title">{{ resolveCollectionTitle(item) }}</div>
                                             <div class="collection-meta">{{ formatDate(item.createTime) }}</div>
                                         </div>
-                                        <div v-if="isCurrentCollectionPost(item)" class="collection-playing">播放中</div>
                                     </button>
                                 </div>
                             </template>
                         </div>
 
                         <div v-if="activePanelTab === 'comments'" class="comment-panel-footer">
-                            <div v-if="replyTarget" class="reply-context-bar">
-                                <span class="reply-text">回复 @{{ replyTarget.replyUserName }}</span>
-                                <div class="cancel-reply" @click="clearReplyTarget">
-                                    <Icon icon="ep:close" />
+                            <transition name="fade">
+                                <div v-if="replyTarget" class="reply-context-bar">
+                                    <div class="reply-info">
+                                        <span class="prefix">回复</span>
+                                        <span class="name">@{{ replyTarget.replyUserName }}</span>
+                                    </div>
+                                    <div class="cancel-reply" @click="clearReplyTarget">
+                                        <Icon icon="ep:close" />
+                                    </div>
                                 </div>
-                            </div>
+                            </transition>
                             <div class="input-area">
                                 <el-input
                                     ref="commentInputRef"
@@ -364,7 +379,7 @@
                                     @keydown.enter.exact.prevent="submitComment"
                                 />
                                 <div class="send-btn" :class="{ disabled: !commentDraft.trim() }" @click="submitComment">
-                                    <Icon icon="mdi:send" />
+                                    <Icon icon="mdi:send" class="send-icon" />
                                 </div>
                             </div>
                         </div>
@@ -402,12 +417,32 @@
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { parseTime } from '@/utils/utils'
 import { getImgUrl } from '@/utils/img'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getPostByCollection } from '@/api/content/collection'
-import { POST_TYPE } from '@/utils/enum'
 import useUserStore from '@/store/modules/user'
+import {
+    buildContentParts,
+    clamp,
+    clampRate,
+    formatClock,
+    formatCommentTime,
+    formatCount,
+    formatDate,
+    getCommentAvatar,
+    getCommentName,
+    getPostId,
+    isCollectionVideoPost,
+    isTypingTarget,
+    normalizeCollectionPosts,
+    resolveActiveFlag,
+    resolveCollectionCover,
+    resolveCollectionId,
+    resolveCollectionNameFromResponse,
+    resolveCollectionTitle,
+    resolveFollowFlag,
+    resolveVideoPoster
+} from './helpers'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -432,10 +467,6 @@ const visible = computed({
 })
 
 const postData = computed(() => props.post || {})
-const resolveActiveFlag = value => {
-    if (typeof value === 'boolean') return value
-    return value != null ? String(value) === '1' : false
-}
 
 const isLiked = computed(() =>
     resolveActiveFlag(postData.value?.like ?? postData.value?.isLiked ?? postData.value?.liked ?? postData.value?.likeStatus ?? postData.value?.isLike)
@@ -445,10 +476,6 @@ const isCollected = computed(() =>
         postData.value?.bookmark ?? postData.value?.isCollected ?? postData.value?.collected ?? postData.value?.collectStatus ?? postData.value?.isCollect
     )
 )
-const resolveFollowFlag = value => {
-    if (typeof value === 'boolean') return value
-    return value != null ? String(value) === '1' : false
-}
 const isFollowing = computed(() =>
     resolveFollowFlag(
         postData.value?.follow ??
@@ -516,23 +543,20 @@ const progressDraft = ref(0)
 
 const volume = ref(1)
 const muted = ref(false)
+const volumePanelVisible = ref(false)
+const volumePercent = computed(() => Math.round((muted.value ? 0 : volume.value) * 100))
 
 const rates = [0.75, 1.0, 1.25, 1.5, 2.0]
 const playbackRate = ref(1)
 
 const controlsVisible = ref(true)
 let hideControlsTimer = null
+let volumePanelHideTimer = null
 let prevHtmlOverflow = ''
 let prevBodyOverflow = ''
 let prevHtmlScrollbarGutter = ''
 let prevBodyScrollbarGutter = ''
 let pageScrollLockedByPlayer = false
-
-const clampRate = v => {
-    const n = Number(v)
-    if (!Number.isFinite(n)) return 1
-    return Math.min(8, Math.max(0.1, n))
-}
 
 const pipSupported = ref(false)
 const pipActive = ref(false)
@@ -557,49 +581,11 @@ const authorAvatar = computed(() => {
 })
 
 const collectedCount = computed(() => postData.value.bookmarkCount ?? postData.value.collectCount ?? 0)
-
-const formatCount = num => {
-    const n = Number(num || 0)
-    if (!n) return '0'
-    if (n >= 10000) return (n / 10000).toFixed(1) + 'w'
-    return String(n)
-}
-
-const formatDate = time => {
-    if (!time) return ''
-    return parseTime(time, '{m}-{d}') || ''
-}
-
-const getPostId = post => post?.postId ?? post?.id ?? null
 const activePostId = computed(() => getPostId(postData.value))
-const resolveCollectionId = post => post?.collectionId ?? post?.postCollectionDto?.collectionId ?? post?.collection?.id ?? null
 const activeCollectionId = computed(() => resolveCollectionId(postData.value))
 const resolveCollectionName = post =>
     post?.collectionName || post?.postCollectionDto?.collectionName || post?.collection?.name || post?.collection?.title || post?.collectionTitle || ''
 const collectionNameFromApi = ref('')
-const resolveCollectionNameFromResponse = res => {
-    const data = res?.data ?? res ?? {}
-    const collection =
-        data?.collection ??
-        data?.collectionInfo ??
-        data?.collectionDetail ??
-        data?.collectionDto ??
-        data?.collectionVO ??
-        data?.collectionEntity ??
-        data?.info ??
-        data?.detail ??
-        null
-    const name =
-        data?.collectionName ||
-        data?.collectionTitle ||
-        data?.title ||
-        collection?.name ||
-        collection?.title ||
-        collection?.collectionName ||
-        collection?.collectionTitle ||
-        ''
-    return String(name || '').trim()
-}
 const activeCollectionName = computed(() => collectionNameFromApi.value || resolveCollectionName(postData.value))
 const showCollectionTab = computed(() => Boolean(activeCollectionId.value))
 const activePanelTab = ref('comments')
@@ -607,120 +593,13 @@ const collectionPosts = ref([])
 const collectionLoading = ref(false)
 const collectionLoaded = ref(false)
 
-const getCommentName = comment => comment?.nickName || comment?.userName || comment?.authorName || comment?.nickname || comment?.user?.nickName || '用户'
-
-const getCommentAvatar = comment => {
-    const avatar = comment?.avatar || comment?.userAvatar || comment?.user?.avatar || ''
-    return getImgUrl(avatar)
-}
-
-const formatCommentTime = time => {
-    if (!time) return ''
-    const date = new Date(time)
-    const now = new Date()
-    const diff = (now - date) / 1000
-
-    if (diff < 60) return '刚刚'
-    if (diff < 3600) return Math.floor(diff / 60) + '分钟前'
-    if (diff < 86400) return Math.floor(diff / 3600) + '小时前'
-    if (diff < 86400 * 3) return Math.floor(diff / 86400) + '天前'
-    return parseTime(time, '{m}-{d}') || ''
-}
-
-const parseMediaRaw = raw => {
-    if (!raw) return []
-    if (Array.isArray(raw)) return raw
-    if (typeof raw === 'string') {
-        const trimmed = raw.trim()
-        if (!trimmed) return []
-        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-            try {
-                const parsed = JSON.parse(trimmed)
-                return Array.isArray(parsed) ? parsed : [parsed]
-            } catch {
-                return trimmed
-                    .split(',')
-                    .map(item => item.trim())
-                    .filter(Boolean)
-            }
-        }
-        return trimmed
-            .split(',')
-            .map(item => item.trim())
-            .filter(Boolean)
-    }
-    if (typeof raw === 'object') return [raw]
-    return []
-}
-
-const resolveMediaList = post => [
-    ...parseMediaRaw(post?.mediaUrls),
-    ...parseMediaRaw(post?.mediaList),
-    ...parseMediaRaw(post?.files),
-    ...parseMediaRaw(post?.resources),
-    ...parseMediaRaw(post?.videos)
-]
-
-const resolveMediaUrl = url => (url ? getImgUrl(url) : '')
-
-const isVideoUrl = url => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
-
-const resolveCollectionVideoUrl = post => {
-    const direct = post?.videoUrl || post?.video || post?.url || post?.src || ''
-    if (direct) return resolveMediaUrl(direct)
-    const list = resolveMediaList(post)
-    const normalized = list
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.url || item?.src || item?.path || item?.fileUrl || ''
-        })
-        .filter(Boolean)
-    const candidate = normalized.find(isVideoUrl) || normalized[0] || ''
-    return resolveMediaUrl(candidate)
-}
-
-const resolveCollectionCover = post => {
-    const cover = post?.cover || post?.coverUrl || post?.thumbnail || post?.poster || post?.image || post?.coverImage || ''
-    if (cover) return resolveMediaUrl(cover)
-    const list = resolveMediaList(post)
-    const candidate = list
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.cover || item?.coverUrl || item?.thumbnail || item?.poster || item?.image || item?.url || item?.src || item?.path || ''
-        })
-        .filter(Boolean)[0]
-    return resolveMediaUrl(candidate || '')
-}
-
-const resolveVideoPoster = post => {
-    const poster = resolveCollectionCover(post)
-    if (poster && !isVideoUrl(poster)) return poster
-    return ''
-}
-
 const videoPosterUrl = computed(() => resolveVideoPoster(postData.value))
-
-const resolveCollectionTitle = post => {
-    const title = post?.title || post?.postTitle || post?.content || post?.description || ''
-    const text = String(title || '').trim()
-    return text || '未命名视频'
-}
-
-const isCollectionVideoPost = post => String(post?.postType ?? '') === POST_TYPE.VIDEO || Boolean(resolveCollectionVideoUrl(post))
 
 const collectionVideoPosts = computed(() => collectionPosts.value.filter(item => isCollectionVideoPost(item)))
 const isCurrentCollectionPost = post => {
     const id = getPostId(post)
     if (id == null || activePostId.value == null) return false
     return String(id) === String(activePostId.value)
-}
-
-const normalizeCollectionPosts = res => {
-    const data = res?.data ?? res?.rows ?? res?.list ?? res?.records ?? []
-    if (Array.isArray(data)) return data
-    if (Array.isArray(data?.posts)) return data.posts
-    if (Array.isArray(res?.posts)) return res.posts
-    return []
 }
 
 const loadCollectionPosts = async (force = false) => {
@@ -975,22 +854,6 @@ const handleDeleteComment = async (comment, parent) => {
     }
 }
 
-const buildContentParts = content => {
-    const text = String(content || '')
-    if (!text) return []
-    const regex = /#[^#\s]+/g
-    const parts = []
-    let lastIndex = 0
-    let match
-    while ((match = regex.exec(text))) {
-        if (match.index > lastIndex) parts.push({ text: text.slice(lastIndex, match.index), isTag: false })
-        parts.push({ text: match[0], isTag: true })
-        lastIndex = match.index + match[0].length
-    }
-    if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex), isTag: false })
-    return parts.length ? parts : [{ text, isTag: false }]
-}
-
 const contentParts = computed(() => buildContentParts(postData.value?.content || ''))
 const detailContent = computed(() => String(postData.value?.content ?? '').trim())
 const detailTags = computed(() => {
@@ -1107,8 +970,6 @@ const progressShown = computed(() => (isDraggingProgress.value ? progressDraft.v
 const progressContainerRef = ref(null)
 const progressHover = reactive({ visible: false, time: 0, left: 0 })
 
-const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
-
 const calcHoverLeftByTime = sec => {
     const el = progressContainerRef.value
     const max = progressMax.value
@@ -1144,16 +1005,6 @@ const onProgressHover = event => {
 const onProgressLeave = () => {
     if (isDraggingProgress.value) return
     progressHover.visible = false
-}
-
-const formatClock = s => {
-    const sec = Math.max(0, Math.floor(Number(s) || 0))
-    const h = Math.floor(sec / 3600)
-    const m = Math.floor((sec % 3600) / 60)
-    const r = sec % 60
-    const mm = String(m).padStart(2, '0')
-    const rr = String(r).padStart(2, '0')
-    return h > 0 ? `${h}:${mm}:${rr}` : `${m}:${rr.padStart(2, '0')}`
 }
 
 const onProgressDrag = v => {
@@ -1211,6 +1062,30 @@ const toggleMute = () => {
     if (!el) return
     el.muted = !el.muted
     muted.value = el.muted
+}
+
+const handleVolumeButtonClick = () => {
+    openVolumePanel()
+    toggleMute()
+}
+
+const clearVolumePanelHideTimer = () => {
+    if (!volumePanelHideTimer) return
+    clearTimeout(volumePanelHideTimer)
+    volumePanelHideTimer = null
+}
+
+const openVolumePanel = () => {
+    clearVolumePanelHideTimer()
+    volumePanelVisible.value = true
+}
+
+const scheduleCloseVolumePanel = () => {
+    clearVolumePanelHideTimer()
+    volumePanelHideTimer = setTimeout(() => {
+        volumePanelVisible.value = false
+        volumePanelHideTimer = null
+    }, 120)
 }
 
 const safePlay = async el => {
@@ -1444,14 +1319,6 @@ const submitComment = () => {
     clearReplyTarget()
 }
 
-const isTypingTarget = el => {
-    if (!el) return false
-    const tag = String(el.tagName || '').toLowerCase()
-    if (tag === 'input' || tag === 'textarea' || tag === 'select') return true
-    if (el.isContentEditable) return true
-    return false
-}
-
 const onKeydown = e => {
     if (!visible.value) return
     if (e.code !== 'Space' && e.key !== ' ') return
@@ -1509,6 +1376,8 @@ const stopPlayer = () => {
     isDraggingProgress.value = false
     progressDraft.value = 0
     progressHover.visible = false
+    volumePanelVisible.value = false
+    clearVolumePanelHideTimer()
 
     window.removeEventListener('resize', handleResize)
     document.removeEventListener('fullscreenchange', handleResize)
@@ -1656,19 +1525,37 @@ watch(
 onBeforeUnmount(() => {
     if (followCheckTimer) clearTimeout(followCheckTimer)
     if (followRequestResetTimer) clearTimeout(followRequestResetTimer)
+    clearVolumePanelHideTimer()
     stopPlayer()
 })
 </script>
 
 <style scoped lang="scss">
+@use './theme.scss' as videoTheme;
+
+$color-bg: var(--vm-color-black);
+$color-bg-panel: var(--vm-panel-bg-soft);
+$color-bg-soft: var(--vm-white-5);
+$color-bg-input: var(--vm-white-8);
+$color-text-primary: var(--vm-white-90);
+$color-text-secondary: var(--vm-white-70);
+$color-text-muted: var(--vm-white-40);
+$color-border: var(--vm-white-8);
+$color-accent: var(--vm-color-accent);
+$color-accent-hover: var(--vm-color-accent-hover);
+$color-gold: var(--el-color-warning);
+
 .video-immersive-container {
+    @include videoTheme.video-module-theme-vars;
+
     position: fixed;
     inset: 0;
-    background: #000;
+    background: $color-bg;
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
     &.page-mode {
         position: relative;
@@ -1684,21 +1571,15 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    box-sizing: border-box;
 }
 
 .player-frame {
     position: relative;
     height: 100%;
     width: 100%;
-    max-width: none;
     display: flex;
     overflow: hidden;
-    border-radius: 0;
-    background: #000;
-    box-shadow: none;
-    transition: all 0.3s ease;
+    background: $color-bg;
 }
 
 .player-shell {
@@ -1707,7 +1588,6 @@ onBeforeUnmount(() => {
     height: 100%;
     overflow: hidden;
     min-width: 0;
-    cursor: default;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1719,9 +1599,9 @@ onBeforeUnmount(() => {
     inset: -40px;
     background-position: center;
     background-size: cover;
-    filter: blur(40px) brightness(0.4);
-    opacity: 0.5;
-    transform: scale(1.1);
+    filter: blur(60px) brightness(0.3);
+    opacity: 0.6;
+    transform: scale(1.2);
     pointer-events: none;
     z-index: 0;
 }
@@ -1729,8 +1609,7 @@ onBeforeUnmount(() => {
 .video-element {
     position: relative;
     width: 100%;
-    height: auto;
-    max-height: 100%;
+    height: 100%;
     object-fit: contain;
     display: block;
     z-index: 2;
@@ -1756,74 +1635,49 @@ onBeforeUnmount(() => {
     width: var(--pillar-size);
     background-position: center;
     background-size: cover;
-    filter: blur(26px) saturate(1.2) brightness(0.62);
-    opacity: 0.92;
-    transform: scale(1.08);
+    filter: blur(24px) brightness(0.5);
+    opacity: 0.9;
+    transform: scale(1.1);
 
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background:
-            radial-gradient(circle at center, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.02) 62%),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.24));
-        backdrop-filter: blur(12px);
+    &.left {
+        left: 0;
     }
-}
-
-.glass-side.left {
-    left: 0;
-}
-
-.glass-side.right {
-    right: 0;
-    transform: scale(1.08) scaleX(-1);
-}
-
-.player-shell.is-portrait-video .video-cover-overlay {
-    background: transparent;
+    &.right {
+        right: 0;
+        transform: scale(1.1) scaleX(-1);
+    }
 }
 
 .video-cover-overlay {
     position: absolute;
     inset: 0;
-    z-index: 2;
-    background: #000;
-    cursor: pointer;
-}
-
-.video-cover-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-}
-
-.video-cover-play {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.45);
-    color: #fff;
+    z-index: 3;
+    background: var(--vm-color-black);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 30px;
-    backdrop-filter: blur(4px);
-}
 
-.video-cover-fade-enter-active,
-.video-cover-fade-leave-active {
-    transition: opacity 0.22s ease;
-}
+    .video-cover-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        opacity: 0.8;
+    }
 
-.video-cover-fade-enter-from,
-.video-cover-fade-leave-to {
-    opacity: 0;
+    .video-cover-play {
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--vm-black-40);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: var(--vm-color-white);
+        border: 1px solid var(--vm-white-10);
+    }
 }
 
 .pause-overlay {
@@ -1834,20 +1688,19 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    pointer-events: auto;
-}
+    background: var(--vm-black-24);
 
-.pause-overlay-icon {
-    font-size: 72px;
-    color: rgba(255, 255, 255, 0.92);
-    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
-    transition:
-        transform 0.2s ease,
-        opacity 0.2s ease;
-}
+    .pause-overlay-icon {
+        font-size: 72px;
+        color: var(--vm-white-80);
+        filter: drop-shadow(0 4px 12px var(--vm-black-50));
+        transition: transform 0.2s;
+    }
 
-.pause-overlay:hover .pause-overlay-icon {
-    transform: scale(1.08);
+    &:hover .pause-overlay-icon {
+        transform: scale(1.1);
+        color: var(--vm-color-white);
+    }
 }
 
 .top-bar {
@@ -1855,1095 +1708,1044 @@ onBeforeUnmount(() => {
     top: 0;
     left: 0;
     right: 0;
-    padding: 20px;
+    padding: 24px 32px;
     z-index: 10;
-    pointer-events: none;
+    background: linear-gradient(to bottom, var(--vm-black-60) 0%, transparent 100%);
     opacity: 1;
-    transition: opacity 0.3s ease;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+    transition: opacity 0.3s;
+    pointer-events: none;
 
     &.hide-controls {
         opacity: 0;
     }
-}
 
-.close-btn {
-    pointer-events: auto;
-    width: 44px;
-    height: 44px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 24px;
-    cursor: pointer;
-    backdrop-filter: blur(10px);
-    transition: all 0.2s ease;
+    .close-btn {
+        pointer-events: auto;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--vm-white-10);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--vm-color-white);
+        font-size: 20px;
+        cursor: pointer;
+        transition: background 0.2s;
 
-    &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.05);
+        &:hover {
+            background: var(--vm-white-20);
+        }
     }
 }
 
 .right-sidebar {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 20px;
-    width: 60px;
+    right: 24px;
+    bottom: 100px;
+    z-index: 20;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
     align-items: center;
-    justify-content: flex-end;
-    padding-bottom: 120px;
-    z-index: 13;
-    transition: opacity 0.2s ease;
     pointer-events: none;
-}
 
-.comment-open .right-sidebar {
-    opacity: 0;
-    pointer-events: none;
-}
+    .sidebar-item {
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
 
-.sidebar-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    color: #fff;
-    pointer-events: auto;
+        .icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--vm-white-8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: var(--vm-color-white);
+            transition: all 0.2s;
+            margin-bottom: 4px;
 
-    &.active .icon-wrapper {
-        color: #face15;
-    }
-}
+            &:hover {
+                background: var(--vm-white-15);
+                transform: scale(1.05);
+            }
+            &:active {
+                transform: scale(0.95);
+            }
 
-.avatar-wrapper {
-    position: relative;
-}
+            .liked {
+                color: $color-accent;
+            }
+            .collected {
+                color: $color-gold;
+            }
+        }
 
-.follow-badge {
-    position: absolute;
-    left: 50%;
-    bottom: -10px;
-    transform: translateX(-50%);
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-    background: #ff4d4f;
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    cursor: pointer;
-    pointer-events: auto;
-    transition:
-        transform 0.2s ease,
-        background 0.2s ease,
-        color 0.2s ease;
-}
+        .count {
+            font-size: 13px;
+            color: var(--vm-color-white);
+            text-shadow: 0 1px 2px var(--vm-black-50);
+            font-weight: 500;
+        }
 
-.follow-badge:hover {
-    transform: translateX(-50%) scale(1.05);
-}
+        &.avatar-wrapper {
+            margin-bottom: 8px;
+            position: relative;
 
-.icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+            .author-avatar {
+                border: 2px solid var(--vm-color-white);
+                transition: transform 0.2s;
+                &:hover {
+                    transform: scale(1.05);
+                }
+            }
 
-    &:hover {
-        background: rgba(255, 255, 255, 0.15);
-        transform: scale(1.1);
-    }
+            .follow-badge {
+                position: absolute;
+                bottom: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 20px;
+                height: 20px;
+                background: var(--el-color-danger);
+                border-radius: 50%;
+                color: var(--vm-color-white);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                border: none;
+                cursor: pointer;
+                box-shadow: 0 2px 4px var(--vm-black-24);
 
-    &:active {
-        transform: scale(0.95);
-    }
+                &:hover {
+                    background: var(--el-color-danger-light-3);
+                }
+            }
+        }
 
-    .liked {
-        color: #ff2c55;
-    }
-    .collected {
-        color: #face15;
-    }
-}
-
-.count {
-    font-size: 13px;
-    font-weight: 500;
-    margin-top: 6px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.author-avatar {
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    transition: transform 0.2s;
-
-    &:hover {
-        transform: scale(1.05);
+        &.active .icon-wrapper {
+            background: var(--vm-white-90);
+            color: var(--vm-color-black);
+        }
     }
 }
 
 .bottom-info-layer {
     position: absolute;
+    bottom: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 9;
-    padding: 0 32px 24px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+    padding: 24px 32px;
+    background: linear-gradient(to top, var(--vm-black-85) 0%, var(--vm-black-40) 60%, transparent 100%);
+    z-index: 15;
+    transition: opacity 0.3s;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    opacity: 1;
-    transition: opacity 0.3s ease;
 
     &.hide-controls {
         opacity: 0;
         pointer-events: none;
     }
-}
 
-.info-content {
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-    max-width: 80%;
-    margin-bottom: 8px;
-}
+    .info-content {
+        max-width: 65%;
+        color: var(--vm-color-white);
+        margin-bottom: 8px;
 
-.author-line {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-}
+        .author-line {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
 
-.author-name {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
+            .author-name {
+                font-size: 18px;
+                font-weight: 700;
+                text-shadow: 0 1px 2px var(--vm-black-50);
+            }
 
-.publish-time {
-    opacity: 0.7;
-    font-size: 13px;
-    cursor: pointer;
+            .publish-time {
+                font-size: 13px;
+                color: var(--vm-white-70);
+            }
+        }
 
-    &:hover {
-        opacity: 1;
-    }
-}
+        .video-desc {
+            font-size: 15px;
+            line-height: 1.5;
+            color: var(--vm-white-92);
+            text-shadow: 0 1px 2px var(--vm-black-50);
 
-.desc-text {
-    font-size: 15px;
-    line-height: 1.6;
-    opacity: 0.95;
-
-    .hashtag {
-        color: #face15;
-        font-weight: 500;
-        margin-right: 6px;
+            .hashtag {
+                color: $color-text-primary;
+                font-weight: 600;
+                margin-right: 4px;
+            }
+        }
     }
 }
 
 .controls-layer {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     pointer-events: auto;
-}
 
-.progress-container {
-    width: 100%;
-    position: relative;
-}
-
-.progress-slider {
-    width: 100%;
-    height: 4px;
-}
-
-.progress-hover-tooltip {
-    position: absolute;
-    bottom: 14px;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    pointer-events: none;
-    white-space: nowrap;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-
-:deep(.progress-slider .el-slider__runway) {
-    background: rgba(255, 255, 255, 0.25);
-    height: 4px;
-    margin: 0;
-}
-
-:deep(.progress-slider .el-slider__bar) {
-    background: #fff;
-    height: 4px;
-}
-
-:deep(.progress-slider .el-slider__button-wrapper) {
-    top: -15px;
-}
-
-:deep(.progress-slider .el-slider__button) {
-    border: none;
-    width: 12px;
-    height: 12px;
-    background: #fff;
-    transform: scale(0);
-    transition: transform 0.2s;
-}
-
-.progress-container:hover :deep(.el-slider__button) {
-    transform: scale(1);
-}
-
-.control-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 36px;
-}
-
-.left-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.play-btn {
-    color: #fff;
-    font-size: 28px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: opacity 0.2s;
-
-    &:hover {
-        opacity: 0.8;
-    }
-}
-
-.time-display {
-    font-size: 13px;
-    font-weight: 500;
-    color: #fff;
-    display: flex;
-    gap: 4px;
-
-    .sep {
-        opacity: 0.5;
-    }
-}
-
-.right-controls {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.volume-control {
-    display: flex;
-    align-items: center;
-    position: relative;
-    height: 100%;
-
-    .volume-btn {
-        color: #fff;
-        font-size: 24px;
-        cursor: pointer;
+    .progress-container {
+        width: 100%;
+        height: 16px;
         display: flex;
         align-items: center;
-        z-index: 2;
-    }
-
-    .volume-slider-wrapper {
-        width: 0;
-        opacity: 0;
-        overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
-        margin-left: 0;
-        background: rgba(0, 0, 0, 0.6);
-        border-radius: 4px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding-right: 12px;
-    }
-
-    &:hover .volume-slider-wrapper {
-        width: 110px;
-        opacity: 1;
-        margin-left: 8px;
-        padding-left: 12px;
-    }
-}
-
-.volume-slider {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-}
-
-:deep(.volume-slider .el-slider__runway) {
-    background: rgba(255, 255, 255, 0.3);
-    height: 3px;
-    margin: 0;
-}
-
-:deep(.volume-slider .el-slider__bar) {
-    background: #face15;
-    height: 3px;
-}
-
-:deep(.volume-slider .el-slider__button) {
-    width: 10px;
-    height: 10px;
-    border: none;
-}
-
-:deep(.volume-slider .el-slider__button-wrapper) {
-    top: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.volume-percent {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.75);
-    font-weight: 600;
-    white-space: nowrap;
-    line-height: 1;
-}
-
-.speed-control {
-    position: relative;
-    height: 100%;
-    display: flex;
-    align-items: center;
-}
-
-.speed-trigger {
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    padding: 0 4px;
-    position: relative;
-}
-
-.speed-menu-wrapper {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding-bottom: 16px;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease;
-}
-
-.speed-trigger:hover .speed-menu-wrapper {
-    opacity: 1;
-    visibility: visible;
-}
-
-.speed-menu {
-    background: rgba(28, 28, 30, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 8px;
-    padding: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    width: 120px;
-
-    .speed-options {
-        display: flex;
-        flex-direction: column-reverse;
-        gap: 2px;
-    }
-
-    .speed-item {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 13px;
-        padding: 8px;
-        text-align: center;
-        border-radius: 4px;
+        position: relative;
         cursor: pointer;
-        transition: all 0.2s;
 
-        &:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
+        .progress-slider {
+            width: 100%;
+            height: 4px;
+
+            :deep(.el-slider__runway) {
+                height: 4px;
+                background: var(--vm-white-25);
+                border-radius: 2px;
+                margin: 0;
+            }
+
+            :deep(.el-slider__bar) {
+                height: 4px;
+                background: var(--vm-white-50);
+                border-radius: 2px;
+            }
+
+            :deep(.el-slider__button) {
+                width: 12px;
+                height: 12px;
+                background: var(--vm-color-white);
+                border: none;
+                box-shadow: 0 2px 4px var(--vm-black-35);
+                transform: scale(0);
+                transition: transform 0.1s;
+            }
         }
 
-        &.active {
-            color: #face15;
+        &:hover :deep(.el-slider__button) {
+            transform: scale(1);
+        }
+
+        .progress-hover-tooltip {
+            position: absolute;
+            bottom: 20px;
+            transform: translateX(-50%);
+            background: var(--vm-black-80);
+            color: var(--vm-color-white);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    }
+
+    .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 40px;
+
+        .left-controls,
+        .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .play-btn {
+            color: var(--vm-color-white);
+            font-size: 28px;
+            cursor: pointer;
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+
+        .time-display {
+            font-size: 13px;
+            color: var(--vm-white-85);
+            font-feature-settings: 'tnum';
+
+            .sep {
+                margin: 0 4px;
+                color: var(--vm-white-45);
+            }
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 24;
+            padding: 0;
+            height: 32px;
+            overflow: visible;
+
+            .volume-btn {
+                font-size: 24px;
+                color: var(--vm-color-white);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                position: relative;
+                z-index: 36;
+            }
+
+            .volume-slider-wrapper {
+                position: absolute;
+                left: 50%;
+                bottom: calc(100% + 8px);
+                transform: translate(-50%, 6px);
+                width: 54px;
+                padding: 10px 0 12px;
+                border-radius: 16px;
+                background: var(--vm-panel-bg-soft);
+                border: 1px solid var(--vm-white-10);
+                box-shadow: 0 6px 14px var(--vm-black-35);
+                opacity: 0;
+                visibility: hidden;
+                overflow: visible;
+                z-index: 30;
+                transition:
+                    opacity 0.2s ease,
+                    transform 0.2s ease,
+                    visibility 0.2s ease;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                pointer-events: none;
+
+                &::after {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    bottom: -10px;
+                    height: 10px;
+                }
+
+                &.open {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: translate(-50%, 0);
+                    pointer-events: auto;
+                }
+            }
+
+            .volume-value {
+                min-height: 16px;
+                font-size: 12px;
+                line-height: 16px;
+                font-weight: 700;
+                color: var(--vm-color-accent);
+                text-align: center;
+                user-select: none;
+            }
+
+            .volume-slider {
+                width: 14px;
+                height: 110px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto;
+                flex: none;
+
+                :deep(.el-slider) {
+                    width: 14px;
+                    height: 110px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                :deep(.el-slider.is-vertical) {
+                    height: 110px;
+                    width: 14px;
+                }
+
+                :deep(.el-slider.is-vertical .el-slider__runway) {
+                    width: 4px;
+                    height: 100%;
+                    margin: 0;
+                    background: var(--vm-white-20);
+                    border-radius: 999px;
+                }
+
+                :deep(.el-slider.is-vertical .el-slider__bar) {
+                    width: 4px;
+                    background: $color-accent;
+                    border-radius: 999px;
+                }
+
+                :deep(.el-slider.is-vertical .el-slider__button-wrapper) {
+                    left: 50%;
+                    margin-left: 0;
+                    transform: translateX(-50%);
+                }
+
+                :deep(.el-slider.is-vertical .el-slider__button) {
+                    width: 12px;
+                    height: 12px;
+                    border: none;
+                    background: var(--vm-color-white);
+                    box-shadow: 0 2px 4px var(--vm-black-35);
+                }
+            }
+
+            .volume-percent {
+                display: none;
+            }
+        }
+
+        .speed-control {
+            font-size: 14px;
             font-weight: 600;
+            color: var(--vm-color-white);
+            cursor: pointer;
+            position: relative;
+
+            .speed-trigger:hover .speed-menu-wrapper {
+                opacity: 1;
+                visibility: visible;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            .speed-menu-wrapper {
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%) translateY(10px);
+                padding-bottom: 12px;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.2s;
+
+                .speed-menu {
+                    background: var(--vm-panel-bg-soft);
+                    backdrop-filter: blur(10px);
+                    border-radius: 8px;
+                    padding: 4px;
+
+                    .speed-item {
+                        padding: 8px 16px;
+                        color: var(--vm-white-75);
+                        font-size: 13px;
+                        cursor: pointer;
+                        border-radius: 4px;
+
+                        &:hover {
+                            background: var(--vm-white-10);
+                            color: var(--vm-color-white);
+                        }
+                        &.active {
+                            color: $color-accent;
+                        }
+                    }
+                }
+            }
         }
-    }
-}
 
-.icon-btn {
-    color: #fff;
-    font-size: 22px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    opacity: 0.9;
-    transition: opacity 0.2s;
-
-    &:hover {
-        opacity: 1;
-    }
-
-    &.disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
+        .icon-btn {
+            font-size: 22px;
+            color: var(--vm-color-white);
+            cursor: pointer;
+            &:hover {
+                opacity: 0.8;
+            }
+            &.disabled {
+                opacity: 0.3;
+                cursor: default;
+            }
+        }
     }
 }
 
 .comment-panel {
+    position: relative;
     width: 0;
     height: 100%;
-    background: rgba(24, 24, 28, 0.98);
-    backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background: $color-bg-panel;
+    backdrop-filter: blur(40px) saturate(180%);
+    border-left: 1px solid $color-border;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
+    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 
     &.open {
-        width: 400px;
-        opacity: 1;
+        width: 420px;
     }
-}
+    &.with-collection.open {
+        width: 480px;
+    }
 
-.comment-panel.with-collection.open {
-    width: 460px;
-}
-
-.comment-panel-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    .header-left {
+    .comment-panel-header {
+        height: 56px;
         display: flex;
-        align-items: baseline;
-        gap: 10px;
-    }
-
-    .title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    .count {
-        font-size: 13px;
-        color: rgba(255, 255, 255, 0.5);
-    }
-
-    .panel-close {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 20px;
-        cursor: pointer;
-        transition: color 0.2s;
-        border: none;
-        background: transparent;
-        padding: 0;
-
-        &:hover {
-            color: #fff;
-        }
-    }
-}
-
-.panel-tabs {
-    :deep(.el-tabs__header) {
-        margin: 0;
-    }
-
-    :deep(.el-tabs__nav-wrap::after) {
-        display: none;
-    }
-
-    :deep(.el-tabs__item) {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
-        font-weight: 600;
-        padding: 0 8px;
-        height: auto;
-        line-height: 1.2;
-        transition: color 0.2s ease;
-    }
-
-    :deep(.el-tabs__item.is-active) {
-        color: #fff;
-    }
-
-    :deep(.el-tabs__active-bar) {
-        background: #face15;
-        height: 2px;
-        border-radius: 2px;
-    }
-}
-
-.comment-panel-body {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-gutter: auto;
-    padding: 0 20px;
-
-    &::-webkit-scrollbar {
-        width: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 2px;
-    }
-}
-
-.comment-panel-count {
-    padding: 16px 0 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.detail-panel {
-    padding: 16px 0 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.detail-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.detail-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.detail-content-text {
-    font-size: 14px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9);
-    white-space: pre-wrap;
-}
-
-.detail-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.detail-tag {
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(250, 206, 21, 0.16);
-    color: #face15;
-}
-
-.detail-empty {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.collection-panel-title {
-    padding: 16px 0 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.collection-loading,
-.collection-empty {
-    padding-top: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: rgba(255, 255, 255, 0.4);
-    gap: 10px;
-    font-size: 14px;
-}
-
-.collection-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 0;
-}
-
-.collection-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 10px 12px;
-    color: #fff;
-    cursor: pointer;
-    text-align: left;
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease,
-        transform 0.2s ease;
-}
-
-.collection-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-1px);
-}
-
-.collection-item.active {
-    border-color: rgba(250, 206, 21, 0.6);
-    background: rgba(250, 206, 21, 0.12);
-}
-
-.collection-thumb {
-    width: 68px;
-    height: 42px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.collection-cover {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-.collection-thumb-empty {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 20px;
-}
-
-.collection-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.collection-title {
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.collection-meta {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.collection-playing {
-    font-size: 11px;
-    color: #face15;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.comment-empty {
-    padding-top: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: rgba(255, 255, 255, 0.4);
-    gap: 12px;
-    font-size: 14px;
-
-    .empty-icon {
-        font-size: 48px;
-        opacity: 0.5;
-    }
-}
-
-.comment-item {
-    display: flex;
-    gap: 12px;
-    padding: 16px 0;
-
-    .comment-avatar {
-        flex-shrink: 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .comment-main {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .comment-user-info {
-        display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: space-between;
-        margin-bottom: 4px;
+        padding: 0 20px;
+        border-bottom: 1px solid $color-border;
+        background: var(--vm-panel-bg-soft);
+        flex-shrink: 0;
 
-        .comment-name {
-            font-size: 13px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.6);
+        .panel-tabs {
+            :deep(.el-tabs__item) {
+                color: $color-text-secondary;
+                font-weight: 500;
+                font-size: 15px;
+                padding: 0 16px;
+                transition: color 0.2s;
+
+                &.is-active {
+                    color: $color-text-primary;
+                    font-weight: 600;
+                }
+                &:hover {
+                    color: var(--vm-color-white);
+                }
+            }
+            :deep(.el-tabs__active-bar) {
+                background-color: $color-accent;
+                height: 3px;
+                border-radius: 3px;
+            }
+            :deep(.el-tabs__nav-wrap::after) {
+                display: none;
+            }
         }
 
-        .comment-time {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.3);
-        }
-    }
-
-    .comment-content {
-        font-size: 14px;
-        line-height: 1.5;
-        color: rgba(255, 255, 255, 0.9);
-        white-space: pre-wrap;
-        word-break: break-all;
-        margin-bottom: 8px;
-        cursor: pointer;
-    }
-
-    .comment-actions {
-        display: flex;
-        gap: 16px;
-        margin-bottom: 4px;
-
-        .action-text {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
+        .panel-close {
+            color: $color-text-secondary;
+            font-size: 20px;
             cursor: pointer;
-            transition: color 0.2s;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
-            gap: 4px;
-            font-weight: 500;
+            justify-content: center;
+            border-radius: 50%;
+            background: transparent;
+            transition: all 0.2s;
 
             &:hover {
-                color: #face15;
+                background: var(--vm-white-10);
+                color: var(--vm-color-white);
             }
-
-            &.delete-btn {
-                color: rgba(255, 255, 255, 0.5);
-            }
-
-            &.delete-btn:hover {
-                color: #ff6b6b;
-            }
-
-            &.danger {
-                color: #ff6b6b;
-            }
-
-            &.danger:hover {
-                color: #ff9a9a;
-            }
-        }
-
-        .divider {
-            width: 12px;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.2);
-            margin-right: 4px;
         }
     }
 
-    .comment-replies {
-        margin-top: 8px;
-        padding-left: 16px;
-        border-left: 2px solid rgba(255, 255, 255, 0.15);
+    .comment-panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--vm-white-20) transparent;
         display: flex;
         flex-direction: column;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: var(--vm-white-20);
+            border-radius: 3px;
+        }
+    }
+
+    .comment-list-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .comment-item {
+        display: flex;
         gap: 12px;
 
-        .reply-item {
-            display: flex;
-            gap: 10px;
+        .comment-avatar {
+            flex-shrink: 0;
+            border: 1px solid var(--vm-white-10);
+        }
+        .comment-main {
+            flex: 1;
+            min-width: 0;
+        }
 
-            .reply-avatar {
-                flex-shrink: 0;
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
+
+            .comment-name {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--vm-white-85);
+            }
+            .comment-time {
+                font-size: 11px;
+                color: $color-text-muted;
+            }
+        }
+
+        .comment-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: $color-text-primary;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            cursor: pointer;
+        }
+
+        .comment-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            .footer-actions {
+                display: flex;
+                gap: 16px;
             }
 
-            .reply-main {
-                flex: 1;
+            .action-btn {
+                font-size: 12px;
+                color: $color-text-secondary;
+                cursor: pointer;
+                font-weight: 500;
+                &:hover {
+                    color: var(--vm-color-white);
+                }
+                &.delete:hover {
+                    color: $color-accent;
+                }
+            }
 
-                .reply-user-info {
+            .expand-reply-btn {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 12px;
+                color: $color-text-secondary;
+                cursor: pointer;
+                background: var(--vm-white-5);
+                padding: 2px 8px;
+                border-radius: 12px;
+                transition: background 0.2s;
+
+                &:hover {
+                    background: var(--vm-white-10);
+                    color: var(--vm-color-white);
+                }
+                .line {
+                    width: 12px;
+                    height: 1px;
+                    background: $color-text-muted;
+                }
+            }
+        }
+
+        .comment-replies {
+            margin-top: 12px;
+            padding: 12px;
+            background: $color-bg-soft;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+
+            .reply-item {
+                display: flex;
+                gap: 10px;
+
+                .reply-avatar {
+                    flex-shrink: 0;
+                }
+                .reply-main {
+                    flex: 1;
+                }
+
+                .reply-header {
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 2px;
-                    display: flex;
-                    align-items: center;
-
-                    .reply-arrow {
-                        display: flex;
-                        align-items: center;
-                        margin-left: 4px;
-                        color: rgba(255, 255, 255, 0.3);
-                        font-size: 14px;
+                    margin-bottom: 4px;
+                    .reply-name {
+                        font-weight: 600;
+                        color: var(--vm-white-75);
                     }
-
-                    .target-name {
-                        color: #face15;
-                        margin-left: 2px;
-                        font-weight: 500;
+                    .reply-target {
+                        color: $color-text-muted;
+                        display: inline-flex;
+                        align-items: center;
+                        margin-left: 6px;
+                        .arrow-icon {
+                            font-size: 14px;
+                            margin: 0 2px;
+                        }
+                        span {
+                            color: $color-text-secondary;
+                        }
                     }
                 }
 
                 .reply-content {
                     font-size: 13px;
-                    color: rgba(255, 255, 255, 0.85);
+                    color: $color-text-primary;
+                    margin-bottom: 6px;
                     line-height: 1.4;
-                    margin-bottom: 4px;
                     cursor: pointer;
                 }
 
-                .reply-meta {
+                .reply-footer {
                     display: flex;
                     gap: 12px;
                     font-size: 11px;
-                    color: rgba(255, 255, 255, 0.4);
-                    align-items: center;
+                    color: $color-text-muted;
 
-                    .reply-btn {
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.6);
+                    .action-btn {
                         cursor: pointer;
                         &:hover {
-                            color: #face15;
-                        }
-
-                        &.delete-btn {
-                            color: rgba(255, 255, 255, 0.5);
-                        }
-
-                        &.delete-btn:hover {
-                            color: #ff6b6b;
-                        }
-
-                        &.danger {
-                            color: #ff6b6b;
-                        }
-
-                        &.danger:hover {
-                            color: #ff9a9a;
+                            color: var(--vm-color-white);
                         }
                     }
+                    .delete:hover {
+                        color: $color-accent;
+                    }
+                }
+            }
+
+            .load-more-replies {
+                padding-top: 4px;
+                font-size: 12px;
+                color: $color-accent;
+                cursor: pointer;
+                font-weight: 500;
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+
+    .comment-panel-footer {
+        padding: 16px 20px;
+        background: var(--vm-panel-bg-soft);
+        border-top: 1px solid $color-border;
+        flex-shrink: 0;
+
+        .reply-context-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--vm-white-10);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: var(--vm-white-85);
+
+            .name {
+                font-weight: 600;
+                margin-left: 4px;
+            }
+            .cancel-reply {
+                cursor: pointer;
+                color: $color-text-muted;
+                &:hover {
+                    color: var(--vm-color-white);
                 }
             }
         }
 
-        .load-more-replies {
-            padding-top: 4px;
-            .load-more-text {
-                font-size: 13px;
-                color: rgba(255, 255, 255, 0.7);
-                cursor: pointer;
+        .input-area {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+
+            .comment-input {
+                :deep(.el-textarea__inner) {
+                    background: $color-bg-input;
+                    border: 1px solid transparent;
+                    border-radius: 20px;
+                    padding: 10px 16px;
+                    color: var(--vm-color-white);
+                    font-size: 14px;
+                    line-height: 1.5;
+                    box-shadow: none;
+                    transition: all 0.2s;
+
+                    &:focus {
+                        background: var(--vm-white-10);
+                        border-color: var(--vm-white-20);
+                    }
+                }
+            }
+
+            .send-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, $color-accent, var(--vm-color-accent-hover));
+                color: var(--vm-color-white);
                 display: flex;
                 align-items: center;
-                gap: 4px;
-                transition: color 0.2s;
-                font-weight: 500;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 18px;
+                flex-shrink: 0;
+                transition:
+                    transform 0.2s,
+                    opacity 0.2s;
 
                 &:hover {
-                    color: #face15;
+                    transform: scale(1.05);
+                }
+                &.disabled {
+                    background: var(--vm-white-10);
+                    color: var(--vm-white-30);
+                    cursor: default;
+                    transform: none;
+                }
+            }
+        }
+    }
+
+    .collection-panel-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--vm-color-white);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        .collection-icon {
+            color: $color-accent;
+            font-size: 18px;
+        }
+    }
+
+    .collection-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .collection-item {
+            display: flex;
+            gap: 12px;
+            padding: 8px;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:hover {
+                background: var(--vm-white-5);
+            }
+            &.active {
+                background: var(--vm-accent-soft-light);
+                border-color: var(--vm-accent-soft-strong);
+            }
+
+            .collection-thumb {
+                width: 88px;
+                height: 50px;
+                border-radius: 6px;
+                overflow: hidden;
+                background: var(--vm-white-15);
+                position: relative;
+
+                .collection-cover {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .playing-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: var(--vm-black-50);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    .bar-anim {
+                        display: flex;
+                        gap: 2px;
+                        height: 12px;
+                        align-items: flex-end;
+
+                        span {
+                            width: 3px;
+                            background: $color-accent;
+                            animation: soundbar 0.8s ease-in-out infinite;
+                            &:nth-child(1) {
+                                height: 60%;
+                                animation-delay: 0s;
+                            }
+                            &:nth-child(2) {
+                                height: 100%;
+                                animation-delay: 0.2s;
+                            }
+                            &:nth-child(3) {
+                                height: 50%;
+                                animation-delay: 0.4s;
+                            }
+                        }
+                    }
+                }
+            }
+
+            .collection-info {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+
+                .collection-title {
+                    font-size: 13px;
+                    color: var(--vm-white-90);
+                    margin-bottom: 4px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .collection-meta {
+                    font-size: 11px;
+                    color: $color-text-muted;
+                }
+            }
+        }
+    }
+
+    .detail-panel {
+        .detail-section {
+            margin-bottom: 20px;
+            &:last-child {
+                margin-bottom: 0;
+            }
+            .detail-label {
+                font-size: 12px;
+                font-weight: 700;
+                color: $color-text-muted;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .detail-content-text {
+                font-size: 14px;
+                line-height: 1.6;
+                color: $color-text-secondary;
+            }
+            .detail-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                .detail-tag {
+                    font-size: 12px;
+                    color: $color-accent;
+                    background: var(--vm-accent-soft-light);
+                    padding: 4px 10px;
+                    border-radius: 4px;
                 }
             }
         }
     }
 }
 
+.comment-empty,
+.collection-empty,
+.collection-loading,
 .comment-loading,
 .comment-end {
-    padding: 24px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 12px;
+    justify-content: center;
+    padding: 40px 0;
+    min-height: 200px;
+    color: $color-text-muted;
+    font-size: 13px;
+    gap: 12px;
 
+    .empty-icon {
+        font-size: 48px;
+        opacity: 0.3;
+    }
     .loading-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-top-color: #face15;
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--vm-white-10);
+        border-top-color: $color-accent;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
     }
 }
 
 @keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
     to {
         transform: rotate(360deg);
     }
 }
-
-.comment-panel-footer {
-    padding: 16px 20px;
-    background: rgba(24, 24, 28, 0.95);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-
-    .reply-context-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 6px 10px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
-
-        .cancel-reply {
-            cursor: pointer;
-            display: flex;
-            &:hover {
-                color: #fff;
-            }
-        }
+@keyframes soundbar {
+    0%,
+    100% {
+        height: 30%;
     }
-
-    .input-area {
-        display: flex;
-        gap: 10px;
-        align-items: flex-end;
-
-        :deep(.el-textarea__inner) {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            color: #fff;
-            padding: 4px 10px;
-            min-height: 28px !important;
-            line-height: 18px;
-            font-size: 14px;
-            outline: none;
-            box-shadow: none;
-
-            &:focus {
-                background: rgba(255, 255, 255, 0.06);
-                border-color: rgba(255, 255, 255, 0.2);
-            }
-
-            &::-webkit-scrollbar {
-                display: none;
-            }
-        }
-
-        .send-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #face15;
-            color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-
-            &.disabled {
-                background: rgba(255, 255, 255, 0.1);
-                color: rgba(255, 255, 255, 0.3);
-                cursor: not-allowed;
-            }
-
-            &:not(.disabled):hover {
-                transform: scale(1.05);
-                background: #fbd63d;
-            }
-        }
+    50% {
+        height: 100%;
     }
 }
 
-.repost-dialog-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-}
-
-.repost-dialog-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.repost-dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.custom-textarea {
-    :deep(.el-textarea__inner) {
+.repost-dialog {
+    :deep(.el-dialog) {
+        background: var(--el-bg-color-overlay);
         border-radius: 12px;
-        padding: 16px;
-        font-size: 15px;
-        line-height: 1.6;
-        border: 1px solid var(--el-border-color);
-        background-color: var(--el-input-bg-color, var(--el-fill-color-blank));
+    }
+    :deep(.el-dialog__header) {
+        margin: 0;
+        padding: 20px;
+        border-bottom: 1px solid var(--el-border-color);
+    }
+    :deep(.el-dialog__title) {
         color: var(--el-text-color-primary);
-        box-shadow: none;
-        transition: all 0.3s;
-
-        &::placeholder {
-            color: var(--el-text-color-placeholder);
-        }
-
-        &:focus {
-            background-color: var(--el-bg-color);
-            border-color: var(--el-color-primary);
-            box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+        font-size: 16px;
+    }
+    :deep(.el-dialog__body) {
+        padding: 20px;
+    }
+    :deep(.el-dialog__footer) {
+        padding: 20px;
+        border-top: 1px solid var(--el-border-color);
+    }
+    :deep(.el-button--text) {
+        color: var(--el-text-color-secondary);
+        &:hover {
+            color: var(--el-text-color-primary);
         }
     }
 }
@@ -2951,35 +2753,24 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
     .player-frame {
         flex-direction: column;
-        width: 100%;
-        height: 100%;
-        border-radius: 0;
     }
-
-    .player-shell {
-        border-radius: 0;
-    }
-
     .comment-panel {
-        position: fixed;
+        position: absolute;
         bottom: 0;
         left: 0;
         width: 100% !important;
-        height: 70vh;
+        height: 75%;
         border-radius: 16px 16px 0 0;
         transform: translateY(100%);
-        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        opacity: 1;
 
         &.open {
             transform: translateY(0);
-            width: 100%;
         }
     }
-
     .right-sidebar {
-        right: 12px;
-        bottom: 80px;
-        padding-bottom: 0;
+        bottom: 120px;
+        right: 16px;
     }
 }
 </style>

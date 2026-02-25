@@ -593,12 +593,17 @@ const getCommentName = (comment: any) => comment?.nickName || comment?.userName 
 
 const handleWindowScroll = () => {
     if (typeof window === 'undefined') return
-    if (window.scrollY > 0) hasUserScrolledAfterQuery.value = true
+    const layoutScrollTop = layoutScrollContainer.value?.scrollTop ?? 0
+    const windowScrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0
+    if (Math.max(layoutScrollTop, windowScrollTop) > 0) hasUserScrolledAfterQuery.value = true
 }
 
+const layoutScrollContainer = ref<HTMLElement | null>(null)
 const bindWindowScroll = () => {
     if (windowScrollBound || typeof window === 'undefined') return
+    layoutScrollContainer.value = document.querySelector('#app .main-container')
     window.addEventListener('scroll', handleWindowScroll, { passive: true })
+    layoutScrollContainer.value?.addEventListener('scroll', handleWindowScroll, { passive: true })
     windowScrollBound = true
     handleWindowScroll()
 }
@@ -606,6 +611,8 @@ const bindWindowScroll = () => {
 const unbindWindowScroll = () => {
     if (!windowScrollBound || typeof window === 'undefined') return
     window.removeEventListener('scroll', handleWindowScroll)
+    layoutScrollContainer.value?.removeEventListener('scroll', handleWindowScroll)
+    layoutScrollContainer.value = null
     windowScrollBound = false
 }
 

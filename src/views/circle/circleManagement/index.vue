@@ -36,16 +36,35 @@
                                     />
                                 </el-form-item>
 
-                                <el-form-item label="封面图片" prop="coverUrl">
-                                    <ImageUpload
-                                        v-model="form.coverUrl"
-                                        :limit="1"
-                                        :file-size="5"
-                                        :file-type="['png', 'jpg', 'jpeg', 'webp']"
-                                        :is-show-tip="true"
-                                        oss-type="circles"
-                                        class="cover-uploader"
-                                    />
+                                <el-form-item label="封面图片" prop="coverUrl" class="cover-upload-item">
+                                    <div class="cover-upload-box">
+                                        <ImageUpload
+                                            v-model="form.coverUrl"
+                                            :limit="1"
+                                            :file-size="5"
+                                            :file-type="['png', 'jpg', 'jpeg', 'webp']"
+                                            :is-show-tip="false"
+                                            oss-type="circles"
+                                            class="wide-cover-uploader"
+                                            @uploading-change="handleCoverUploadingChange"
+                                        >
+                                            <template #trigger>
+                                                <div class="placeholder-content">
+                                                    <div class="icon-circle">
+                                                        <Icon icon="mdi:image-plus-outline" />
+                                                    </div>
+                                                    <div class="text-group">
+                                                        <span class="main-text">上传封面</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </ImageUpload>
+                                        <div v-if="coverUploading" class="cover-upload-loading">
+                                            <Icon icon="mdi:loading" class="loading-icon" />
+                                            <span class="loading-text">上传中...</span>
+                                        </div>
+                                    </div>
+                                    <div class="cover-upload-tip">建议 1:1，支持 JPG/PNG/WebP，最大 5MB</div>
                                 </el-form-item>
                             </div>
                         </el-col>
@@ -116,6 +135,7 @@ const initialForm = () => ({
 const form = reactive<CreateCirclePayload>(initialForm())
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+const coverUploading = ref(false)
 const coverPreviewUrl = computed(() => getImgUrl(form.coverUrl || ''))
 const mockMemberCount = ref(formatMockNumber(800, 5200))
 const mockPostCount = ref(formatMockNumber(120, 980))
@@ -135,6 +155,11 @@ const rules: FormRules = {
 const handleReset = () => {
     formRef.value?.clearValidate()
     Object.assign(form, initialForm())
+    coverUploading.value = false
+}
+
+const handleCoverUploadingChange = (value: boolean) => {
+    coverUploading.value = Boolean(value)
 }
 
 const handleSubmit = async () => {
@@ -260,8 +285,205 @@ const handleSubmit = async () => {
     }
 }
 
-.cover-uploader {
+.cover-upload-item {
+    margin-bottom: 0 !important;
+
+    :deep(.el-form-item__content) {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+.cover-upload-box {
+    width: 132px;
+    height: 132px;
+    position: relative;
+}
+
+.wide-cover-uploader {
+    width: 132px;
+    height: 132px;
+    display: block;
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+
+    :deep(.glass-upload-container) {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border-radius: 16px;
+        overflow: hidden;
+        background-color: color-mix(in srgb, var(--el-bg-color) 94%, var(--el-color-primary-light-9));
+        border: 2px dashed color-mix(in srgb, var(--el-border-color) 82%, var(--el-color-primary) 18%);
+        box-shadow: none;
+        transition: all 0.2s;
+    }
+
+    :deep(.upload-wrapper),
+    :deep(.glass-uploader) {
+        height: 100%;
+    }
+
+    :deep(.glass-uploader .el-upload-list--picture-card) {
+        height: 100%;
+        margin: 0;
+        display: block;
+    }
+
+    :deep(.glass-uploader .el-upload-list--picture-card .el-upload-list__item) {
+        width: 100%;
+        height: 100%;
+        padding-bottom: 0;
+        margin: 0;
+        border: none;
+        border-radius: 14px;
+        background: transparent;
+    }
+
+    :deep(.glass-uploader .el-upload--picture-card) {
+        width: 100% !important;
+        height: 100% !important;
+        padding-bottom: 0 !important;
+        border: none;
+        border-radius: 14px;
+        background: transparent;
+    }
+
+    :deep(.glass-uploader .el-upload-dragger) {
+        position: static;
+        width: 100%;
+        height: 100%;
+    }
+
+    :deep(.el-upload-list__item-thumbnail) {
+        object-fit: cover;
+    }
+
+    :deep(.upload-trigger-content) {
+        gap: 12px;
+    }
+
+    &:hover {
+        :deep(.glass-upload-container) {
+            border-color: var(--el-color-primary);
+            background-color: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-primary-light-8));
+        }
+    }
+}
+
+.cover-upload-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: color-mix(in srgb, var(--el-bg-color) 76%, transparent);
+    backdrop-filter: blur(2px);
+    pointer-events: all;
+
+    .loading-icon {
+        font-size: 24px;
+        color: var(--el-color-primary);
+        animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+        font-size: 13px;
+        color: var(--el-text-color-primary);
+        font-weight: 600;
+    }
+}
+
+.cover-upload-tip {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--el-text-color-secondary);
+}
+
+.placeholder-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
+    height: 100%;
+}
+
+.icon-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--el-bg-color) 86%, var(--el-fill-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--el-text-color-secondary);
+    transition: all 0.3s ease;
+}
+
+.text-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    .main-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        transition: color 0.3s;
+    }
+
+    .sub-text {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+    }
+}
+
+.wide-cover-uploader:hover {
+    .icon-circle {
+        background-color: var(--el-bg-color);
+        color: var(--el-color-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+    }
+
+    .main-text {
+        color: var(--el-color-primary);
+    }
+}
+
+:global(html.dark) .wide-cover-uploader :deep(.glass-upload-container) {
+    background-color: color-mix(in srgb, var(--el-bg-color) 92%, var(--el-fill-color));
+    border-color: color-mix(in srgb, var(--el-border-color) 85%, var(--el-color-primary) 15%);
+}
+
+:global(html.dark) .wide-cover-uploader:hover :deep(.glass-upload-container) {
+    background-color: color-mix(in srgb, var(--el-bg-color) 86%, var(--el-color-primary) 14%);
+}
+
+:global(html.dark) .icon-circle {
+    background-color: color-mix(in srgb, var(--el-bg-color) 76%, var(--el-fill-color));
+    color: var(--el-color-primary-light-5);
+}
+
+:global(html.dark) .cover-upload-loading {
+    background: color-mix(in srgb, var(--el-bg-color) 68%, transparent);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .preview-container {
@@ -306,7 +528,7 @@ const handleSubmit = async () => {
     .mockup-screen {
         width: 100%;
         height: 100%;
-        background: #fff;
+        background: var(--el-bg-color);
         border-radius: 28px;
         overflow: hidden;
         display: flex;
@@ -322,8 +544,9 @@ const handleSubmit = async () => {
         padding: 0 16px;
         font-size: 14px;
         font-weight: 600;
-        color: #333;
+        color: var(--el-text-color-primary);
         margin-top: 20px;
+        z-index: 2;
 
         .iconify {
             font-size: 20px;
@@ -332,7 +555,7 @@ const handleSubmit = async () => {
 
     .mockup-cover {
         height: 160px;
-        background-color: #f5f7fa;
+        background-color: var(--el-fill-color-light);
         position: relative;
         overflow: hidden;
 
@@ -348,7 +571,7 @@ const handleSubmit = async () => {
             align-items: center;
             justify-content: center;
             font-size: 32px;
-            color: #dcdfe6;
+            color: var(--el-text-color-placeholder);
         }
 
         .mockup-overlay {
@@ -370,12 +593,12 @@ const handleSubmit = async () => {
         .mockup-title {
             font-size: 18px;
             font-weight: 700;
-            color: #303133;
+            color: var(--el-text-color-primary);
             margin-bottom: 8px;
             margin-top: -30px;
             position: relative;
             z-index: 2;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .mockup-meta {
@@ -388,13 +611,13 @@ const handleSubmit = async () => {
                 align-items: center;
                 gap: 4px;
                 font-size: 12px;
-                color: #909399;
+                color: var(--el-text-color-secondary);
             }
         }
 
         .mockup-desc {
             font-size: 13px;
-            color: #606266;
+            color: var(--el-text-color-regular);
             line-height: 1.5;
             margin-bottom: 20px;
             flex: 1;

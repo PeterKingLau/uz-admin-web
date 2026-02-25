@@ -22,7 +22,13 @@ const service: AxiosInstance = axios.create({
     timeout: DEFAULT_TIMEOUT
 })
 
-const pendingRequests = new Map<string, AbortController>()
+type AbortControllerLike = {
+    abort: () => void
+    signal?: AbortSignal
+}
+
+const supportsAbortController = typeof globalThis !== 'undefined' && typeof (globalThis as any).AbortController === 'function'
+const pendingRequests = new Map<string, AbortControllerLike>()
 
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
     rawResponse?: boolean
@@ -55,8 +61,13 @@ function addPendingRequest(config: InternalAxiosRequestConfig) {
         controller?.abort()
     }
 
+    if (!supportsAbortController) {
+        pendingRequests.set(requestKey, { abort: () => undefined })
+        return
+    }
+
     const controller = new AbortController()
-    config.signal = controller.signal
+    if (controller.signal) config.signal = controller.signal
     pendingRequests.set(requestKey, controller)
 }
 
@@ -87,6 +98,17 @@ interface RepeatSubmitCache {
     time: number
 }
 
+const estimatePayloadSize = (payload: string): number => {
+    if (typeof Blob !== 'undefined') {
+        try {
+            return new Blob([payload]).size
+        } catch {
+            // noop
+        }
+    }
+    return payload.length
+}
+
 function checkRepeatSubmit(config: ExtendedInternalAxiosRequestConfig): boolean {
     const headers: Record<string, any> = (config.headers || {}) as any
     const isRepeatSubmit = config.repeatSubmit !== false && headers?.repeatSubmit !== false
@@ -101,7 +123,7 @@ function checkRepeatSubmit(config: ExtendedInternalAxiosRequestConfig): boolean 
         time: Date.now()
     }
 
-    const requestSize = new Blob([JSON.stringify(requestObj)]).size
+    const requestSize = estimatePayloadSize(JSON.stringify(requestObj))
     if (requestSize >= REQUEST_SIZE_LIMIT) {
         console.warn(`[${config.url}]: request payload too large, skip repeat-submit check`)
         return true

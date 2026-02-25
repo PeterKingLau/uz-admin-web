@@ -4,6 +4,9 @@
             <div class="header-left">
                 <Icon icon="mdi:cellphone" class="header-icon" />
                 <span class="label">实时预览</span>
+                <el-tag v-if="props.batchPreviewEnabled" size="small" type="primary" effect="plain" class="batch-index-tag">
+                    第 {{ props.batchPreviewIndex + 1 }}/{{ props.batchPreviewTotal }} 条
+                </el-tag>
             </div>
             <el-tag size="small" type="info" effect="plain">{{ props.currentTime }}</el-tag>
         </div>
@@ -165,6 +168,9 @@ const props = defineProps<{
     previewContentTitle: string
     previewContentPlaceholder: string
     selectedTagNames: TagItem[]
+    batchPreviewEnabled: boolean
+    batchPreviewIndex: number
+    batchPreviewTotal: number
 }>()
 
 const previewVideoRef = ref<HTMLVideoElement>()
@@ -228,6 +234,12 @@ const handleVideoEnded = () => {
     display: flex;
     flex-direction: column;
     align-items: center;
+    --preview-device-shell: var(--el-color-black);
+    --preview-device-shell-deep: color-mix(in srgb, var(--el-color-black) 92%, var(--el-color-white) 8%);
+    --preview-shadow-45: color-mix(in srgb, var(--el-color-black) 45%, transparent);
+    --preview-shadow-30: color-mix(in srgb, var(--el-color-black) 30%, transparent);
+    --preview-shadow-70: color-mix(in srgb, var(--el-color-black) 70%, transparent);
+    --preview-dot-soft: color-mix(in srgb, var(--el-color-white) 50%, transparent);
 }
 
 .preview-header {
@@ -252,6 +264,10 @@ const handleVideoEnded = () => {
             color: var(--el-text-color-primary);
             font-size: 16px;
         }
+
+        .batch-index-tag {
+            margin-left: 4px;
+        }
     }
 }
 
@@ -261,11 +277,11 @@ const handleVideoEnded = () => {
     background: var(--el-bg-color);
     border-radius: 46px;
     box-shadow:
-        0 0 0 2px var(--el-border-color-light),
-        0 0 0 10px #1f1f1f,
-        0 0 0 12px #0a0a0a,
-        0 24px 48px rgba(0, 0, 0, 0.45),
-        0 12px 24px rgba(0, 0, 0, 0.3);
+        0 0 0 2px color-mix(in srgb, var(--el-color-black) 82%, var(--el-color-white) 18%),
+        0 0 0 10px var(--preview-device-shell),
+        0 0 0 12px var(--preview-device-shell-deep),
+        0 24px 48px var(--preview-shadow-45),
+        0 12px 24px var(--preview-shadow-30);
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -278,7 +294,7 @@ const handleVideoEnded = () => {
         transform: translateX(-50%);
         width: 130px;
         height: 32px;
-        background: #0a0a0a;
+        background: var(--preview-device-shell-deep);
         border-radius: 0 0 18px 18px;
         z-index: 20;
         display: flex;
@@ -291,22 +307,22 @@ const handleVideoEnded = () => {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: var(--preview-device-shell);
+            border: 1px solid var(--el-border-color);
         }
 
         .speaker {
             width: 50px;
             height: 5px;
             border-radius: 3px;
-            background: #1a1a1a;
+            background: var(--preview-device-shell);
         }
     }
 
     .side-btn {
         position: absolute;
-        background: #1f1f1f;
-        border: 1px solid #0a0a0a;
+        background: var(--preview-device-shell);
+        border: 1px solid var(--preview-device-shell-deep);
     }
 
     .volume-up {
@@ -421,11 +437,11 @@ const handleVideoEnded = () => {
     }
 
     :deep(.el-carousel__arrow) {
-        background: rgba(0, 0, 0, 0.5);
+        background: color-mix(in srgb, var(--el-color-black) 50%, transparent);
         backdrop-filter: blur(4px);
 
         &:hover {
-            background: rgba(0, 0, 0, 0.7);
+            background: var(--preview-shadow-70);
         }
     }
 
@@ -466,8 +482,8 @@ const handleVideoEnded = () => {
         width: 54px;
         height: 54px;
         border-radius: 50%;
-        background: rgba(0, 0, 0, 0.45);
-        color: #fff;
+        background: var(--preview-shadow-45);
+        color: var(--el-color-white);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -488,7 +504,7 @@ const handleVideoEnded = () => {
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
+            background: var(--preview-dot-soft);
             transition: all 0.3s;
 
             &.active {

@@ -1,23 +1,20 @@
-const FILE_BASE: string = import.meta.env.VITE_APP_FILE_BASE_URL || ''
+﻿const FILE_BASE: string = import.meta.env.VITE_APP_FILE_BASE_URL || ''
 
-/**
- * 根据提供的路径获取完整的图片 URL。
- * @param path - 图片的相对路径或完整的 URL。
- * @returns 完整的图片 URL。
- */
+const isAbsoluteResourcePath = (path: string): boolean => /^(https?:)?\/\//i.test(path) || /^(blob|data|file):/i.test(path)
+
 export function getImgUrl(path: string): string {
-    if (!path) return ''
+    const normalizedPath = String(path || '').trim()
+    if (!normalizedPath) return ''
 
-    // 如果 path 是完整的 URL，直接返回
-    if (/^https?:\/\//i.test(path)) {
-        return path
+    if (isAbsoluteResourcePath(normalizedPath)) {
+        if (/^\/\//.test(normalizedPath)) {
+            const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:'
+            return `${protocol}${normalizedPath}`
+        }
+        return normalizedPath
     }
 
-    // 如果没有基础 URL，直接返回 path
-    if (!FILE_BASE) {
-        return path
-    }
+    if (!FILE_BASE) return normalizedPath
 
-    // 拼接基础 URL 和相对路径
-    return `${FILE_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+    return `${FILE_BASE.replace(/\/$/, '')}/${normalizedPath.replace(/^\//, '')}`
 }
