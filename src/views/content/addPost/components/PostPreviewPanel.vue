@@ -185,9 +185,7 @@ const resetVideoOverlay = async () => {
     try {
         previewVideoRef.value.pause()
         previewVideoRef.value.currentTime = 0
-    } catch {
-        // noop
-    }
+    } catch {}
     await nextTick()
 }
 
@@ -204,9 +202,7 @@ const startPreviewVideo = async () => {
     if (!video) return
     try {
         await video.play()
-    } catch {
-        // ignore autoplay/play promise rejection in preview
-    }
+    } catch {}
 }
 
 const handleVideoPlaying = () => {

@@ -809,7 +809,6 @@ defineExpose({
     }
 }
 
-/* Error States */
 .post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner),
 .post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner:focus) {
     box-shadow:

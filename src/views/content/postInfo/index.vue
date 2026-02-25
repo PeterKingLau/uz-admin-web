@@ -185,15 +185,25 @@ import { toggleFollowUser } from '@/api/content/userFollow'
 import { useEnumOptions } from '@/hooks/useEnumOptions'
 import useUserStore from '@/store/modules/user'
 import { POST_TYPE } from '@/utils/enum'
-import { parseTime } from '@/utils/utils'
-import { getImgUrl } from '@/utils/img'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
+import {
+    appendPreviewComment,
+    formatRelativeTime,
+    getCommentId,
+    getCommentReplyCount,
+    getCommentUserId,
+    normalizeCommentList,
+    parseMediaUrls,
+    resolveMediaUrl as resolveCommonMediaUrl,
+    resolvePreviewFollowState,
+    setPreviewFollowState,
+    toLocalDateTime
+} from '@/utils/content/common'
 
 const { proxy } = getCurrentInstance() || {}
 const router = useRouter()
 const userStore = useUserStore()
 
-// ==================== 数据状态 ====================
 const queryParams = reactive<{
     postType?: string
     content: string
@@ -220,12 +230,11 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const finished = ref(false)
 const deleting = ref(false)
-const selectedIds = ref(new Set<number | string>()) // 优化：使用 Set
+const selectedIds = ref(new Set<number | string>())
 const batchMode = ref(false)
 const totalCount = ref<number | null>(null)
 const isResettingQuery = ref(false)
 
-// 预览相关
 const previewVisible = ref(false)
 const previewPost = ref<any | null>(null)
 const videoPreviewVisible = ref(false)
@@ -254,7 +263,6 @@ const replyPageSize = 10
 const replyTarget = ref<any | null>(null)
 const deleteCommentLoading = reactive<Record<string, boolean>>({})
 
-// 标签相关
 const tagOptions = ref<any[]>([])
 const loadingTags = ref(false)
 const editTagVisible = ref(false)
@@ -262,7 +270,6 @@ const editTagPost = ref<any | null>(null)
 const editTagIds = ref<Array<string | number>>([])
 const updatingTag = ref(false)
 
-// 置顶相关
 const pinVisible = ref(false)
 const pinPost = ref<any | null>(null)
 const pinDays = ref<number>(7)
@@ -280,7 +287,6 @@ const hasUserScrolledAfterQuery = ref(false)
 const skipFirstActivatedRefresh = ref(true)
 let windowScrollBound = false
 
-// ==================== 计算属性 ====================
 const selectedCount = computed(() => selectedIds.value.size)
 
 const commentPlaceholder = computed(() => (replyTarget.value ? `回复 @${replyTarget.value.replyUserName}` : '说点什么...'))
@@ -353,7 +359,6 @@ const isPreviewAuthorSelf = computed(() => {
     return String(targetUserId) === String(userStore.id)
 })
 
-// ==================== 工具函数 ====================
 function resolveTagIds(post: any) {
     if (Array.isArray(post?.tags)) {
         return post.tags.map((tag: any) => tag.tagId ?? tag.id).filter((id: any) => id !== undefined && id !== null && id !== '')
@@ -370,40 +375,12 @@ function resolveTagIds(post: any) {
 
 function normalizeMediaList(post: any) {
     if (!post) return []
-    let rawList: any[] = []
-    const raw = post.mediaUrls ?? post.files
-    if (Array.isArray(raw)) {
-        rawList = raw
-    } else if (typeof raw === 'string') {
-        const trimmed = raw.trim()
-        if (trimmed) {
-            if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                try {
-                    rawList = JSON.parse(trimmed)
-                } catch {
-                    rawList = trimmed.split(',').map(item => item.trim())
-                }
-            } else {
-                rawList = trimmed.split(',').map(item => item.trim())
-            }
-        }
-    } else if (Array.isArray(post?.files)) {
-        rawList = post.files
-    }
-    return rawList
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.url || item?.src || item?.path || ''
-        })
-        .filter(Boolean)
+    return parseMediaUrls(post.mediaUrls ?? post.files)
 }
 
 function resolveMediaUrl(url: string) {
-    const raw = String(url || '').trim()
-    if (!raw) return ''
-    if (typeof (proxy as any)?.$imgUrl === 'function') return (proxy as any).$imgUrl(raw)
-    if (/^https?:\/\//.test(raw)) return raw
-    return getImgUrl(raw)
+    const resolver = typeof (proxy as any)?.$imgUrl === 'function' ? (proxy as any).$imgUrl : undefined
+    return resolveCommonMediaUrl(url, resolver)
 }
 
 const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
@@ -431,25 +408,6 @@ const resolveQRCodeText = (post: any) => {
 
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
 
-const formatRelativeTime = (time: any) => {
-    if (!time) return ''
-    let date = new Date(time)
-    if (Number.isNaN(date.getTime())) {
-        date = new Date(String(time).replace(/-/g, '/'))
-    }
-    if (Number.isNaN(date.getTime())) return String(time)
-    const now = new Date()
-    const diff = (now.getTime() - date.getTime()) / 1000
-    if (diff < 60) return '刚刚'
-    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
-    if (diff < 86400 * 3) return `${Math.floor(diff / 86400)}天前`
-    return parseTime(time, '{m}-{d}') || ''
-}
-
-const getCommentId = (comment: any) => comment?.id ?? comment?.commentId ?? comment?._id ?? null
-const getCommentUserId = (comment: any) => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
-
 const canDeleteComment = (comment: any) => {
     const commentUserId = getCommentUserId(comment)
     if ((userStore as any).id == null) return false
@@ -459,11 +417,6 @@ const canDeleteComment = (comment: any) => {
 const isDeleteCommentLoading = (comment: any) => {
     const commentId = getCommentId(comment)
     return commentId != null && Boolean(deleteCommentLoading[String(commentId)])
-}
-
-const getCommentReplyCount = (comment: any) => {
-    const value = comment?.replyCount ?? comment?.replyNum ?? comment?.replyCnt ?? 0
-    return Math.max(0, Number(value) || 0)
 }
 
 const ensureReplyState = (commentId: number | string | null) => {
@@ -484,37 +437,6 @@ const ensureReplyState = (commentId: number | string | null) => {
 const resolveReplyState = (comment: any) => {
     const commentId = getCommentId(comment)
     return ensureReplyState(commentId) || { open: false, loading: false, list: [], noMore: true }
-}
-
-const normalizeCommentList = (response: any) => {
-    if (Array.isArray(response?.data)) return response.data
-    if (Array.isArray(response?.rows)) return response.rows
-    if (Array.isArray(response?.list)) return response.list
-    const data = response?.data ?? {}
-    if (Array.isArray(data?.list)) return data.list
-    if (Array.isArray(data?.rows)) return data.rows
-    if (Array.isArray(data?.records)) return data.records
-    if (Array.isArray(data?.items)) return data.items
-    return []
-}
-
-const resolvePreviewFollowState = (post: any) => {
-    if (!post) return false
-    const raw = post.follow ?? post.isFollow ?? post.isFollowing ?? post.followed ?? post.followStatus ?? post.following
-    if (typeof raw === 'boolean') return raw
-    if (raw != null) return String(raw) === '1'
-    const relation = String(post.relationType || post.relation || post.followRelation || '').toUpperCase()
-    if (relation === 'MUTUAL' || relation === 'FOLLOWING') return true
-    return false
-}
-
-const setPreviewFollowState = (post: any, nextFollowing: boolean) => {
-    if (!post) return
-    post.follow = nextFollowing
-    post.isFollow = nextFollowing
-    post.isFollowing = nextFollowing
-    post.followed = nextFollowing
-    post.followStatus = nextFollowing ? '1' : '0'
 }
 
 const normalizePostFlags = (item: any) => {
@@ -544,7 +466,6 @@ const normalizePostFlags = (item: any) => {
 
 const getPostAuthorId = (post: any) => post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? null
 
-// 优化：减少不必要的遍历
 const syncFollowStateForUser = (userId: any, nextFollowing: boolean) => {
     if (userId == null) return
     const target = String(userId)
@@ -559,11 +480,6 @@ const getPreviewPostId = (post: any) => post?.postId ?? post?.id ?? null
 const getPreviewTargetUserId = (post: any) =>
     post?.targetUserId ?? post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? userStore.id ?? null
 
-const toLocalDateTime = (date = new Date()) => {
-    const pad = (value: number) => String(value).padStart(2, '0')
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
 const buildPreviewComment = (content: string) => ({
     id: `local-${Date.now()}`,
     content,
@@ -575,19 +491,6 @@ const buildPreviewComment = (content: string) => ({
 })
 
 const resolveProfileUserId = (post: any) => post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? null
-
-const appendPreviewComment = (post: any, comment: any) => {
-    if (!post) return
-    if (Array.isArray(post.commentList)) {
-        post.commentList.unshift(comment)
-    } else if (Array.isArray(post.comments)) {
-        post.comments.unshift(comment)
-    } else if (Array.isArray(post.topComments)) {
-        post.topComments.unshift(comment)
-    } else {
-        post.commentList = [comment]
-    }
-}
 
 const getCommentName = (comment: any) => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || comment?.user?.nickName || '用户'
 
@@ -616,7 +519,6 @@ const unbindWindowScroll = () => {
     windowScrollBound = false
 }
 
-// ==================== 标签管理 ====================
 async function loadTags() {
     if (loadingTags.value) return
     loadingTags.value = true
@@ -667,7 +569,6 @@ async function submitEditTag() {
     }
 }
 
-// ==================== 置顶管理 ====================
 function handlePin(post: any) {
     pinPost.value = post
     pinDays.value = 7
@@ -725,7 +626,6 @@ async function handleUnpin(post: any) {
     }
 }
 
-// ==================== 列表操作 ====================
 async function fetchList(isLoadMore = false) {
     if (loading.value || loadingMore.value) return
     if (isLoadMore) loadingMore.value = true
@@ -821,7 +721,7 @@ function handleQuery() {
     finished.value = false
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
-    selectedIds.value.clear() // 优化：使用 Set 的 clear 方法
+    selectedIds.value.clear()
     totalCount.value = null
     fetchList(false)
 }
@@ -855,7 +755,6 @@ function loadMore(payload?: { source?: 'auto' | 'manual' }) {
     fetchList(true)
 }
 
-// ==================== 批量操作 ====================
 function handleSelect(payload: { id: string | number; checked: boolean }) {
     if (!batchMode.value) return
     const { id, checked } = payload

@@ -98,8 +98,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
-import { getImgUrl } from '@/utils/img'
 import { resolveTextCoverPalette } from '@/utils/textCover'
+import { parseMediaRaw, parseMediaUrls, resolveMediaUrl as resolveCommonMediaUrl } from '@/utils/content/common'
 
 const props = defineProps<{
     post: any
@@ -148,36 +148,18 @@ const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
 const typeText = computed(() => TYPE_CONFIG[postType.value]?.text || '未知')
 const typeIcon = computed(() => TYPE_CONFIG[postType.value]?.icon || 'mdi:help-circle-outline')
 
-const parseMediaArray = (raw: any): any[] => {
-    if (!raw) return []
-    if (Array.isArray(raw)) return raw
-    if (typeof raw === 'string') {
-        try {
-            const parsed = JSON.parse(raw)
-            return Array.isArray(parsed) ? parsed : [parsed]
-        } catch {
-            return raw
-                .split(',')
-                .map(s => s.trim())
-                .filter(Boolean)
-        }
-    }
-    return [raw]
-}
-
-const mediaRawList = computed(() => {
+const mediaSource = computed(() => {
     const p = props.post
-    return parseMediaArray(p?.mediaUrls || p?.originalPost?.mediaUrls || p?.files || p?.originalPost?.files)
+    return p?.mediaUrls || p?.originalPost?.mediaUrls || p?.files || p?.originalPost?.files
 })
 
-const mediaFiles = computed(() => mediaRawList.value.map((item: any) => (typeof item === 'string' ? item : item?.url || item?.src || '')).filter(Boolean))
+const mediaRawList = computed(() => {
+    return parseMediaRaw(mediaSource.value)
+})
 
-const resolveMediaUrl = (url: string) => {
-    const raw = String(url || '').trim()
-    if (!raw) return ''
-    if (/^https?:\/\//i.test(raw)) return raw
-    return getImgUrl(raw)
-}
+const mediaFiles = computed(() => parseMediaUrls(mediaSource.value))
+
+const resolveMediaUrl = (url: string) => resolveCommonMediaUrl(url)
 
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
 

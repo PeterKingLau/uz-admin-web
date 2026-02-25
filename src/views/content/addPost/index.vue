@@ -201,7 +201,7 @@ const resolveVideoAutoDescription = (urls: string[]): string => {
     return getBaseNameFromMediaUrl(firstUrl)
 }
 
-const buildVideoQueueMap = <T>(urls: string[], values: T[]) => {
+const buildVideoQueueMap = <T,>(urls: string[], values: T[]) => {
     const map = new Map<string, T[]>()
     urls.forEach((url, index) => {
         const key = String(url || '').trim()
@@ -213,7 +213,7 @@ const buildVideoQueueMap = <T>(urls: string[], values: T[]) => {
     return map
 }
 
-const takeVideoFromQueue = <T>(map: Map<string, T[]>, url: string): T | undefined => {
+const takeVideoFromQueue = <T,>(map: Map<string, T[]>, url: string): T | undefined => {
     const key = String(url || '').trim()
     if (!key) return undefined
     const queue = map.get(key)
@@ -231,7 +231,10 @@ const syncVideoBatchContents = (nextUrls: string[], prevUrls: string[] = []) => 
     }
 
     const sourceUrls = prevUrls.length ? prevUrls : nextUrls
-    const contentQueueMap = buildVideoQueueMap(sourceUrls, videoBatchContents.value.map(item => String(item || '')))
+    const contentQueueMap = buildVideoQueueMap(
+        sourceUrls,
+        videoBatchContents.value.map(item => String(item || ''))
+    )
     const tagQueueMap = buildVideoQueueMap(
         sourceUrls,
         videoBatchTagIds.value.map(ids => (Array.isArray(ids) ? [...ids] : []))
@@ -485,9 +488,17 @@ async function handleSubmit() {
             .join(',')
     })
     const emptyContentIndexes = isBatchVideoPost
-        ? batchContents.map((content, index) => ({ content, index })).filter(item => !item.content).map(item => item.index)
+        ? batchContents
+              .map((content, index) => ({ content, index }))
+              .filter(item => !item.content)
+              .map(item => item.index)
         : []
-    const emptyTagIndexes = isBatchVideoPost ? batchTagStrList.map((tagStr, index) => ({ tagStr, index })).filter(item => !item.tagStr).map(item => item.index) : []
+    const emptyTagIndexes = isBatchVideoPost
+        ? batchTagStrList
+              .map((tagStr, index) => ({ tagStr, index }))
+              .filter(item => !item.tagStr)
+              .map(item => item.index)
+        : []
 
     if (emptyContentIndexes.length > 0 || emptyTagIndexes.length > 0) {
         videoBatchErrorIndexes.value = emptyContentIndexes
@@ -561,9 +572,7 @@ async function handleSubmit() {
             }
 
             if (successCount > 0) {
-                proxy?.$modal?.msgWarning?.(
-                    `批量发布完成：成功 ${successCount} 条，失败 ${failedIndexes.length} 条（第 ${failedIndexes.join('、')} 条）`
-                )
+                proxy?.$modal?.msgWarning?.(`批量发布完成：成功 ${successCount} 条，失败 ${failedIndexes.length} 条（第 ${failedIndexes.join('、')} 条）`)
                 return
             }
 
@@ -624,7 +633,3 @@ async function handleReset() {
     margin: 0 auto;
 }
 </style>
-
-
-
-

@@ -1,0 +1,241 @@
+@mixin profile-header($with-follow-button: false) {
+    .user-profile-page {
+        background-color: var(--el-bg-color);
+        color: var(--el-text-color-primary);
+        padding: 0;
+
+        .profile-header {
+            position: relative;
+            margin-bottom: 20px;
+            background-color: var(--el-bg-color);
+
+            .banner {
+                height: 200px;
+                position: relative;
+                overflow: hidden;
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .banner-mask {
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(to bottom, transparent 60%, var(--el-bg-color) 100%);
+                }
+            }
+
+            .user-info-wrapper {
+                padding: 0 32px;
+                position: relative;
+                display: flex;
+                align-items: flex-end;
+                margin-top: -40px;
+
+                .avatar-container {
+                    margin-right: 20px;
+                    padding: 4px;
+                    background: var(--el-bg-color);
+                    border-radius: 50%;
+                    z-index: 2;
+
+                    .avatar-img {
+                        border: 1px solid var(--el-border-color-lighter);
+                    }
+                }
+
+                .info-content {
+                    flex: 1;
+                    padding-bottom: 4px;
+                    z-index: 2;
+
+                    .name-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 12px;
+
+                        .nickname {
+                            font-size: 24px;
+                            font-weight: 700;
+                            margin-right: 12px;
+                            color: var(--el-text-color-primary);
+                        }
+
+                        .tags {
+                            display: flex;
+                            gap: 6px;
+
+                            :deep(.el-tag) {
+                                border-color: transparent;
+                                background-color: var(--el-fill-color);
+                                color: var(--el-text-color-regular);
+
+                                &.gender-tag {
+                                    padding: 0 8px;
+                                }
+                            }
+                        }
+                    }
+
+                    .stat-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                        margin-bottom: 12px;
+                        font-size: 15px;
+
+                        .stat-divider {
+                            width: 1px;
+                            height: 12px;
+                            background-color: var(--el-border-color);
+                        }
+
+                        .stat-item {
+                            cursor: pointer;
+                            display: flex;
+                            align-items: baseline;
+                            transition: opacity 0.2s;
+
+                            &.skeleton {
+                                cursor: default;
+                                pointer-events: none;
+                            }
+
+                            .num {
+                                font-weight: 700;
+                                margin-right: 4px;
+                                font-size: 16px;
+                                color: var(--el-text-color-primary);
+                            }
+
+                            .label {
+                                font-size: 13px;
+                                color: var(--el-text-color-secondary);
+                            }
+
+                            &:not(.skeleton):hover {
+                                opacity: 0.8;
+
+                                .label {
+                                    color: var(--el-text-color-primary);
+                                }
+                            }
+                        }
+                    }
+
+                    .desc-row {
+                        font-size: 14px;
+                        color: var(--el-text-color-regular);
+                        line-height: 1.5;
+                        white-space: pre-wrap;
+                        max-width: 600px;
+                    }
+                }
+
+                .action-btn {
+                    padding-bottom: 15px;
+                    display: flex;
+                    gap: 12px;
+
+                    .edit-btn {
+                        width: 120px;
+                        font-weight: 500;
+                    }
+
+                    @if $with-follow-button {
+                        .follow-btn {
+                            width: 120px;
+                            font-weight: 500;
+                        }
+
+                        :deep(.follow-btn) {
+                            --el-button-bg-color: var(--el-color-danger);
+                            --el-button-border-color: var(--el-color-danger);
+                            --el-button-text-color: var(--el-color-white);
+                            --el-button-hover-bg-color: var(--el-color-danger-light-3);
+                            --el-button-hover-border-color: var(--el-color-danger-light-3);
+                            --el-button-active-bg-color: var(--el-color-danger-dark-2);
+                            --el-button-active-border-color: var(--el-color-danger-dark-2);
+                        }
+
+                        :deep(.follow-btn.is-plain) {
+                            --el-button-bg-color: var(--el-fill-color);
+                            --el-button-border-color: var(--el-border-color);
+                            --el-button-text-color: var(--el-text-color-regular);
+                            --el-button-hover-bg-color: var(--el-fill-color-light);
+                            --el-button-hover-border-color: var(--el-border-color);
+                            --el-button-hover-text-color: var(--el-text-color-primary);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@mixin profile-skeleton {
+    .skeleton-text {
+        display: inline-block;
+        width: 24px;
+        height: 16px;
+        background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+        border-radius: 4px;
+    }
+
+    .fade-soft-enter-active,
+    .fade-soft-leave-active {
+        transition:
+            opacity 0.22s ease,
+            transform 0.22s ease;
+    }
+
+    .fade-soft-enter-from,
+    .fade-soft-leave-to {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    .avatar-skeleton {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 1px solid var(--el-border-color-lighter);
+        background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+
+    .skeleton-name {
+        width: 160px;
+        height: 24px;
+        border-radius: 6px;
+    }
+
+    .skeleton-desc {
+        width: 320px;
+        height: 16px;
+        border-radius: 6px;
+    }
+
+    .btn-skeleton {
+        width: 120px;
+        height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+
+    @keyframes skeleton-loading {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
+    }
+}

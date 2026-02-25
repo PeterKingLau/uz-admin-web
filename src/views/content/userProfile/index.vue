@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container user-profile-page">
         <div class="profile-header">
             <div class="banner">
@@ -188,8 +188,20 @@ import useTagsViewStore from '@/store/modules/tagsView'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
 import { useUserProfileStore } from '@/store/modules/userProfile'
 import { getImgUrl } from '@/utils/img'
-import { parseTime } from '@/utils/utils'
 import { POST_TYPE } from '@/utils/enum'
+import {
+    appendPreviewComment,
+    formatRelativeTime,
+    getCommentId,
+    getCommentReplyCount,
+    getCommentUserId,
+    normalizeCommentList,
+    normalizeMediaUrls,
+    resolveFollowFlag,
+    resolvePreviewFollowState,
+    setPreviewFollowState,
+    toLocalDateTime
+} from '@/utils/content/common'
 import ContentModule from '@/views/content/personProfile/components/ContentModule/index.vue'
 import PostPreviewModal from '@/views/content/personProfile/components/Modal/PostPreviewModal.vue'
 import FollowDialog from '@/views/content/personProfile/components/Dialog/FollowDialog.vue'
@@ -641,8 +653,6 @@ const toggleFollow = async item => {
         item.isFollowing = nowFollowing
         item.relationType = resolveNextRelationType(item, nowFollowing)
 
-        // userProfileStore.updateFollowStatus(targetUserId, nowFollowing)
-
         let nextFollowing = followStats.value.following
         let nextMutual = followStats.value.mutualCount
 
@@ -697,7 +707,7 @@ const getTextCover = item => {
 
 const getMediaList = item => {
     if (Array.isArray(item.mediaList) && item.mediaList.length > 0) return item.mediaList
-    return parseMediaUrls(item.mediaUrls || item.fileList || item.files || [])
+    return normalizeMediaUrls(item.mediaUrls || item.fileList || item.files || [])
 }
 
 const previewMediaList = computed(() => {
@@ -732,27 +742,6 @@ const resolveAvatar = avatar => getImgUrl(avatar || '')
 
 const getCommentName = comment => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || '用户'
 
-const formatRelativeTime = time => {
-    if (!time) return ''
-    let date = new Date(time)
-    if (Number.isNaN(date.getTime())) {
-        date = new Date(String(time).replace(/-/g, '/'))
-    }
-    if (Number.isNaN(date.getTime())) return String(time)
-
-    const now = new Date()
-    const diff = (now.getTime() - date.getTime()) / 1000
-    if (diff < 60) return '刚刚'
-    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
-    if (diff < 86400 * 3) return `${Math.floor(diff / 86400)}天前`
-    return parseTime(time, '{m}-{d}') || ''
-}
-
-const getCommentId = comment => comment?.id ?? comment?.commentId ?? comment?._id ?? null
-
-const getCommentUserId = comment => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
-
 const canDeleteComment = comment => {
     const commentUserId = getCommentUserId(comment)
     if (userStore.id == null) return false
@@ -762,11 +751,6 @@ const canDeleteComment = comment => {
 const isDeleteCommentLoading = comment => {
     const commentId = getCommentId(comment)
     return commentId != null && Boolean(deleteCommentLoading[String(commentId)])
-}
-
-const getCommentReplyCount = comment => {
-    const value = comment?.replyCount ?? comment?.replyNum ?? comment?.replyCnt ?? 0
-    return Math.max(0, Number(value) || 0)
 }
 
 const ensureReplyState = commentId => {
@@ -836,35 +820,6 @@ const removeLocalComment = (commentId, parent) => {
         post.commentCount = Math.max(0, Number(post.commentCount || 0) - (1 + Math.max(0, removeReplies)))
     }
     updatePostInList(getPreviewPostId(post), { commentCount: post.commentCount })
-}
-
-const resolvePreviewFollowState = post => {
-    if (!post) return false
-    const rawFollowState = post.follow ?? post.isFollow ?? post.isFollowing ?? post.followed ?? post.followStatus ?? post.following
-    if (typeof rawFollowState === 'boolean') return rawFollowState
-    if (rawFollowState != null) return String(rawFollowState) === '1'
-    const relation = String(post.relationType || post.relation || post.followRelation || '').toUpperCase()
-    if (relation === 'MUTUAL' || relation === 'FOLLOWING') return true
-    return false
-}
-
-const setPreviewFollowState = (post, nextFollowing) => {
-    if (!post) return
-    post.follow = nextFollowing
-    post.isFollow = nextFollowing
-    post.isFollowing = nextFollowing
-    post.followed = nextFollowing
-    post.followStatus = nextFollowing ? '1' : '0'
-}
-
-const resolveFollowFlag = value => {
-    if (value === null || value === undefined) return undefined
-    if (typeof value === 'boolean') return value
-    if (typeof value === 'number') return value === 1
-    const text = String(value).trim().toLowerCase()
-    if (['1', 'true', 'yes', 'y'].includes(text)) return true
-    if (['0', 'false', 'no', 'n'].includes(text)) return false
-    return undefined
 }
 
 const resolveProfileFollowState = profile => {
@@ -979,13 +934,6 @@ const isPreviewAuthorSelf = computed(() => {
     return String(targetUserId) === String(userStore.id)
 })
 
-const toLocalDateTime = (date = new Date()) => {
-    const pad = value => String(value).padStart(2, '0')
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
-        date.getSeconds()
-    )}`
-}
-
 const buildPreviewComment = content => ({
     id: `local-${Date.now()}`,
     content,
@@ -995,23 +943,6 @@ const buildPreviewComment = content => ({
     avatar: userInfo.value?.avatar || userStore.avatar || '',
     createTime: toLocalDateTime()
 })
-
-const appendPreviewComment = (post, comment) => {
-    if (!post) return
-    if (Array.isArray(post.commentList)) {
-        post.commentList.unshift(comment)
-        return
-    }
-    if (Array.isArray(post.comments)) {
-        post.comments.unshift(comment)
-        return
-    }
-    if (Array.isArray(post.topComments)) {
-        post.topComments.unshift(comment)
-        return
-    }
-    post.commentList = [comment]
-}
 
 const normalizePostFlags = item => {
     const likeValue = item?.like ?? item?.isLiked ?? item?.liked ?? item?.likeStatus ?? item?.isLike
@@ -1023,35 +954,6 @@ const normalizePostFlags = item => {
         like: activeTab.value === 'likes' ? true : like,
         bookmark: activeTab.value === 'bookmarks' ? true : bookmark
     }
-}
-
-const parseMediaUrls = mediaUrls => {
-    let rawList = []
-    if (Array.isArray(mediaUrls)) {
-        rawList = mediaUrls
-    } else if (typeof mediaUrls === 'string') {
-        const trimmed = mediaUrls.trim()
-        if (!trimmed) return []
-        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-            try {
-                const parsed = JSON.parse(trimmed)
-                rawList = Array.isArray(parsed) ? parsed : []
-            } catch (e) {
-                rawList = []
-            }
-        } else {
-            rawList = trimmed.split(',').map(item => item.trim())
-        }
-    } else if (mediaUrls && typeof mediaUrls === 'object') {
-        rawList = [mediaUrls]
-    }
-    return rawList
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.url || item?.src || item?.path || ''
-        })
-        .filter(Boolean)
-        .map(getImgUrl)
 }
 
 const getList = async () => {
@@ -1078,7 +980,7 @@ const getList = async () => {
             hasNonVideo = filteredList.length !== responseList.length
             const normalizedList = filteredList.map(item => ({
                 ...normalizePostFlags(item),
-                mediaList: parseMediaUrls(item.mediaUrls || item.fileList || item.files || [])
+                mediaList: normalizeMediaUrls(item.mediaUrls || item.fileList || item.files || [])
             }))
             postList.value = [...postList.value, ...normalizedList]
             const lastItem = responseList[responseList.length - 1]
@@ -1212,21 +1114,6 @@ const getCollectionList = async (force = false) => {
     } finally {
         collectionLoading.value = false
     }
-}
-
-const normalizeCommentList = response => {
-    if (!response) return []
-    const data = response.data
-    if (Array.isArray(data)) return data
-    if (Array.isArray(response.rows)) return response.rows
-    if (Array.isArray(response.list)) return response.list
-    if (data && typeof data === 'object') {
-        if (Array.isArray(data.list)) return data.list
-        if (Array.isArray(data.rows)) return data.rows
-        if (Array.isArray(data.records)) return data.records
-        if (Array.isArray(data.items)) return data.items
-    }
-    return []
 }
 
 const loadCommentReplies = async comment => {
@@ -1554,7 +1441,7 @@ const handlePreview = item => {
     if (String(normalized?.postType) === String(POST_TYPE.TEXT)) {
         const media = Array.isArray(normalized.mediaList)
             ? normalized.mediaList
-            : parseMediaUrls(normalized.mediaUrls || normalized.fileList || normalized.files || [])
+            : normalizeMediaUrls(normalized.mediaUrls || normalized.fileList || normalized.files || [])
         if (!media.length) {
             normalized.mediaList = [getTextCover(normalized)]
         } else {
@@ -1923,232 +1810,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.user-profile-page {
-    background-color: var(--el-bg-color);
-    color: var(--el-text-color-primary);
-    padding: 0;
+@use '@/assets/styles/content/profile-shared.scss' as profile;
 
-    .profile-header {
-        position: relative;
-        margin-bottom: 20px;
-        background-color: var(--el-bg-color);
-
-        .banner {
-            height: 200px;
-            position: relative;
-            overflow: hidden;
-
-            img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-            .banner-mask {
-                position: absolute;
-                inset: 0;
-                background: linear-gradient(to bottom, transparent 60%, var(--el-bg-color) 100%);
-            }
-        }
-
-        .user-info-wrapper {
-            padding: 0 32px;
-            position: relative;
-            display: flex;
-            align-items: flex-end;
-            margin-top: -40px;
-
-            .avatar-container {
-                margin-right: 20px;
-                padding: 4px;
-                background: var(--el-bg-color);
-                border-radius: 50%;
-                z-index: 2;
-
-                .avatar-img {
-                    border: 1px solid var(--el-border-color-lighter);
-                }
-            }
-
-            .info-content {
-                flex: 1;
-                padding-bottom: 4px;
-                z-index: 2;
-
-                .name-row {
-                    display: flex;
-                    align-items: center;
-                    margin-bottom: 12px;
-
-                    .nickname {
-                        font-size: 24px;
-                        font-weight: 700;
-                        margin-right: 12px;
-                        color: var(--el-text-color-primary);
-                    }
-
-                    .tags {
-                        display: flex;
-                        gap: 6px;
-
-                        :deep(.el-tag) {
-                            border-color: transparent;
-                            background-color: var(--el-fill-color);
-                            color: var(--el-text-color-regular);
-
-                            &.gender-tag {
-                                padding: 0 8px;
-                            }
-                        }
-                    }
-                }
-
-                .stat-row {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    margin-bottom: 12px;
-                    font-size: 15px;
-
-                    .stat-divider {
-                        width: 1px;
-                        height: 12px;
-                        background-color: var(--el-border-color);
-                    }
-
-                    .stat-item {
-                        cursor: pointer;
-                        display: flex;
-                        align-items: baseline;
-                        transition: opacity 0.2s;
-
-                        .num {
-                            font-weight: 700;
-                            margin-right: 4px;
-                            font-size: 16px;
-                            color: var(--el-text-color-primary);
-                        }
-                        .label {
-                            font-size: 13px;
-                            color: var(--el-text-color-secondary);
-                        }
-
-                        &:hover {
-                            opacity: 0.8;
-                            .label {
-                                color: var(--el-text-color-primary);
-                            }
-                        }
-
-                        &.skeleton {
-                            cursor: default;
-                            pointer-events: none;
-                        }
-                    }
-                }
-
-                .desc-row {
-                    font-size: 14px;
-                    color: var(--el-text-color-regular);
-                    line-height: 1.5;
-                    white-space: pre-wrap;
-                    max-width: 600px;
-                }
-            }
-
-            .action-btn {
-                padding-bottom: 15px;
-                display: flex;
-                gap: 12px;
-
-                .edit-btn,
-                .follow-btn {
-                    width: 120px;
-                    font-weight: 500;
-                }
-
-                :deep(.follow-btn) {
-                    --el-button-bg-color: var(--el-color-danger);
-                    --el-button-border-color: var(--el-color-danger);
-                    --el-button-text-color: var(--el-color-white);
-                    --el-button-hover-bg-color: var(--el-color-danger-light-3);
-                    --el-button-hover-border-color: var(--el-color-danger-light-3);
-                    --el-button-active-bg-color: var(--el-color-danger-dark-2);
-                    --el-button-active-border-color: var(--el-color-danger-dark-2);
-                }
-
-                :deep(.follow-btn.is-plain) {
-                    --el-button-bg-color: var(--el-fill-color);
-                    --el-button-border-color: var(--el-border-color);
-                    --el-button-text-color: var(--el-text-color-regular);
-                    --el-button-hover-bg-color: var(--el-fill-color-light);
-                    --el-button-hover-border-color: var(--el-border-color);
-                    --el-button-hover-text-color: var(--el-text-color-primary);
-                }
-            }
-        }
-    }
-}
-
-.skeleton-text {
-    display: inline-block;
-    width: 24px;
-    height: 16px;
-    background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s ease-in-out infinite;
-    border-radius: 4px;
-}
-
-.fade-soft-enter-active,
-.fade-soft-leave-active {
-    transition:
-        opacity 0.22s ease,
-        transform 0.22s ease;
-}
-
-.fade-soft-enter-from,
-.fade-soft-leave-to {
-    opacity: 0;
-    transform: translateY(4px);
-}
-
-.avatar-skeleton {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s ease-in-out infinite;
-}
-
-.skeleton-name {
-    width: 160px;
-    height: 24px;
-    border-radius: 6px;
-}
-
-.skeleton-desc {
-    width: 320px;
-    height: 16px;
-    border-radius: 6px;
-}
-
-.btn-skeleton {
-    width: 120px;
-    height: 36px;
-    border-radius: 8px;
-    background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 50%, var(--el-fill-color) 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s ease-in-out infinite;
-}
-
-@keyframes skeleton-loading {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
+@include profile.profile-header(true);
+@include profile.profile-skeleton;
 </style>
+
+

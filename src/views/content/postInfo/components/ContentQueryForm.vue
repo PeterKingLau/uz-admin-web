@@ -47,7 +47,6 @@
 </template>
 
 <script setup lang="ts">
-// 接收 tagOptions
 defineProps<{
     queryParams: any
     loading: boolean
@@ -62,9 +61,7 @@ function handleSubmit() {
     emit('submit')
 }
 
-// 暴露 reset 方法给父组件调用
 function reset() {
-    // 逻辑已经在父组件处理，这里主要用于特定内部状态重置(如果需要)
 }
 
 defineExpose({ reset })
@@ -81,8 +78,6 @@ defineExpose({ reset })
         margin-bottom: 0;
         margin-right: 0;
     }
-
-    /* 让搜索框在移动端占满 */
     @media screen and (max-width: 768px) {
         .search-input-item {
             width: 100%;
