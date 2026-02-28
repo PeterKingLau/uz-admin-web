@@ -86,7 +86,7 @@ const props = defineProps({
     limit: { type: Number, default: 5 },
     showFileList: { type: Boolean, default: true },
     listType: { type: String, default: 'picture-card' },
-    fileSize: { type: Number, default: 5 },
+    fileSize: { type: Number, default: 10 },
     fileType: { type: Array, default: () => ['png', 'jpg', 'jpeg'] },
     isShowTip: { type: Boolean, default: true },
     disabled: { type: Boolean, default: false },

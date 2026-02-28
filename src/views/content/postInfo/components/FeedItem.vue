@@ -1,6 +1,12 @@
 ﻿<template>
     <div v-if="!isOriginalMissing" class="feed-card" :class="{ checked, 'is-batch': isBatchMode }">
-        <div class="card-media-wrapper" :class="{ 'is-clickable': canPreview }" @click="handleMediaClick">
+        <div
+            class="card-media-wrapper"
+            :class="{ 'is-clickable': canPreview }"
+            @click="handleMediaClick"
+            @mouseenter="handleMediaMouseEnter"
+            @mouseleave="handleMediaMouseLeave"
+        >
             <div class="media-top-bar" @click.stop>
                 <div class="type-tag" :data-type="post?.postType">
                     <Icon :icon="typeIcon" class="tag-icon" />
@@ -57,7 +63,22 @@
                 <Icon icon="mdi:image-off-outline" />
             </div>
 
-            <div v-if="isVideoPost" class="play-overlay">
+            <video
+                v-if="canHoverPlayPreview"
+                ref="hoverVideoRef"
+                :src="videoPreviewSrc"
+                class="media-video"
+                :class="{ 'is-playing': isVideoHoverPlaying }"
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                disablepictureinpicture
+                controlslist="nodownload noplaybackrate nofullscreen"
+                @contextmenu.prevent
+            ></video>
+
+            <div v-if="isVideoPost" class="play-overlay" :class="{ 'is-hidden': isVideoHoverPlaying }">
                 <div class="play-button">
                     <Icon icon="mdi:play" />
                 </div>
@@ -96,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
 import { resolveTextCoverPalette } from '@/utils/textCover'
 import { parseMediaRaw, parseMediaUrls, resolveMediaUrl as resolveCommonMediaUrl } from '@/utils/content/common'
@@ -122,6 +143,8 @@ const emit = defineEmits<{
 const post = computed(() => props.post || {})
 const currentPostId = computed(() => props.post?.id ?? props.post?.postId ?? '')
 const isBatchMode = computed(() => Boolean(props.batchMode))
+const hoverVideoRef = ref<HTMLVideoElement | null>(null)
+const isVideoHoverPlaying = ref(false)
 const isOriginalMissing = computed(() => {
     const originalPostId = Number(props.post?.originalPostId ?? 0)
     return originalPostId > 0 && props.post?.originalPost === null
@@ -163,20 +186,47 @@ const resolveMediaUrl = (url: string) => resolveCommonMediaUrl(url)
 
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)
 
-const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|webm)(\?|$)/i.test(url)
+const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
 
 const coverUrl = computed(() => {
     const p = props.post
     const direct = p?.cover ?? p?.coverUrl ?? p?.thumbnail ?? p?.poster ?? p?.image
     if (direct) return resolveMediaUrl(direct)
 
-    const candidates = mediaRawList.value.map((item: any) => (typeof item === 'object' ? item.cover || item.url : item)).filter(Boolean)
+    const candidates = mediaRawList.value.map((item: any) => (typeof item === 'object' ? item.cover || item.thumbnail || item.poster || item.url : item)).filter(Boolean)
     const img = candidates.find(u => !isVideoUrl(u))
     if (img) return resolveMediaUrl(img)
-    return candidates[0] ? resolveMediaUrl(candidates[0]) : ''
+    if (!isVideoPost.value && candidates[0]) return resolveMediaUrl(candidates[0])
+    return ''
 })
 
-const canPreview = computed(() => isTextPost.value || Boolean(coverUrl.value || mediaFiles.value.length))
+const videoPreviewSrc = computed(() => {
+    if (!isVideoPost.value) return ''
+    const p = props.post || {}
+    const directList = [
+        p?.videoUrl,
+        p?.video,
+        p?.url,
+        p?.src,
+        p?.fileUrl,
+        p?.originalPost?.videoUrl,
+        p?.originalPost?.video,
+        p?.originalPost?.url,
+        p?.originalPost?.src,
+        p?.originalPost?.fileUrl
+    ]
+        .map((item: unknown) => resolveMediaUrl(String(item || '').trim()))
+        .filter(Boolean)
+
+    const directVideo = directList.find(isVideoUrl)
+    if (directVideo) return directVideo
+    if (directList[0]) return directList[0]
+
+    const list = mediaFiles.value.map(resolveMediaUrl).filter(Boolean)
+    return list.find(isVideoUrl) || list[0] || ''
+})
+const canHoverPlayPreview = computed(() => isVideoPost.value && Boolean(videoPreviewSrc.value) && !isBatchMode.value)
+const canPreview = computed(() => isTextPost.value || Boolean(coverUrl.value || mediaFiles.value.length || videoPreviewSrc.value))
 
 const textCoverStyle = computed(() => {
     if (!isTextPost.value) return {}
@@ -188,6 +238,7 @@ const textCoverStyle = computed(() => {
 })
 
 const handleMediaClick = () => {
+    stopHoverPreview()
     if (isBatchMode.value) {
         emit('select', !props.checked)
     } else if (canPreview.value) {
@@ -206,6 +257,51 @@ const handleTogglePin = () => {
     }
     emit('pin', post.value)
 }
+
+const stopHoverPreview = () => {
+    const video = hoverVideoRef.value
+    if (video) {
+        video.pause()
+        try {
+            video.currentTime = 0
+        } catch {
+            // Ignore seek failures for unready media.
+        }
+    }
+    isVideoHoverPlaying.value = false
+}
+
+const handleMediaMouseEnter = async () => {
+    if (!canHoverPlayPreview.value) return
+    await nextTick()
+    const video = hoverVideoRef.value
+    if (!video) return
+    video.muted = true
+    video.defaultMuted = true
+    video.playsInline = true
+
+    try {
+        await video.play()
+        isVideoHoverPlaying.value = true
+    } catch {
+        isVideoHoverPlaying.value = false
+    }
+}
+
+const handleMediaMouseLeave = () => {
+    stopHoverPreview()
+}
+
+watch(
+    () => [videoPreviewSrc.value, isBatchMode.value] as const,
+    () => {
+        stopHoverPreview()
+    }
+)
+
+onBeforeUnmount(() => {
+    stopHoverPreview()
+})
 </script>
 
 <style scoped lang="scss">
@@ -290,9 +386,30 @@ const handleTogglePin = () => {
     height: 100%;
     display: block;
     transition: transform 0.3s ease;
+}
 
-    &:hover {
-        transform: scale(1.03);
+.card-media-wrapper:hover .media-image {
+    transform: scale(1.03);
+}
+
+.media-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transform: scale(1.02);
+    transition:
+        opacity 0.22s ease,
+        transform 0.28s ease;
+    pointer-events: none;
+    z-index: 4;
+    background: var(--el-color-black);
+
+    &.is-playing {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
@@ -417,6 +534,12 @@ const handleTogglePin = () => {
     justify-content: center;
     background: color-mix(in srgb, var(--el-color-black) 20%, transparent);
     pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.2s ease;
+
+    &.is-hidden {
+        opacity: 0;
+    }
 
     .play-button {
         width: 48px;

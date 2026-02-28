@@ -74,7 +74,7 @@
                                     ref="imageUploadRef"
                                     v-model="imageUrlsModel"
                                     :limit="9"
-                                    :file-size="5"
+                                    :file-size="10"
                                     :file-type="['jpg', 'jpeg', 'png', 'gif']"
                                     :is-show-tip="false"
                                     oss-type="posts"
@@ -89,6 +89,7 @@
                                     ref="videoUploadRef"
                                     v-model="videoUrlsModel"
                                     :limit="1"
+                                    :hide-when-reach-limit="true"
                                     :file-size="0"
                                     :file-type="['mp4', 'mov']"
                                     :is-show-tip="false"
@@ -181,8 +182,8 @@
                                     <template v-for="cate in props.interestTree" :key="`${item.index}-${cate.id}`">
                                         <el-option-group v-if="cate.children?.length" :label="cate.name">
                                             <el-option v-for="child in cate.children" :key="`${item.index}-${child.id}`" :label="child.name" :value="child.id">
-                                                <span class="option-tag-pill">
-                                                    <span class="option-tag-text">{{ child.name }}</span>
+                                                <span class="option-tag-pill" :style="resolveOptionTagStyle(child, 'batch')">
+                                                    {{ child.name }}
                                                 </span>
                                             </el-option>
                                         </el-option-group>
@@ -212,8 +213,8 @@
                         <template v-for="cate in props.interestTree" :key="cate.id">
                             <el-option-group v-if="cate.children?.length" :label="cate.name">
                                 <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id">
-                                    <span class="option-tag-pill">
-                                        <span class="option-tag-text">{{ child.name }}</span>
+                                    <span class="option-tag-pill" :style="resolveOptionTagStyle(child, 'normal')">
+                                        {{ child.name }}
                                     </span>
                                 </el-option>
                             </el-option-group>
@@ -244,6 +245,7 @@ import { computed, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrent
 import type { FormInstance, FormRules } from 'element-plus'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
+import { resolveOptionTagStyle } from '@/utils/content/tagOptionStyle'
 
 interface PostFormState {
     postType: string
@@ -1162,64 +1164,110 @@ defineExpose({
     }
 }
 
-:deep(.custom-select-popper .el-select-dropdown__item) {
-    height: auto;
-    min-height: 38px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    display: flex;
-    align-items: center;
+:deep(.custom-select-popper) {
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--el-color-black) 12%, transparent);
+    border: 1px solid var(--el-border-color-lighter);
+
+    .el-select-group__wrap {
+        padding-bottom: 8px;
+
+        &:not(:last-of-type) {
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--el-border-color-lighter);
+        }
+    }
+
+    .el-select-group__title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--el-text-color-placeholder);
+        padding: 8px 12px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .el-select-dropdown__item {
+        height: auto;
+        min-height: 44px;
+        padding: 6px 8px;
+        border-radius: 0;
+        margin: 2px 4px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        background-color: transparent;
+
+        .option-tag-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 5px 12px;
+            border-radius: 0 !important;
+            background: var(--tag-pill-bg, var(--el-fill-color-light));
+            color: var(--tag-pill-text, var(--el-text-color-regular));
+            border: 1px solid var(--tag-pill-border, transparent);
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.2;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        &:hover,
+        &.hover {
+            background-color: var(--el-fill-color-light);
+
+            .option-tag-pill {
+                background: var(--tag-pill-bg-hover, var(--el-color-primary-light-9));
+                color: var(--tag-pill-text-hover, var(--el-color-primary));
+                border-color: var(--tag-pill-border-hover, transparent);
+                transform: translateX(2px);
+            }
+        }
+
+        &.is-selected {
+            background-color: transparent;
+
+            .option-tag-pill {
+                background: var(--tag-pill-bg-selected, var(--el-color-primary));
+                color: var(--tag-pill-text-selected, var(--el-color-white));
+                border-color: var(--tag-pill-border-selected, var(--el-color-primary));
+                box-shadow: 0 3px 10px rgba(var(--el-color-primary-rgb), 0.22);
+            }
+
+            &::after {
+                display: none;
+            }
+        }
+    }
 }
 
-:deep(.custom-select-popper .el-select-dropdown__item .option-tag-pill) {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--el-border-color);
-    background: var(--el-fill-color-light);
-    color: var(--el-text-color-regular);
-    transition: all 0.2s ease;
-}
+:deep(.custom-select-popper--batch) {
+    .el-select-dropdown__item {
+        .option-tag-pill {
+            border: 1px dashed var(--el-border-color);
+            background-color: transparent;
+        }
 
-:deep(.custom-select-popper .el-select-dropdown__item .option-tag-text) {
-    font-weight: 500;
-    line-height: 1.2;
-}
+        &:hover,
+        &.hover {
+            .option-tag-pill {
+                border-style: solid;
+                border-color: var(--el-color-primary-light-5);
+                background-color: var(--el-color-primary-light-9);
+            }
+        }
 
-:deep(.custom-select-popper .el-select-dropdown__item:hover .option-tag-pill),
-:deep(.custom-select-popper .el-select-dropdown__item.hovering .option-tag-pill) {
-    border-color: var(--el-color-primary-light-5);
-    background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-fill-color-light));
-}
-
-:deep(.custom-select-popper .el-select-dropdown__item.is-selected .option-tag-pill) {
-    border-color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
-}
-
-:deep(.custom-select-popper--normal .el-select-dropdown__item .option-tag-pill) {
-    border-radius: 10px;
-}
-
-:deep(.custom-select-popper--batch .el-select-dropdown__item .option-tag-pill) {
-    border-radius: 8px;
-    border-style: dashed;
-    border-color: color-mix(in srgb, var(--el-color-primary) 42%, var(--el-border-color));
-    background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-fill-color-light));
-}
-
-:deep(.custom-select-popper--batch .el-select-dropdown__item:hover .option-tag-pill),
-:deep(.custom-select-popper--batch .el-select-dropdown__item.hovering .option-tag-pill) {
-    border-color: color-mix(in srgb, var(--el-color-primary) 60%, var(--el-border-color));
-    background: color-mix(in srgb, var(--el-color-primary) 14%, var(--el-fill-color));
-}
-
-:deep(.custom-select-popper--batch .el-select-dropdown__item.is-selected .option-tag-pill) {
-    border-style: solid;
-    border-color: var(--el-color-primary);
-    background: color-mix(in srgb, var(--el-color-primary) 16%, var(--el-fill-color-light));
+        &.is-selected {
+            .option-tag-pill {
+                border-style: solid;
+                border-color: var(--el-color-primary);
+                background-color: var(--el-color-primary);
+                color: var(--el-color-white);
+            }
+        }
+    }
 }
 
 .post-form :deep(.el-form-item.is-error .custom-select .el-select__wrapper),
@@ -1270,8 +1318,6 @@ defineExpose({
     .video-cover-picker,
     .video-batch-item,
     .video-batch-textarea :deep(.el-textarea__inner),
-    .custom-select :deep(.el-select__wrapper),
-    .video-batch-tag-select :deep(.el-select__wrapper),
     .image-upload :deep(.el-upload--picture-card),
     .video-upload :deep(.upload-file-uploader .el-upload-dragger),
     .video-upload :deep(.upload-file-list .file-item) {
@@ -1280,11 +1326,7 @@ defineExpose({
 
     .custom-textarea :deep(.el-textarea__inner:hover),
     .upload-container:hover,
-    .video-batch-textarea :deep(.el-textarea__inner:focus),
-    .custom-select :deep(.el-select__wrapper:hover),
-    .video-batch-tag-select :deep(.el-select__wrapper:hover),
-    .custom-select :deep(.el-select__wrapper.is-focused),
-    .video-batch-tag-select :deep(.el-select__wrapper.is-focused) {
+    .video-batch-textarea :deep(.el-textarea__inner:focus) {
         background-color: var(--el-fill-color-darker);
     }
 
@@ -1323,21 +1365,25 @@ defineExpose({
         color: var(--el-color-warning-light-3);
     }
 
-    :deep(.custom-select-popper--normal .el-select-dropdown__item .option-tag-pill) {
-        background: var(--el-fill-color-darker);
-    }
-
-    :deep(.custom-select-popper--normal .el-select-dropdown__item.is-selected .option-tag-pill) {
-        background: color-mix(in srgb, var(--el-color-primary) 20%, var(--el-fill-color-darker));
-    }
-
-    :deep(.custom-select-popper--batch .el-select-dropdown__item .option-tag-pill) {
-        background: color-mix(in srgb, var(--el-color-primary) 18%, var(--el-fill-color-darker));
-        border-color: color-mix(in srgb, var(--el-color-primary) 60%, var(--el-border-color));
-    }
-
-    :deep(.custom-select-popper--batch .el-select-dropdown__item.is-selected .option-tag-pill) {
-        background: color-mix(in srgb, var(--el-color-primary) 28%, var(--el-fill-color-darker));
+    :deep(.custom-select-popper) {
+        .el-select-dropdown__item {
+            .option-tag-pill {
+                background-color: var(--el-fill-color-dark);
+            }
+            &:hover,
+            &.hover {
+                background-color: var(--el-fill-color-darker);
+                .option-tag-pill {
+                    background-color: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-fill-color-dark));
+                }
+            }
+            &.is-selected {
+                .option-tag-pill {
+                    background-color: var(--el-color-primary);
+                    color: #ffffff;
+                }
+            }
+        }
     }
 }
 

@@ -54,6 +54,7 @@ import { getInterestAll } from '@/api/content/interest'
 import useUserStore from '@/store/modules/user'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 import { getImgUrl } from '@/utils/img'
+import { markContentListRefreshNeeded } from '@/utils/content/refreshSignal'
 import PostEditorPanel from './components/PostEditorPanel.vue'
 import PostPreviewPanel from './components/PostPreviewPanel.vue'
 
@@ -262,12 +263,12 @@ const syncVideoBatchContents = (nextUrls: string[], prevUrls: string[] = []) => 
 
 const videoDisplayContent = computed(() => {
     const title = videoAutoDescription.value.trim()
-    return title ? `视频：${title}` : ''
+    return title || ''
 })
 
 const syncSingleVideoContentDisplay = (nextAutoDescription: string, previousAutoDescription: string) => {
-    const nextAutoContent = nextAutoDescription.trim() ? `视频：${nextAutoDescription.trim()}` : ''
-    const previousAutoContent = previousAutoDescription.trim() ? `视频：${previousAutoDescription.trim()}` : ''
+    const nextAutoContent = nextAutoDescription.trim()
+    const previousAutoContent = previousAutoDescription.trim()
     const currentContent = String(form.content || '').trim()
     const shouldAutoFill = !currentContent || isVideoContentAutoFilled.value || currentContent === previousAutoContent
 
@@ -566,12 +567,14 @@ async function handleSubmit() {
             }
 
             if (!failedIndexes.length) {
+                markContentListRefreshNeeded()
                 proxy?.$modal?.msgSuccess(`批量发布成功，共 ${successCount} 条`)
                 await handleReset()
                 return
             }
 
             if (successCount > 0) {
+                markContentListRefreshNeeded()
                 proxy?.$modal?.msgWarning?.(`批量发布完成：成功 ${successCount} 条，失败 ${failedIndexes.length} 条（第 ${failedIndexes.join('、')} 条）`)
                 return
             }
@@ -592,6 +595,7 @@ async function handleSubmit() {
             circleId: '',
             isQuestion: '0'
         })
+        markContentListRefreshNeeded()
         proxy?.$modal?.msgSuccess('发布成功')
         await handleReset()
     } catch (e) {

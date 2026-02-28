@@ -41,7 +41,7 @@
                                         <ImageUpload
                                             v-model="form.coverUrl"
                                             :limit="1"
-                                            :file-size="5"
+                                            :file-size="10"
                                             :file-type="['png', 'jpg', 'jpeg', 'webp']"
                                             :is-show-tip="false"
                                             oss-type="circles"
@@ -64,7 +64,7 @@
                                             <span class="loading-text">上传中...</span>
                                         </div>
                                     </div>
-                                    <div class="cover-upload-tip">建议 1:1，支持 JPG/PNG/WebP，最大 5MB</div>
+                                    <div class="cover-upload-tip">建议 1:1，支持 JPG/PNG/WebP，最大 10MB</div>
                                 </el-form-item>
                             </div>
                         </el-col>

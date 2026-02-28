@@ -199,6 +199,7 @@ import {
     setPreviewFollowState,
     toLocalDateTime
 } from '@/utils/content/common'
+import { CONTENT_LIST_REFRESH_EVENT, getContentListRefreshMark } from '@/utils/content/refreshSignal'
 
 const { proxy } = getCurrentInstance() || {}
 const router = useRouter()
@@ -285,7 +286,10 @@ const postTypeOptions = useEnumOptions('POST_TYPE')
 const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
 const hasUserScrolledAfterQuery = ref(false)
 const skipFirstActivatedRefresh = ref(true)
+const lastHandledRefreshMark = ref(0)
+const isViewActive = ref(false)
 let windowScrollBound = false
+let refreshRetryTimer: ReturnType<typeof setTimeout> | null = null
 
 const selectedCount = computed(() => selectedIds.value.size)
 
@@ -724,6 +728,30 @@ function handleQuery() {
     selectedIds.value.clear()
     totalCount.value = null
     fetchList(false)
+}
+
+const clearRefreshRetryTimer = () => {
+    if (!refreshRetryTimer) return
+    clearTimeout(refreshRetryTimer)
+    refreshRetryTimer = null
+}
+
+const scheduleRefreshRetry = () => {
+    clearRefreshRetryTimer()
+    refreshRetryTimer = setTimeout(() => {
+        refreshRetryTimer = null
+        if (!isViewActive.value) return
+        resetQuery()
+    }, 1200)
+}
+
+const tryRefreshBySignal = (withRetry = false): boolean => {
+    const latestMark = getContentListRefreshMark()
+    if (latestMark <= lastHandledRefreshMark.value) return false
+    lastHandledRefreshMark.value = latestMark
+    resetQuery()
+    if (withRetry) scheduleRefreshRetry()
+    return true
 }
 
 async function resetQuery() {
@@ -1351,21 +1379,30 @@ async function handleVideoAction(type: 'follow' | 'like' | 'collect' | 'comment'
 }
 
 onMounted(() => {
+    isViewActive.value = true
+    lastHandledRefreshMark.value = getContentListRefreshMark()
     bindWindowScroll()
     loadTags()
     resetQuery()
+    window.addEventListener(CONTENT_LIST_REFRESH_EVENT, handleContentListRefresh as EventListener)
 })
 
 onActivated(() => {
+    isViewActive.value = true
     bindWindowScroll()
+    const refreshedBySignal = tryRefreshBySignal(true)
     if (skipFirstActivatedRefresh.value) {
         skipFirstActivatedRefresh.value = false
+        if (refreshedBySignal) return
         return
     }
+    if (refreshedBySignal) return
     resetQuery()
 })
 
 onDeactivated(() => {
+    isViewActive.value = false
+    clearRefreshRetryTimer()
     unbindWindowScroll()
 })
 
@@ -1374,9 +1411,17 @@ watch([previewVisible, videoPreviewVisible], ([previewOpen, videoOpen]) => {
 })
 
 onBeforeUnmount(() => {
+    isViewActive.value = false
+    clearRefreshRetryTimer()
+    window.removeEventListener(CONTENT_LIST_REFRESH_EVENT, handleContentListRefresh as EventListener)
     unbindWindowScroll()
     isBodyScrollLocked.value = false
 })
+
+function handleContentListRefresh() {
+    if (!isViewActive.value) return
+    tryRefreshBySignal(true)
+}
 </script>
 
 <style scoped lang="scss">

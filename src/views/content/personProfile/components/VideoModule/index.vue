@@ -78,9 +78,15 @@
                             </div>
 
                             <div class="controls-layer" @click.stop>
-                                <div class="progress-container" ref="progressContainerRef" @mousemove="onProgressHover" @mouseleave="onProgressLeave">
+                                <div
+                                    class="progress-container"
+                                    ref="progressContainerRef"
+                                    @mousemove="onProgressHover"
+                                    @mouseleave="onProgressLeave"
+                                    @click="onProgressTrackClick"
+                                >
                                     <div v-if="progressHover.visible" class="progress-hover-tooltip" :style="{ left: progressHover.left + 'px' }">
-                                        {{ formatClock(isDraggingProgress ? progressDraft : progressHover.time) }}
+                                        <div class="progress-hover-time">{{ formatClock(isDraggingProgress ? progressDraft : progressHover.time) }}</div>
                                     </div>
                                     <el-slider
                                         :model-value="progressShown"
@@ -112,25 +118,17 @@
                                             <div class="volume-btn" @click.stop="handleVolumeButtonClick">
                                                 <Icon :icon="muted || volume === 0 ? 'mdi:volume-mute' : volume < 0.5 ? 'mdi:volume-low' : 'mdi:volume-high'" />
                                             </div>
-                                            <div
-                                                class="volume-slider-wrapper"
-                                                :class="{ open: volumePanelVisible }"
-                                                @mouseenter="openVolumePanel"
-                                                @mouseleave="scheduleCloseVolumePanel"
-                                                @click.stop
-                                            >
-                                                <div class="volume-value">{{ volumePercent }}</div>
+                                            <div class="volume-slider-wrapper" :class="{ open: volumePanelVisible }">
                                                 <el-slider
                                                     v-model="volume"
                                                     :min="0"
                                                     :max="1"
                                                     :step="0.01"
-                                                    :vertical="true"
-                                                    height="110px"
                                                     :show-tooltip="false"
                                                     @input="applyVolume"
                                                     class="volume-slider"
                                                 />
+                                                <div class="volume-value">{{ volumePercent }}</div>
                                             </div>
                                         </div>
 
@@ -169,7 +167,7 @@
 
                         <div class="right-sidebar">
                             <div class="sidebar-item avatar-wrapper">
-                                <el-avatar :size="48" :src="authorAvatar" class="author-avatar" />
+                                <el-avatar :size="48" :src="authorAvatar" class="author-avatar" @click.stop="handleAvatarClick" />
                                 <button v-if="showFollowBadge" type="button" class="follow-badge" @click.stop="handleToggleFollow" aria-label="关注">
                                     <Icon :icon="followBadgeIcon" />
                                 </button>
@@ -417,6 +415,7 @@
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getPostByCollection } from '@/api/content/collection'
@@ -457,6 +456,7 @@ const emit = defineEmits(['update:modelValue', 'close', 'action', 'select-collec
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
+const router = useRouter()
 
 const teleportWrapper = computed(() => (props.useTeleport ? 'teleport' : 'div'))
 const teleportAttrs = computed(() => (props.useTeleport ? { to: 'body' } : {}))
@@ -1017,11 +1017,8 @@ const onProgressDrag = v => {
     progressHover.visible = true
 }
 
-const onProgressCommit = v => {
+const commitProgressSeek = sec => {
     const el = playerRef.value
-    const sec = Number(v || 0)
-    isDraggingProgress.value = false
-    progressDraft.value = sec
     if (!el) {
         progressHover.visible = false
         return
@@ -1034,6 +1031,29 @@ const onProgressCommit = v => {
     const left = calcHoverLeftByTime(next)
     if (left != null) progressHover.left = left
     progressHover.visible = true
+}
+
+const onProgressCommit = v => {
+    const sec = Number(v || 0)
+    isDraggingProgress.value = false
+    progressDraft.value = sec
+    commitProgressSeek(sec)
+}
+
+const onProgressTrackClick = event => {
+    const target = event?.target
+    if (target?.closest?.('.el-slider__button-wrapper')) return
+    const el = progressContainerRef.value
+    const max = progressMax.value
+    if (!el || !max) return
+    const rect = el.getBoundingClientRect()
+    if (!rect.width) return
+    const offsetX = clamp(event.clientX - rect.left, 0, rect.width)
+    const ratio = offsetX / rect.width
+    const sec = ratio * max
+    isDraggingProgress.value = false
+    progressDraft.value = sec
+    commitProgressSeek(sec)
 }
 
 const syncPiPSupport = () => {
@@ -1153,7 +1173,7 @@ const onVolumeChange = () => {
     const el = playerRef.value
     if (!el) return
     muted.value = Boolean(el.muted)
-    volume.value = Number(el.volume ?? 1)
+    volume.value = muted.value ? 0 : Number(el.volume ?? 1)
 }
 
 const onRateChange = () => {
@@ -1200,6 +1220,47 @@ const handleClose = () => {
 
 const emitAction = (type, payload) => {
     emit('action', type, payload)
+}
+
+const resolvePersonProfileTarget = () => {
+    const routes = router.getRoutes()
+    const routeByComponent = routes.find(route => {
+        const component = route.components?.default ?? route.component
+        if (!component) return false
+        const text = String(component)
+        return text.includes('content/personProfile') || text.includes('personProfile/index')
+    })
+    if (routeByComponent) {
+        return routeByComponent.name ? { name: routeByComponent.name } : { path: routeByComponent.path }
+    }
+
+    const routeByMeta = routes.find(route => route.meta?.pageKey === 'personProfile' || route.meta?.profileType === 'self')
+    if (routeByMeta) {
+        return routeByMeta.name ? { name: routeByMeta.name } : { path: routeByMeta.path }
+    }
+
+    const pathCandidates = ['/content/personProfile', '/content/person-profile', '/content/profile']
+    const path = pathCandidates.find(candidate => routes.some(route => route.path === candidate))
+    if (path) return { path }
+
+    return null
+}
+
+const handleAvatarClick = () => {
+    const targetUserId = authorUserId.value
+    if (targetUserId == null || targetUserId === '') return
+
+    const targetUserIdText = String(targetUserId)
+    const selfUserId = currentUserId.value
+    if (selfUserId != null && String(selfUserId) === targetUserIdText) {
+        const selfTarget = resolvePersonProfileTarget()
+        if (selfTarget) {
+            router.push(selfTarget)
+            return
+        }
+    }
+
+    router.push({ path: '/content/userProfile', query: { userId: targetUserIdText } })
 }
 
 const handleToggleFollow = () => {
@@ -1691,15 +1752,31 @@ $color-gold: var(--el-color-warning);
     background: var(--vm-black-24);
 
     .pause-overlay-icon {
-        font-size: 72px;
-        color: var(--vm-white-80);
-        filter: drop-shadow(0 4px 12px var(--vm-black-50));
-        transition: transform 0.2s;
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: var(--vm-color-white);
+        background: var(--vm-white-12);
+        border: 1px solid var(--vm-white-24);
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        box-shadow:
+            0 8px 20px var(--vm-black-35),
+            inset 0 1px 0 var(--vm-white-25);
+        transition:
+            transform 0.2s,
+            background 0.2s,
+            border-color 0.2s;
     }
 
     &:hover .pause-overlay-icon {
         transform: scale(1.1);
-        color: var(--vm-color-white);
+        background: var(--vm-white-18);
+        border-color: var(--vm-white-35);
     }
 }
 
@@ -1721,16 +1798,18 @@ $color-gold: var(--el-color-warning);
 
     .close-btn {
         pointer-events: auto;
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         background: var(--vm-white-10);
+        border: 1px solid var(--vm-white-20);
+        box-shadow: 0 4px 10px var(--vm-black-24);
         backdrop-filter: blur(8px);
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--vm-color-white);
-        font-size: 20px;
+        font-size: 24px;
         cursor: pointer;
         transition: background 0.2s;
 
@@ -1910,29 +1989,48 @@ $color-gold: var(--el-color-warning);
 
         .progress-slider {
             width: 100%;
-            height: 4px;
+            height: 16px;
+            --el-slider-height: 4px;
+            --el-slider-button-size: 5px;
+            --el-slider-button-wrapper-size: 16px;
+            --el-slider-button-wrapper-offset: -6px;
+            --el-color-primary: #9ea3ad;
+            --el-slider-main-bg-color: #9ea3ad;
+            --el-slider-runway-bg-color: #5e636f;
 
             :deep(.el-slider__runway) {
-                height: 4px;
-                background: var(--vm-white-25);
                 border-radius: 2px;
                 margin: 0;
             }
 
             :deep(.el-slider__bar) {
-                height: 4px;
-                background: var(--vm-white-50);
                 border-radius: 2px;
             }
 
             :deep(.el-slider__button) {
-                width: 12px;
-                height: 12px;
-                background: var(--vm-color-white);
+                background: #d7dae0;
                 border: none;
-                box-shadow: 0 2px 4px var(--vm-black-35);
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
                 transform: scale(0);
                 transition: transform 0.1s;
+            }
+
+            :deep(.el-slider__button-wrapper) {
+                top: calc((var(--el-slider-height) - var(--el-slider-button-wrapper-size)) / 2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2;
+            }
+
+            :deep(.el-slider__button-wrapper::after) {
+                content: none;
+            }
+
+            :deep(.el-slider__button:hover),
+            :deep(.el-slider__button.hover),
+            :deep(.el-slider__button.dragging) {
+                transform: scale(1);
             }
         }
 
@@ -1942,14 +2040,22 @@ $color-gold: var(--el-color-warning);
 
         .progress-hover-tooltip {
             position: absolute;
-            bottom: 20px;
+            bottom: calc(100% + 2px);
             transform: translateX(-50%);
             background: var(--vm-black-80);
             color: var(--vm-color-white);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            box-shadow: 0 4px 10px var(--vm-black-35);
             pointer-events: none;
+            z-index: 12;
+
+            .progress-hover-time {
+                font-size: 11px;
+                line-height: 1;
+                font-weight: 500;
+                text-shadow: 0 1px 2px var(--vm-black-60);
+            }
         }
     }
 
@@ -1991,129 +2097,110 @@ $color-gold: var(--el-color-warning);
             align-items: center;
             position: relative;
             z-index: 24;
-            padding: 0;
             height: 32px;
-            overflow: visible;
+            border-radius: 16px;
+            padding: 0 8px;
+            background: rgba(26, 28, 36, 0.56);
+            border: 1px solid var(--vm-white-10);
+            backdrop-filter: blur(8px);
+            transition: background 0.2s;
+
+            &:hover {
+                background: rgba(30, 33, 44, 0.7);
+            }
 
             .volume-btn {
-                font-size: 24px;
-                color: var(--vm-color-white);
+                font-size: 22px;
+                color: #d4d7de;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 28px;
-                height: 28px;
                 position: relative;
-                z-index: 36;
+                z-index: 1;
+                width: 22px;
+                height: 22px;
+
+                &:hover {
+                    opacity: 0.9;
+                }
             }
 
             .volume-slider-wrapper {
-                position: absolute;
-                left: 50%;
-                bottom: calc(100% + 8px);
-                transform: translate(-50%, 6px);
-                width: 54px;
-                padding: 10px 0 12px;
-                border-radius: 16px;
-                background: var(--vm-panel-bg-soft);
-                border: 1px solid var(--vm-white-10);
-                box-shadow: 0 6px 14px var(--vm-black-35);
+                width: 0;
                 opacity: 0;
-                visibility: hidden;
-                overflow: visible;
-                z-index: 30;
+                overflow: hidden;
+                margin-left: 0;
                 transition:
+                    width 0.2s ease,
                     opacity 0.2s ease,
-                    transform 0.2s ease,
-                    visibility 0.2s ease;
+                    margin-left 0.2s ease;
                 display: flex;
-                flex-direction: column;
                 align-items: center;
-                justify-content: center;
                 gap: 8px;
                 pointer-events: none;
-
-                &::after {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    bottom: -10px;
-                    height: 10px;
-                }
+                position: relative;
+                z-index: 1;
 
                 &.open {
+                    width: 106px;
                     opacity: 1;
-                    visibility: visible;
-                    transform: translate(-50%, 0);
+                    overflow: visible;
+                    margin-left: 8px;
                     pointer-events: auto;
                 }
             }
 
-            .volume-value {
-                min-height: 16px;
-                font-size: 12px;
-                line-height: 16px;
-                font-weight: 700;
-                color: var(--vm-color-accent);
-                text-align: center;
-                user-select: none;
-            }
-
             .volume-slider {
-                width: 14px;
-                height: 110px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto;
-                flex: none;
+                flex: 1;
+                width: 100%;
+                min-width: 0;
+                height: 20px;
+                --el-slider-height: 3px;
+                --el-slider-button-size: 6px;
+                --el-slider-button-wrapper-size: 18px;
+                --el-slider-button-wrapper-offset: -7.5px;
+                --el-color-primary: #9ea3ad;
+                --el-slider-main-bg-color: #9ea3ad;
+                --el-slider-runway-bg-color: #5e636f;
 
-                :deep(.el-slider) {
-                    width: 14px;
-                    height: 110px;
+                :deep(.el-slider__runway) {
+                    border-radius: 2px;
+                    margin: 0;
+                }
+
+                :deep(.el-slider__bar) {
+                    border-radius: 2px;
+                }
+
+                :deep(.el-slider__button-wrapper) {
+                    top: calc((var(--el-slider-height) - var(--el-slider-button-wrapper-size)) / 2);
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    z-index: 2;
                 }
 
-                :deep(.el-slider.is-vertical) {
-                    height: 110px;
-                    width: 14px;
+                :deep(.el-slider__button-wrapper::after) {
+                    content: none;
                 }
 
-                :deep(.el-slider.is-vertical .el-slider__runway) {
-                    width: 4px;
-                    height: 100%;
-                    margin: 0;
-                    background: var(--vm-white-20);
-                    border-radius: 999px;
-                }
-
-                :deep(.el-slider.is-vertical .el-slider__bar) {
-                    width: 4px;
-                    background: $color-accent;
-                    border-radius: 999px;
-                }
-
-                :deep(.el-slider.is-vertical .el-slider__button-wrapper) {
-                    left: 50%;
-                    margin-left: 0;
-                    transform: translateX(-50%);
-                }
-
-                :deep(.el-slider.is-vertical .el-slider__button) {
-                    width: 12px;
-                    height: 12px;
+                :deep(.el-slider__button) {
                     border: none;
-                    background: var(--vm-color-white);
-                    box-shadow: 0 2px 4px var(--vm-black-35);
+                    background-color: #d7dae0;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
                 }
             }
 
-            .volume-percent {
-                display: none;
+            .volume-value {
+                width: 22px;
+                font-size: 11px;
+                line-height: 1;
+                font-weight: 600;
+                color: #c8ccd4;
+                text-align: center;
+                flex-shrink: 0;
+                user-select: none;
             }
         }
 

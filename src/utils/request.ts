@@ -12,7 +12,7 @@ let downloadLoadingInstance: ReturnType<typeof ElLoading.service> | undefined
 export const isRelogin = { show: false }
 
 const REPEAT_SUBMIT_INTERVAL = 1000
-const REQUEST_SIZE_LIMIT = 5 * 1024 * 1024
+const REQUEST_SIZE_LIMIT = 10 * 1024 * 1024
 const DEFAULT_TIMEOUT = 300000
 
 axios.defaults.headers.common['Content-Type'] = 'application/json;charset=utf-8'

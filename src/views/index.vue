@@ -1,6 +1,5 @@
-<template>
+﻿<template>
     <div class="audit-dashboard" v-loading="loading">
-        <el-alert :title="isAdmin ? '管理员视图：全局审核看板' : '用户视图：个人提审看板'" type="info" :closable="false" class="dashboard-alert" />
         <el-row :gutter="20" class="card-row">
             <el-col :span="6" v-for="card in statCards" :key="card.key">
                 <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
@@ -250,7 +249,7 @@ const userExtraCards = [
         bgColor: 'rgba(0, 168, 112, 0.1)',
         formatter: value => `${Number(value || 0)}%`
     },
-    { key: 'recentSubmitCount', title: '近7天提审', icon: 'mdi:chart-line', color: '#6f7ad3', bgColor: 'rgba(111, 122, 211, 0.12)' }
+    { key: 'recentSubmitCount', title: '近 7 天提审', icon: 'mdi:chart-line', color: '#6f7ad3', bgColor: 'rgba(111, 122, 211, 0.12)' }
 ]
 
 const statCards = computed(() => (isAdmin.value ? adminStatCards : userStatCards))
@@ -710,14 +709,9 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .audit-dashboard {
-    padding: 10px;
+    padding: 4px 10px 10px;
     background-color: var(--el-bg-color-page);
     min-height: 100vh;
-
-    .dashboard-alert {
-        margin-bottom: 16px;
-    }
-
     .card-row {
         margin-bottom: 20px;
     }

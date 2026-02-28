@@ -1,6 +1,6 @@
 ﻿<template>
     <div class="upload-file">
-        <div v-if="!disabled || !hideWhenDisabled" class="upload-file-uploader-wrap">
+        <div v-if="showUploader" class="upload-file-uploader-wrap">
             <el-upload
                 multiple
                 :action="uploadFileUrl"
@@ -35,7 +35,7 @@
             </transition>
         </div>
 
-        <div class="custom-upload-tip" v-if="showTip && !disabled">
+        <div class="custom-upload-tip" v-if="showTip && !disabled && showUploader">
             <div class="tip-icon">
                 <Icon icon="mdi:information-slab-circle-outline" width="18" />
             </div>
@@ -115,9 +115,13 @@ const props = defineProps({
         type: Boolean,
         default: true
     },
+    hideWhenReachLimit: {
+        type: Boolean,
+        default: false
+    },
     fileSize: {
         type: Number,
-        default: 5
+        default: 10
     },
     fileType: {
         type: Array,
@@ -155,6 +159,12 @@ const showTip = computed(() => props.isShowTip && (props.fileType || props.fileS
 const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
 const isUploading = computed(() => uploadingCount.value > 0)
 const enableSort = computed(() => props.drag && props.sortable)
+const reachLimit = computed(() => Number(props.limit || 0) > 0 && fileList.value.length >= Number(props.limit || 0))
+const showUploader = computed(() => {
+    if (props.disabled && props.hideWhenDisabled) return false
+    if (props.hideWhenReachLimit && reachLimit.value) return false
+    return true
+})
 
 watch(
     isUploading,

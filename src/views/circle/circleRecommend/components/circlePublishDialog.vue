@@ -88,7 +88,7 @@ const visible = computed({
 })
 
 const IMAGE_LIMIT = 9
-const IMAGE_MAX_SIZE_MB = 5
+const IMAGE_MAX_SIZE_MB = 10
 const CIRCLE_OSS_TYPE = 'circles'
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif']
 const VIDEO_EXTENSIONS = ['mp4', 'mov']
