@@ -1,6 +1,6 @@
 <template>
-    <div class="app-container template-manage">
-        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
+    <div class="app-container">
+        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true">
             <el-form-item :label="TEXT_MAP.interestType" prop="interestType">
                 <el-select
                     v-model="queryParams.interestType"
@@ -8,13 +8,13 @@
                     :loading="dimensionLoading"
                     clearable
                     filterable
-                    style="width: 220px"
+                    class="w-[220px]"
                 >
                     <el-option v-for="opt in interestTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
             </el-form-item>
             <el-form-item :label="TEXT_MAP.abilityLevel" prop="abilityLevel">
-                <el-select v-model="queryParams.abilityLevel" :placeholder="TEXT_MAP.abilityLevelPlaceholder" clearable style="width: 180px">
+                <el-select v-model="queryParams.abilityLevel" :placeholder="TEXT_MAP.abilityLevelPlaceholder" clearable class="w-[180px]">
                     <el-option v-for="(label, value) in ABILITY_MAP" :key="value" :label="label" :value="Number(value)" />
                 </el-select>
             </el-form-item>
@@ -25,7 +25,7 @@
                     :loading="dimensionLoading"
                     clearable
                     filterable
-                    style="width: 200px"
+                    class="w-[200px]"
                 >
                     <el-option v-for="opt in valueTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
@@ -37,7 +37,7 @@
                     :loading="dimensionLoading"
                     clearable
                     filterable
-                    style="width: 200px"
+                    class="w-[200px]"
                 >
                     <el-option v-for="opt in personalityTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
@@ -48,9 +48,9 @@
             </el-form-item>
         </el-form>
 
-        <div class="table-wrapper">
-            <div class="table-header">
-                <div class="left-tools">
+        <div class="rounded-md">
+            <div class="mb-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
                     <el-button type="primary" plain @click="handleAdd"> <Icon icon="mdi:plus" class="mr-1" /> {{ TEXT_MAP.add }} </el-button>
                     <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleDelete()">
                         <Icon icon="mdi:trash-can-outline" class="mr-1" /> {{ TEXT_MAP.delete }}
@@ -92,7 +92,7 @@
 
                 <el-table-column :label="TEXT_MAP.updateTime" align="center" width="170">
                     <template #default="{ row }">
-                        <span class="time-cell">{{ formatTimeCell(row.updateTime || row.createTime) }}</span>
+                        <span class="text-[13px] text-[var(--el-text-color-secondary)]">{{ formatTimeCell(row.updateTime || row.createTime) }}</span>
                     </template>
                 </el-table-column>
 
@@ -114,7 +114,7 @@
         </div>
 
         <el-drawer v-model="open" :title="dialogTitle" direction="rtl" size="640px" append-to-body destroy-on-close class="modern-drawer">
-            <div class="drawer-content">
+            <div class="h-full overflow-y-auto pr-1">
                 <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" label-position="top">
                     <el-row :gutter="24">
                         <el-col :span="12">
@@ -125,7 +125,7 @@
                                     :loading="dimensionLoading"
                                     clearable
                                     filterable
-                                    style="width: 100%"
+                                    class="w-full"
                                 >
                                     <el-option v-for="opt in interestTypeSelectOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
@@ -134,7 +134,7 @@
 
                         <el-col :span="12">
                             <el-form-item :label="TEXT_MAP.abilityLevel" prop="abilityLevel">
-                                <el-select v-model="form.abilityLevel" :placeholder="TEXT_MAP.abilityLevelPlaceholder" style="width: 100%">
+                                <el-select v-model="form.abilityLevel" :placeholder="TEXT_MAP.abilityLevelPlaceholder" class="w-full">
                                     <el-option v-for="(label, value) in ABILITY_MAP" :key="value" :label="label" :value="Number(value)" />
                                 </el-select>
                             </el-form-item>
@@ -148,7 +148,7 @@
                                     :loading="dimensionLoading"
                                     clearable
                                     filterable
-                                    style="width: 100%"
+                                    class="w-full"
                                 >
                                     <el-option v-for="opt in valueTypeSelectOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
@@ -163,7 +163,7 @@
                                     :loading="dimensionLoading"
                                     clearable
                                     filterable
-                                    style="width: 100%"
+                                    class="w-full"
                                 >
                                     <el-option v-for="opt in personalityTraitSelectOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
@@ -221,23 +221,31 @@
                         </el-col>
 
                         <el-col :span="24">
-                            <el-form-item :label="TEXT_MAP.representative" prop="representativeList" class="representative-form-item">
-                                <div class="representative-container">
-                                    <div v-for="(item, index) in form.representativeList" :key="index" class="representative-card">
-                                        <div class="card-header">
-                                            <span class="index-badge">{{ index + 1 }}</span>
+                            <el-form-item :label="TEXT_MAP.representative" prop="representativeList" class="mb-0">
+                                <div class="w-full">
+                                    <div
+                                        v-for="(item, index) in form.representativeList"
+                                        :key="index"
+                                        class="mb-4 rounded-md border border-[var(--el-border-color-light)] bg-[var(--el-fill-color-lighter)] p-4 transition-all duration-300 ease-in-out hover:-translate-y-px hover:border-[var(--el-border-color)] hover:shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
+                                    >
+                                        <div class="mb-3 flex items-center justify-between">
+                                            <span
+                                                class="rounded-[10px] bg-[var(--el-fill-color)] px-2 py-[2px] text-xs font-semibold text-[var(--el-text-color-secondary)]"
+                                            >
+                                                {{ index + 1 }}
+                                            </span>
                                             <el-button link type="danger" @click="removeRepresentative(index)">
                                                 <Icon icon="mdi:close" />
                                             </el-button>
                                         </div>
-                                        <div class="card-body">
-                                            <div class="left-inputs">
+                                        <div class="flex items-start gap-5">
+                                            <div class="flex min-w-0 flex-1 flex-col gap-3">
                                                 <el-input v-model="item.name" placeholder="人物姓名" class="mb-2">
                                                     <template #prefix><Icon icon="mdi:account" /></template>
                                                 </el-input>
                                                 <el-input v-model="item.description" placeholder="简短描述/头衔" type="textarea" :rows="2" resize="none" />
                                             </div>
-                                            <div class="right-upload">
+                                            <div class="right-upload flex w-24 shrink-0 items-start">
                                                 <ImageUpload
                                                     v-model="item.image"
                                                     :limit="1"
@@ -250,7 +258,12 @@
                                         </div>
                                     </div>
 
-                                    <el-button type="primary" plain class="add-btn" @click="addRepresentative">
+                                    <el-button
+                                        type="primary"
+                                        plain
+                                        class="w-full border-dashed text-[var(--el-text-color-secondary)] hover:border-[var(--el-color-primary)] hover:text-[var(--el-color-primary)]"
+                                        @click="addRepresentative"
+                                    >
                                         <Icon icon="mdi:plus" class="mr-1" /> 添加代表人物
                                     </el-button>
                                 </div>
@@ -260,9 +273,9 @@
                 </el-form>
             </div>
             <template #footer>
-                <div class="drawer-footer">
-                    <el-button @click="open = false" class="btn-cancel">{{ TEXT_MAP.cancel }}</el-button>
-                    <el-button type="primary" :loading="submitLoading" @click="submitForm" class="btn-submit">
+                <div class="flex items-center justify-end gap-3">
+                    <el-button @click="open = false">{{ TEXT_MAP.cancel }}</el-button>
+                    <el-button type="primary" :loading="submitLoading" @click="submitForm">
                         {{ TEXT_MAP.confirm }}
                     </el-button>
                 </div>
@@ -485,135 +498,42 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.template-manage {
-    .table-wrapper {
-        border-radius: 6px;
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .left-tools {
-                display: flex;
-                gap: 12px;
-                align-items: center;
-            }
-        }
+.right-upload {
+    :deep(.mini-upload.glass-upload-container) {
+        width: 96px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
     }
 
-    .time-cell {
-        color: var(--el-text-color-secondary);
-        font-size: 13px;
-    }
-}
-
-.representative-container {
-    width: 100%;
-
-    .representative-card {
-        background-color: var(--el-fill-color-lighter);
-        border: 1px solid var(--el-border-color-light);
-        border-radius: 6px;
-        padding: 16px;
-        margin-bottom: 16px;
-        transition: all 0.3s ease;
-
-        &:hover {
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-            border-color: var(--el-border-color);
-            transform: translateY(-1px);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-
-            .index-badge {
-                font-size: 12px;
-                font-weight: 600;
-                color: var(--el-text-color-secondary);
-                background: var(--el-fill-color);
-                padding: 2px 8px;
-                border-radius: 10px;
-            }
-        }
-
-        .card-body {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-
-            .left-inputs {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                min-width: 0;
-            }
-
-            .right-upload {
-                width: 96px;
-                flex-shrink: 0;
-                display: flex;
-                align-items: flex-start;
-
-                :deep(.mini-upload.glass-upload-container) {
-                    width: 96px;
-                    padding: 0;
-                    background: transparent;
-                    border: none;
-                    box-shadow: none;
-                }
-
-                :deep(.mini-upload .upload-wrapper) {
-                    width: 96px;
-                }
-
-                :deep(.mini-upload .glass-uploader) {
-                    --item-size: 96px;
-                    --radius: 10px;
-                }
-
-                :deep(.mini-upload .el-upload-list--picture-card) {
-                    grid-template-columns: 1fr;
-                    gap: 0;
-                }
-
-                :deep(.el-upload) {
-                    width: 96px;
-                    height: 96px;
-                }
-
-                :deep(.el-upload-list) {
-                    width: 96px;
-                }
-
-                :deep(.el-upload-list__item) {
-                    width: 96px;
-                    height: 96px;
-                    margin: 0;
-                }
-            }
-        }
+    :deep(.mini-upload .upload-wrapper) {
+        width: 96px;
     }
 
-    .add-btn {
-        width: 100%;
-        border-style: dashed;
-        color: var(--el-text-color-secondary);
-
-        &:hover {
-            border-color: var(--el-color-primary);
-            color: var(--el-color-primary);
-        }
+    :deep(.mini-upload .glass-uploader) {
+        --item-size: 96px;
+        --radius: 10px;
     }
-}
 
-.representative-form-item {
-    margin-bottom: 0;
+    :deep(.mini-upload .el-upload-list--picture-card) {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    :deep(.el-upload) {
+        width: 96px;
+        height: 96px;
+    }
+
+    :deep(.el-upload-list) {
+        width: 96px;
+    }
+
+    :deep(.el-upload-list__item) {
+        width: 96px;
+        height: 96px;
+        margin: 0;
+    }
 }
 </style>

@@ -74,6 +74,9 @@
                                     ref="imageUploadRef"
                                     v-model="imageUrlsModel"
                                     :limit="9"
+                                    :drag="true"
+                                    :upload-drag="false"
+                                    :sort-assist-mode="true"
                                     :file-size="10"
                                     :file-type="['jpg', 'jpeg', 'png', 'gif']"
                                     :is-show-tip="false"
@@ -336,6 +339,7 @@ const videoBatchTagIdsModel = computed({
 })
 
 const videoUrlList = computed(() => parseVideoUrlList(props.videoUrls))
+const imageMediaCount = computed(() => parseVideoUrlList(props.imageUrls).length)
 const isBatchVideoMode = computed(() => props.form.postType === POST_TYPE.VIDEO && videoUrlList.value.length > 1)
 const videoBatchErrorSet = computed(() => new Set((props.videoBatchErrorIndexes || []).map(index => Number(index))))
 const videoBatchTagErrorSet = computed(() => new Set((props.videoBatchTagErrorIndexes || []).map(index => Number(index))))
@@ -604,6 +608,7 @@ defineExpose({
 .edit-section {
     max-width: 800px;
     margin: 0 auto;
+    overflow-x: hidden;
 
     .section-header {
         display: flex;
@@ -639,8 +644,6 @@ defineExpose({
 
             &:hover {
                 color: var(--el-color-primary);
-                transform: rotate(180deg);
-                transform-origin: center;
             }
         }
     }

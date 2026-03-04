@@ -14,6 +14,7 @@ type ProxyMode = keyof typeof proxyTargets
 
 interface ViteRuntimeEnv {
     VITE_BUILD_COMPRESS?: string
+    VITE_BUILD_ZIP?: string
     VITE_PROXY_TARGET?: string
     VITE_PROXY_MODE?: ProxyMode
     VITE_DROP_CONSOLE?: string
@@ -65,10 +66,11 @@ export default defineConfig(({ mode, command }) => {
     const enableObfuscation = isBuild && isProductionMode && env.VITE_ENABLE_OBFUSCATION === 'true'
     const shouldDropConsole = isBuild && isProductionMode && env.VITE_DROP_CONSOLE !== 'false'
     const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProductionMode)
+    const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
 
     return {
         base: '/',
-        plugins: [...createVitePlugins(env, isBuild), isBuild && zipPack({ outDir: 'dist', outFileName: 'dist.zip' })].filter(Boolean),
+        plugins: [...createVitePlugins(env, isBuild), shouldGenerateZip && zipPack({ outDir: 'dist', outFileName: 'dist.zip' })].filter(Boolean),
 
         resolve: {
             alias: {

@@ -3,9 +3,6 @@ import Cookies from 'js-cookie'
 import ElementPlus, { type ComponentSize } from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
-import videojs from 'video.js'
-import 'video.js/dist/video-js.css'
-import zhCN from 'video.js/dist/lang/zh-CN.json'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
 import '@/assets/styles/index.scss' // global css
@@ -45,22 +42,12 @@ import MediaPreview from '@/components/MediaPreview/index.vue'
 // 字典标签组件
 import DictTag from '@/components/DictTag/index.vue'
 
-import { addCollection } from '@iconify/vue/dist/offline'
 import AppIcon from '@/components/Icon/index.vue'
-import type { IconifyJSON } from '@iconify/types'
-import mdiIcons from '@iconify-json/mdi/icons.json'
-import epIcons from '@iconify-json/ep/icons.json'
-import simpleIcons from '@iconify-json/simple-icons/icons.json'
-import materialSymbols from '@iconify-json/material-symbols/icons.json'
+import { preloadIconCollections } from '@/utils/iconify'
 
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
-addCollection(mdiIcons as IconifyJSON)
-addCollection(epIcons as IconifyJSON)
-addCollection(simpleIcons as IconifyJSON)
-addCollection(materialSymbols as IconifyJSON)
-
-videojs.addLanguage('zh-CN', zhCN as Record<string, string>)
+preloadIconCollections(['ep', 'mdi'])
 
 const app = createApp(App)
 
@@ -120,7 +107,6 @@ const onVnodeBeforeMountRef_ = (vNode: any) => {
     })
 }
 
-app.config.globalProperties.$videojs = videojs
 app.config.globalProperties.useDict = useDict
 app.config.globalProperties.download = download
 app.config.globalProperties.parseTime = parseTime

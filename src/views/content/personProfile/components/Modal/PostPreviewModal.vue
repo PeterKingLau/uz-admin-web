@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div v-if="visible" class="post-preview-mask" @click.self="handleClose">
         <button type="button" class="preview-close" @click="handleClose" aria-label="关闭">
             <Icon icon="mdi:close" />
@@ -35,110 +35,112 @@
                             </div>
                         </div>
                         <el-button
+                            v-if="!isAuthorSelf"
                             round
                             size="small"
                             class="follow-btn"
                             :class="{ 'is-following': isFollowing }"
                             :loading="followLoading"
-                            :disabled="isAuthorSelf"
                             @click="emit('follow')"
                         >
                             {{ isFollowing ? '已关注' : '关注' }}
                         </el-button>
                     </div>
 
-                    <div class="detail-content">
-                        <div v-if="post.content" class="detail-text">{{ post.content }}</div>
-                        <div v-else class="detail-text empty">（无正文内容）</div>
-                    </div>
+                    <div class="detail-scroll-area">
+                        <div class="detail-content">
+                            <div v-if="post.content" class="detail-text">{{ post.content }}</div>
+                            <div v-else class="detail-text empty">（无正文内容）</div>
+                        </div>
 
-                    <div v-if="tags.length" class="detail-tags">
-                        <span v-for="tag in tags" :key="tag" class="detail-tag">#{{ tag }}</span>
-                    </div>
+                        <div v-if="tags.length" class="detail-tags">
+                            <span v-for="tag in tags" :key="tag" class="detail-tag">#{{ tag }}</span>
+                        </div>
 
-                    <div class="detail-meta">
-                        <span>编辑于 {{ formatRelativeTime(post.createTime) || '-' }}</span>
-                        <span>评论 {{ post.commentCount ?? 0 }}</span>
-                    </div>
+                        <div class="detail-meta">
+                            <span>编辑于 {{ formatRelativeTime(post.createTime) || '-' }}</span>
+                            <span>评论 {{ post.commentCount ?? 0 }}</span>
+                        </div>
 
-                    <el-divider class="detail-divider" />
+                        <el-divider class="detail-divider" />
 
-                    <div class="detail-comments">
-                        <div class="comment-count">共 {{ post.commentCount ?? 0 }} 条评论</div>
-                        <div v-if="commentsLoading" class="comment-loading">加载中...</div>
-                        <div v-else-if="comments.length" class="comment-list">
-                            <div v-for="item in comments" :key="item.id || item.commentId || item._id" class="comment-item">
-                                <el-avatar :size="28" :src="resolveAvatar(item.avatar)" />
-                                <div class="comment-body">
-                                    <div class="comment-user">{{ resolveCommentUser(item) }}</div>
-                                    <div class="comment-text">{{ resolveCommentText(item) || '-' }}</div>
-                                    <div class="comment-meta">
-                                        <span class="comment-time">{{ formatRelativeTime(resolveCommentTime(item)) || '-' }}</span>
-                                        <button type="button" class="comment-action reply" @click="emit('reply-comment', item)">
-                                            <Icon icon="mdi:comment-outline" />
-                                            <span>回复</span>
-                                        </button>
-                                        <button
-                                            v-if="canDeleteComment(item)"
-                                            type="button"
-                                            class="comment-action delete"
-                                            :disabled="isDeleteCommentLoading(item)"
-                                            @click="emit('delete-comment', item)"
-                                        >
-                                            删除
-                                        </button>
-                                    </div>
-                                    <div class="comment-actions">
-                                        <button
-                                            v-if="getCommentReplyCount(item) > 0"
-                                            type="button"
-                                            class="comment-action toggle"
-                                            @click="emit('toggle-replies', item)"
-                                        >
-                                            {{ resolveReplyState(item).open ? '收起回复' : `展开 ${getCommentReplyCount(item)} 条回复` }}
-                                        </button>
-                                    </div>
-                                    <div v-if="resolveReplyState(item).open" class="comment-replies">
-                                        <div v-if="resolveReplyState(item).loading" class="reply-loading">加载中...</div>
-                                        <div v-else>
-                                            <div
-                                                v-for="reply in resolveReplyState(item).list"
-                                                :key="reply.id || reply.commentId || reply._id"
-                                                class="reply-item"
+                        <div class="detail-comments">
+                            <div class="comment-count">共 {{ post.commentCount ?? 0 }} 条评论</div>
+                            <div v-if="commentsLoading" class="comment-loading">加载中...</div>
+                            <div v-else-if="comments.length" class="comment-list">
+                                <div v-for="item in comments" :key="item.id || item.commentId || item._id" class="comment-item">
+                                    <el-avatar :size="28" :src="resolveAvatar(item.avatar)" />
+                                    <div class="comment-body">
+                                        <div class="comment-user">{{ resolveCommentUser(item) }}</div>
+                                        <div class="comment-text">{{ resolveCommentText(item) || '-' }}</div>
+                                        <div class="comment-meta">
+                                            <span class="comment-time">{{ formatRelativeTime(resolveCommentTime(item)) || '-' }}</span>
+                                            <button type="button" class="comment-action reply" @click="emit('reply-comment', item)">
+                                                <Icon icon="mdi:comment-outline" />
+                                                <span>回复</span>
+                                            </button>
+                                            <button
+                                                v-if="canDeleteComment(item)"
+                                                type="button"
+                                                class="comment-action delete"
+                                                :disabled="isDeleteCommentLoading(item)"
+                                                @click="emit('delete-comment', item)"
                                             >
-                                                <el-avatar :size="24" :src="resolveAvatar(reply.avatar)" />
-                                                <div class="reply-body">
-                                                    <div class="reply-user">{{ resolveCommentUser(reply) }}</div>
-                                                    <div class="reply-text">{{ resolveCommentText(reply) || '-' }}</div>
-                                                    <div class="reply-meta">
-                                                        <span class="reply-time">{{ formatRelativeTime(resolveCommentTime(reply)) || '-' }}</span>
-                                                        <button type="button" class="reply-action" @click="emit('reply-reply', reply, item)">
-                                                            <Icon icon="mdi:comment-outline" />
-                                                            <span>回复</span>
-                                                        </button>
-                                                        <button
-                                                            v-if="canDeleteComment(reply)"
-                                                            type="button"
-                                                            class="reply-action delete"
-                                                            :disabled="isDeleteCommentLoading(reply)"
-                                                            @click="emit('delete-comment', reply, item)"
-                                                        >
-                                                            删除
-                                                        </button>
+                                                删除
+                                            </button>
+                                        </div>
+                                        <div class="comment-actions">
+                                            <button
+                                                v-if="getCommentReplyCount(item) > 0"
+                                                type="button"
+                                                class="comment-action toggle"
+                                                @click="emit('toggle-replies', item)"
+                                            >
+                                                {{ resolveReplyState(item).open ? '收起回复' : `展开 ${getCommentReplyCount(item)} 条回复` }}
+                                            </button>
+                                        </div>
+                                        <div v-if="resolveReplyState(item).open" class="comment-replies">
+                                            <div v-if="resolveReplyState(item).loading" class="reply-loading">加载中...</div>
+                                            <div v-else>
+                                                <div
+                                                    v-for="reply in resolveReplyState(item).list"
+                                                    :key="reply.id || reply.commentId || reply._id"
+                                                    class="reply-item"
+                                                >
+                                                    <el-avatar :size="24" :src="resolveAvatar(reply.avatar)" />
+                                                    <div class="reply-body">
+                                                        <div class="reply-user">{{ resolveCommentUser(reply) }}</div>
+                                                        <div class="reply-text">{{ resolveCommentText(reply) || '-' }}</div>
+                                                        <div class="reply-meta">
+                                                            <span class="reply-time">{{ formatRelativeTime(resolveCommentTime(reply)) || '-' }}</span>
+                                                            <button type="button" class="reply-action" @click="emit('reply-reply', reply, item)">
+                                                                <Icon icon="mdi:comment-outline" />
+                                                                <span>回复</span>
+                                                            </button>
+                                                            <button
+                                                                v-if="canDeleteComment(reply)"
+                                                                type="button"
+                                                                class="reply-action delete"
+                                                                :disabled="isDeleteCommentLoading(reply)"
+                                                                @click="emit('delete-comment', reply, item)"
+                                                            >
+                                                                删除
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div v-if="!resolveReplyState(item).noMore" class="reply-more" @click="emit('load-replies', item)">
-                                                {{ resolveReplyState(item).loading ? '加载中...' : '查看更多回复' }}
+                                                <div v-if="!resolveReplyState(item).noMore" class="reply-more" @click="emit('load-replies', item)">
+                                                    {{ resolveReplyState(item).loading ? '加载中...' : '查看更多回复' }}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div v-else class="comment-empty">
-                            <Icon icon="mdi:sofa-outline" />
-                            <span>暂无评论，快来抢沙发~</span>
+                            <div v-else class="comment-empty">
+                                <Icon icon="mdi:sofa-outline" />
+                                <span>暂无评论，快来抢沙发~</span>
+                            </div>
                         </div>
                     </div>
 
@@ -445,13 +447,27 @@ defineExpose({ focusInput })
 }
 
 .preview-detail-pane {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     gap: 12px;
     padding: 18px 20px;
     overflow: hidden;
     min-height: 0;
     background: var(--el-bg-color);
+}
+
+.detail-scroll-area {
+    min-height: 0;
+    overflow: auto;
+    padding-right: 6px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.detail-scroll-area::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 .detail-header {
@@ -557,63 +573,64 @@ defineExpose({ focusInput })
 }
 
 .detail-comments {
-    flex: 1;
-    overflow: auto;
     min-height: 0;
-    padding-right: 6px;
+    padding-top: 2px;
 }
 
 .comment-count {
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--el-text-color-secondary);
 }
 
 .comment-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 10px;
+    gap: 16px;
+    margin-top: 14px;
 }
 
 .comment-item {
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 
 .comment-body {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
 }
 
 .comment-user {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--el-text-color-primary);
 }
 
 .comment-text {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--el-text-color-regular);
-    line-height: 1.6;
+    line-height: 1.72;
+    margin-top: 1px;
 }
 
 .comment-time {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--el-text-color-secondary);
 }
 
 .comment-meta {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--el-text-color-secondary);
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    margin-top: 1px;
 }
 
 .comment-actions {
-    margin-top: 6px;
+    margin-top: 8px;
     display: inline-flex;
     align-items: center;
 }
@@ -623,12 +640,13 @@ defineExpose({ focusInput })
     border: none;
     background: transparent;
     color: var(--el-text-color-secondary);
-    font-size: 11px;
+    font-size: 12px;
     cursor: pointer;
     padding: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    line-height: 1.4;
 }
 
 .comment-action.toggle {
@@ -651,23 +669,23 @@ defineExpose({ focusInput })
 }
 
 .comment-replies {
-    margin-top: 10px;
-    padding-left: 8px;
+    margin-top: 12px;
+    padding-left: 10px;
     border-left: 2px solid var(--el-border-color-lighter);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .reply-item {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .reply-body {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
     min-width: 0;
 }
 
@@ -678,21 +696,21 @@ defineExpose({ focusInput })
 }
 
 .reply-text {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--el-text-color-regular);
-    line-height: 1.5;
+    line-height: 1.65;
 }
 
 .reply-time {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--el-text-color-secondary);
 }
 
 .reply-meta {
-    margin-top: 4px;
+    margin-top: 6px;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .reply-loading,

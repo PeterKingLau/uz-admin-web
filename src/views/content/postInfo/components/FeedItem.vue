@@ -193,7 +193,9 @@ const coverUrl = computed(() => {
     const direct = p?.cover ?? p?.coverUrl ?? p?.thumbnail ?? p?.poster ?? p?.image
     if (direct) return resolveMediaUrl(direct)
 
-    const candidates = mediaRawList.value.map((item: any) => (typeof item === 'object' ? item.cover || item.thumbnail || item.poster || item.url : item)).filter(Boolean)
+    const candidates = mediaRawList.value
+        .map((item: any) => (typeof item === 'object' ? item.cover || item.thumbnail || item.poster || item.url : item))
+        .filter(Boolean)
     const img = candidates.find(u => !isVideoUrl(u))
     if (img) return resolveMediaUrl(img)
     if (!isVideoPost.value && candidates[0]) return resolveMediaUrl(candidates[0])

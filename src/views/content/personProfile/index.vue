@@ -608,7 +608,18 @@ const removeLocalComment = (commentId, parent) => {
     updatePostInList(getPreviewPostId(post), { commentCount: post.commentCount })
 }
 
-const isPreviewFollowing = computed(() => resolvePreviewFollowState(previewPost.value))
+const getPostAuthorId = post => post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? null
+
+const isSelfAuthorPost = post => {
+    const authorUserId = getPostAuthorId(post)
+    if (authorUserId == null || userStore.id == null) return false
+    return String(authorUserId) === String(userStore.id)
+}
+
+const isPreviewFollowing = computed(() => {
+    if (isSelfAuthorPost(previewPost.value)) return false
+    return resolvePreviewFollowState(previewPost.value)
+})
 const isPreviewLiked = computed(() => Boolean(previewPost.value?.isLiked ?? previewPost.value?.like))
 const isPreviewCollected = computed(() => Boolean(previewPost.value?.isCollected ?? previewPost.value?.bookmark))
 const canSubmitComment = computed(() => Boolean(commentDraft.value.trim()))
@@ -669,9 +680,7 @@ const getPreviewTargetUserId = post =>
 const isPreviewAuthorSelf = computed(() => {
     const post = previewPost.value
     if (!post) return false
-    const targetUserId = getPreviewTargetUserId(post)
-    if (targetUserId == null || userStore.id == null) return false
-    return String(targetUserId) === String(userStore.id)
+    return isSelfAuthorPost(post)
 })
 
 const buildPreviewComment = content => ({
@@ -685,15 +694,40 @@ const buildPreviewComment = content => ({
 })
 
 const normalizePostFlags = item => {
+    const resolveActiveFlag = value => {
+        if (typeof value === 'boolean') return value
+        if (value != null) return String(value) === '1'
+        return false
+    }
     const likeValue = item?.like ?? item?.isLiked ?? item?.liked ?? item?.likeStatus ?? item?.isLike
     const bookmarkValue = item?.bookmark ?? item?.isCollected ?? item?.collected ?? item?.collectStatus ?? item?.isCollect
-    const like = typeof likeValue === 'boolean' ? likeValue : likeValue != null ? String(likeValue) === '1' : false
-    const bookmark = typeof bookmarkValue === 'boolean' ? bookmarkValue : bookmarkValue != null ? String(bookmarkValue) === '1' : false
+    const like = resolveActiveFlag(likeValue)
+    const bookmark = resolveActiveFlag(bookmarkValue)
+    const follow = isSelfAuthorPost(item) ? false : resolvePreviewFollowState(item)
+    const normalizedLike = activeTab.value === 'likes' ? true : like
+    const normalizedBookmark = activeTab.value === 'bookmarks' ? true : bookmark
     return {
         ...item,
-        like: activeTab.value === 'likes' ? true : like,
-        bookmark: activeTab.value === 'bookmarks' ? true : bookmark
+        like: normalizedLike,
+        isLiked: normalizedLike,
+        bookmark: normalizedBookmark,
+        isCollected: normalizedBookmark,
+        follow,
+        isFollow: follow,
+        isFollowing: follow,
+        followed: follow,
+        followStatus: follow ? '1' : '0'
     }
+}
+
+const syncFollowStateForUser = (userId, nextFollowing) => {
+    if (userId == null) return
+    const target = String(userId)
+    postList.value.forEach(item => {
+        const itemUserId = getPostAuthorId(item)
+        if (itemUserId == null || String(itemUserId) !== target) return
+        setPreviewFollowState(item, nextFollowing)
+    })
 }
 
 const getList = async () => {
@@ -1246,14 +1280,7 @@ const handlePreviewFollow = async () => {
     try {
         await toggleFollowUser({ targetUserId })
         setPreviewFollowState(post, !wasFollowing)
-        const postId = getPreviewPostId(post)
-        updatePostInList(postId, {
-            follow: post.follow,
-            isFollow: post.isFollow,
-            isFollowing: post.isFollowing,
-            followed: post.followed,
-            followStatus: post.followStatus
-        })
+        syncFollowStateForUser(targetUserId, !wasFollowing)
     } catch (error) {
         console.error(error)
     } finally {

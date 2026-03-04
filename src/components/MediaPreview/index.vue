@@ -163,6 +163,8 @@ function onViewerSwitch(index) {
 const videoVisible = ref(false)
 const playerRef = ref(null)
 let player = null
+let videoJsLoader = null
+let languageReady = false
 
 const videoThumb = computed(() => {
     if (!isVideoPost.value) return ''
@@ -203,17 +205,34 @@ function openVideo() {
     videoVisible.value = true
 }
 
+async function loadVideoJs() {
+    if (!videoJsLoader) {
+        videoJsLoader = Promise.all([import('video.js'), import('video.js/dist/video-js.css')]).then(([videoJsModule]) => videoJsModule.default || videoJsModule)
+    }
+    const videojsLib = await videoJsLoader
+
+    if (!languageReady) {
+        const langModule = await import('video.js/dist/lang/zh-CN.json')
+        const langData = langModule.default || langModule
+        videojsLib.addLanguage?.('zh-CN', langData)
+        languageReady = true
+    }
+
+    return videojsLib
+}
+
 async function initPlayer() {
     if (!videoVisible.value || !videoSrc.value) return
     await nextTick()
     const el = playerRef.value
     if (!el) return
+    const videojsLib = await loadVideoJs()
+    if (!videoVisible.value || !el) return
 
     if (!player) {
-        const videojsLib = proxy?.$videojs
-        if (!videojsLib) return
         player = videojsLib(el, {
             ...playerOptions,
+            language: 'zh-CN',
             sources: buildSources(videoSrc.value)
         })
     } else {
