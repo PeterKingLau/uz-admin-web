@@ -1,4 +1,4 @@
-﻿import { parseTime } from '@/utils/utils'
+import { parseTime } from '@/utils/utils'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
 
@@ -61,7 +61,7 @@ export const resolveCollectionNameFromResponse = (res: AnyRecord) => {
 }
 
 export const getCommentName = (comment: AnyRecord) =>
-    comment?.nickName || comment?.userName || comment?.authorName || comment?.nickname || comment?.user?.nickName || '\u7528\u6237'
+    comment?.nickName || comment?.userName || comment?.authorName || comment?.nickname || comment?.user?.nickName || '用户'
 
 export const getCommentAvatar = (comment: AnyRecord) => {
     const avatar = comment?.avatar || comment?.userAvatar || comment?.user?.avatar || ''
@@ -74,10 +74,10 @@ export const formatCommentTime = (time: unknown) => {
     const now = new Date()
     const diff = (now.getTime() - date.getTime()) / 1000
 
-    if (diff < 60) return '\u521a\u521a'
-    if (diff < 3600) return `${Math.floor(diff / 60)}\u5206\u949f\u524d`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}\u5c0f\u65f6\u524d`
-    if (diff < 86400 * 3) return `${Math.floor(diff / 86400)}\u5929\u524d`
+    if (diff < 60) return '刚刚'
+    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+    if (diff < 86400 * 3) return `${Math.floor(diff / 86400)}天前`
     return parseTime(time as string, '{m}-{d}') || ''
 }
 
@@ -155,7 +155,7 @@ export const resolveVideoPoster = (post: AnyRecord) => {
 export const resolveCollectionTitle = (post: AnyRecord) => {
     const title = post?.title || post?.postTitle || post?.content || post?.description || ''
     const text = String(title || '').trim()
-    return text || '\u672a\u547d\u540d\u89c6\u9891'
+    return text || '未命名视频'
 }
 
 export const isCollectionVideoPost = (post: AnyRecord) =>

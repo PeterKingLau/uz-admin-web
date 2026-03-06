@@ -441,7 +441,7 @@ import {
     resolveCollectionTitle,
     resolveFollowFlag,
     resolveVideoPoster
-} from './helpers'
+} from '@/features/content/personProfile/videoModule/helpers'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -1592,7 +1592,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
-@use './theme.scss' as videoTheme;
+@use '@/features/content/personProfile/videoModule/theme.scss' as videoTheme;
 
 $color-bg: var(--vm-color-black);
 $color-bg-panel: var(--vm-panel-bg-soft);

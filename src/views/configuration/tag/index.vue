@@ -122,8 +122,8 @@
                         <el-col :span="12">
                             <el-form-item label="状态" prop="isActive">
                                 <el-radio-group v-model="editForm.isActive">
-                                    <el-radio label="1">启用</el-radio>
-                                    <el-radio label="0">停用</el-radio>
+                                    <el-radio value="1">启用</el-radio>
+                                    <el-radio value="0">停用</el-radio>
                                 </el-radio-group>
                             </el-form-item>
                         </el-col>

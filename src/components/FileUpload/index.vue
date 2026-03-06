@@ -14,6 +14,7 @@
                 :on-success="handleUploadSuccess"
                 :show-file-list="false"
                 :headers="headers"
+                :accept="acceptValue || undefined"
                 class="upload-file-uploader"
                 ref="fileUpload"
                 :disabled="disabled || isUploading"
@@ -127,6 +128,10 @@ const props = defineProps({
         type: Array,
         default: () => ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'pdf']
     },
+    accept: {
+        type: String,
+        default: ''
+    },
     isShowTip: {
         type: Boolean,
         default: true
@@ -158,6 +163,24 @@ const uploadingCount = ref(0)
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
 const isUploading = computed(() => uploadingCount.value > 0)
+const normalizedFileTypes = computed(() =>
+    Array.isArray(props.fileType)
+        ? props.fileType
+              .map(type =>
+                  String(type || '')
+                      .trim()
+                      .replace(/^\./, '')
+                      .toLowerCase()
+              )
+              .filter(Boolean)
+        : []
+)
+const acceptValue = computed(() => {
+    const explicit = String(props.accept || '').trim()
+    if (explicit) return explicit
+    if (!normalizedFileTypes.value.length) return ''
+    return normalizedFileTypes.value.map(type => `.${type}`).join(',')
+})
 const enableSort = computed(() => props.drag && props.sortable)
 const reachLimit = computed(() => Number(props.limit || 0) > 0 && fileList.value.length >= Number(props.limit || 0))
 const showUploader = computed(() => {
@@ -241,12 +264,12 @@ watch(
 )
 
 function handleBeforeUpload(file) {
-    if (props.fileType.length) {
+    if (normalizedFileTypes.value.length) {
         const fileName = file.name.split('.')
         const fileExt = (fileName[fileName.length - 1] || '').toLowerCase()
-        const isTypeOk = props.fileType.some(type => String(type).toLowerCase() === fileExt)
+        const isTypeOk = normalizedFileTypes.value.includes(fileExt)
         if (!isTypeOk) {
-            proxy.$modal.msgError(`文件格式不正确，请上传${props.fileType.join('/')}格式文件!`)
+            proxy.$modal.msgError(`文件格式不正确，请上传${normalizedFileTypes.value.join('/')}格式文件!`)
             return false
         }
     }

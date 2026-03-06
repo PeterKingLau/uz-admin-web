@@ -1,4 +1,4 @@
-﻿export const TEXT_MAP = {
+export const TEXT_MAP = {
     updateTime: '更新时间',
     search: '搜索',
     reset: '重置',

@@ -288,9 +288,9 @@
 import { reactive, ref, computed, getCurrentInstance, onMounted } from 'vue'
 import { parseTime } from '@/utils/utils'
 import { addTemplate, updateTemplate, deleteTemplate, listTemplates, parseTemplateRows, type TemplateItem } from '@/api/configuration/template'
-import { useDimension } from './composables/useDimension'
-import { useTemplateForm } from './composables/useTemplateForm'
-import { TEXT_MAP, ABILITY_MAP, STATIC_VALUE_MAP, STATIC_PERSONALITY_MAP, type AbilityLevel } from './constants'
+import { useDimension } from '@/features/configuration/template/composables/useDimension'
+import { useTemplateForm } from '@/features/configuration/template/composables/useTemplateForm'
+import { TEXT_MAP, ABILITY_MAP, STATIC_VALUE_MAP, STATIC_PERSONALITY_MAP, type AbilityLevel } from '@/features/configuration/template/constants'
 
 const { proxy } = getCurrentInstance()!
 
