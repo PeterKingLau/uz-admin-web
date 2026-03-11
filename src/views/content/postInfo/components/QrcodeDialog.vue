@@ -1,27 +1,27 @@
 <template>
-    <el-dialog v-model="visible" width="380px" :show-close="false" class="modern-qrcode-dialog" align-center destroy-on-close>
+    <el-dialog v-model="visible" width="360px" :show-close="false" class="modern-qrcode-dialog" align-center destroy-on-close>
         <div class="dialog-content-wrapper">
+            <div class="close-btn-wrapper" @click="visible = false">
+                <Icon icon="mdi:close" class="close-icon" />
+            </div>
+
             <div class="dialog-header">
-                <span class="title">{{ title || '二维码分享' }}</span>
-                <div class="close-icon" @click="visible = false">
-                    <Icon icon="mdi:close" />
-                </div>
+                <el-tooltip :content="title || '扫码分享'" placement="top">
+                    <h3 class="title">{{ title || '扫码分享' }}</h3>
+                </el-tooltip>
+                <p v-if="description" class="description">{{ description }}</p>
             </div>
 
             <div class="qr-container">
                 <div class="qr-card">
-                    <Vue3NextQrcode ref="qrcodeRef" :text="text" :size="240" :margin="10" color-dark="#000000" color-light="#ffffff" error-level="H" />
+                    <Vue3NextQrcode ref="qrcodeRef" :text="text" :size="220" :margin="10" color-dark="#0f172a" color-light="#ffffff" error-level="H" />
                 </div>
-            </div>
-
-            <div v-if="description" class="description-box">
-                {{ description }}
             </div>
 
             <div class="dialog-footer">
                 <el-button type="primary" class="download-btn" :disabled="!text" @click="handleDownload">
                     <Icon icon="mdi:download" class="btn-icon" />
-                    <span>保存二维码图片</span>
+                    <span>保存到本地</span>
                 </el-button>
             </div>
         </div>
@@ -72,7 +72,7 @@ const handleDownload = async () => {
 
 <style scoped lang="scss">
 :deep(.modern-qrcode-dialog) {
-    border-radius: 20px;
+    border-radius: 24px;
     background: var(--el-bg-color);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     overflow: hidden;
@@ -88,100 +88,141 @@ const handleDownload = async () => {
 }
 
 .dialog-content-wrapper {
-    padding: 16px 24px 24px;
+    position: relative;
+    padding: 32px 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: var(--el-bg-color);
+    background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 40%);
 }
 
-.dialog-header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+.close-btn-wrapper {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
     height: 32px;
-
-    .title {
-        font-size: 17px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-    }
+    border-radius: 50%;
+    background: var(--el-fill-color-blank);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
 
     .close-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: var(--el-text-color-regular);
-        transition: all 0.2s;
         font-size: 18px;
-        margin-right: -4px;
+        color: var(--el-text-color-regular);
+        transition: color 0.2s;
+    }
 
-        &:hover {
-            background: var(--el-fill-color);
+    &:hover {
+        background: var(--el-fill-color-light);
+        transform: scale(1.1);
+
+        .close-icon {
             color: var(--el-text-color-primary);
         }
     }
 }
 
-.qr-container {
+.dialog-header {
     width: 100%;
+    text-align: center;
+    margin-bottom: 24px;
+    padding: 0 36px;
+    box-sizing: border-box;
+
+    .title {
+        max-width: 100%;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        margin: 0 0 6px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .description {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        margin: 0;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+}
+
+.qr-container,
+.dialog-footer {
+    width: 100%;
+}
+
+.qr-container {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .qr-card {
-    padding: 10px;
+    padding: 12px;
     background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     border: 1px solid var(--el-border-color-lighter);
-}
+    position: relative;
 
-.description-box {
-    font-size: 13px;
-    color: var(--el-text-color-regular);
-    text-align: center;
-    line-height: 1.5;
-    margin-bottom: 24px;
-    max-width: 90%;
-    opacity: 0.8;
-}
-
-.dialog-footer {
-    width: 100%;
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+        pointer-events: none;
+    }
 }
 
 .download-btn {
     width: 100%;
     height: 44px;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-    transition: all 0.2s;
+    gap: 8px;
+    box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.25);
+    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.35);
     }
 
     &:active {
         transform: translateY(0);
+        box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.2);
     }
 
     .btn-icon {
-        font-size: 18px;
+        font-size: 20px;
     }
+}
+
+:global(html.dark) .dialog-content-wrapper {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color)) 0%, var(--el-bg-color) 40%);
+}
+
+:global(html.dark) .close-btn-wrapper {
+    background: var(--el-fill-color-darker);
+    border: 1px solid var(--el-border-color-lighter);
 }
 </style>

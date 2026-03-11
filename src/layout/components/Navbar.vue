@@ -26,7 +26,7 @@
                 </el-tooltip>
             </template>
 
-            <el-dropdown @command="handleCommand" class="right-menu-item hover-effect avatar-container" trigger="click">
+            <el-dropdown @command="handleCommand" class="right-menu-item hover-effect avatar-container" trigger="click" popper-class="navbar-dropdown">
                 <div class="avatar-wrapper">
                     <img :src="userStore.avatar" class="user-avatar" />
                     <span class="user-nickname">{{ userStore.nickName }}</span>
@@ -34,10 +34,12 @@
                 </div>
                 <template #dropdown>
                     <el-dropdown-menu>
-                        <router-link to="/user/profile">
-                            <el-dropdown-item> <Icon icon="ep:user" class="mr-1" />个人中心 </el-dropdown-item>
+                        <router-link to="/user/profile" class="dropdown-link">
+                            <el-dropdown-item> <Icon icon="ep:user" class="dropdown-icon" />个人中心 </el-dropdown-item>
                         </router-link>
-                        <el-dropdown-item divided command="logout"> <Icon icon="ep:switch-button" class="mr-1" />退出登录 </el-dropdown-item>
+                        <el-dropdown-item divided command="logout" class="logout-item">
+                            <Icon icon="ep:switch-button" class="dropdown-icon" />退出登录
+                        </el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
@@ -104,15 +106,16 @@ function toggleTheme() {
 
 <style lang="scss" scoped>
 .navbar {
-    height: 50px;
+    height: 56px;
     overflow: hidden;
     position: relative;
     background: var(--el-bg-color);
-    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-right: 15px;
+    padding-right: 16px;
+    transition: background 0.3s;
 
     .left-menu {
         display: flex;
@@ -120,17 +123,16 @@ function toggleTheme() {
         height: 100%;
 
         .hamburger-container {
-            line-height: 46px;
             height: 100%;
             cursor: pointer;
             transition: background 0.3s;
             -webkit-tap-highlight-color: transparent;
-            padding: 0 15px;
+            padding: 0 16px;
             display: flex;
             align-items: center;
 
             &:hover {
-                background: rgba(0, 0, 0, 0.025);
+                background: var(--el-fill-color-light);
             }
         }
 
@@ -143,6 +145,7 @@ function toggleTheme() {
         height: 100%;
         display: flex;
         align-items: center;
+        gap: 4px;
 
         &:focus {
             outline: none;
@@ -152,13 +155,14 @@ function toggleTheme() {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 8px;
-            height: 100%;
-            min-width: 42px;
+            padding: 0 10px;
+            height: 40px;
+            min-width: 40px;
             font-size: 18px;
             color: var(--el-text-color-regular);
             cursor: pointer;
-            transition: background 0.3s;
+            border-radius: 8px;
+            transition: all 0.3s;
 
             .action-icon {
                 font-size: 18px;
@@ -170,15 +174,16 @@ function toggleTheme() {
             &.hover-effect {
                 &:hover {
                     background: var(--el-fill-color-light);
+                    color: var(--el-color-primary);
                 }
             }
 
             &.theme-switch-wrapper {
                 .theme-icon {
-                    transition: transform 0.5s;
+                    transition: transform 0.5s ease-in-out;
                 }
                 &:hover .theme-icon {
-                    transform: rotate(180deg);
+                    transform: rotate(180deg) scale(1.1);
                 }
             }
         }
@@ -192,25 +197,27 @@ function toggleTheme() {
         }
 
         .avatar-container {
-            margin-left: 4px;
-            padding: 0 8px;
+            margin-left: 8px;
+            padding: 0 12px;
             min-width: auto;
+            height: 40px;
 
             .avatar-wrapper {
                 display: flex;
                 align-items: center;
                 height: 100%;
-                gap: 6px;
+                gap: 8px;
                 user-select: none;
 
                 .user-avatar {
                     cursor: pointer;
-                    width: 26px;
-                    height: 26px;
+                    width: 28px;
+                    height: 28px;
                     border-radius: 50%;
                     object-fit: cover;
                     border: 1px solid var(--el-border-color-lighter);
                     display: block;
+                    transition: transform 0.3s;
                 }
 
                 .user-nickname {
@@ -218,14 +225,89 @@ function toggleTheme() {
                     font-weight: 500;
                     white-space: nowrap;
                     color: var(--el-text-color-primary);
+                    transition: color 0.3s;
                 }
 
                 .el-icon--right {
                     font-size: 12px;
                     color: var(--el-text-color-secondary);
+                    transition: transform 0.3s;
+                }
+            }
+
+            &:hover {
+                .user-avatar {
+                    transform: scale(1.05);
                 }
             }
         }
+
+        .setting {
+            margin-left: 4px;
+        }
+    }
+}
+</style>
+
+<style lang="scss">
+.navbar-dropdown {
+    border-radius: 12px !important;
+    padding: 8px !important;
+    min-width: 160px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid var(--el-border-color-lighter) !important;
+
+    .el-dropdown-menu__item {
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 14px;
+        color: var(--el-text-color-regular);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        line-height: 1;
+
+        .dropdown-icon {
+            font-size: 16px;
+            color: var(--el-text-color-secondary);
+            transition: color 0.2s;
+        }
+
+        &:hover {
+            background-color: var(--el-fill-color-light);
+            color: var(--el-color-primary);
+
+            .dropdown-icon {
+                color: var(--el-color-primary);
+            }
+        }
+
+        &.logout-item {
+            &:hover {
+                background-color: var(--el-color-danger-light-9);
+                color: var(--el-color-danger);
+
+                .dropdown-icon {
+                    color: var(--el-color-danger);
+                }
+            }
+        }
+    }
+
+    .el-dropdown-menu__item--divided {
+        margin-top: 6px;
+        border-top-color: var(--el-border-color-extra-light);
+
+        &::before {
+            display: none;
+        }
+    }
+
+    .dropdown-link {
+        text-decoration: none;
+        display: block;
+        margin-bottom: 2px;
     }
 }
 </style>

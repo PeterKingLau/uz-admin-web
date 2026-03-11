@@ -43,11 +43,8 @@ import MediaPreview from '@/components/MediaPreview/index.vue'
 import DictTag from '@/components/DictTag/index.vue'
 
 import AppIcon from '@/components/Icon/index.vue'
-import { preloadIconCollections } from '@/utils/iconify'
 
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
-
-preloadIconCollections(['ep', 'mdi'])
 
 const app = createApp(App)
 

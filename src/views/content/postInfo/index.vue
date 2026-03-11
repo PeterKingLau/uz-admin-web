@@ -229,6 +229,7 @@ const queryFormRef = ref<InstanceType<typeof ContentQueryForm> | null>(null)
 const postList = ref<any[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
+const silentRefreshing = ref(false)
 const finished = ref(false)
 const deleting = ref(false)
 const selectedIds = ref(new Set<number | string>())
@@ -630,10 +631,13 @@ async function handleUnpin(post: any) {
     }
 }
 
-async function fetchList(isLoadMore = false) {
-    if (loading.value || loadingMore.value) return
+async function fetchList(isLoadMore = false, options: { silent?: boolean } = {}) {
+    const { silent = false } = options
+    if (loading.value || loadingMore.value || silentRefreshing.value) return
+    const useVisibleLoading = !isLoadMore && (!silent || postList.value.length === 0)
     if (isLoadMore) loadingMore.value = true
-    else loading.value = true
+    else if (useVisibleLoading) loading.value = true
+    else silentRefreshing.value = true
 
     try {
         const params: Record<string, any> = {
@@ -656,7 +660,7 @@ async function fetchList(isLoadMore = false) {
 
         if (Number.isFinite(Number(resTotal))) {
             totalCount.value = Number(resTotal)
-        } else if (!isLoadMore) {
+        } else if (!isLoadMore && !silent) {
             totalCount.value = null
         }
 
@@ -716,18 +720,24 @@ async function fetchList(isLoadMore = false) {
     } finally {
         loading.value = false
         loadingMore.value = false
+        silentRefreshing.value = false
     }
 }
 
-function handleQuery() {
-    if (isResettingQuery.value) return
+async function refreshList(options: { silent?: boolean; preserveTotal?: boolean } = {}) {
+    const { silent = false, preserveTotal = silent } = options
     hasUserScrolledAfterQuery.value = false
     finished.value = false
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
     selectedIds.value.clear()
-    totalCount.value = null
-    fetchList(false)
+    if (!preserveTotal) totalCount.value = null
+    await fetchList(false, { silent })
+}
+
+function handleQuery() {
+    if (isResettingQuery.value) return
+    refreshList()
 }
 
 const clearRefreshRetryTimer = () => {
@@ -741,7 +751,7 @@ const scheduleRefreshRetry = () => {
     refreshRetryTimer = setTimeout(() => {
         refreshRetryTimer = null
         if (!isViewActive.value) return
-        resetQuery()
+        refreshList({ silent: true })
     }, 1200)
 }
 
@@ -749,7 +759,7 @@ const tryRefreshBySignal = (withRetry = false): boolean => {
     const latestMark = getContentListRefreshMark()
     if (latestMark <= lastHandledRefreshMark.value) return false
     lastHandledRefreshMark.value = latestMark
-    resetQuery()
+    refreshList({ silent: true })
     if (withRetry) scheduleRefreshRetry()
     return true
 }
@@ -767,11 +777,8 @@ async function resetQuery() {
     queryParams.limit = 10
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
-    finished.value = false
-    selectedIds.value.clear()
-    totalCount.value = null
     try {
-        await fetchList(false)
+        await refreshList()
     } finally {
         isResettingQuery.value = false
     }
@@ -1166,7 +1173,7 @@ async function handleQRCode(post: any) {
     const postId = getPreviewPostId(post)
     const titleSeed = String(post?.title || post?.content || '').trim()
     qrcodeText.value = text
-    qrcodeTitle.value = titleSeed ? `二维码 - ${titleSeed.slice(0, 16)}` : '内容二维码'
+    qrcodeTitle.value = titleSeed ? `二维码 - ${titleSeed}` : '内容二维码'
     qrcodeDescription.value = text
     qrcodeFileName.value = postId != null ? `qrcode-${postId}-${Date.now()}.png` : `qrcode-${Date.now()}.png`
     qrcodeVisible.value = true

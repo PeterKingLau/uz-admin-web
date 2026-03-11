@@ -71,6 +71,7 @@
 <script setup>
 import { ref, watch, getCurrentInstance } from 'vue'
 import { updateUserProfile } from '@/api/system/user'
+import useUserStore from '@/store/modules/user'
 
 const props = defineProps({
     user: {
@@ -80,6 +81,7 @@ const props = defineProps({
 })
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 const userRef = ref(null)
 const loading = ref(false)
 const isEditSex = ref(false)
@@ -120,15 +122,23 @@ watch(
 function submit() {
     if (!userRef.value) return
 
-    userRef.value.validate(valid => {
+    userRef.value.validate(async valid => {
         if (!valid) return
 
         loading.value = true
         updateUserProfile(form.value)
-            .then(() => {
+            .then(async () => {
                 proxy.$modal?.msgSuccess && proxy.$modal.msgSuccess('修改成功')
-                if (props.user) {
-                    Object.assign(props.user, form.value)
+                userStore.patchUserSnapshot(form.value)
+                try {
+                    const response = await userStore.refreshProfile()
+                    if (props.user) {
+                        Object.assign(props.user, response?.data || form.value)
+                    }
+                } catch {
+                    if (props.user) {
+                        Object.assign(props.user, form.value)
+                    }
                 }
             })
             .finally(() => {

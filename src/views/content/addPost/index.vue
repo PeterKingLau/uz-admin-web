@@ -66,6 +66,7 @@ interface PostEditorExpose {
     clearUploaders: () => void
     getVideoRawFiles: () => File[]
     getVideoCoverFile: () => File | null
+    isUploading: () => boolean
 }
 
 const { proxy } = getCurrentInstance() || {}
@@ -469,6 +470,11 @@ function handleContentInput() {
 }
 
 async function handleSubmit() {
+    if (editorRef.value?.isUploading?.()) {
+        proxy?.$modal?.msgWarning?.('素材上传中，请稍后再发布')
+        return
+    }
+
     const ok = (await editorRef.value?.validateForm()) ?? false
     if (!ok) return
 

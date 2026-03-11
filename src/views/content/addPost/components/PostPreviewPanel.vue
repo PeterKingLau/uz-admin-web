@@ -2,27 +2,30 @@
     <div class="preview-sticky-wrapper">
         <div class="preview-header">
             <div class="header-left">
-                <Icon icon="mdi:cellphone" class="header-icon" />
+                <Icon icon="mdi:cellphone-screenshot" class="header-icon" />
                 <span class="label">实时预览</span>
-                <el-tag v-if="props.batchPreviewEnabled" size="small" type="primary" effect="plain" class="batch-index-tag">
-                    第 {{ props.batchPreviewIndex + 1 }}/{{ props.batchPreviewTotal }} 条
+                <el-tag v-if="props.batchPreviewEnabled" size="small" type="primary" effect="dark" class="batch-index-tag">
+                    {{ props.batchPreviewIndex + 1 }} / {{ props.batchPreviewTotal }}
                 </el-tag>
             </div>
-            <el-tag size="small" type="info" effect="plain">{{ props.currentTime }}</el-tag>
+            <div class="header-time">{{ props.currentTime }}</div>
         </div>
 
         <div class="mobile-frame">
-            <div class="notch">
-                <div class="camera"></div>
-                <div class="speaker"></div>
+            <div class="device-buttons">
+                <div class="btn-mute"></div>
+                <div class="btn-vol-up"></div>
+                <div class="btn-vol-down"></div>
+                <div class="btn-power"></div>
             </div>
-            <div class="side-btn volume-up"></div>
-            <div class="side-btn volume-down"></div>
-            <div class="side-btn power"></div>
 
             <div class="screen-content">
                 <div class="status-bar">
                     <span class="time">{{ props.currentTime }}</span>
+                    <div class="dynamic-island">
+                        <div class="camera"></div>
+                        <div class="sensor"></div>
+                    </div>
                     <div class="status-icons">
                         <Icon icon="mdi:signal-cellular-3" />
                         <Icon icon="mdi:wifi" />
@@ -33,7 +36,7 @@
                 <div class="app-nav">
                     <Icon icon="mdi:chevron-left" class="nav-icon" />
                     <div class="user-brief">
-                        <el-avatar :size="32" :src="props.userAvatar" />
+                        <el-avatar :size="28" :src="props.userAvatar" class="nav-avatar" />
                         <span class="username">{{ props.userNickName }}</span>
                     </div>
                     <Icon icon="mdi:dots-horizontal" class="nav-icon" />
@@ -46,7 +49,7 @@
                                 v-if="props.postType === POST_TYPE.IMAGE"
                                 :autoplay="false"
                                 indicator-position="none"
-                                height="375px"
+                                height="360px"
                                 arrow="always"
                                 class="media-carousel"
                             >
@@ -70,7 +73,7 @@
                                     @pause="handleVideoPause"
                                     @ended="handleVideoEnded"
                                 ></video>
-                                <transition name="cover-fade">
+                                <transition name="fade">
                                     <div v-if="showVideoCoverOverlay && props.previewVideoCoverUrl" class="video-cover-overlay" @click="startPreviewVideo">
                                         <img :src="props.previewVideoCoverUrl" alt="video cover" class="video-cover-image" />
                                         <div class="video-cover-play">
@@ -104,42 +107,40 @@
                         </transition>
 
                         <div class="meta-row">
-                            <span class="date">刚刚</span>
+                            <span class="date">刚刚发布</span>
                             <span class="location">
-                                <Icon icon="mdi:map-marker-outline" class="location-icon" />
+                                <Icon icon="mdi:map-marker" class="location-icon" />
                                 四川 · 成都
                             </span>
                         </div>
                     </div>
 
-                    <el-divider class="mock-divider" />
-
                     <div class="mock-comments">
-                        <div class="comment-count">共 0 条评论</div>
+                        <div class="comment-count">全部评论 (0)</div>
                         <div class="empty-comment">
-                            <Icon icon="mdi:sofa-outline" />
-                            <span>快来坐沙发~</span>
+                            <Icon icon="mdi:comment-processing-outline" class="empty-icon" />
+                            <span>成为第一个评论的人</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="app-tabbar">
                     <div class="input-fake">
-                        <Icon icon="mdi:emoticon-outline" class="emoji-icon" />
+                        <Icon icon="mdi:pencil" class="edit-icon" />
                         <span>说点什么...</span>
                     </div>
                     <div class="action-icons">
                         <div class="icon-item">
                             <Icon icon="mdi:heart-outline" />
-                            <span class="count">0</span>
+                            <span class="count">点赞</span>
                         </div>
                         <div class="icon-item">
                             <Icon icon="mdi:star-outline" />
-                            <span class="count">0</span>
+                            <span class="count">收藏</span>
                         </div>
                         <div class="icon-item">
                             <Icon icon="mdi:comment-outline" />
-                            <span class="count">0</span>
+                            <span class="count">评论</span>
                         </div>
                     </div>
                 </div>
@@ -224,505 +225,7 @@ const handleVideoEnded = () => {
 </script>
 
 <style lang="scss" scoped>
-.preview-sticky-wrapper {
-    position: sticky;
-    top: 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    --preview-device-shell: var(--el-color-black);
-    --preview-device-shell-deep: color-mix(in srgb, var(--el-color-black) 92%, var(--el-color-white) 8%);
-    --preview-shadow-45: color-mix(in srgb, var(--el-color-black) 45%, transparent);
-    --preview-shadow-30: color-mix(in srgb, var(--el-color-black) 30%, transparent);
-    --preview-shadow-70: color-mix(in srgb, var(--el-color-black) 70%, transparent);
-    --preview-dot-soft: color-mix(in srgb, var(--el-color-white) 50%, transparent);
-}
+@use '../../../../assets/styles/content/mobile-post-preview.scss' as preview;
 
-.preview-header {
-    width: 320px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .header-icon {
-            font-size: 20px;
-            color: var(--el-color-primary);
-        }
-
-        .label {
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-            font-size: 16px;
-        }
-
-        .batch-index-tag {
-            margin-left: 4px;
-        }
-    }
-}
-
-.mobile-frame {
-    width: 320px;
-    height: 650px;
-    background: var(--el-bg-color);
-    border-radius: 46px;
-    box-shadow:
-        0 0 0 2px color-mix(in srgb, var(--el-color-black) 82%, var(--el-color-white) 18%),
-        0 0 0 10px var(--preview-device-shell),
-        0 0 0 12px var(--preview-device-shell-deep),
-        0 24px 48px var(--preview-shadow-45),
-        0 12px 24px var(--preview-shadow-30);
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-    transition: all 0.3s;
-
-    .notch {
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 130px;
-        height: 32px;
-        background: var(--preview-device-shell-deep);
-        border-radius: 0 0 18px 18px;
-        z-index: 20;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 0 20px;
-
-        .camera {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--preview-device-shell);
-            border: 1px solid var(--el-border-color);
-        }
-
-        .speaker {
-            width: 50px;
-            height: 5px;
-            border-radius: 3px;
-            background: var(--preview-device-shell);
-        }
-    }
-
-    .side-btn {
-        position: absolute;
-        background: var(--preview-device-shell);
-        border: 1px solid var(--preview-device-shell-deep);
-    }
-
-    .volume-up {
-        width: 3px;
-        height: 45px;
-        left: -12px;
-        top: 125px;
-        border-radius: 2px 0 0 2px;
-    }
-
-    .volume-down {
-        width: 3px;
-        height: 45px;
-        left: -12px;
-        top: 180px;
-        border-radius: 2px 0 0 2px;
-    }
-
-    .power {
-        width: 3px;
-        height: 70px;
-        right: -12px;
-        top: 155px;
-        border-radius: 0 2px 2px 0;
-    }
-}
-
-.screen-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: var(--el-bg-color);
-    color: var(--el-text-color-primary);
-    transition: all 0.3s;
-}
-
-.status-bar {
-    height: 50px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 0 24px 10px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-
-    .time {
-        color: var(--el-text-color-primary);
-    }
-
-    .status-icons {
-        display: flex;
-        gap: 7px;
-        color: var(--el-text-color-primary);
-    }
-}
-
-.app-nav {
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 18px;
-    border-bottom: 1px solid var(--el-border-color-extra-light);
-
-    .nav-icon {
-        font-size: 26px;
-        color: inherit;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &:active {
-            opacity: 0.6;
-        }
-    }
-
-    .user-brief {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 15px;
-        font-weight: 600;
-    }
-}
-
-.scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    &::-webkit-scrollbar {
-        display: none;
-    }
-}
-
-.media-area {
-    width: 100%;
-    background: var(--el-fill-color-dark);
-    position: relative;
-
-    .carousel-img {
-        width: 100%;
-        height: 100%;
-        background-size: cover;
-        background-position: center;
-    }
-
-    :deep(.media-carousel) {
-        background: var(--el-fill-color-darker);
-    }
-
-    :deep(.media-carousel .el-carousel__container) {
-        background: var(--el-fill-color-darker);
-    }
-
-    :deep(.el-carousel__arrow) {
-        background: color-mix(in srgb, var(--el-color-black) 50%, transparent);
-        backdrop-filter: blur(4px);
-
-        &:hover {
-            background: var(--preview-shadow-70);
-        }
-    }
-
-    .video-preview video {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-    }
-
-    .video-cover-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .video-preview {
-        height: 375px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--el-fill-color-darker);
-        position: relative;
-    }
-
-    .video-cover-overlay {
-        position: absolute;
-        inset: 0;
-        cursor: pointer;
-    }
-
-    .video-cover-play {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 54px;
-        height: 54px;
-        border-radius: 50%;
-        background: var(--preview-shadow-45);
-        color: var(--el-color-white);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        backdrop-filter: blur(3px);
-    }
-
-    .indicator-dots {
-        position: absolute;
-        bottom: 16px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 7px;
-        z-index: 5;
-
-        .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--preview-dot-soft);
-            transition: all 0.3s;
-
-            &.active {
-                background: var(--el-color-white);
-                width: 22px;
-                border-radius: 4px;
-            }
-        }
-    }
-}
-
-.cover-fade-enter-active,
-.cover-fade-leave-active {
-    transition: opacity 0.2s ease;
-}
-
-.cover-fade-enter-from,
-.cover-fade-leave-to {
-    opacity: 0;
-}
-
-.media-slide-enter-active,
-.media-slide-leave-active {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.media-slide-enter-from {
-    opacity: 0;
-    transform: translateY(-20px);
-}
-
-.media-slide-leave-to {
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-.content-body {
-    padding: 18px;
-
-    .post-title {
-        font-size: 19px;
-        font-weight: 700;
-        margin: 0 0 10px;
-        line-height: 1.4;
-        color: var(--el-text-color-primary);
-        letter-spacing: -0.2px;
-    }
-
-    .post-text {
-        font-size: 15px;
-        line-height: 1.7;
-        color: inherit;
-        white-space: pre-wrap;
-        margin: 0 0 14px;
-
-        &.placeholder {
-            color: var(--el-text-color-placeholder);
-            font-style: italic;
-        }
-    }
-
-    .tags-row {
-        margin-bottom: 14px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-
-        .hash-tag {
-            color: var(--el-color-primary);
-            font-size: 14px;
-            font-weight: 600;
-            padding: 4px 10px;
-            background: rgba(var(--el-color-primary-rgb), 0.08);
-            border-radius: 8px;
-            transition: all 0.2s;
-
-            &:hover {
-                background: rgba(var(--el-color-primary-rgb), 0.12);
-            }
-        }
-    }
-
-    .meta-row {
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        .location {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-
-            .location-icon {
-                font-size: 14px;
-            }
-        }
-    }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-    transition: all 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-    transform: translateY(-5px);
-}
-
-.tags-slide-enter-active,
-.tags-slide-leave-active {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tags-slide-enter-from {
-    opacity: 0;
-    transform: translateX(-10px);
-}
-
-.tags-slide-leave-to {
-    opacity: 0;
-    transform: translateX(10px);
-}
-
-.mock-divider {
-    margin: 10px 0;
-    border-color: var(--el-border-color-extra-light);
-}
-
-.mock-comments {
-    padding: 0 18px 24px;
-
-    .comment-count {
-        font-size: 14px;
-        color: var(--el-text-color-secondary);
-        margin-bottom: 18px;
-        font-weight: 600;
-    }
-
-    .empty-comment {
-        height: 110px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--el-text-color-placeholder);
-        font-size: 14px;
-        gap: 10px;
-
-        .iconify {
-            font-size: 36px;
-            opacity: 0.6;
-        }
-    }
-}
-
-.app-tabbar {
-    height: 54px;
-    border-top: 1px solid var(--el-border-color-extra-light);
-    display: flex;
-    align-items: center;
-    padding: 0 18px;
-    background: var(--el-bg-color);
-    transition: all 0.3s;
-    gap: 14px;
-
-    .input-fake {
-        flex: 1;
-        height: 36px;
-        background: var(--el-fill-color);
-        border-radius: 18px;
-        padding: 0 16px;
-        font-size: 14px;
-        color: var(--el-text-color-secondary);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.2s;
-
-        .emoji-icon {
-            font-size: 18px;
-            color: var(--el-text-color-placeholder);
-        }
-
-        &:active {
-            background: var(--el-fill-color-dark);
-        }
-    }
-
-    .action-icons {
-        display: flex;
-        gap: 18px;
-        color: inherit;
-        font-size: 24px;
-
-        .icon-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-
-            .count {
-                font-size: 13px;
-                font-weight: 600;
-            }
-
-            &:active {
-                opacity: 0.6;
-                transform: scale(0.95);
-            }
-        }
-    }
-}
-
-@media screen and (max-width: 992px) {
-    .preview-sticky-wrapper {
-        position: static;
-        margin-top: 40px;
-    }
-}
+@include preview.mobile-post-preview();
 </style>

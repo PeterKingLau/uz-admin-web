@@ -174,30 +174,38 @@
                             </div>
 
                             <div class="sidebar-item" @click.stop="handleToggleLike">
-                                <div class="icon-wrapper">
-                                    <Icon icon="mdi:heart" :class="{ liked: isLiked }" />
-                                </div>
+                                <el-tooltip content="点赞" placement="left">
+                                    <div class="icon-wrapper">
+                                        <Icon icon="mdi:heart" :class="{ liked: isLiked }" />
+                                    </div>
+                                </el-tooltip>
                                 <span class="count">{{ formatCount(postData.likeCount) }}</span>
                             </div>
 
                             <div class="sidebar-item" :class="{ active: commentPanelVisible }" @click.stop="toggleCommentPanel">
-                                <div class="icon-wrapper">
-                                    <Icon icon="mdi:comment-processing" />
-                                </div>
+                                <el-tooltip content="评论" placement="left">
+                                    <div class="icon-wrapper">
+                                        <Icon icon="mdi:comment-processing" />
+                                    </div>
+                                </el-tooltip>
                                 <span class="count">{{ formatCount(localCommentCount) }}</span>
                             </div>
 
                             <div class="sidebar-item" @click.stop="handleToggleCollect">
-                                <div class="icon-wrapper">
-                                    <Icon icon="mdi:star" :class="{ collected: isCollected }" />
-                                </div>
+                                <el-tooltip content="收藏" placement="left">
+                                    <div class="icon-wrapper">
+                                        <Icon icon="mdi:star" :class="{ collected: isCollected }" />
+                                    </div>
+                                </el-tooltip>
                                 <span class="count">{{ formatCount(collectedCount) }}</span>
                             </div>
 
                             <div class="sidebar-item" @click.stop="openRepostDialog">
-                                <div class="icon-wrapper">
-                                    <Icon icon="mdi:share" />
-                                </div>
+                                <el-tooltip content="分享" placement="left">
+                                    <div class="icon-wrapper">
+                                        <Icon icon="mdi:share" />
+                                    </div>
+                                </el-tooltip>
                                 <span class="count">{{ formatCount(postData.shareCount) }}</span>
                             </div>
                         </div>
@@ -1860,7 +1868,7 @@ $color-gold: var(--el-color-warning);
             }
 
             .liked {
-                color: $color-accent;
+                color: var(--el-color-danger);
             }
             .collected {
                 color: $color-gold;
@@ -2809,6 +2817,28 @@ $color-gold: var(--el-color-warning);
 }
 
 .repost-dialog {
+    .repost-dialog-title {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        padding-left: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 4px;
+            height: 18px;
+            border-radius: 999px;
+            background: var(--el-color-primary);
+            transform: translateY(-50%);
+        }
+    }
+
     :deep(.el-dialog) {
         background: var(--el-bg-color-overlay);
         border-radius: 12px;

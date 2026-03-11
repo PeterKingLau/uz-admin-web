@@ -117,8 +117,8 @@ function getUser() {
         const nextUser = response.data || {}
         if (!isEmpty(nextUser.avatar)) {
             nextUser.avatar = normalizeAvatar(nextUser.avatar)
-            userStore.avatar = nextUser.avatar
         }
+        userStore.patchUserSnapshot(nextUser)
         state.user = nextUser
         state.roleGroup = response.roleGroup || ''
         state.postGroup = response.postGroup || ''

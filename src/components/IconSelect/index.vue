@@ -1,6 +1,6 @@
 <template>
     <div class="icon-body">
-        <el-input v-model="searchText" class="icon-search" clearable placeholder="搜索图标，如: user, home, edit..." @clear="filterIcons" @input="filterIcons">
+        <el-input v-model="searchText" class="icon-search" clearable placeholder="搜索图标，如 user、home、edit" @clear="filterIcons" @input="filterIcons">
             <template #prefix>
                 <Icon icon="ep:search" class="search-icon" />
             </template>
@@ -22,8 +22,8 @@
                         :key="icon"
                         class="icon-item"
                         :class="{ active: activeIcon === icon }"
-                        @click="handleSelect(icon)"
                         :title="icon"
+                        @click="handleSelect(icon)"
                     >
                         <Icon :icon="icon" class="icon-svg" />
                         <span class="icon-name">{{ icon.split(':').pop() }}</span>
@@ -39,9 +39,16 @@
     </div>
 </template>
 
-<script setup>
-import { ref, onMounted, watch } from 'vue'
-import icons from './requireIcons'
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import { ensureIconCollectionByPrefix, loadIconNamesByPrefix } from '@/utils/iconify'
+
+type IconPrefix = 'all' | 'ep' | 'mdi' | 'material-symbols' | 'simple-icons'
+type LoadedIconMap = Record<Exclude<IconPrefix, 'all'>, string[]>
+type ScrollbarExpose = {
+    setScrollTop?: (value: number) => void
+    wrapRef?: HTMLElement | null
+}
 
 const props = defineProps({
     activeIcon: {
@@ -53,67 +60,84 @@ const props = defineProps({
 const emit = defineEmits(['selected'])
 
 const searchText = ref('')
-const activePrefix = ref('all')
-const scrollbarRef = ref(null)
-
-const allIcons = ref(icons)
-const filteredIcons = ref(icons)
-
+const activePrefix = ref<IconPrefix>('ep')
+const scrollbarRef = ref<ScrollbarExpose | null>(null)
+const supportedPrefixes: Array<Exclude<IconPrefix, 'all'>> = ['ep', 'mdi', 'material-symbols', 'simple-icons']
+const loadedIcons = ref<LoadedIconMap>({
+    ep: [],
+    mdi: [],
+    'material-symbols': [],
+    'simple-icons': []
+})
+const filteredIcons = ref<string[]>([])
 const pageSize = 200
-const currentPage = ref(1)
-const displayIcons = ref([])
+const displayIcons = ref<string[]>([])
+
+const currentIcons = computed(() => {
+    if (activePrefix.value === 'all') {
+        return supportedPrefixes.flatMap(prefix => loadedIcons.value[prefix] || [])
+    }
+    return loadedIcons.value[activePrefix.value] || []
+})
+
+async function ensurePrefixLoaded(prefix: Exclude<IconPrefix, 'all'>) {
+    if (loadedIcons.value[prefix]?.length) return
+    await ensureIconCollectionByPrefix(prefix)
+    const names = await loadIconNamesByPrefix(prefix)
+    loadedIcons.value[prefix] = names.map(name => `${prefix}:${name}`)
+}
+
+async function ensureActivePrefixLoaded(prefix: IconPrefix) {
+    if (prefix === 'all') {
+        await Promise.all(supportedPrefixes.map(ensurePrefixLoaded))
+        return
+    }
+    await ensurePrefixLoaded(prefix)
+}
 
 function filterIcons() {
     const text = searchText.value.toLowerCase().trim()
-    const prefix = activePrefix.value
-
-    filteredIcons.value = allIcons.value.filter(icon => {
-        const matchText = icon.toLowerCase().includes(text)
-        const matchPrefix = prefix === 'all' || icon.startsWith(prefix + ':')
-        return matchText && matchPrefix
-    })
-
+    filteredIcons.value = currentIcons.value.filter(icon => icon.toLowerCase().includes(text))
     resetPagination()
 }
 
 function resetPagination() {
-    currentPage.value = 1
     displayIcons.value = filteredIcons.value.slice(0, pageSize)
-    if (scrollbarRef.value) {
-        scrollbarRef.value.setScrollTop(0)
-    }
+    scrollbarRef.value?.setScrollTop?.(0)
 }
 
 function loadMore() {
     if (displayIcons.value.length >= filteredIcons.value.length) return
-
     const nextPage = filteredIcons.value.slice(displayIcons.value.length, displayIcons.value.length + pageSize)
     displayIcons.value.push(...nextPage)
 }
 
-function handleSelect(icon) {
+function handleSelect(icon: string) {
     emit('selected', icon)
 }
 
-const onScroll = ({ scrollTop }) => {
+function onScroll(scrollTop: number) {
     const wrap = scrollbarRef.value?.wrapRef
-    if (wrap) {
-        const threshold = 50
-        if (scrollTop + wrap.clientHeight >= wrap.scrollHeight - threshold) {
-            loadMore()
-        }
+    if (!wrap) return
+    const threshold = 50
+    if (scrollTop + wrap.clientHeight >= wrap.scrollHeight - threshold) {
+        loadMore()
     }
 }
 
 watch(activePrefix, () => {
-    filterIcons()
+    void ensureActivePrefixLoaded(activePrefix.value).then(() => {
+        filterIcons()
+    })
 })
 
 onMounted(() => {
-    filterIcons()
+    void ensureActivePrefixLoaded(activePrefix.value).then(() => {
+        filterIcons()
+    })
     if (scrollbarRef.value?.wrapRef) {
-        scrollbarRef.value.wrapRef.addEventListener('scroll', e => {
-            onScroll({ scrollTop: e.target.scrollTop })
+        scrollbarRef.value.wrapRef.addEventListener('scroll', event => {
+            onScroll((event.target as HTMLElement).scrollTop)
         })
     }
 })
@@ -121,8 +145,10 @@ onMounted(() => {
 defineExpose({
     reset() {
         searchText.value = ''
-        activePrefix.value = 'all'
-        filterIcons()
+        activePrefix.value = 'ep'
+        void ensureActivePrefixLoaded(activePrefix.value).then(() => {
+            filterIcons()
+        })
     }
 })
 </script>
@@ -137,9 +163,11 @@ defineExpose({
 
     .icon-search {
         margin-bottom: 10px;
+
         :deep(.el-input__wrapper) {
             border-radius: 4px;
         }
+
         .search-icon {
             color: var(--el-text-color-placeholder);
         }
@@ -147,10 +175,12 @@ defineExpose({
 
     .icon-tabs {
         margin-bottom: 10px;
+
         :deep(.el-tabs__nav-wrap::after) {
             height: 1px;
             background-color: var(--el-border-color-lighter);
         }
+
         :deep(.el-tabs__item) {
             height: 32px;
             line-height: 32px;

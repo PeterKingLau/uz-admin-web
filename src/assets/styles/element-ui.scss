@@ -12,6 +12,36 @@
     &:not(.is-fullscreen) {
         margin-top: 6vh !important;
     }
+
+    .el-dialog__header {
+        position: relative;
+        padding: 18px 20px 12px;
+        margin-right: 0;
+    }
+
+    .el-dialog__title {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        min-height: 18px;
+        padding-left: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--el-text-color-primary);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 4px;
+            height: 16px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+            transform: translateY(-50%);
+        }
+    }
 }
 
 .el-dialog.scrollbar .el-dialog__body {

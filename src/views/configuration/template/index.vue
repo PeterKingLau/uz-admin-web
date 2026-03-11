@@ -1,5 +1,5 @@
 <template>
-    <div class="app-container">
+    <div class="app-container template-manage">
         <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true">
             <el-form-item :label="TEXT_MAP.interestType" prop="interestType">
                 <el-select
@@ -114,9 +114,9 @@
         </div>
 
         <el-drawer v-model="open" :title="dialogTitle" direction="rtl" size="640px" append-to-body destroy-on-close class="modern-drawer">
-            <div class="h-full overflow-y-auto pr-1">
-                <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" label-position="top">
-                    <el-row :gutter="24">
+            <div class="drawer-content template-drawer-content">
+                <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" label-position="top" class="drawer-form template-drawer-form">
+                    <el-row :gutter="24" class="template-drawer-grid">
                         <el-col :span="12">
                             <el-form-item :label="TEXT_MAP.interestType" prop="interestType">
                                 <el-select
@@ -221,49 +221,50 @@
                         </el-col>
 
                         <el-col :span="24">
-                            <el-form-item :label="TEXT_MAP.representative" prop="representativeList" class="mb-0">
-                                <div class="w-full">
-                                    <div
-                                        v-for="(item, index) in form.representativeList"
-                                        :key="index"
-                                        class="mb-4 rounded-md border border-[var(--el-border-color-light)] bg-[var(--el-fill-color-lighter)] p-4 transition-all duration-300 ease-in-out hover:-translate-y-px hover:border-[var(--el-border-color)] hover:shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
-                                    >
-                                        <div class="mb-3 flex items-center justify-between">
-                                            <span
-                                                class="rounded-[10px] bg-[var(--el-fill-color)] px-2 py-[2px] text-xs font-semibold text-[var(--el-text-color-secondary)]"
-                                            >
-                                                {{ index + 1 }}
-                                            </span>
-                                            <el-button link type="danger" @click="removeRepresentative(index)">
-                                                <Icon icon="mdi:close" />
-                                            </el-button>
+                            <el-form-item :label="TEXT_MAP.representative" prop="representativeList" class="mb-0 representative-form-item">
+                                <div class="rep-list">
+                                    <div v-for="(item, index) in form.representativeList" :key="index" class="rep-card">
+                                        <div class="rep-card-header">
+                                            <div class="rep-card-index">{{ index + 1 }}</div>
+                                            <div class="rep-card-actions">
+                                                <el-tooltip content="删除代表人物" placement="top" :show-after="500">
+                                                    <el-button class="rep-delete-btn" circle @click="removeRepresentative(index)">
+                                                        <Icon icon="mdi:close" />
+                                                    </el-button>
+                                                </el-tooltip>
+                                            </div>
                                         </div>
-                                        <div class="flex items-start gap-5">
-                                            <div class="flex min-w-0 flex-1 flex-col gap-3">
-                                                <el-input v-model="item.name" placeholder="人物姓名" class="mb-2">
+
+                                        <div class="rep-card-body">
+                                            <div class="rep-info-panel">
+                                                <el-input v-model="item.name" placeholder="人物姓名" class="rep-name-input">
                                                     <template #prefix><Icon icon="mdi:account" /></template>
                                                 </el-input>
-                                                <el-input v-model="item.description" placeholder="简短描述/头衔" type="textarea" :rows="2" resize="none" />
-                                            </div>
-                                            <div class="right-upload flex w-24 shrink-0 items-start">
-                                                <ImageUpload
-                                                    v-model="item.image"
-                                                    :limit="1"
-                                                    :is-show-tip="false"
-                                                    oss-type="templates"
-                                                    class="mini-upload"
-                                                    :file-type="['png', 'jpg', 'jpeg']"
+                                                <el-input
+                                                    v-model="item.description"
+                                                    placeholder="简短描述 / 核心成就"
+                                                    type="textarea"
+                                                    :rows="4"
+                                                    resize="none"
+                                                    class="rep-desc-input"
                                                 />
+                                            </div>
+
+                                            <div class="rep-avatar-panel">
+                                                <div class="rep-avatar-frame">
+                                                    <ImageUpload
+                                                        v-model="item.image"
+                                                        :limit="1"
+                                                        :is-show-tip="false"
+                                                        oss-type="templates"
+                                                        class="rep-avatar-uploader"
+                                                        :file-type="['png', 'jpg', 'jpeg']"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <el-button
-                                        type="primary"
-                                        plain
-                                        class="w-full border-dashed text-[var(--el-text-color-secondary)] hover:border-[var(--el-color-primary)] hover:text-[var(--el-color-primary)]"
-                                        @click="addRepresentative"
-                                    >
+                                    <el-button class="rep-add-btn" plain @click="addRepresentative">
                                         <Icon icon="mdi:plus" class="mr-1" /> 添加代表人物
                                     </el-button>
                                 </div>
@@ -273,7 +274,7 @@
                 </el-form>
             </div>
             <template #footer>
-                <div class="flex items-center justify-end gap-3">
+                <div class="drawer-footer">
                     <el-button @click="open = false">{{ TEXT_MAP.cancel }}</el-button>
                     <el-button type="primary" :loading="submitLoading" @click="submitForm">
                         {{ TEXT_MAP.confirm }}
@@ -498,42 +499,412 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.right-upload {
-    :deep(.mini-upload.glass-upload-container) {
-        width: 96px;
+.template-manage {
+    .template-drawer-content {
+        padding-right: 20px;
+        padding-bottom: 8px;
+    }
+
+    .template-drawer-form {
+        min-height: 100%;
+
+        :deep(.el-form-item) {
+            margin-bottom: 22px;
+        }
+
+        :deep(.el-form-item__label) {
+            line-height: 1.4;
+            padding-bottom: 8px;
+            font-weight: 600;
+        }
+
+        :deep(.el-textarea__inner) {
+            min-height: 92px;
+        }
+    }
+
+    .template-drawer-grid {
+        align-content: start;
+    }
+
+    .drawer-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .representative-form-item {
+        :deep(.el-form-item__content) {
+            display: block;
+        }
+    }
+
+    .rep-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+    }
+
+    .rep-card {
+        background: linear-gradient(180deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light) 100%);
+        border: 1px solid var(--el-border-color-light);
+        border-radius: 18px;
+        padding: 18px;
+        transition:
+            border-color 0.3s,
+            box-shadow 0.3s,
+            transform 0.3s;
+
+        &:hover {
+            border-color: var(--el-color-primary-light-4);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+
+            :deep(.rep-delete-btn.el-button) {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    }
+
+    .rep-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .rep-card-actions {
+        margin-left: auto;
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: flex-end;
+
+        :deep(.el-tooltip__trigger) {
+            display: inline-flex;
+            margin-left: auto;
+        }
+    }
+
+    .rep-card-index {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 12px;
+        background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+        color: var(--el-color-primary-dark-2);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08);
+    }
+
+    :deep(.rep-delete-btn.el-button) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
         padding: 0;
-        background: transparent;
-        border: none;
-        box-shadow: none;
+        border-radius: 999px;
+        border: 1px solid rgba(var(--el-color-danger-rgb), 0.14);
+        background: rgba(var(--el-color-danger-rgb), 0.06);
+        color: var(--el-color-danger);
+        opacity: 0.8;
+        transition:
+            opacity 0.2s,
+            transform 0.2s,
+            background-color 0.2s,
+            border-color 0.2s;
+
+        &:hover {
+            background: rgba(var(--el-color-danger-rgb), 0.12);
+            border-color: rgba(var(--el-color-danger-rgb), 0.24);
+            transform: translateY(-1px);
+        }
+
+        .iconify {
+            font-size: 14px;
+        }
     }
 
-    :deep(.mini-upload .upload-wrapper) {
-        width: 96px;
+    .rep-card-body {
+        display: flex;
+        gap: 18px;
+        align-items: stretch;
     }
 
-    :deep(.mini-upload .glass-uploader) {
-        --item-size: 96px;
-        --radius: 10px;
+    .rep-info-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(var(--el-fill-color-rgb), 0.55);
+        border: 1px solid var(--el-border-color-lighter);
+        backdrop-filter: blur(4px);
+
+        .rep-name-input :deep(.el-input__wrapper) {
+            box-shadow: none;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            background-color: var(--el-bg-color);
+            min-height: 44px;
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s,
+                background-color 0.2s;
+
+            &.is-focus,
+            &:hover {
+                border-color: var(--el-color-primary);
+                background-color: var(--el-bg-color-overlay);
+            }
+
+            &.is-focus {
+                box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
+            }
+
+            .el-input__inner {
+                font-weight: 600;
+                color: var(--el-text-color-primary);
+                font-size: 14px;
+            }
+        }
+
+        .rep-desc-input :deep(.el-textarea__inner) {
+            box-shadow: none;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            background-color: var(--el-bg-color);
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s,
+                background-color 0.2s;
+            padding: 12px 14px;
+            line-height: 1.6;
+            min-height: 128px !important;
+
+            &:hover,
+            &:focus {
+                border-color: var(--el-color-primary);
+                background-color: var(--el-bg-color-overlay);
+            }
+
+            &:focus {
+                box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
+            }
+        }
     }
 
-    :deep(.mini-upload .el-upload-list--picture-card) {
-        grid-template-columns: 1fr;
-        gap: 0;
+    .rep-avatar-panel {
+        flex: 0 0 148px;
+        display: flex;
     }
 
-    :deep(.el-upload) {
-        width: 96px;
-        height: 96px;
+    .rep-avatar-frame {
+        width: 100%;
+        min-height: 192px;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--el-border-color-lighter);
+        background: linear-gradient(180deg, var(--el-fill-color-light) 0%, var(--el-bg-color) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .rep-avatar-uploader {
+            width: 120px;
+
+            :deep(.glass-upload-container) {
+                padding: 0;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+            }
+
+            :deep(.upload-wrapper) {
+                width: 120px;
+            }
+
+            :deep(.el-upload--picture-card) {
+                width: 120px !important;
+                height: 152px !important;
+                border-radius: 14px;
+                margin: 0 !important;
+                background: var(--el-bg-color);
+                border: 2px dashed var(--el-border-color-lighter);
+                transition:
+                    border-color 0.3s,
+                    background-color 0.3s,
+                    transform 0.3s;
+
+                &:hover {
+                    border-color: var(--el-color-primary);
+                    background: var(--el-color-primary-light-9);
+                    transform: translateY(-1px);
+                }
+            }
+
+            :deep(.el-upload-list__item) {
+                width: 120px !important;
+                height: 152px !important;
+                border-radius: 14px;
+                margin: 0 !important;
+                border: 1px solid var(--el-border-color-lighter);
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            }
+
+            :deep(.el-upload-list) {
+                display: block;
+                margin: 0;
+            }
+
+            :deep(.upload-trigger-content) {
+                gap: 10px;
+
+                .icon-box {
+                    font-size: 32px;
+                    color: var(--el-text-color-placeholder);
+                }
+
+                .main-text {
+                    font-size: 13px;
+                    color: var(--el-text-color-secondary);
+                }
+
+                .sub-text {
+                    display: none;
+                }
+            }
+
+            :deep(.upload-info-bar) {
+                display: none;
+            }
+        }
     }
 
-    :deep(.el-upload-list) {
-        width: 96px;
+    .rep-add-btn {
+        width: 100%;
+        border-style: dashed;
+        border-width: 1px;
+        height: 48px;
+        border-radius: 12px;
+        color: var(--el-color-primary);
+        border-color: var(--el-color-primary-light-5);
+        background: var(--el-color-primary-light-9);
+        font-weight: 600;
+        transition: all 0.3s;
+
+        &:hover {
+            border-color: var(--el-color-primary);
+            background: var(--el-color-primary-light-8);
+        }
     }
 
-    :deep(.el-upload-list__item) {
-        width: 96px;
-        height: 96px;
-        margin: 0;
+    :global(html.dark) .template-manage {
+        .rep-card {
+            background: var(--el-bg-color-overlay);
+            border-color: var(--el-border-color-lighter);
+
+            &:hover {
+                border-color: var(--el-border-color);
+            }
+        }
+
+        .rep-card-index {
+            background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
+            color: var(--el-color-primary-light-9);
+        }
+
+        .rep-delete-btn {
+            background: rgba(var(--el-color-danger-rgb), 0.14);
+            border-color: rgba(var(--el-color-danger-rgb), 0.24);
+        }
+
+        .rep-info-panel,
+        .rep-avatar-frame {
+            background: var(--el-fill-color-dark);
+            border-color: var(--el-border-color);
+        }
+
+        .rep-name-input :deep(.el-input__wrapper),
+        .rep-desc-input :deep(.el-textarea__inner) {
+            background-color: var(--el-bg-color-overlay);
+            border-color: transparent;
+
+            &.is-focus,
+            &:focus,
+            &:hover {
+                background-color: var(--el-bg-color);
+                border-color: var(--el-color-primary);
+            }
+        }
+
+        .rep-avatar-uploader {
+            :deep(.el-upload--picture-card) {
+                background: var(--el-fill-color-dark);
+                border-color: var(--el-border-color-dark);
+
+                &:hover {
+                    background: var(--el-color-primary-dark-2);
+                }
+            }
+        }
+    }
+
+    @media (max-width: 768px) {
+        .template-drawer-content {
+            padding-right: 0;
+        }
+
+        .rep-card {
+            padding: 16px;
+        }
+
+        .rep-card-body {
+            gap: 16px;
+        }
+
+        .rep-avatar-panel {
+            flex-basis: 132px;
+        }
+
+        .rep-avatar-frame {
+            min-height: 176px;
+            padding: 12px;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .rep-avatar-frame {
+            min-height: auto;
+            padding: 14px;
+        }
+
+        .rep-card-body {
+            flex-direction: column;
+        }
+
+        .rep-avatar-panel {
+            flex: none;
+            width: 100%;
+        }
+
+        .rep-avatar-frame .rep-avatar-uploader {
+            width: 120px;
+        }
     }
 }
 </style>

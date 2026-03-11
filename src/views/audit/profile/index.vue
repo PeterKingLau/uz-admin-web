@@ -112,46 +112,56 @@
             </div>
         </div>
 
-        <el-dialog title="内容详情" v-model="openDetail" width="650px" append-to-body class="custom-dialog audit-profile-dialog">
-            <el-descriptions :column="2" border class="detail-desc">
-                <el-descriptions-item label="用户名">{{ current?.userName }}</el-descriptions-item>
-                <el-descriptions-item label="昵称">{{ current?.nickName }}</el-descriptions-item>
-                <el-descriptions-item label="类型">
-                    <EnumTag enum-type="POST_TYPE" :value="current?.postType" />
-                </el-descriptions-item>
-                <el-descriptions-item label="状态">
-                    <EnumTag enum-type="CONTENT_STATUS" :value="current?.status" />
-                </el-descriptions-item>
-                <el-descriptions-item label="审核状态">
-                    <EnumTag enum-type="AUDIT_STATUS" :value="current?.auditStatus" />
-                </el-descriptions-item>
-                <el-descriptions-item label="审核理由">{{ current?.reason || '-' }}</el-descriptions-item>
-            </el-descriptions>
+        <el-drawer
+            v-model="openDetail"
+            title="内容详情"
+            direction="rtl"
+            size="640px"
+            append-to-body
+            destroy-on-close
+            class="modern-drawer audit-profile-drawer"
+        >
+            <div class="drawer-content">
+                <el-descriptions :column="2" border class="detail-desc">
+                    <el-descriptions-item label="用户名">{{ current?.userName }}</el-descriptions-item>
+                    <el-descriptions-item label="昵称">{{ current?.nickName }}</el-descriptions-item>
+                    <el-descriptions-item label="类型">
+                        <EnumTag enum-type="POST_TYPE" :value="current?.postType" />
+                    </el-descriptions-item>
+                    <el-descriptions-item label="状态">
+                        <EnumTag enum-type="CONTENT_STATUS" :value="current?.status" />
+                    </el-descriptions-item>
+                    <el-descriptions-item label="审核状态">
+                        <EnumTag enum-type="AUDIT_STATUS" :value="current?.auditStatus" />
+                    </el-descriptions-item>
+                    <el-descriptions-item label="审核理由">{{ current?.reason || '-' }}</el-descriptions-item>
+                </el-descriptions>
 
-            <div class="detail-section">
-                <div class="section-header">
-                    <span>正文内容</span>
+                <div class="detail-section">
+                    <div class="section-header">
+                        <span>正文内容</span>
+                    </div>
+                    <div class="content-box">{{ current?.content || '（无正文内容）' }}</div>
                 </div>
-                <div class="content-box">{{ current?.content || '（无正文内容）' }}</div>
-            </div>
 
-            <div class="detail-section" v-if="current?.mediaUrls && current.mediaUrls.length">
-                <div class="section-header">
-                    <span>媒体资源</span>
-                </div>
-                <div class="media-box">
-                    <MediaPreview :post-type="current.postType" :media-urls="current.mediaUrls" :audit-status="current.auditStatus" />
+                <div class="detail-section" v-if="current?.mediaUrls && current.mediaUrls.length">
+                    <div class="section-header">
+                        <span>媒体资源</span>
+                    </div>
+                    <div class="media-box">
+                        <MediaPreview :post-type="current.postType" :media-urls="current.mediaUrls" :audit-status="current.auditStatus" />
+                    </div>
                 </div>
             </div>
 
             <template #footer>
-                <div class="dialog-footer">
+                <div class="drawer-footer">
                     <el-button @click="openDetail = false">关 闭</el-button>
                 </div>
             </template>
-        </el-dialog>
+        </el-drawer>
 
-        <el-dialog title="驳回原因" v-model="openReject" width="420px" append-to-body class="audit-profile-dialog">
+        <el-dialog title="驳回原因" v-model="openReject" width="420px" append-to-body class="custom-dialog">
             <el-form :model="rejectForm" label-position="top">
                 <el-form-item label="请输入驳回原因">
                     <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="例如：内容包含违规信息..." resize="none" />
@@ -387,7 +397,11 @@ function hasMedia(row) {
 </style>
 
 <style lang="scss">
-.audit-profile-dialog {
+.audit-profile-drawer {
+    .drawer-content {
+        padding-right: 20px;
+    }
+
     .detail-desc {
         margin-bottom: 24px;
     }
@@ -413,8 +427,8 @@ function hasMedia(row) {
 
         .content-box {
             background: var(--el-fill-color-light);
-            padding: 12px;
-            border-radius: 6px;
+            padding: 16px;
+            border-radius: 12px;
             font-size: 14px;
             line-height: 1.6;
             color: var(--el-text-color-regular);
@@ -426,7 +440,7 @@ function hasMedia(row) {
         }
     }
 
-    .dialog-footer {
+    .drawer-footer {
         display: flex;
         justify-content: flex-end;
         gap: 12px;

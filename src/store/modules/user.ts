@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import router from '@/router'
 import { ElMessageBox } from 'element-plus'
 import { login, logout, getInfo } from '@/api/login/login'
+import { getUserProfile } from '@/api/system/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { isHttp, isEmpty } from '@/utils/validate'
 import { getImgUrl } from '@/utils/img'
@@ -20,6 +21,7 @@ interface UserState {
     avatar: string
     roles: string[]
     permissions: string[]
+    profileLoadedAt: number
 }
 
 interface LoginPayload {
@@ -28,6 +30,9 @@ interface LoginPayload {
     password?: string
     smsCode?: string
 }
+
+const PROFILE_REFRESH_TTL = 2 * 60 * 1000
+let profileRefreshPromise: Promise<any> | null = null
 
 function normalizeTokenValue(token: unknown): string {
     if (typeof token !== 'string') return ''
@@ -38,12 +43,40 @@ function normalizeTokenValue(token: unknown): string {
 }
 
 function extractLoginToken(response: any): string {
-    const candidates = [response?.token, response?.accessToken, response?.access_token, response?.data?.token, response?.data?.accessToken, response?.data?.access_token]
+    const candidates = [
+        response?.token,
+        response?.accessToken,
+        response?.access_token,
+        response?.data?.token,
+        response?.data?.accessToken,
+        response?.data?.access_token
+    ]
     for (const candidate of candidates) {
         const token = normalizeTokenValue(candidate)
         if (token) return token
     }
     return ''
+}
+
+function normalizeAvatarValue(avatar: unknown): string {
+    const raw = String(avatar || '').trim()
+    if (!raw) return defAva
+    if (isHttp(raw) || raw.startsWith('//') || raw.startsWith('data:') || raw.startsWith('blob:')) return raw
+    return getImgUrl(raw)
+}
+
+function normalizeUserSnapshot(user: Record<string, any> | null | undefined) {
+    const source = user || {}
+    const resolvedId = source.userId ?? source.id ?? ''
+    const resolvedName = source.userName ?? source.username ?? source.name ?? ''
+    const resolvedNickName = source.nickName ?? source.nickname ?? resolvedName ?? ''
+
+    return {
+        id: String(resolvedId || ''),
+        name: String(resolvedName || ''),
+        nickName: String(resolvedNickName || ''),
+        avatar: normalizeAvatarValue(source.avatar)
+    }
 }
 
 const useUserStore = defineStore('user', {
@@ -52,12 +85,59 @@ const useUserStore = defineStore('user', {
         id: '',
         name: '',
         nickName: '',
-        avatar: '',
+        avatar: defAva,
         roles: [],
-        permissions: []
+        permissions: [],
+        profileLoadedAt: 0
     }),
 
     actions: {
+        resetUserSnapshot() {
+            this.id = ''
+            this.name = ''
+            this.nickName = ''
+            this.avatar = defAva
+            this.roles = []
+            this.permissions = []
+            this.profileLoadedAt = 0
+        },
+
+        applyUserSnapshot(user: Record<string, any> | null | undefined, auth?: { roles?: string[]; permissions?: string[] }) {
+            const snapshot = normalizeUserSnapshot(user)
+            this.id = snapshot.id
+            this.name = snapshot.name
+            this.nickName = snapshot.nickName
+            this.avatar = snapshot.avatar
+
+            if (auth) {
+                if (Array.isArray(auth.roles) && auth.roles.length > 0) {
+                    this.roles = auth.roles
+                    this.permissions = Array.isArray(auth.permissions) ? auth.permissions : []
+                } else if (Array.isArray(auth.roles)) {
+                    this.roles = ['ROLE_DEFAULT']
+                    this.permissions = []
+                }
+            }
+
+            this.profileLoadedAt = Date.now()
+        },
+
+        patchUserSnapshot(user: Record<string, any> | null | undefined) {
+            if (!user) return
+            this.applyUserSnapshot(
+                {
+                    userId: user.userId ?? user.id ?? this.id,
+                    userName: user.userName ?? user.username ?? user.name ?? this.name,
+                    nickName: user.nickName ?? user.nickname ?? this.nickName ?? this.name,
+                    avatar: user.avatar ?? this.avatar
+                },
+                {
+                    roles: this.roles,
+                    permissions: this.permissions
+                }
+            )
+        },
+
         login(userInfo: LoginPayload): Promise<any> {
             const username = (userInfo.username || '').trim()
             const payload: LoginPayload = {
@@ -79,6 +159,7 @@ const useUserStore = defineStore('user', {
                         }
                         setToken(token)
                         this.token = token
+                        this.resetUserSnapshot()
                         resolve(res)
                     })
                     .catch(err => reject(err))
@@ -89,24 +170,10 @@ const useUserStore = defineStore('user', {
             return new Promise((resolve, reject) => {
                 getInfo()
                     .then(res => {
-                        const user = res.user
-                        let avatar = user.avatar || ''
-                        if (!isHttp(avatar)) {
-                            avatar = isEmpty(avatar) ? defAva : getImgUrl(avatar)
-                        }
-
-                        if (res.roles && res.roles.length > 0) {
-                            this.roles = res.roles
-                            this.permissions = res.permissions || []
-                        } else {
-                            this.roles = ['ROLE_DEFAULT']
-                            this.permissions = []
-                        }
-
-                        this.id = user.userId
-                        this.name = user.userName
-                        this.nickName = user.nickName
-                        this.avatar = avatar
+                        this.applyUserSnapshot(res.user, {
+                            roles: res.roles,
+                            permissions: res.permissions
+                        })
 
                         if (res.isDefaultModifyPwd) {
                             ElMessageBox.confirm('您的密码还是初始密码，请尽快修改密码！', '安全提示', {
@@ -146,11 +213,36 @@ const useUserStore = defineStore('user', {
             })
         },
 
+        refreshProfile(): Promise<any> {
+            if (profileRefreshPromise) return profileRefreshPromise
+
+            profileRefreshPromise = new Promise((resolve, reject) => {
+                getUserProfile()
+                    .then(res => {
+                        this.patchUserSnapshot(res?.data)
+                        resolve(res)
+                    })
+                    .catch(error => reject(error))
+                    .finally(() => {
+                        profileRefreshPromise = null
+                    })
+            })
+
+            return profileRefreshPromise
+        },
+
+        ensureFreshProfile(force = false): Promise<any> {
+            if (!this.token) return Promise.resolve(null)
+            const now = Date.now()
+            const shouldRefresh = force || !this.profileLoadedAt || now - this.profileLoadedAt >= PROFILE_REFRESH_TTL
+            if (!shouldRefresh) return Promise.resolve(null)
+            return this.refreshProfile()
+        },
+
         logOut(callLogoutApi = true): Promise<void> {
             const clearLocalAuth = () => {
                 this.token = ''
-                this.roles = []
-                this.permissions = []
+                this.resetUserSnapshot()
                 removeToken()
             }
 

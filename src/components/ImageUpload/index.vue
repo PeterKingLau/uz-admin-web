@@ -176,13 +176,13 @@ const showSortAction = computed(() => enableSort.value)
 const sortAssistMode = computed(() => Boolean(props.sortAssistMode) && showSortAction.value)
 const showSortAssistList = computed(() => Boolean(sortAssistMode.value) && fileList.value.length > 1)
 
-const normalizeModelValueToList = val => {
+function normalizeModelValueToList(val) {
     if (!val) return []
     const list = Array.isArray(val) ? val : String(val).split(',')
     return list.map(item => createFileListItem(item))
 }
 
-const syncFileListFromModelValue = val => {
+function syncFileListFromModelValue(val) {
     const nextList = normalizeModelValueToList(val)
     if (toListSignature(nextList) === toListSignature(fileList.value)) return
     fileList.value = nextList
@@ -199,26 +199,27 @@ watch(
     { immediate: true }
 )
 
-const toListSignature = list =>
-    list
+function toListSignature(list) {
+    return list
         .map(item => String(item?.rawUrl || item?.url || item?.name || ''))
         .filter(Boolean)
         .join(',')
+}
 
-const normalizeUploadUrl = url => {
+function normalizeUploadUrl(url) {
     const raw = String(url || '').trim()
     if (!raw) return ''
     return baseUrl ? raw.replace(baseUrl, '') : raw
 }
 
-const resolveDisplayUrl = rawUrl => {
+function resolveDisplayUrl(rawUrl) {
     const raw = String(rawUrl || '').trim()
     if (!raw) return ''
     if (isExternal(raw)) return raw
     return getImgUrl(raw)
 }
 
-const createFileListItem = item => {
+function createFileListItem(item) {
     const fallbackUid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     if (typeof item === 'string') {
         const rawUrl = normalizeUploadUrl(item)
@@ -242,7 +243,9 @@ const createFileListItem = item => {
     }
 }
 
-const resolveImageDisplayName = file => {
+function resolveImageDisplayName(file) {
+    const explicitName = String(file?.originalName || file?.displayName || file?.name || '').trim()
+    if (explicitName && !explicitName.includes('/')) return explicitName
     const raw = String(file?.rawUrl || file?.url || file?.name || '').trim()
     if (!raw) return '图片'
     const clean = raw.split('?')[0].split('#')[0]
@@ -255,7 +258,7 @@ const resolveImageDisplayName = file => {
     }
 }
 
-const resolveQueueFiles = () => {
+function resolveQueueFiles() {
     const uploadFiles = imageUploadRef.value?.uploadFiles
     if (!Array.isArray(uploadFiles)) return []
     return uploadFiles.filter(item => {
@@ -374,7 +377,15 @@ function handleExceed() {
 
 function handleUploadSuccess(res, file) {
     if (res.code === 200) {
-        uploadList.value.push(createFileListItem(res.fileName))
+        const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
+        uploadList.value.push(
+            createFileListItem({
+                name: String(rawFile?.name || file?.name || res.fileName || ''),
+                originalName: String(rawFile?.name || file?.name || ''),
+                rawUrl: res.fileName,
+                url: res.fileName
+            })
+        )
         uploadedSuccessfully()
     } else {
         number.value--

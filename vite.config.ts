@@ -62,10 +62,12 @@ export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd()) as ViteRuntimeEnv
     const isBuild = command === 'build'
     const isProductionMode = mode === 'production'
+    const isReleaseMode = mode === 'release'
+    const isProductionLikeMode = isProductionMode || isReleaseMode
     const proxyTarget = resolveProxyTarget(env)
-    const enableObfuscation = isBuild && isProductionMode && env.VITE_ENABLE_OBFUSCATION === 'true'
-    const shouldDropConsole = isBuild && isProductionMode && env.VITE_DROP_CONSOLE !== 'false'
-    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProductionMode)
+    const enableObfuscation = isBuild && env.VITE_ENABLE_OBFUSCATION === 'true'
+    const shouldDropConsole = isBuild && isProductionLikeMode && env.VITE_DROP_CONSOLE !== 'false'
+    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProductionLikeMode)
     const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
 
     return {

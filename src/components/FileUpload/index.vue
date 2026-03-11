@@ -304,7 +304,11 @@ function handleUploadSuccess(res, file) {
         if (normalizedUrl && rawFile) {
             rawFileMap.set(normalizedUrl, rawFile)
         }
-        uploadList.value.push({ name: res.fileName, url: res.fileName })
+        uploadList.value.push({
+            name: String(rawFile?.name || file?.name || res.fileName || ''),
+            url: res.fileName,
+            rawUrl: res.fileName
+        })
         uploadedSuccessfully()
     } else {
         number.value--

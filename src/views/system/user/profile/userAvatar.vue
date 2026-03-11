@@ -1,6 +1,6 @@
 ﻿<template>
     <div class="user-avatar-wrapper" @click="editCropper()">
-        <img :src="options.img" title="点击上传头像" class="avatar-img" />
+        <img :src="displayImageUrl" title="点击上传头像" class="avatar-img" />
 
         <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog" class="avatar-dialog">
             <div class="cropper-container">
@@ -8,7 +8,7 @@
                     <el-col :span="14" class="cropper-col">
                         <div class="cropper-box">
                             <vue-cropper
-                                v-if="visible"
+                                v-if="visible && options.img"
                                 ref="cropper"
                                 :img="options.img"
                                 :info="true"
@@ -20,14 +20,19 @@
                                 @real-time="realTime"
                                 @realTime="realTime"
                             />
+                            <div v-else-if="cropperLoadError" class="cropper-empty-state">
+                                <Icon icon="mdi:image-off-outline" class="empty-icon" />
+                                <span>{{ cropperLoadError }}</span>
+                            </div>
                         </div>
                     </el-col>
                     <el-col :span="10" class="preview-col">
                         <div class="preview-box">
                             <div class="preview-img-wrapper">
-                                <div :style="previewStyle" class="preview-inner">
+                                <div v-if="hasPreviewImage" :style="previewStyle" class="preview-inner">
                                     <img :src="previewImageUrl" :style="previewImageStyle" />
                                 </div>
+                                <div v-else class="preview-empty">请选择本地图片</div>
                             </div>
                             <div class="preview-text">头像预览</div>
                         </div>
@@ -66,8 +71,9 @@ import 'vue-cropper/dist/index.css'
 import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
-import { ref, reactive, getCurrentInstance, computed, nextTick } from 'vue'
+import { ref, reactive, getCurrentInstance, computed, nextTick, watch } from 'vue'
 import { getImgUrl } from '@/utils/img'
+import defAva from '@/assets/images/profile.jpg'
 
 const userStore = useUserStore()
 const { proxy } = getCurrentInstance()
@@ -77,18 +83,21 @@ const visible = ref(false)
 const title = ref('修改头像')
 const submitting = ref(false)
 const cropPreviewUrl = ref('')
+const sourceImageUrl = ref('')
+const DEFAULT_CROPPER_HINT = '请选择本地图片后再裁剪'
 
 const MAX_AVATAR_SIZE_MB = 10
+const cropperLoadError = ref('')
 
-const resolveImageSource = source => {
+const resolveDisplayImageSource = source => {
     const raw = String(source || '').trim()
-    if (!raw) return ''
-    if (/^(data:|blob:|https?:\/\/|\/\/)/i.test(raw)) return raw
+    if (!raw) return defAva
+    if (/^(data:|blob:|https?:\/\/|\/\/)/i.test(raw) || raw.startsWith('/')) return raw
     return getImgUrl(raw)
 }
 
 const options = reactive({
-    img: resolveImageSource(userStore.avatar),
+    img: '',
     autoCrop: true,
     autoCropWidth: 200,
     autoCropHeight: 200,
@@ -103,6 +112,8 @@ const options = reactive({
         h: 0
     }
 })
+
+const displayImageUrl = computed(() => resolveDisplayImageSource(sourceImageUrl.value || options.img))
 
 const toPxNumber = value => {
     const n = parseFloat(
@@ -150,6 +161,8 @@ const previewImageUrl = computed(() => {
     return options.img
 })
 
+const hasPreviewImage = computed(() => Boolean(String(previewImageUrl.value || '').trim()))
+
 const previewImageStyle = computed(() => {
     if (cropPreviewUrl.value) {
         return {
@@ -169,7 +182,11 @@ const previewImageStyle = computed(() => {
     return previewImg
 })
 
-function editCropper() {
+async function editCropper() {
+    cropPreviewUrl.value = ''
+    cropperLoadError.value = userStore.avatar ? DEFAULT_CROPPER_HINT : '请先选择本地图片'
+    options.img = ''
+    options.filename = 'avatar'
     open.value = true
 }
 
@@ -212,6 +229,7 @@ function beforeUpload(file) {
     reader.readAsDataURL(file)
     reader.onload = () => {
         cropPreviewUrl.value = ''
+        cropperLoadError.value = ''
         options.img = String(reader.result || '')
         options.filename = file.name
         nextTick(() => {
@@ -278,8 +296,11 @@ async function uploadImg() {
         }
 
         open.value = false
-        options.img = latestAvatar
-        userStore.avatar = latestAvatar
+        sourceImageUrl.value = latestAvatar
+        cropPreviewUrl.value = ''
+        cropperLoadError.value = ''
+        options.img = ''
+        userStore.patchUserSnapshot({ avatar: latestAvatar })
         proxy.$modal.msgSuccess('修改成功')
         visible.value = false
     } catch (error) {
@@ -299,9 +320,19 @@ function realTime(data) {
 
 function closeDialog() {
     cropPreviewUrl.value = ''
-    options.img = resolveImageSource(userStore.avatar)
+    cropperLoadError.value = ''
+    options.img = ''
+    options.filename = 'avatar'
     visible.value = false
 }
+
+watch(
+    () => userStore.avatar,
+    avatar => {
+        sourceImageUrl.value = String(avatar || '').trim()
+    },
+    { immediate: true }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -341,6 +372,29 @@ function closeDialog() {
 .cropper-box {
     height: 350px;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--el-fill-color-lighter);
+    border-radius: 8px;
+}
+
+.cropper-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+
+    .empty-icon {
+        font-size: 40px;
+        color: var(--el-text-color-placeholder);
+    }
 }
 
 .preview-col {
@@ -372,6 +426,14 @@ function closeDialog() {
 
     .preview-inner {
         display: block;
+    }
+
+    .preview-empty {
+        color: var(--el-text-color-placeholder);
+        font-size: 14px;
+        text-align: center;
+        padding: 0 16px;
+        line-height: 1.6;
     }
 
     .preview-text {

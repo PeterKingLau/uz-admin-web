@@ -251,6 +251,17 @@ const buildQueryString = (params: Record<string, string>): string =>
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key] || '')}`)
         .join('&')
 
+const createUuidLikeId = (): string => {
+    if (typeof globalThis.crypto?.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID()
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+        const random = Math.floor(Math.random() * 16)
+        const value = char === 'x' ? random : (random & 0x3) | 0x8
+        return value.toString(16)
+    })
+}
+
 const collectFormFields = (credential: UnknownRecord): Record<string, string> => {
     const fields: Record<string, string> = {}
     const nestedFields = [credential.formData, credential.fields, credential.formFields, credential.params]
@@ -293,32 +304,20 @@ const normalizeOssTokenField = (fields: Record<string, string>): void => {
 
 const buildObjectKey = (credential: UnknownRecord, file: File, index: number): string | undefined => {
     const fileName = file.name || `file_${index}`
-    const uniqueSuffix = `${Date.now()}_${index}_${Math.random().toString(36).slice(2, 8)}`
+    const uniqueSuffix = createUuidLikeId()
     const extensionIndex = fileName.lastIndexOf('.')
     const extension = extensionIndex >= 0 ? fileName.slice(extensionIndex) : ''
-    const baseName = extensionIndex >= 0 ? fileName.slice(0, extensionIndex) : fileName
-    const safeBaseName =
-        baseName
-            .replace(/[^\w.-]+/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_+|_+$/g, '') || 'file'
     const forceUniqueKey = Boolean((credential as UnknownRecord).__forceUniqueKey)
     const buildUniqueFromTemplate = (key: string): string => {
         const normalizedKey = String(key || '').replace(/^\/+/, '')
         const slashIndex = normalizedKey.lastIndexOf('/')
         const dir = slashIndex >= 0 ? normalizedKey.slice(0, slashIndex + 1) : ''
         const templateFileName = slashIndex >= 0 ? normalizedKey.slice(slashIndex + 1) : normalizedKey
-        if (!templateFileName) return `${dir}${uniqueSuffix}_${safeBaseName}${extension}`
+        if (!templateFileName) return `${dir}${uniqueSuffix}${extension}`
         const fileDotIndex = templateFileName.lastIndexOf('.')
         const fileExtension = fileDotIndex >= 0 ? templateFileName.slice(fileDotIndex) : ''
-        const fileBaseName = fileDotIndex >= 0 ? templateFileName.slice(0, fileDotIndex) : templateFileName
-        const safeFileBaseName =
-            fileBaseName
-                .replace(/[^\w.-]+/g, '_')
-                .replace(/_+/g, '_')
-                .replace(/^_+|_+$/g, '') || 'file'
         const nextExtension = fileExtension || extension
-        return `${dir}${safeFileBaseName}_${uniqueSuffix}${nextExtension}`
+        return `${dir}${uniqueSuffix}${nextExtension}`
     }
     const templateKey = firstString(credential.key, credential.objectKey)
     if (templateKey) {
@@ -326,7 +325,7 @@ const buildObjectKey = (credential: UnknownRecord, file: File, index: number): s
             const replaced = templateKey.split('${filename}').join(fileName).split('{filename}').join(fileName)
             return forceUniqueKey ? buildUniqueFromTemplate(replaced) : replaced
         }
-        if (templateKey.endsWith('/')) return `${templateKey}${uniqueSuffix}_${safeBaseName}${extension}`
+        if (templateKey.endsWith('/')) return `${templateKey}${uniqueSuffix}${extension}`
         if (forceUniqueKey) return buildUniqueFromTemplate(templateKey)
         return templateKey
     }
@@ -335,7 +334,7 @@ const buildObjectKey = (credential: UnknownRecord, file: File, index: number): s
     const normalizedDir = uploadDir === '' || uploadDir.endsWith('/') ? uploadDir : `${uploadDir}/`
     const filePrefix = firstString(credential.filePrefix, credential.prefix) || ''
     const normalizedPrefix = filePrefix.replace(/^\/+/, '')
-    return `${normalizedDir}${normalizedPrefix}${uniqueSuffix}_${safeBaseName}${extension}`
+    return `${normalizedDir}${normalizedPrefix}${uniqueSuffix}${extension}`
 }
 
 const resolveCredentialList = (response: unknown): unknown[] => {
@@ -495,13 +494,7 @@ const buildStsObjectKey = (credential: UnknownRecord, file: File, index: number)
     const fileName = file.name || `file_${index}`
     const extensionIndex = fileName.lastIndexOf('.')
     const extension = extensionIndex >= 0 ? fileName.slice(extensionIndex) : ''
-    const baseName = extensionIndex >= 0 ? fileName.slice(0, extensionIndex) : fileName
-    const safeBaseName =
-        baseName
-            .replace(/[^\w.-]+/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_+|_+$/g, '') || 'file'
-    return `${normalizedDir}${normalizedPrefix}${Date.now()}_${index}_${safeBaseName}${extension}`
+    return `${normalizedDir}${normalizedPrefix}${createUuidLikeId()}${extension}`
 }
 
 const uploadByStsPut = async (credential: UnknownRecord, file: File, index: number): Promise<string> => {

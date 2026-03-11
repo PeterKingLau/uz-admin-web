@@ -8,6 +8,7 @@
     "scripts": {
         "dev": "vite",
         "build:prod": "rimraf --glob vite.config.ts.timestamp-* && vite build",
+        "build:release": "rimraf --glob vite.config.ts.timestamp-* && vite build --mode release",
         "build:stage": "vite build --mode staging",
         "preview": "vite preview",
         "lint:style": "stylelint \"src/**/*.{vue,css,scss}\"",

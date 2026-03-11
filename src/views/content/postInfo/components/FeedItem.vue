@@ -68,11 +68,12 @@
                 ref="hoverVideoRef"
                 :src="videoPreviewSrc"
                 class="media-video"
-                :class="{ 'is-playing': isVideoHoverPlaying }"
+                :class="{ 'is-active': isVideoHoverActive, 'is-playing': isVideoHoverPlaying }"
+                :poster="coverUrl || undefined"
                 muted
                 loop
                 playsinline
-                preload="metadata"
+                preload="auto"
                 disablepictureinpicture
                 controlslist="nodownload noplaybackrate nofullscreen"
                 @contextmenu.prevent
@@ -83,6 +84,13 @@
                     <Icon icon="mdi:play" />
                 </div>
             </div>
+
+            <transition name="preview-badge-fade">
+                <div v-if="isVideoHoverActive" class="hover-preview-badge">
+                    <Icon icon="mdi:volume-off" class="badge-icon" />
+                    <span>静音预览</span>
+                </div>
+            </transition>
         </div>
 
         <div class="card-bottom">
@@ -144,6 +152,7 @@ const post = computed(() => props.post || {})
 const currentPostId = computed(() => props.post?.id ?? props.post?.postId ?? '')
 const isBatchMode = computed(() => Boolean(props.batchMode))
 const hoverVideoRef = ref<HTMLVideoElement | null>(null)
+const isVideoHoverActive = ref(false)
 const isVideoHoverPlaying = ref(false)
 const isOriginalMissing = computed(() => {
     const originalPostId = Number(props.post?.originalPostId ?? 0)
@@ -270,6 +279,7 @@ const stopHoverPreview = () => {
             // Ignore seek failures for unready media.
         }
     }
+    isVideoHoverActive.value = false
     isVideoHoverPlaying.value = false
 }
 
@@ -278,9 +288,12 @@ const handleMediaMouseEnter = async () => {
     await nextTick()
     const video = hoverVideoRef.value
     if (!video) return
+    isVideoHoverActive.value = true
     video.muted = true
     video.defaultMuted = true
     video.playsInline = true
+    video.preload = 'auto'
+    video.load()
 
     try {
         await video.play()
@@ -409,9 +422,38 @@ onBeforeUnmount(() => {
     z-index: 4;
     background: var(--el-color-black);
 
+    &.is-active {
+        opacity: 0.88;
+        transform: scale(1.01);
+    }
+
     &.is-playing {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+.hover-preview-badge {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--el-color-black) 48%, transparent);
+    color: var(--el-color-white);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 18%, transparent);
+    pointer-events: none;
+
+    .badge-icon {
+        font-size: 13px;
     }
 }
 
@@ -709,10 +751,11 @@ onBeforeUnmount(() => {
 
         &.like-btn {
             width: auto;
-            min-width: 28px;
-            padding: 0 6px;
+            min-width: 32px;
+            padding: 0 8px;
             border-radius: 999px;
             gap: 4px;
+            font-size: 15px;
 
             &:hover {
                 color: var(--el-color-danger);
@@ -734,6 +777,14 @@ onBeforeUnmount(() => {
                 font-weight: 600;
                 line-height: 1;
             }
+
+            .icon-anim-wrapper {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                line-height: 1;
+            }
         }
     }
 }
@@ -748,6 +799,19 @@ onBeforeUnmount(() => {
     100% {
         transform: scale(1);
     }
+}
+
+.preview-badge-fade-enter-active,
+.preview-badge-fade-leave-active {
+    transition:
+        opacity 0.18s ease,
+        transform 0.22s ease;
+}
+
+.preview-badge-fade-enter-from,
+.preview-badge-fade-leave-to {
+    opacity: 0;
+    transform: translateY(4px);
 }
 
 @keyframes spin {

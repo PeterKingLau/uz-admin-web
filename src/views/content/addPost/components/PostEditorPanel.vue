@@ -41,6 +41,11 @@
 
                 <el-form-item v-if="!isBatchVideoMode" label="正文内容" prop="content" class="highlight-label">
                     <div class="input-wrapper">
+                        <transition name="el-fade-in-linear">
+                            <el-button v-if="String(props.form.content || '').trim()" class="clear-content-btn" circle @click="clearContent">
+                                <Icon icon="mdi:close" />
+                            </el-button>
+                        </transition>
                         <el-input
                             v-model="props.form.content"
                             type="textarea"
@@ -171,6 +176,7 @@
                                     :model-value="getVideoBatchTagIds(item.index)"
                                     multiple
                                     filterable
+                                    :reserve-keyword="false"
                                     placeholder="请选择该视频的话题标签"
                                     style="width: 100%"
                                     clearable
@@ -203,6 +209,7 @@
                         v-model="selectedTagIdsModel"
                         multiple
                         filterable
+                        :reserve-keyword="false"
                         placeholder="请选择话题标签 (必选)"
                         style="width: 100%"
                         clearable
@@ -229,13 +236,13 @@
                     <el-button
                         type="primary"
                         size="large"
-                        :loading="props.submitting"
+                        :loading="props.submitting || isUploading"
                         :disabled="props.submitting || isUploading"
-                        @click="emit('submit')"
+                        @click="handleSubmitClick"
                         class="submit-btn"
                     >
                         <Icon icon="mdi:send-outline" class="mr-2 text-[18px]" />
-                        {{ props.submitting ? '发布中...' : '立即发布' }}
+                        {{ isUploading ? '上传中...' : props.submitting ? '发布中...' : '立即发布' }}
                     </el-button>
                 </div>
             </el-form>
@@ -324,8 +331,8 @@ const videoUrlsModel = computed({
 })
 
 const selectedTagIdsModel = computed({
-    get: () => props.selectedTagIds,
-    set: value => emit('update:selectedTagIds', value)
+    get: () => (Array.isArray(props.selectedTagIds) ? props.selectedTagIds : []),
+    set: value => emit('update:selectedTagIds', Array.isArray(value) ? value : [])
 })
 
 const videoBatchContentsModel = computed({
@@ -491,12 +498,22 @@ watch(
     { immediate: true }
 )
 
+function clearContent() {
+    props.form.content = ''
+    emit('content-input')
+}
+
 function handleImageUploadingChange(value: boolean) {
     imageUploading.value = Boolean(value)
 }
 
 function handleVideoUploadingChange(value: boolean) {
     videoUploading.value = Boolean(value)
+}
+
+function handleSubmitClick() {
+    if (props.submitting || isUploading.value) return
+    emit('submit')
 }
 
 async function captureCurrentFrame() {
@@ -777,10 +794,37 @@ defineExpose({
     transform: scale(0);
 }
 
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.clear-content-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    border: 1px solid color-mix(in srgb, var(--el-border-color) 88%, transparent);
+    background: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-white));
+    color: var(--el-text-color-secondary);
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    transition: all 0.2s ease;
+
+    &:hover {
+        color: var(--el-color-danger);
+        border-color: color-mix(in srgb, var(--el-color-danger) 30%, var(--el-border-color));
+        background: color-mix(in srgb, var(--el-color-danger-light-9) 80%, var(--el-bg-color));
+        transform: translateY(-1px);
+    }
+}
+
 .custom-textarea {
     :deep(.el-textarea__inner) {
         border-radius: 16px;
         padding: 20px;
+        padding-right: 56px;
         font-size: 15px;
         line-height: 1.6;
         border: none;
