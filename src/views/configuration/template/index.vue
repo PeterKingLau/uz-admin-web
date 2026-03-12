@@ -113,7 +113,7 @@
             </div>
         </div>
 
-        <el-drawer v-model="open" :title="dialogTitle" direction="rtl" size="640px" append-to-body destroy-on-close class="modern-drawer">
+        <el-drawer v-model="open" :title="dialogTitle" direction="rtl" size="640px" destroy-on-close class="modern-drawer">
             <div class="drawer-content template-drawer-content">
                 <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" label-position="top" class="drawer-form template-drawer-form">
                     <el-row :gutter="24" class="template-drawer-grid">
@@ -224,19 +224,18 @@
                             <el-form-item :label="TEXT_MAP.representative" prop="representativeList" class="mb-0 representative-form-item">
                                 <div class="rep-list">
                                     <div v-for="(item, index) in form.representativeList" :key="index" class="rep-card">
-                                        <div class="rep-card-header">
-                                            <div class="rep-card-index">{{ index + 1 }}</div>
-                                            <div class="rep-card-actions">
-                                                <el-tooltip content="删除代表人物" placement="top" :show-after="500">
-                                                    <el-button class="rep-delete-btn" circle @click="removeRepresentative(index)">
-                                                        <Icon icon="mdi:close" />
-                                                    </el-button>
-                                                </el-tooltip>
+                                        <div class="rep-card-index">{{ index + 1 }}</div>
+                                        <el-tooltip content="删除代表人物" placement="top" :show-after="500">
+                                            <div class="rep-delete-btn" @click="removeRepresentative(index)">
+                                                <Icon icon="mdi:trash-can-outline" />
                                             </div>
-                                        </div>
+                                        </el-tooltip>
 
-                                        <div class="rep-card-body">
+                                        <div class="rep-card-content">
                                             <div class="rep-info-panel">
+                                                <div class="rep-panel-header">
+                                                    <span class="rep-panel-title">人物信息</span>
+                                                </div>
                                                 <el-input v-model="item.name" placeholder="人物姓名" class="rep-name-input">
                                                     <template #prefix><Icon icon="mdi:account" /></template>
                                                 </el-input>
@@ -251,16 +250,17 @@
                                             </div>
 
                                             <div class="rep-avatar-panel">
-                                                <div class="rep-avatar-frame">
-                                                    <ImageUpload
-                                                        v-model="item.image"
-                                                        :limit="1"
-                                                        :is-show-tip="false"
-                                                        oss-type="templates"
-                                                        class="rep-avatar-uploader"
-                                                        :file-type="['png', 'jpg', 'jpeg']"
-                                                    />
+                                                <div class="rep-panel-header">
+                                                    <span class="rep-panel-title">人物照片</span>
                                                 </div>
+                                                <ImageUpload
+                                                    v-model="item.image"
+                                                    :limit="1"
+                                                    :is-show-tip="false"
+                                                    oss-type="templates"
+                                                    class="rep-avatar-uploader"
+                                                    :file-type="['png', 'jpg', 'jpeg']"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -548,234 +548,241 @@ onMounted(() => {
     }
 
     .rep-card {
-        background: linear-gradient(180deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light) 100%);
+        position: relative;
+        background: var(--el-fill-color-blank);
         border: 1px solid var(--el-border-color-light);
-        border-radius: 18px;
-        padding: 18px;
-        transition:
-            border-color 0.3s,
-            box-shadow 0.3s,
-            transform 0.3s;
+        border-radius: 16px;
+        padding: 24px;
+        transition: all 0.3s;
 
         &:hover {
-            border-color: var(--el-color-primary-light-4);
-            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
-            transform: translateY(-1px);
+            border-color: var(--el-color-primary-light-5);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 
-            :deep(.rep-delete-btn.el-button) {
+            .rep-delete-btn {
                 opacity: 1;
-                transform: translateY(0);
+                background-color: var(--el-color-danger-light-9);
             }
-        }
-    }
-
-    .rep-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-        width: 100%;
-        min-width: 0;
-    }
-
-    .rep-card-actions {
-        margin-left: auto;
-        display: flex;
-        flex: 0 0 auto;
-        align-items: center;
-        justify-content: flex-end;
-
-        :deep(.el-tooltip__trigger) {
-            display: inline-flex;
-            margin-left: auto;
         }
     }
 
     .rep-card-index {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 32px;
-        height: 32px;
-        padding: 0 12px;
-        background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-        color: var(--el-color-primary-dark-2);
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1;
-        border-radius: 999px;
-        box-shadow: inset 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08);
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 14px;
+        border-radius: 16px 0 16px 0;
+        box-shadow: 2px 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
     }
 
-    :deep(.rep-delete-btn.el-button) {
-        display: inline-flex;
+    .rep-delete-btn {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 28px;
+        height: 28px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        width: 30px;
-        height: 30px;
-        padding: 0;
-        border-radius: 999px;
-        border: 1px solid rgba(var(--el-color-danger-rgb), 0.14);
-        background: rgba(var(--el-color-danger-rgb), 0.06);
+        border-radius: 8px;
+        font-size: 16px;
         color: var(--el-color-danger);
-        opacity: 0.8;
-        transition:
-            opacity 0.2s,
-            transform 0.2s,
-            background-color 0.2s,
-            border-color 0.2s;
+        background-color: transparent;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 10;
 
         &:hover {
-            background: rgba(var(--el-color-danger-rgb), 0.12);
-            border-color: rgba(var(--el-color-danger-rgb), 0.24);
-            transform: translateY(-1px);
-        }
-
-        .iconify {
-            font-size: 14px;
+            opacity: 1;
+            background-color: var(--el-color-danger-light-8);
+            color: var(--el-color-danger-dark-2);
         }
     }
 
-    .rep-card-body {
+    .rep-card-content {
         display: flex;
-        gap: 18px;
+        gap: 20px;
         align-items: stretch;
+        margin-top: 12px;
+    }
+
+    .rep-panel-header {
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed var(--el-border-color-lighter);
+
+        .rep-panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--el-text-color-regular);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+
+            &::before {
+                content: '';
+                display: block;
+                width: 3px;
+                height: 12px;
+                background-color: var(--el-color-primary);
+                border-radius: 2px;
+            }
+        }
     }
 
     .rep-info-panel {
-        flex: 1 1 auto;
+        flex: 1;
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 14px;
-        padding: 18px;
-        border-radius: 16px;
-        background: rgba(var(--el-fill-color-rgb), 0.55);
-        border: 1px solid var(--el-border-color-lighter);
-        backdrop-filter: blur(4px);
+        gap: 12px;
+        padding: 16px;
+        border-radius: 12px;
+        background-color: var(--el-fill-color-light);
+        border: 1px solid transparent;
 
         .rep-name-input :deep(.el-input__wrapper) {
             box-shadow: none;
-            border: 1px solid transparent;
-            border-radius: 12px;
+            border: 1px solid var(--el-border-color-lighter);
+            border-radius: 8px;
             background-color: var(--el-bg-color);
-            min-height: 44px;
-            transition:
-                border-color 0.2s,
-                box-shadow 0.2s,
-                background-color 0.2s;
+            height: 40px;
+            transition: all 0.2s;
 
             &.is-focus,
             &:hover {
                 border-color: var(--el-color-primary);
-                background-color: var(--el-bg-color-overlay);
             }
 
             &.is-focus {
-                box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
+                box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
             }
 
             .el-input__inner {
                 font-weight: 600;
                 color: var(--el-text-color-primary);
-                font-size: 14px;
             }
         }
 
         .rep-desc-input :deep(.el-textarea__inner) {
             box-shadow: none;
-            border: 1px solid transparent;
-            border-radius: 14px;
+            border: 1px solid var(--el-border-color-lighter);
+            border-radius: 8px;
             background-color: var(--el-bg-color);
-            transition:
-                border-color 0.2s,
-                box-shadow 0.2s,
-                background-color 0.2s;
-            padding: 12px 14px;
+            transition: all 0.2s;
+            padding: 10px 14px;
             line-height: 1.6;
-            min-height: 128px !important;
+            min-height: 98px !important;
 
             &:hover,
             &:focus {
                 border-color: var(--el-color-primary);
-                background-color: var(--el-bg-color-overlay);
             }
 
             &:focus {
-                box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
+                box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
             }
         }
     }
 
     .rep-avatar-panel {
-        flex: 0 0 148px;
+        width: 160px;
+        flex-shrink: 0;
+        padding: 16px;
+        border-radius: 12px;
+        background-color: var(--el-fill-color-light);
+        border: 1px solid transparent;
         display: flex;
-    }
-
-    .rep-avatar-frame {
-        width: 100%;
-        min-height: 192px;
-        padding: 12px;
-        border-radius: 16px;
-        border: 1px solid var(--el-border-color-lighter);
-        background: linear-gradient(180deg, var(--el-fill-color-light) 0%, var(--el-bg-color) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-direction: column;
 
         .rep-avatar-uploader {
-            width: 120px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            align-items: stretch;
+
+            :deep(.glass-uploader) {
+                width: 100%;
+            }
+
+            :deep(.el-upload) {
+                width: 100%;
+            }
 
             :deep(.glass-upload-container) {
                 padding: 0;
                 background: transparent;
                 border: none;
                 box-shadow: none;
+                height: 100%;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
             }
 
             :deep(.upload-wrapper) {
-                width: 120px;
+                width: 100%;
+                flex: 1;
+                display: flex;
+                align-items: stretch;
+            }
+
+            :deep(.el-upload-list__item-container) {
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
             }
 
             :deep(.el-upload--picture-card) {
-                width: 120px !important;
-                height: 152px !important;
-                border-radius: 14px;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 120px;
+                border-radius: 8px;
                 margin: 0 !important;
                 background: var(--el-bg-color);
-                border: 2px dashed var(--el-border-color-lighter);
-                transition:
-                    border-color 0.3s,
-                    background-color 0.3s,
-                    transform 0.3s;
+                border: 1px dashed var(--el-border-color);
+                transition: all 0.3s;
 
                 &:hover {
                     border-color: var(--el-color-primary);
                     background: var(--el-color-primary-light-9);
-                    transform: translateY(-1px);
                 }
             }
 
             :deep(.el-upload-list__item) {
-                width: 120px !important;
-                height: 152px !important;
-                border-radius: 14px;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 120px;
+                border-radius: 8px;
                 margin: 0 !important;
                 border: 1px solid var(--el-border-color-lighter);
-                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             }
 
             :deep(.el-upload-list) {
                 display: block;
                 margin: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            :deep(.el-upload-list--picture-card) {
+                display: flex;
+                width: 100%;
+                height: 100%;
+                gap: 0;
             }
 
             :deep(.upload-trigger-content) {
-                gap: 10px;
+                gap: 8px;
 
                 .icon-box {
-                    font-size: 32px;
+                    font-size: 28px;
                     color: var(--el-text-color-placeholder);
                 }
 
@@ -817,7 +824,6 @@ onMounted(() => {
         .rep-card {
             background: var(--el-bg-color-overlay);
             border-color: var(--el-border-color-lighter);
-
             &:hover {
                 border-color: var(--el-border-color);
             }
@@ -826,23 +832,25 @@ onMounted(() => {
         .rep-card-index {
             background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
             color: var(--el-color-primary-light-9);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
         }
 
         .rep-delete-btn {
-            background: rgba(var(--el-color-danger-rgb), 0.14);
-            border-color: rgba(var(--el-color-danger-rgb), 0.24);
+            &:hover {
+                background-color: rgba(var(--el-color-danger-rgb), 0.15);
+            }
         }
 
         .rep-info-panel,
-        .rep-avatar-frame {
-            background: var(--el-fill-color-dark);
-            border-color: var(--el-border-color);
+        .rep-avatar-panel {
+            background-color: var(--el-fill-color-dark);
+            border-color: var(--el-border-color-dark);
         }
 
         .rep-name-input :deep(.el-input__wrapper),
         .rep-desc-input :deep(.el-textarea__inner) {
             background-color: var(--el-bg-color-overlay);
-            border-color: transparent;
+            border-color: var(--el-border-color-dark);
 
             &.is-focus,
             &:focus,
@@ -854,11 +862,12 @@ onMounted(() => {
 
         .rep-avatar-uploader {
             :deep(.el-upload--picture-card) {
-                background: var(--el-fill-color-dark);
+                background: var(--el-bg-color-overlay);
                 border-color: var(--el-border-color-dark);
 
                 &:hover {
                     background: var(--el-color-primary-dark-2);
+                    border-color: var(--el-color-primary);
                 }
             }
         }
@@ -869,41 +878,14 @@ onMounted(() => {
             padding-right: 0;
         }
 
-        .rep-card {
-            padding: 16px;
-        }
-
-        .rep-card-body {
+        .rep-card-content {
+            flex-direction: column-reverse;
             gap: 16px;
         }
 
         .rep-avatar-panel {
-            flex-basis: 132px;
-        }
-
-        .rep-avatar-frame {
-            min-height: 176px;
-            padding: 12px;
-        }
-    }
-
-    @media (max-width: 560px) {
-        .rep-avatar-frame {
-            min-height: auto;
-            padding: 14px;
-        }
-
-        .rep-card-body {
-            flex-direction: column;
-        }
-
-        .rep-avatar-panel {
-            flex: none;
             width: 100%;
-        }
-
-        .rep-avatar-frame .rep-avatar-uploader {
-            width: 120px;
+            height: 180px;
         }
     }
 }

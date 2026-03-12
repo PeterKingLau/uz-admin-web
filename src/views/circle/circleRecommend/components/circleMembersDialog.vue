@@ -7,7 +7,10 @@
         </template>
         <div class="members-list" v-loading="allMembersLoading && allMembers.length === 0">
             <div v-if="dialogManagers.length" class="members-section">
-                <div class="section-title">管理员({{ dialogManagers.length }})</div>
+                <div class="section-title">
+                    <span class="section-title-text">管理员</span>
+                    <span class="section-count">{{ dialogManagers.length }}</span>
+                </div>
                 <div v-for="member in dialogManagers" :key="member.id" class="member-row">
                     <el-avatar :size="44" :src="getImgUrl(member.avatar || '')">{{ member.name?.charAt(0) }}</el-avatar>
                     <div class="member-meta">
@@ -46,7 +49,10 @@
             </div>
 
             <div class="members-section">
-                <div class="section-title">其他成员({{ dialogOthers.length }})</div>
+                <div class="section-title">
+                    <span class="section-title-text">其他成员</span>
+                    <span class="section-count">{{ dialogOthers.length }}</span>
+                </div>
                 <div v-for="member in dialogOthers" :key="member.id" class="member-row">
                     <el-avatar :size="44" :src="getImgUrl(member.avatar || '')">{{ member.name?.charAt(0) }}</el-avatar>
                     <div class="member-meta">
@@ -144,6 +150,38 @@ const emit = defineEmits<{
 
 <style scoped lang="scss">
 .members-dialog {
+    :deep(.el-dialog) {
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--el-bg-color-overlay);
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: 0 20px 48px color-mix(in srgb, var(--el-color-black) 12%, transparent);
+    }
+
+    :deep(.el-dialog__header) {
+        padding: 18px 22px 16px;
+        margin-right: 0;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    :deep(.el-dialog__body) {
+        padding: 18px 18px 14px;
+        background: var(--el-bg-color-overlay);
+    }
+
+    :deep(.el-dialog__headerbtn) {
+        top: 18px;
+        right: 18px;
+    }
+
+    :deep(.el-dialog__close) {
+        color: var(--el-text-color-secondary);
+
+        &:hover {
+            color: var(--el-text-color-primary);
+        }
+    }
+
     .dialog-header-title {
         display: flex;
         align-items: center;
@@ -165,18 +203,67 @@ const emit = defineEmits<{
         .title-text {
             font-size: 16px;
             font-weight: 600;
-            color: var(--circle-text-main);
+            color: var(--el-text-color-primary);
         }
     }
 }
 
+.members-list {
+    max-height: min(68vh, 560px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
 .members-section {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    padding: 14px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-fill-color-light) 72%, transparent) 0%, transparent 100%), var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
     .section-title {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--circle-text-muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
         margin-bottom: 12px;
+        padding-left: 10px;
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 14px;
+            border-radius: 999px;
+            background: var(--el-color-primary);
+        }
+    }
+
+    .section-title-text {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+    }
+
+    .section-count {
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-fill-color-light));
+        color: var(--el-color-primary);
+        font-size: 12px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 }
 
@@ -184,12 +271,28 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 12px 8px;
+    padding: 14px 12px;
     border-radius: 12px;
-    transition: background-color 0.2s;
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease,
+        border-color 0.2s ease;
+    border: 1px solid transparent;
 
     &:hover {
         background-color: var(--el-fill-color-light);
+        border-color: var(--el-border-color-lighter);
+        transform: translateY(-1px);
+    }
+
+    & + .member-row {
+        margin-top: 8px;
+    }
+
+    :deep(.el-avatar) {
+        flex-shrink: 0;
+        border: 1px solid var(--el-border-color-lighter);
+        background: var(--el-fill-color-light);
     }
 
     .member-meta {
@@ -199,7 +302,7 @@ const emit = defineEmits<{
         .member-name {
             font-size: 15px;
             font-weight: 600;
-            color: var(--circle-text-main);
+            color: var(--el-text-color-primary);
             margin-bottom: 4px;
             display: flex;
             align-items: center;
@@ -208,10 +311,11 @@ const emit = defineEmits<{
 
         .member-desc {
             font-size: 13px;
-            color: var(--circle-text-muted);
+            color: var(--el-text-color-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            line-height: 1.4;
         }
     }
 
@@ -220,12 +324,43 @@ const emit = defineEmits<{
         align-items: center;
         gap: 8px;
         flex-shrink: 0;
+
+        :deep(.el-button) {
+            height: 30px;
+            padding: 0 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        :deep(.el-button--info.is-plain) {
+            background: var(--el-fill-color-light);
+            border-color: var(--el-border-color);
+            color: var(--el-text-color-secondary);
+        }
+
+        :deep(.el-button--primary.is-plain) {
+            background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-fill-color-light));
+            border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--el-border-color));
+            color: var(--el-color-primary);
+        }
+
+        :deep(.el-button--warning.is-plain) {
+            background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-fill-color-light));
+            border-color: color-mix(in srgb, var(--el-color-warning) 22%, var(--el-border-color));
+        }
+
+        :deep(.el-button--danger.is-plain) {
+            background: color-mix(in srgb, var(--el-color-danger) 8%, var(--el-fill-color-light));
+            border-color: color-mix(in srgb, var(--el-color-danger) 22%, var(--el-border-color));
+        }
     }
 }
 
 .members-footer {
     display: flex;
     justify-content: center;
+    margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid var(--el-border-color-lighter);
 
@@ -236,7 +371,33 @@ const emit = defineEmits<{
 
     .members-end {
         font-size: 13px;
-        color: var(--circle-text-muted);
+        color: var(--el-text-color-secondary);
+    }
+}
+
+@media (max-width: 768px) {
+    .members-dialog {
+        :deep(.el-dialog) {
+            width: min(560px, calc(100vw - 24px)) !important;
+        }
+
+        :deep(.el-dialog__header) {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        :deep(.el-dialog__body) {
+            padding: 16px 12px 14px;
+        }
+    }
+
+    .member-row {
+        align-items: flex-start;
+
+        .member-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
     }
 }
 </style>

@@ -176,9 +176,34 @@ const showSortAction = computed(() => enableSort.value)
 const sortAssistMode = computed(() => Boolean(props.sortAssistMode) && showSortAction.value)
 const showSortAssistList = computed(() => Boolean(sortAssistMode.value) && fileList.value.length > 1)
 
+function firstNonEmptyString(...values) {
+    for (const value of values) {
+        const normalized = String(value ?? '').trim()
+        if (normalized) return normalized
+    }
+    return ''
+}
+
+function parseStructuredModelValue(val) {
+    if (typeof val !== 'string') return val
+    const trimmed = val.trim()
+    if (!trimmed) return trimmed
+    const isJsonLike =
+        (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+        (trimmed.startsWith('{') && trimmed.endsWith('}'))
+    if (!isJsonLike) return val
+    try {
+        return JSON.parse(trimmed)
+    } catch {
+        return val
+    }
+}
+
 function normalizeModelValueToList(val) {
     if (!val) return []
-    const list = Array.isArray(val) ? val : String(val).split(',')
+    const parsedValue = parseStructuredModelValue(val)
+    const list =
+        Array.isArray(parsedValue) ? parsedValue : typeof parsedValue === 'string' ? String(parsedValue).split(',') : [parsedValue]
     return list.map(item => createFileListItem(item))
 }
 
@@ -232,7 +257,20 @@ function createFileListItem(item) {
     }
 
     const source = item && typeof item === 'object' ? { ...item } : { name: String(item || ''), url: String(item || '') }
-    const rawSource = String(source.rawUrl || source.url || source.name || '').trim()
+    const rawSource = firstNonEmptyString(
+        source.rawUrl,
+        source.url,
+        source.fileUrl,
+        source.fileURL,
+        source.image,
+        source.imageUrl,
+        source.avatar,
+        source.avatarUrl,
+        source.src,
+        source.path,
+        source.filePath,
+        source.name
+    )
     const rawUrl = normalizeUploadUrl(rawSource)
     return {
         ...source,

@@ -48,7 +48,7 @@
             <el-table-column label="操作" align="center" width="100" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button link type="danger" @click="handleForceLogout(scope.row)" v-hasPermi="['monitor:online:forceLogout']">
-                        <Icon icon="material-symbols:logout" class="mr-1" />
+                        <Icon icon="mdi:logout" class="mr-1" />
                         强退
                     </el-button>
                 </template>

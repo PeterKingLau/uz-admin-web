@@ -66,7 +66,7 @@
 
                         <div class="detail-comments">
                             <div class="comment-count">共 {{ post.commentCount ?? 0 }} 条评论</div>
-                            <div v-if="commentsLoading" class="comment-loading">加载中...</div>
+                            <LoadingState v-if="commentsLoading" class="comment-loading" size="small" />
                             <div v-else-if="comments.length" class="comment-list">
                                 <div v-for="item in comments" :key="item.id || item.commentId || item._id" class="comment-item">
                                     <el-avatar :size="28" :src="resolveAvatar(item.avatar)" />
@@ -100,7 +100,7 @@
                                             </button>
                                         </div>
                                         <div v-if="resolveReplyState(item).open" class="comment-replies">
-                                            <div v-if="resolveReplyState(item).loading" class="reply-loading">加载中...</div>
+                                            <LoadingState v-if="resolveReplyState(item).loading" class="reply-loading" size="small" />
                                             <div v-else>
                                                 <div
                                                     v-for="reply in resolveReplyState(item).list"
@@ -219,6 +219,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import LoadingState from '@/components/LoadingState/index.vue'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },

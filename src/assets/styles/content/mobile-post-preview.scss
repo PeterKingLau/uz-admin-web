@@ -525,14 +525,14 @@
 
     :global(html.dark) .preview-sticky-wrapper {
         --device-glass: var(--el-bg-color-overlay);
-        --nav-bg: color-mix(in srgb, var(--el-bg-color-overlay) 90%, var(--el-color-black));
+        --nav-bg: color-mix(in srgb, var(--el-color-black) 68%, var(--el-bg-color-overlay));
         --nav-border: color-mix(in srgb, var(--el-color-white) 5%, transparent);
         --surface-muted: var(--el-color-black);
         --surface-subtle: var(--el-fill-color-darker);
         --surface-card: var(--el-bg-color-overlay);
-        --status-bar-text: var(--el-color-white);
-        --preview-text-primary: var(--el-color-white);
-        --preview-text-regular: var(--el-color-info-light-9);
+        --status-bar-text: var(--el-text-color-primary);
+        --preview-text-primary: var(--el-text-color-primary);
+        --preview-text-regular: var(--el-text-color-regular);
         --preview-text-secondary: var(--el-text-color-secondary);
         --preview-text-placeholder: var(--el-text-color-placeholder);
         --comment-empty-icon: color-mix(in srgb, var(--el-text-color-placeholder) 38%, transparent);
@@ -545,6 +545,7 @@
         .app-nav {
             background: var(--nav-bg);
             border-bottom-color: var(--nav-border);
+            box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--el-color-white) 4%, transparent);
 
             .nav-icon {
                 color: var(--preview-text-primary);
@@ -552,6 +553,7 @@
 
             .username {
                 color: var(--preview-text-primary);
+                text-shadow: 0 1px 2px color-mix(in srgb, var(--el-color-black) 28%, transparent);
             }
         }
 

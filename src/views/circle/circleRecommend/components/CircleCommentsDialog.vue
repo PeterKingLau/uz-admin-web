@@ -14,7 +14,7 @@
             </div>
 
             <div class="dialog-content">
-                <div v-if="loading" class="state-container">加载中...</div>
+                <LoadingState v-if="loading" class="state-container" :min-height="220" />
                 <div v-else-if="!comments.length" class="state-container">暂无评论，来发表第一条吧</div>
                 <div v-else class="comment-list-wrapper">
                     <div class="comment-list">
@@ -52,7 +52,7 @@
                                 </div>
 
                                 <div v-if="stateOf(item).open" class="comment-replies">
-                                    <div v-if="stateOf(item).loading" class="reply-status">加载中...</div>
+                                    <LoadingState v-if="stateOf(item).loading" class="reply-status" size="small" />
                                     <div v-else>
                                         <div v-for="reply in stateOf(item).list" :key="resolveCommentId(reply)" class="reply-item">
                                             <el-avatar :size="28" :src="resolveCommentAvatar(reply)">
@@ -138,6 +138,7 @@
 import { computed, ref, watch } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
+import LoadingState from '@/components/LoadingState/index.vue'
 
 type ReplyState = {
     open: boolean

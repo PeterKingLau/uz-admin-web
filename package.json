@@ -2,7 +2,7 @@
     "name": "uz-web",
     "version": "1.0.0",
     "description": "职场吧后台管理系统",
-    "author": "优职",
+    "author": "高榜",
     "license": "MIT",
     "type": "module",
     "scripts": {
@@ -63,11 +63,12 @@
         "rimraf": "^6.1.2",
         "sass": "1.77.5",
         "stylelint": "^16.9.0",
-        "stylelint-config-prettier": "^9.0.5",
+        "stylelint-config-recommended": "^14.0.1",
         "stylelint-config-recommended-vue": "^1.6.1",
         "stylelint-config-standard": "^36.0.1",
         "tailwindcss": "^3.4.17",
         "terser": "^5.44.1",
+        "@types/sortablejs": "^1.15.8",
         "typescript": "^5.9.3",
         "unplugin-auto-import": "^21.0.0",
         "unplugin-vue-components": "^30.0.0",
@@ -80,5 +81,8 @@
     },
     "overrides": {
         "quill": "2.0.2"
+    },
+    "resolutions": {
+        "stylelint-config-recommended": "14.0.1"
     }
 }

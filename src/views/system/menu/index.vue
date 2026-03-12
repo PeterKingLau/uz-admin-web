@@ -122,7 +122,7 @@
             <el-form ref="menuRef" :model="form" :rules="rules" label-width="100px">
                 <el-row :gutter="24">
                     <el-col :span="24">
-                        <el-form-item label="上级菜单">
+                        <el-form-item label="上级菜单" for="">
                             <el-tree-select
                                 v-model="form.parentId"
                                 :data="menuOptions"
@@ -136,7 +136,7 @@
                     </el-col>
 
                     <el-col :span="24">
-                        <el-form-item label="菜单类型" prop="menuType">
+                        <el-form-item label="菜单类型" prop="menuType" for="">
                             <el-radio-group v-model="form.menuType">
                                 <el-radio-button value="M">目录</el-radio-button>
                                 <el-radio-button value="C">菜单</el-radio-button>
@@ -146,7 +146,7 @@
                     </el-col>
 
                     <el-col :span="24" v-if="form.menuType != 'F'">
-                        <el-form-item label="菜单图标" prop="icon">
+                        <el-form-item label="菜单图标" prop="icon" for="">
                             <el-popover placement="bottom-start" :width="540" v-model:visible="iconPopoverVisible" trigger="click">
                                 <template #reference>
                                     <el-input v-model="form.icon" placeholder="点击选择图标" readonly class="cursor-pointer">
@@ -169,13 +169,13 @@
                     </el-col>
 
                     <el-col :span="12">
-                        <el-form-item label="显示排序" prop="orderNum">
+                        <el-form-item label="显示排序" prop="orderNum" for="">
                             <el-input-number v-model="form.orderNum" controls-position="right" :min="0" style="width: 100%" />
                         </el-form-item>
                     </el-col>
 
                     <el-col :span="12" v-if="form.menuType != 'F'">
-                        <el-form-item>
+                        <el-form-item for="">
                             <template #label>
                                 <div class="form-item-label">
                                     <span>是否外链</span>
@@ -220,7 +220,7 @@
                     </el-col>
 
                     <el-col :span="12" v-if="form.menuType != 'M'">
-                        <el-form-item>
+                        <el-form-item for="">
                             <template #label>
                                 <div class="form-item-label">
                                     <span>权限字符</span>
@@ -234,7 +234,7 @@
                     </el-col>
 
                     <el-col :span="12" v-if="form.menuType == 'C'">
-                        <el-form-item>
+                        <el-form-item for="">
                             <template #label>
                                 <div class="form-item-label">
                                     <span>路由参数</span>
@@ -248,7 +248,7 @@
                     </el-col>
 
                     <el-col :span="12" v-if="form.menuType == 'C'">
-                        <el-form-item>
+                        <el-form-item for="">
                             <template #label>
                                 <div class="form-item-label">
                                     <span>是否缓存</span>
@@ -265,7 +265,7 @@
                     </el-col>
 
                     <el-col :span="12" v-if="form.menuType != 'F'">
-                        <el-form-item>
+                        <el-form-item for="">
                             <template #label>
                                 <div class="form-item-label">
                                     <span>显示状态</span>
@@ -281,7 +281,7 @@
                     </el-col>
 
                     <el-col :span="12">
-                        <el-form-item>
+                        <el-form-item for="">
                             <template #label>
                                 <div class="form-item-label">
                                     <span>菜单状态</span>

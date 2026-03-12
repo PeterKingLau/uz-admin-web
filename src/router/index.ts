@@ -59,6 +59,18 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/login.vue'),
         hidden: true
     },
+    {
+        path: '/h5/user-agreement',
+        component: () => import('@/views/h5/agreement/index.vue'),
+        hidden: true,
+        meta: { title: '用户协议' }
+    },
+    {
+        path: '/h5/privacy-policy',
+        component: () => import('@/views/h5/privacy/index.vue'),
+        hidden: true,
+        meta: { title: '隐私政策' }
+    },
     // {
     //     path: '/register',
     //     component: () => import('@/views/register.vue'),

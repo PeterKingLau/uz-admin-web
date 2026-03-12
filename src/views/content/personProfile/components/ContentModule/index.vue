@@ -94,14 +94,7 @@
             </div>
 
             <div v-if="showCollections">
-                <div v-if="collectionLoadingState" class="status-box">
-                    <div class="custom-loader">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <span class="loading-text">加载中...</span>
-                </div>
+                <LoadingState v-if="collectionLoadingState" class="status-box" :min-height="200" />
 
                 <div v-else-if="collectionListData.length === 0" class="empty-collection-state">
                     <div class="empty-icon-wrapper">
@@ -168,14 +161,7 @@
             </div>
 
             <div v-else>
-                <div v-if="loading && worksPostList.length === 0" class="status-box">
-                    <div class="custom-loader">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <span class="loading-text">加载中...</span>
-                </div>
+                <LoadingState v-if="loading && worksPostList.length === 0" class="status-box" :min-height="200" />
 
                 <div v-else-if="!loading && worksPostList.length === 0" class="status-box empty">
                     <el-empty description="暂无内容" :image-size="140" />
@@ -224,13 +210,7 @@
 
                     <div ref="loadTriggerRef" class="scroll-trigger"></div>
 
-                    <div v-if="loading && worksPostList.length > 0" class="status-box small">
-                        <div class="custom-loader small">
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                        </div>
-                    </div>
+                    <LoadingState v-if="loading && worksPostList.length > 0" class="status-box small" size="small" />
                     <div v-if="noMore && worksPostList.length > 0" class="status-box small text-only">- 到底啦 -</div>
                 </div>
             </div>
@@ -278,14 +258,7 @@
                     </div>
                 </div>
 
-                <div v-if="addDialogTab === 'selected' && collectionPostsLoading" class="status-box">
-                    <div class="custom-loader">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <span class="loading-text">加载中...</span>
-                </div>
+                <LoadingState v-if="addDialogTab === 'selected' && collectionPostsLoading" class="status-box" :min-height="200" />
 
                 <div v-else-if="displayPosts.length === 0" class="collection-empty-state">
                     <div class="empty-icon">
@@ -374,6 +347,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import Sortable from 'sortablejs'
+import LoadingState from '@/components/LoadingState/index.vue'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
@@ -1714,51 +1688,6 @@ watch(
     &.text-only {
         color: var(--el-text-color-placeholder);
         font-size: 12px;
-    }
-
-    .loading-text {
-        margin-top: 12px;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-    }
-}
-
-/* 自定义 Loading 动画 */
-.custom-loader {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-
-    .dot {
-        width: 8px;
-        height: 8px;
-        background-color: var(--el-color-primary);
-        border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;
-
-        &:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-        &:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-    }
-
-    &.small .dot {
-        width: 6px;
-        height: 6px;
-    }
-}
-
-@keyframes bounce {
-    0%,
-    80%,
-    100% {
-        transform: scale(0);
-    }
-    40% {
-        transform: scale(1);
     }
 }
 

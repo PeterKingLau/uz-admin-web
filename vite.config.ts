@@ -49,12 +49,18 @@ function manualChunks(id: string): string | undefined {
     }
     if (normalizedId.includes('/echarts/')) return 'vendor-echarts'
     if (normalizedId.includes('/video.js/')) return 'vendor-videojs'
+    if (normalizedId.includes('/vue-cropper/')) return 'vendor-cropper'
+    if (normalizedId.includes('/splitpanes/')) return 'vendor-layout'
+    if (normalizedId.includes('/sortablejs/') || normalizedId.includes('/vue-draggable-plus/')) return 'vendor-dnd'
+    if (normalizedId.includes('/clipboard/') || normalizedId.includes('/js-beautify/')) return 'vendor-builder'
+    if (normalizedId.includes('/jsencrypt/') || normalizedId.includes('/js-cookie/')) return 'vendor-auth'
+    if (normalizedId.includes('/vue3-next-qrcode/')) return 'vendor-qrcode'
     if (normalizedId.includes('/@iconify-json/mdi/')) return 'vendor-iconify-mdi'
     if (normalizedId.includes('/@iconify-json/ep/')) return 'vendor-iconify-ep'
-    if (normalizedId.includes('/@iconify-json/simple-icons/')) return 'vendor-iconify-simple'
-    if (normalizedId.includes('/@iconify-json/material-symbols/')) return 'vendor-iconify-material'
     if (normalizedId.includes('/@iconify/')) return 'vendor-iconify-core'
     if (normalizedId.includes('/@vueup/vue-quill/') || normalizedId.includes('/quill/')) return 'vendor-editor'
+    if (normalizedId.includes('/axios/') || normalizedId.includes('/nprogress/') || normalizedId.includes('/file-saver/')) return 'vendor-network'
+    if (normalizedId.includes('/@vueuse/core/') || normalizedId.includes('/@zeronejs/utils/')) return 'vendor-utils'
     return 'vendor-misc'
 }
 

@@ -63,7 +63,20 @@
 
             <div class="form-options">
                 <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" label="记住我" />
-                <router-link v-if="register" to="/register" class="register-link"> 注册新账号 </router-link>
+                <router-link v-if="register" to="/register" class="register-link">注册新账号</router-link>
+            </div>
+
+            <div class="agreement-box">
+                <el-checkbox v-model="agreementChecked">
+                    <span class="agreement-text">我已阅读并同意</span>
+                    <router-link class="policy-link inline-policy-link" to="/h5/user-agreement" target="_blank" rel="noopener noreferrer">
+                        《用户协议》
+                    </router-link>
+                    <span class="agreement-text">和</span>
+                    <router-link class="policy-link inline-policy-link" to="/h5/privacy-policy" target="_blank" rel="noopener noreferrer">
+                        《隐私政策》
+                    </router-link>
+                </el-checkbox>
             </div>
 
             <el-form-item style="margin-bottom: 0">
@@ -74,10 +87,12 @@
         </el-form>
 
         <div class="el-login-footer">
-            <span>Copyright © 2026 All Rights Reserved.</span>
-            <a class="beian-link" href="https://beian.miit.gov.cn/#/Integrated/recordQuery" rel="noopener noreferrer" @click.prevent="handleBeianClick">
-                蜀ICP备2026006423号-1
-            </a>
+            <div class="copyright-info">
+                <span>Copyright © 2026 All Rights Reserved.</span>
+                <a class="beian-link" href="https://beian.miit.gov.cn/#/Integrated/recordQuery" target="_blank" rel="noopener noreferrer">
+                    蜀ICP备2026006423号-1
+                </a>
+            </div>
         </div>
     </div>
 </template>
@@ -90,7 +105,6 @@ import { encrypt, decrypt } from '@/utils/jsencrypt'
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
 
-const title = import.meta.env.VITE_APP_TITLE
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
@@ -153,6 +167,7 @@ const usernamePlaceholder = computed(() => (loginForm.value.loginType === 'SMS' 
 const loading = ref(false)
 const register = ref(false)
 const redirect = ref()
+const agreementChecked = ref(false)
 
 watch(
     () => loginForm.value.loginType,
@@ -214,6 +229,11 @@ function handleLogin() {
         loginForm.value.smsCode = (loginForm.value.smsCode || '').trim()
     }
 
+    if (!agreementChecked.value) {
+        proxy?.$modal?.msgWarning?.('请先阅读并同意《用户协议》和《隐私政策》')
+        return
+    }
+
     loginRef.value.validate(valid => {
         if (!valid) return
         loading.value = true
@@ -255,71 +275,31 @@ const showPassword = ref(false)
 function togglePassword() {
     showPassword.value = !showPassword.value
 }
-
-const beianNumber = '蜀ICP备2026006423号-1'
-const beianQueryUrl = 'https://beian.miit.gov.cn/#/Integrated/recordQuery'
-const beianOpenDelayMs = 2000
-
-function copyByExecCommand(text) {
-    const textArea = document.createElement('textarea')
-    const previousFocus = document.activeElement
-
-    textArea.value = text
-    textArea.setAttribute('readonly', '')
-    textArea.style.position = 'fixed'
-    textArea.style.left = '-9999px'
-    textArea.style.fontSize = '12pt'
-    document.body.appendChild(textArea)
-
-    textArea.focus()
-    textArea.select()
-    textArea.selectionStart = 0
-    textArea.selectionEnd = text.length
-
-    let copied = false
-    try {
-        const execCommand = document['execCommand']
-        copied = typeof execCommand === 'function' ? execCommand.call(document, 'copy') : false
-    } catch (error) {
-        copied = false
-    }
-
-    document.body.removeChild(textArea)
-    if (previousFocus && typeof previousFocus.focus === 'function') {
-        previousFocus.focus()
-    }
-    return copied
-}
-
-async function copyText(text) {
-    if (window.isSecureContext && navigator.clipboard?.writeText) {
-        try {
-            await navigator.clipboard.writeText(text)
-            return true
-        } catch (error) {
-            // Fall through to legacy copy for compatibility in restricted environments.
-        }
-    }
-
-    return copyByExecCommand(text)
-}
-
-async function handleBeianClick() {
-    const copied = await copyText(beianNumber)
-    if (copied) {
-        proxy?.$modal?.msgSuccess?.('已复制到剪贴板')
-    } else {
-        proxy?.$modal?.msgWarning?.(`自动复制失败，请手动复制：${beianNumber}`)
-    }
-
-    window.setTimeout(() => {
-        window.open(beianQueryUrl, '_blank', 'noopener,noreferrer')
-    }, beianOpenDelayMs)
-}
 </script>
 
 <style lang="scss" scoped>
 .login {
+    --login-black: var(--el-color-black);
+    --login-white: var(--el-color-white);
+    --login-primary: var(--el-color-primary);
+    --login-primary-soft: var(--el-color-primary-light-3);
+    --login-surface: color-mix(in srgb, var(--el-bg-color) 85%, transparent);
+    --login-surface-strong: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
+    --login-surface-soft: color-mix(in srgb, var(--el-fill-color-light) 72%, var(--el-bg-color));
+    --login-surface-muted: color-mix(in srgb, var(--el-fill-color-light) 84%, transparent);
+    --login-border: color-mix(in srgb, var(--el-border-color) 72%, transparent);
+    --login-border-strong: color-mix(in srgb, var(--el-border-color) 92%, transparent);
+    --login-overlay: radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--login-black) 10%, transparent) 0%,
+        color-mix(in srgb, var(--login-black) 40%, transparent) 100%
+    );
+    --login-shadow: color-mix(in srgb, var(--login-black) 10%, transparent);
+    --login-shadow-strong: color-mix(in srgb, var(--login-black) 30%, transparent);
+    --login-white-soft: color-mix(in srgb, var(--login-white) 40%, transparent);
+    --login-white-muted: color-mix(in srgb, var(--login-white) 80%, transparent);
+    --login-white-faint: color-mix(in srgb, var(--login-white) 60%, transparent);
+    --login-white-dim: color-mix(in srgb, var(--login-white) 40%, transparent);
     position: relative;
     display: flex;
     justify-content: center;
@@ -329,13 +309,14 @@ async function handleBeianClick() {
     background-image: url('../assets/images/login-background.jpg');
     background-size: cover;
     background-position: center;
+    background-attachment: fixed;
     overflow: hidden;
 
     &::before {
         content: '';
         position: absolute;
         inset: 0;
-        background: color-mix(in srgb, var(--el-color-black) 25%, transparent);
+        background: var(--login-overlay);
         z-index: 0;
     }
 }
@@ -345,17 +326,16 @@ async function handleBeianClick() {
     height: 100%;
     margin: 0;
     overflow-x: hidden;
-    scrollbar-gutter: auto;
 }
 
 .animate-in {
-    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes fadeInUp {
+@keyframes slideUpFade {
     from {
         opacity: 0;
-        transform: translateY(40px);
+        transform: translateY(30px);
     }
     to {
         opacity: 1;
@@ -367,13 +347,14 @@ async function handleBeianClick() {
     position: relative;
     z-index: 10;
     width: 420px;
-    padding: 48px 40px;
-    background: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
+    padding: 40px;
+    background: var(--login-surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: 24px;
     box-shadow:
-        0 25px 50px -12px color-mix(in srgb, var(--el-color-black) 15%, transparent),
-        0 0 0 1px color-mix(in srgb, var(--el-color-black) 5%, transparent) inset;
-    transition: all 0.3s ease;
+        0 20px 40px var(--login-shadow),
+        0 1px 3px var(--login-white-soft) inset;
 }
 
 .header-box {
@@ -385,27 +366,24 @@ async function handleBeianClick() {
         font-size: 26px;
         font-weight: 800;
         color: var(--el-text-color-primary);
-        letter-spacing: -0.5px;
-        transition: color 0.3s;
+        letter-spacing: 0.5px;
     }
 
     .sub-title {
         margin-top: 8px;
         font-size: 14px;
         color: var(--el-text-color-secondary);
-        transition: color 0.3s;
     }
 }
 
 .login-type-switch {
     position: relative;
     display: flex;
-    background: var(--el-fill-color-light);
+    background: color-mix(in srgb, var(--login-black) 4%, transparent);
     padding: 4px;
     border-radius: 12px;
     width: 100%;
     height: 44px;
-    transition: background-color 0.3s;
 
     .switch-active-bar {
         position: absolute;
@@ -415,10 +393,8 @@ async function handleBeianClick() {
         height: calc(100% - 8px);
         background: var(--el-bg-color);
         border-radius: 8px;
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 8%, transparent);
-        transition:
-            transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            background-color 0.3s;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--login-black) 8%, transparent);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 1;
     }
 
@@ -438,43 +414,42 @@ async function handleBeianClick() {
         user-select: none;
 
         &:hover {
-            color: var(--el-text-color-regular);
+            color: var(--el-text-color-primary);
         }
+
         &.active {
-            color: var(--el-color-primary);
+            color: var(--el-text-color-primary);
             font-weight: 600;
         }
     }
 }
 
 :deep(.el-form-item) {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 :deep(.login-type-item) {
-    margin-bottom: 12px;
+    margin-bottom: 24px;
 }
 
-/* 覆盖输入框样式：使用特定设计而不是全局默认 */
 :deep(.el-input__wrapper) {
-    background-color: var(--el-fill-color-extra-light);
+    background-color: color-mix(in srgb, var(--login-white) 60%, transparent);
     box-shadow: none !important;
-    border: 1px solid var(--el-border-color-lighter);
+    border: 1px solid color-mix(in srgb, var(--login-black) 10%, transparent);
     border-radius: 12px;
     padding: 0 16px;
     height: 48px;
-    line-height: 48px;
     transition: all 0.3s ease;
 
     &:hover {
-        background-color: var(--el-bg-color);
-        border-color: var(--el-border-color-light);
+        background-color: color-mix(in srgb, var(--login-white) 90%, transparent);
+        border-color: color-mix(in srgb, var(--login-black) 20%, transparent);
     }
 
     &.is-focus {
         background-color: var(--el-bg-color);
-        border-color: var(--el-color-primary);
-        box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15) !important;
+        border-color: var(--login-primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--login-primary) 10%, transparent) !important;
     }
 }
 
@@ -482,7 +457,12 @@ async function handleBeianClick() {
     height: 48px;
     font-size: 15px;
     font-weight: 500;
-    /* 文字颜色现在由全局样式控制，这里只微调字体 */
+    color: var(--el-text-color-primary);
+
+    &::placeholder {
+        color: var(--el-text-color-placeholder);
+        font-weight: 400;
+    }
 }
 
 .input-icon {
@@ -501,7 +481,6 @@ async function handleBeianClick() {
     color: var(--el-text-color-placeholder);
     font-size: 18px;
     transition: color 0.2s;
-    margin-right: 8px;
     &:hover {
         color: var(--el-text-color-secondary);
     }
@@ -510,6 +489,8 @@ async function handleBeianClick() {
 .sms-input-group {
     display: flex;
     gap: 12px;
+    width: 100%;
+
     .sms-input {
         flex: 1;
     }
@@ -519,21 +500,20 @@ async function handleBeianClick() {
         padding: 0 20px;
         border-radius: 12px;
         font-size: 14px;
-        font-weight: 500;
-        background: rgba(var(--el-color-primary-rgb), 0.1);
-        border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
-        color: var(--el-color-primary);
-        transition: all 0.2s;
+        font-weight: 600;
+        background: color-mix(in srgb, var(--login-primary) 10%, transparent);
+        border: 1px solid transparent;
+        color: var(--login-primary);
+        transition: all 0.3s;
 
         &:hover:not(.is-disabled) {
-            background: var(--el-color-primary);
-            color: var(--el-color-white);
-            border-color: var(--el-color-primary);
+            background: var(--login-primary);
+            color: var(--login-white);
+            box-shadow: 0 4px 12px color-mix(in srgb, var(--login-primary) 20%, transparent);
         }
 
         &.is-disabled {
-            background: var(--el-fill-color-light);
-            border-color: var(--el-border-color-lighter);
+            background: color-mix(in srgb, var(--login-black) 4%, transparent);
             color: var(--el-text-color-placeholder);
         }
     }
@@ -543,27 +523,60 @@ async function handleBeianClick() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: -8px;
-    margin-bottom: 28px;
-    padding: 0 4px;
+    margin-top: 4px;
+    margin-bottom: 20px;
+
+    :deep(.el-checkbox) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+    }
 
     :deep(.el-checkbox__label) {
         color: var(--el-text-color-secondary);
-        font-size: 14px;
-    }
-
-    :deep(.el-checkbox__inner) {
-        border-radius: 4px;
+        font-size: 13px;
+        padding-left: 6px;
+        line-height: 1.5;
+        font-weight: 400;
     }
 
     .register-link {
         color: var(--el-color-primary);
-        font-size: 14px;
+        font-size: 13px;
         text-decoration: none;
         font-weight: 500;
         transition: color 0.2s;
         &:hover {
             color: var(--el-color-primary-dark-2);
+        }
+    }
+}
+
+.agreement-box {
+    margin-bottom: 24px;
+
+    :deep(.el-checkbox) {
+        display: flex;
+        align-items: flex-start;
+        white-space: normal;
+        min-height: 20px;
+    }
+
+    :deep(.el-checkbox__label) {
+        color: var(--el-text-color-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 400;
+        padding-left: 8px;
+    }
+
+    .inline-policy-link {
+        color: var(--el-color-primary);
+        text-decoration: none;
+        transition: opacity 0.2s;
+
+        &:hover {
+            opacity: 0.8;
         }
     }
 }
@@ -574,130 +587,114 @@ async function handleBeianClick() {
     font-size: 16px;
     font-weight: 600;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+    background: var(--login-primary);
     border: none;
-    box-shadow: 0 10px 20px -5px rgba(var(--el-color-primary-rgb), 0.4);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 16px color-mix(in srgb, var(--login-primary) 30%, transparent);
+    transition: all 0.3s;
+    letter-spacing: 1px;
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 15px 25px -5px rgba(var(--el-color-primary-rgb), 0.5);
+        box-shadow: 0 12px 20px color-mix(in srgb, var(--login-primary) 40%, transparent);
+        background: var(--login-primary-soft);
     }
 
     &:active {
         transform: translateY(0);
-        box-shadow: 0 5px 15px -5px rgba(var(--el-color-primary-rgb), 0.4);
+        box-shadow: 0 4px 10px color-mix(in srgb, var(--login-primary) 20%, transparent);
     }
 }
 
 .el-login-footer {
     position: fixed;
-    bottom: 24px;
+    bottom: 30px;
     width: 100%;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     gap: 12px;
-    text-align: center;
-    color: var(--el-color-white);
-    font-size: 13px;
-    pointer-events: none;
     z-index: 5;
-    opacity: 0.8;
-}
 
-.beian-link {
-    color: var(--el-color-white);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    pointer-events: auto;
-    transition: color 0.2s ease;
+    .copyright-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--login-white-faint);
+        font-size: 12px;
 
-    &:hover {
-        color: var(--el-color-danger);
+        .beian-link {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s;
+
+            &:hover {
+                color: var(--login-white-muted);
+            }
+        }
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 480px) {
     .login-form {
-        width: 90%;
-        padding: 40px 24px;
-        margin: 0 20px;
+        width: calc(100% - 40px);
+        padding: 32px 24px;
+    }
+
+    .el-login-footer {
+        .copyright-info {
+            flex-direction: column;
+            gap: 6px;
+        }
     }
 }
 
 html.dark {
     .login::before {
-        background: color-mix(in srgb, var(--el-color-black) 70%, transparent);
+        background: radial-gradient(
+            circle at center,
+            color-mix(in srgb, var(--login-black) 20%, transparent) 0%,
+            color-mix(in srgb, var(--login-black) 60%, transparent) 100%
+        );
     }
 
     .login-form {
-        background: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
-        border: 1px solid color-mix(in srgb, var(--el-color-white) 5%, transparent);
-        box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--el-color-black) 50%, transparent);
-    }
-
-    .header-box .title {
-        color: var(--el-text-color-primary);
-    }
-    .header-box .sub-title {
-        color: var(--el-text-color-secondary);
+        background: color-mix(in srgb, var(--el-bg-color) 80%, transparent);
+        box-shadow:
+            0 20px 40px color-mix(in srgb, var(--login-black) 40%, transparent),
+            0 1px 3px color-mix(in srgb, var(--login-white) 10%, transparent) inset;
     }
 
     .login-type-switch {
-        background: var(--el-fill-color);
+        background: color-mix(in srgb, var(--login-black) 20%, transparent);
+
         .switch-active-bar {
-            background: var(--el-fill-color-light);
-            box-shadow: none;
+            background: var(--login-primary);
         }
-        .switch-item {
-            color: var(--el-text-color-secondary);
-            &:hover {
-                color: var(--el-text-color-regular);
-            }
-            &.active {
-                color: var(--el-text-color-primary);
-            }
+
+        .switch-item.active {
+            color: var(--login-white);
         }
     }
 
-    /* 输入框 - 使用深色半透明风格适配卡片 */
     :deep(.el-input__wrapper) {
-        background-color: color-mix(in srgb, var(--el-bg-color) 60%, transparent) !important;
-        border-color: var(--el-border-color);
-    }
+        background-color: color-mix(in srgb, var(--login-black) 20%, transparent);
+        border-color: color-mix(in srgb, var(--login-white) 10%, transparent);
 
-    :deep(.el-input__wrapper:hover) {
-        border-color: var(--el-border-color-light);
-    }
+        &:hover {
+            background-color: color-mix(in srgb, var(--login-black) 40%, transparent);
+            border-color: color-mix(in srgb, var(--login-white) 20%, transparent);
+        }
 
-    :deep(.el-input__wrapper.is-focus) {
-        border-color: var(--el-color-primary);
-        background-color: color-mix(in srgb, var(--el-bg-color) 80%, transparent) !important;
-    }
-
-    .input-icon {
-        color: var(--el-text-color-placeholder);
-    }
-    :deep(.el-input__wrapper.is-focus) .input-icon {
-        color: var(--el-color-primary);
-    }
-
-    .form-options :deep(.el-checkbox__label) {
-        color: var(--el-text-color-secondary);
-    }
-    .form-options .register-link {
-        color: var(--el-color-primary-light-3);
+        &.is-focus {
+            background-color: color-mix(in srgb, var(--login-black) 60%, transparent);
+        }
     }
 
     .sms-input-group .sms-btn {
-        background: rgba(var(--el-color-primary-rgb), 0.15);
-        border-color: rgba(var(--el-color-primary-rgb), 0.3);
-        color: var(--el-color-primary-light-3);
+        background: color-mix(in srgb, var(--login-primary) 20%, transparent);
+
         &.is-disabled {
-            background: var(--el-fill-color);
-            border-color: var(--el-border-color);
-            color: var(--el-text-color-placeholder);
+            background: color-mix(in srgb, var(--login-black) 20%, transparent);
         }
     }
 }

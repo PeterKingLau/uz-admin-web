@@ -66,9 +66,7 @@
                     </div>
                 </div>
 
-                <div v-if="followLoading" class="loading-state">
-                    <el-icon class="is-loading"><Loading /></el-icon> 加载中...
-                </div>
+                <LoadingState v-if="followLoading" class="loading-state" :min-height="72" />
 
                 <div v-if="followNoMore && followList.length > 0" class="no-more-state">- 暂时没有更多了 -</div>
 
@@ -81,7 +79,7 @@
 
 <script setup>
 import { computed, ref, toRefs } from 'vue'
-import { Loading } from '@element-plus/icons-vue'
+import LoadingState from '@/components/LoadingState/index.vue'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },

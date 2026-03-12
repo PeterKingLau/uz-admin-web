@@ -5,15 +5,34 @@ import mdiSubset from '@/assets/iconify/subsets/mdi.json'
 import materialSymbolsSubset from '@/assets/iconify/subsets/material-symbols.json'
 import epIconsUrl from '@iconify-json/ep/icons.json?url'
 import mdiIconsUrl from '@iconify-json/mdi/icons.json?url'
+import materialSymbolsIconsUrl from '@iconify-json/material-symbols/icons.json?url'
 import simpleIconsUrl from '@iconify-json/simple-icons/icons.json?url'
-import materialSymbolsUrl from '@iconify-json/material-symbols/icons.json?url'
+
+export type IconCollectionPrefix = 'ep' | 'mdi' | 'material-symbols' | 'simple-icons'
+
+export const iconCollectionTabs: Array<{ label: string; value: IconCollectionPrefix }> = [
+    { label: 'Element Plus', value: 'ep' },
+    { label: 'Material Design', value: 'mdi' },
+    { label: 'Material Symbols', value: 'material-symbols' },
+    { label: 'Simple Icons', value: 'simple-icons' }
+]
+
+export function createIconStringMap<T>(factory: () => T): Record<IconCollectionPrefix, T> {
+    return iconCollectionTabs.reduce(
+        (acc, item) => {
+            acc[item.value] = factory()
+            return acc
+        },
+        {} as Record<IconCollectionPrefix, T>
+    )
+}
 
 const staticCollections = [epSubset, mdiSubset, materialSymbolsSubset] as IconifyJSON[]
-const collectionAssetUrls: Record<string, string> = {
+const collectionAssetUrls: Record<IconCollectionPrefix, string> = {
     ep: epIconsUrl,
     mdi: mdiIconsUrl,
-    'simple-icons': simpleIconsUrl,
-    'material-symbols': materialSymbolsUrl
+    'material-symbols': materialSymbolsIconsUrl,
+    'simple-icons': simpleIconsUrl
 }
 
 const loadedPrefixes = new Set<string>()
@@ -44,6 +63,11 @@ function registerStaticCollections() {
     hasRegisteredStaticCollections = true
 }
 
+function resolveCollectionUrl(prefix: string): string | null {
+    if (!prefix || !(prefix in collectionAssetUrls)) return null
+    return collectionAssetUrls[prefix as IconCollectionPrefix]
+}
+
 async function fetchCollectionJson(url: string): Promise<IconifyJSON | null> {
     try {
         const response = await fetch(url)
@@ -55,7 +79,7 @@ async function fetchCollectionJson(url: string): Promise<IconifyJSON | null> {
 }
 
 async function loadCollectionData(prefix: string): Promise<IconifyJSON | null> {
-    const url = collectionAssetUrls[prefix]
+    const url = resolveCollectionUrl(prefix)
     if (!url) return null
 
     const runningTask = collectionDataCache.get(prefix)
@@ -69,7 +93,7 @@ async function loadCollectionData(prefix: string): Promise<IconifyJSON | null> {
 export async function ensureIconCollectionByPrefix(prefix: string): Promise<void> {
     registerStaticCollections()
     if (!prefix || loadedPrefixes.has(prefix)) return
-    if (!collectionAssetUrls[prefix]) return
+    if (!resolveCollectionUrl(prefix)) return
 
     const runningTask = loadingTasks.get(prefix)
     if (runningTask) {

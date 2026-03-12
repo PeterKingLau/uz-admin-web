@@ -8,13 +8,10 @@
 
         <el-tabs v-model="activePrefix" class="icon-tabs">
             <el-tab-pane label="全部" name="all" />
-            <el-tab-pane label="Element Plus" name="ep" />
-            <el-tab-pane label="Material Design" name="mdi" />
-            <el-tab-pane label="Material Symbols" name="material-symbols" />
-            <el-tab-pane label="Simple Icons" name="simple-icons" />
+            <el-tab-pane v-for="tab in iconCollectionTabs" :key="tab.value" :label="tab.label" :name="tab.value" />
         </el-tabs>
 
-        <div class="icon-list-wrapper">
+        <div class="icon-list-wrapper" v-loading="loading" element-loading-text="加载中...">
             <el-scrollbar ref="scrollbarRef">
                 <div v-if="displayIcons.length > 0" class="icon-grid">
                     <div
@@ -40,11 +37,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { ensureIconCollectionByPrefix, loadIconNamesByPrefix } from '@/utils/iconify'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { createIconStringMap, ensureIconCollectionByPrefix, iconCollectionTabs, loadIconNamesByPrefix, type IconCollectionPrefix } from '@/utils/iconify'
 
-type IconPrefix = 'all' | 'ep' | 'mdi' | 'material-symbols' | 'simple-icons'
-type LoadedIconMap = Record<Exclude<IconPrefix, 'all'>, string[]>
+type IconPrefix = 'all' | IconCollectionPrefix
+type LoadedIconMap = Record<IconCollectionPrefix, string[]>
 type ScrollbarExpose = {
     setScrollTop?: (value: number) => void
     wrapRef?: HTMLElement | null
@@ -62,16 +59,15 @@ const emit = defineEmits(['selected'])
 const searchText = ref('')
 const activePrefix = ref<IconPrefix>('ep')
 const scrollbarRef = ref<ScrollbarExpose | null>(null)
-const supportedPrefixes: Array<Exclude<IconPrefix, 'all'>> = ['ep', 'mdi', 'material-symbols', 'simple-icons']
-const loadedIcons = ref<LoadedIconMap>({
-    ep: [],
-    mdi: [],
-    'material-symbols': [],
-    'simple-icons': []
-})
+const supportedPrefixes = iconCollectionTabs.map(item => item.value)
+const loadedIcons = ref<LoadedIconMap>(createIconStringMap(() => []))
 const filteredIcons = ref<string[]>([])
 const pageSize = 200
 const displayIcons = ref<string[]>([])
+const loading = ref(false)
+let activeLoadToken = 0
+let hasStartedBackgroundPreload = false
+let scrollListenerTarget: HTMLElement | null = null
 
 const currentIcons = computed(() => {
     if (activePrefix.value === 'all') {
@@ -80,7 +76,7 @@ const currentIcons = computed(() => {
     return loadedIcons.value[activePrefix.value] || []
 })
 
-async function ensurePrefixLoaded(prefix: Exclude<IconPrefix, 'all'>) {
+async function ensurePrefixLoaded(prefix: IconCollectionPrefix) {
     if (loadedIcons.value[prefix]?.length) return
     await ensureIconCollectionByPrefix(prefix)
     const names = await loadIconNamesByPrefix(prefix)
@@ -93,6 +89,34 @@ async function ensureActivePrefixLoaded(prefix: IconPrefix) {
         return
     }
     await ensurePrefixLoaded(prefix)
+}
+
+async function syncActiveIcons(prefix: IconPrefix) {
+    const token = ++activeLoadToken
+    loading.value = true
+
+    try {
+        await ensureActivePrefixLoaded(prefix)
+        if (token !== activeLoadToken) return
+        filterIcons()
+    } finally {
+        if (token === activeLoadToken) {
+            loading.value = false
+        }
+    }
+}
+
+function startBackgroundPreload() {
+    if (hasStartedBackgroundPreload) return
+    hasStartedBackgroundPreload = true
+
+    setTimeout(() => {
+        supportedPrefixes
+            .filter(prefix => prefix !== activePrefix.value)
+            .forEach(prefix => {
+                void ensurePrefixLoaded(prefix)
+            })
+    }, 0)
 }
 
 function filterIcons() {
@@ -125,30 +149,47 @@ function onScroll(scrollTop: number) {
     }
 }
 
-watch(activePrefix, () => {
-    void ensureActivePrefixLoaded(activePrefix.value).then(() => {
-        filterIcons()
-    })
+function bindScrollListener() {
+    const wrap = scrollbarRef.value?.wrapRef
+    if (!wrap || wrap === scrollListenerTarget) return
+    if (scrollListenerTarget) {
+        scrollListenerTarget.removeEventListener('scroll', handleNativeScroll)
+    }
+    scrollListenerTarget = wrap
+    scrollListenerTarget.addEventListener('scroll', handleNativeScroll)
+}
+
+function handleNativeScroll(event: Event) {
+    onScroll((event.target as HTMLElement).scrollTop)
+}
+
+watch(activePrefix, prefix => {
+    void syncActiveIcons(prefix)
 })
 
 onMounted(() => {
-    void ensureActivePrefixLoaded(activePrefix.value).then(() => {
-        filterIcons()
+    void nextTick(() => {
+        bindScrollListener()
     })
-    if (scrollbarRef.value?.wrapRef) {
-        scrollbarRef.value.wrapRef.addEventListener('scroll', event => {
-            onScroll((event.target as HTMLElement).scrollTop)
-        })
-    }
+    void syncActiveIcons(activePrefix.value)
+    startBackgroundPreload()
+})
+
+onBeforeUnmount(() => {
+    if (!scrollListenerTarget) return
+    scrollListenerTarget.removeEventListener('scroll', handleNativeScroll)
+    scrollListenerTarget = null
 })
 
 defineExpose({
     reset() {
         searchText.value = ''
-        activePrefix.value = 'ep'
-        void ensureActivePrefixLoaded(activePrefix.value).then(() => {
-            filterIcons()
-        })
+        if (activePrefix.value === 'ep') {
+            void syncActiveIcons('ep')
+        } else {
+            activePrefix.value = 'ep'
+        }
+        startBackgroundPreload()
     }
 })
 </script>

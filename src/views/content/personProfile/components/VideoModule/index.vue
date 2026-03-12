@@ -299,9 +299,7 @@
                                     </div>
                                 </div>
 
-                                <div v-if="commentLoading" class="comment-loading">
-                                    <div class="loading-spinner"></div>
-                                </div>
+                                <LoadingState v-if="commentLoading" class="comment-loading" theme="inverse" :min-height="200" />
                                 <div v-if="commentNoMore && commentItems.length > 0" class="comment-end">- 没有更多评论了 -</div>
                             </template>
 
@@ -327,7 +325,7 @@
                                     <Icon icon="mdi:playlist-play" class="collection-icon" />
                                     合集 · {{ activeCollectionName || '未命名合集' }}
                                 </div>
-                                <div v-if="collectionLoading" class="collection-loading">加载中...</div>
+                                <LoadingState v-if="collectionLoading" class="collection-loading" theme="inverse" :min-height="200" />
                                 <div v-else-if="collectionVideoPosts.length === 0" class="collection-empty">暂无合集视频</div>
                                 <div v-else class="collection-list">
                                     <button
@@ -424,6 +422,7 @@
 <script setup>
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import LoadingState from '@/components/LoadingState/index.vue'
 import { getImgUrl } from '@/utils/img'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getPostByCollection } from '@/api/content/collection'
@@ -2787,23 +2786,6 @@ $color-gold: var(--el-color-warning);
     .empty-icon {
         font-size: 48px;
         opacity: 0.3;
-    }
-    .loading-spinner {
-        width: 24px;
-        height: 24px;
-        border: 2px solid var(--vm-white-10);
-        border-top-color: $color-accent;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-    }
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
     }
 }
 @keyframes soundbar {

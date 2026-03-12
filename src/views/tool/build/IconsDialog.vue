@@ -40,9 +40,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
-import { ensureIconCollectionByPrefix, loadIconNamesByPrefix } from '@/utils/iconify'
-
-type IconSetKey = 'ep' | 'mdi' | 'simple-icons' | 'material-symbols'
+import { createIconStringMap, ensureIconCollectionByPrefix, iconCollectionTabs, loadIconNamesByPrefix, type IconCollectionPrefix } from '@/utils/iconify'
 
 const emit = defineEmits(['select'])
 const value = defineModel<boolean>()
@@ -52,25 +50,10 @@ const debouncedKeyword = ref('')
 let keywordTimer: ReturnType<typeof setTimeout> | null = null
 
 const active = ref('')
-const setTabs = [
-    { label: 'ElementPlus(ep)', value: 'ep' },
-    { label: 'Material(mdi)', value: 'mdi' },
-    { label: 'Simple(simple-icons)', value: 'simple-icons' },
-    { label: 'Material Symbols', value: 'material-symbols' }
-]
-const activeSet = ref<IconSetKey>('ep')
-const originMap = ref<Record<IconSetKey, string[]>>({
-    ep: [],
-    mdi: [],
-    'simple-icons': [],
-    'material-symbols': []
-})
-const loadedMap = ref<Record<IconSetKey, boolean>>({
-    ep: false,
-    mdi: false,
-    'simple-icons': false,
-    'material-symbols': false
-})
+const setTabs = iconCollectionTabs.map(item => ({ label: `${item.label}(${item.value})`, value: item.value }))
+const activeSet = ref<IconCollectionPrefix>('ep')
+const originMap = ref<Record<IconCollectionPrefix, string[]>>(createIconStringMap(() => []))
+const loadedMap = ref<Record<IconCollectionPrefix, boolean>>(createIconStringMap(() => false))
 
 const loading = ref(false)
 const BATCH_SIZE = 200
@@ -124,7 +107,7 @@ function onSelect(name: string) {
     value.value = false
 }
 
-async function ensureIconsLoaded(setKey: IconSetKey) {
+async function ensureIconsLoaded(setKey: IconCollectionPrefix) {
     if (loadedMap.value[setKey]) return
 
     loading.value = true

@@ -593,7 +593,7 @@ onBeforeUnmount(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--el-color-primary);
+        color: color-mix(in srgb, var(--el-color-primary) 78%, var(--el-color-black));
         font-size: 26px;
         box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 20%, transparent);
         backdrop-filter: blur(4px);
@@ -613,7 +613,7 @@ onBeforeUnmount(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--el-text-color-primary);
+        color: color-mix(in srgb, var(--el-color-black) 65%, var(--el-text-color-primary));
         cursor: pointer;
         box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 12%, transparent);
         font-size: 14px;
@@ -817,6 +817,28 @@ onBeforeUnmount(() => {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+:global(html.dark) .feed-card {
+    .play-overlay {
+        .play-button {
+            background: color-mix(in srgb, var(--el-color-white) 92%, transparent);
+            color: color-mix(in srgb, var(--el-color-primary) 75%, var(--el-color-black));
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-black) 28%, transparent);
+        }
+    }
+
+    .admin-toolbar {
+        .tool-btn {
+            background: color-mix(in srgb, var(--el-color-white) 88%, transparent);
+            color: color-mix(in srgb, var(--el-color-black) 78%, var(--el-text-color-primary));
+            box-shadow: 0 2px 10px color-mix(in srgb, var(--el-color-black) 24%, transparent);
+
+            &:hover {
+                background: var(--el-color-white);
+            }
+        }
     }
 }
 </style>

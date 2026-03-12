@@ -2,6 +2,29 @@ import { ref, reactive } from 'vue'
 import type { TemplateForm, RepresentativeItem } from '@/features/configuration/template/types'
 import { TEXT_MAP } from '@/features/configuration/template/constants'
 
+function safeParseJson(value: unknown) {
+    if (typeof value !== 'string') return value
+    const trimmed = value.trim()
+    if (!trimmed) return value
+    const isJsonLike =
+        (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+        (trimmed.startsWith('{') && trimmed.endsWith('}'))
+    if (!isJsonLike) return value
+    try {
+        return JSON.parse(trimmed)
+    } catch {
+        return value
+    }
+}
+
+function pickString(...values: unknown[]) {
+    for (const value of values) {
+        const normalized = String(value ?? '').trim()
+        if (normalized) return normalized
+    }
+    return ''
+}
+
 export function useTemplateForm() {
     const formRef = ref()
     const open = ref(false)
@@ -60,14 +83,15 @@ export function useTemplateForm() {
         form.representativeList.splice(index, 1)
     }
 
-    const normalizeRepresentativeList = (list: any[]): RepresentativeItem[] => {
-        if (!Array.isArray(list)) return []
+    const normalizeRepresentativeList = (list: any): RepresentativeItem[] => {
+        const parsedList = safeParseJson(list)
+        if (!Array.isArray(parsedList)) return []
 
-        return list
+        return parsedList
             .map((item: any) => ({
-                name: item?.name ?? '',
-                description: item?.description ?? '',
-                image: item?.image ?? ''
+                name: pickString(item?.name, item?.personName, item?.representativeName, item?.title),
+                description: pickString(item?.description, item?.desc, item?.remark, item?.introduction, item?.summary),
+                image: pickString(item?.image, item?.imageUrl, item?.avatar, item?.avatarUrl, item?.url, item?.fileUrl, item?.picture)
             }))
             .filter(item => item.name || item.description || item.image)
     }
