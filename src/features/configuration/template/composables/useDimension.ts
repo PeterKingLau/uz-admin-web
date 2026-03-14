@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
-import { getDimensionTree, parseDimensionTree, type DimensionNode } from '@/api/content/assessmentQuestion'
+import { getDimensionTree, parseDimensionTree } from '@/api/content/assessmentQuestion'
+import type { DimensionNode } from '@/api/content/assessmentQuestion.types'
 import type { DimensionOption } from '@/features/configuration/template/types'
 import { DEFAULT_INTEREST_TAG_COLORS } from '@/features/configuration/template/constants'
 

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="preview-sticky-wrapper">
         <div class="preview-header">
             <div class="header-left">

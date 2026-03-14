@@ -219,8 +219,8 @@
 <script setup name="AssessmentQuestionList" lang="ts">
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
 import { parseTime } from '@/utils/utils'
-import type { AssessmentQuestionItem, DimensionNode } from '@/api/content/assessmentQuestion'
-import type { AssessmentOptionItem } from '@/api/content/assessmentOption'
+import type { AssessmentQuestionItem, DimensionNode } from '@/api/content/assessmentQuestion.types'
+import type { AssessmentOptionItem } from '@/api/content/assessmentOption.types'
 
 const { proxy } = getCurrentInstance() as any
 

@@ -1,58 +1,24 @@
 import request from '@/utils/request'
+import type {
+    AddAssessmentQuestionPayload,
+    AssessmentQuestionItem,
+    AssessmentQuestionListParams,
+    AssessmentQuestionResponse,
+    DimensionNode,
+    DimensionTreeResponse,
+    UpdateAssessmentQuestionPayload
+} from './assessmentQuestion.types'
 
-export interface AssessmentQuestionItem {
-    [key: string]: any
-}
+export type {
+    AddAssessmentQuestionPayload,
+    AssessmentQuestionItem,
+    AssessmentQuestionListParams,
+    AssessmentQuestionResponse,
+    DimensionNode,
+    DimensionTreeResponse,
+    UpdateAssessmentQuestionPayload
+} from './assessmentQuestion.types'
 
-export interface AssessmentQuestionResponse {
-    code?: number
-    msg?: string
-    total?: number
-    data?: AssessmentQuestionItem[] | Record<string, any>
-    rows?: AssessmentQuestionItem[]
-}
-
-export interface AssessmentQuestionListParams {
-    pageNum?: number
-    pageSize?: number
-    title?: string
-}
-
-export interface DimensionNode {
-    id?: number
-    pid?: number
-    category?: string
-    dimensionCode?: string
-    dimensionName?: string
-    sortOrder?: number
-    isActive?: string
-    children?: DimensionNode[]
-}
-
-export interface DimensionTreeResponse {
-    code?: number
-    msg?: string
-    data?: DimensionNode[] | Record<string, any>
-    rows?: DimensionNode[]
-}
-
-export interface AddAssessmentQuestionPayload {
-    moduleCode?: string
-    type?: string
-    content: string
-    questionType: string
-    correctAnswer?: string
-    sortOrder: number
-    status?: string
-}
-
-export interface UpdateAssessmentQuestionPayload extends AddAssessmentQuestionPayload {
-    id: number
-}
-
-/**
- * 查询题目列表
- */
 export function listAssessmentQuestions(params?: AssessmentQuestionListParams) {
     return request<AssessmentQuestionResponse>({
         url: '/content/assessmentQuestion/list',
@@ -61,9 +27,6 @@ export function listAssessmentQuestions(params?: AssessmentQuestionListParams) {
     })
 }
 
-/**
- * 新增题目
- */
 export function addAssessmentQuestion(data: AddAssessmentQuestionPayload) {
     return request({
         url: '/content/assessmentQuestion/add',
@@ -72,9 +35,6 @@ export function addAssessmentQuestion(data: AddAssessmentQuestionPayload) {
     })
 }
 
-/**
- * 修改题目
- */
 export function updateAssessmentQuestion(data: UpdateAssessmentQuestionPayload) {
     return request({
         url: '/content/assessmentQuestion/edit',
@@ -83,9 +43,6 @@ export function updateAssessmentQuestion(data: UpdateAssessmentQuestionPayload) 
     })
 }
 
-/**
- * 删除题目
- */
 export function deleteAssessmentQuestion(ids: string | number) {
     return request({
         url: `/content/assessmentQuestion/${ids}`,
@@ -93,9 +50,6 @@ export function deleteAssessmentQuestion(ids: string | number) {
     })
 }
 
-/**
- * 查询维度树
- */
 export function getDimensionTree() {
     return request<DimensionTreeResponse>({
         url: '/content/assessmentQuestion/getDimensionTree',

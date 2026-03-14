@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <component :is="teleportWrapper" v-bind="teleportAttrs">
         <div
             v-if="visible"
@@ -30,7 +30,7 @@
                             class="video-element"
                             playsinline
                             autoplay
-                            preload="auto"
+                            preload="metadata"
                             controlslist="nodownload noremoteplayback"
                             @loadedmetadata="onLoadedMeta"
                             @timeupdate="onTimeUpdate"

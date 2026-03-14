@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="user-avatar-wrapper" @click="editCropper()">
         <img :src="displayImageUrl" title="点击上传头像" class="avatar-img" />
 

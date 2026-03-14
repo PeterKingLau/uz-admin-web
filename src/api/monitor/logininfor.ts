@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { InfoId, LogininforQuery, UserName } from './logininfor.types'
 
-// 查询登录日志列表
-export function list(query: any) {
+export type { InfoId, LogininforQuery, UserName } from './logininfor.types'
+
+export function list(query: LogininforQuery) {
     return request({
         url: '/monitor/logininfor/list',
         method: 'get',
@@ -9,23 +11,20 @@ export function list(query: any) {
     })
 }
 
-// 删除登录日志
-export function delLogininfor(infoId: any) {
+export function delLogininfor(infoId: InfoId) {
     return request({
         url: '/monitor/logininfor/' + infoId,
         method: 'delete'
     })
 }
 
-// 解锁用户登录状态
-export function unlockLogininfor(userName: any) {
+export function unlockLogininfor(userName: UserName) {
     return request({
         url: '/monitor/logininfor/unlock/' + userName,
         method: 'get'
     })
 }
 
-// 清空登录日志
 export function cleanLogininfor() {
     return request({
         url: '/monitor/logininfor/clean',

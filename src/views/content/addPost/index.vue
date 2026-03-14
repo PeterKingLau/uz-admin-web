@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container content-post-page">
         <el-row :gutter="40" class="content-row">
             <el-col :xs="24" :sm="24" :md="14" :lg="15" :xl="16">

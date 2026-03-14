@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="circle-detail-page">
         <div class="page-wrapper">
             <CircleDetailLeftSidebar :circle-name="circleInfo.name" @go-back="goBack" />
@@ -78,9 +78,9 @@ import {
     joinCircle,
     exitCircle,
     setCircleAdmin,
-    removeCircleMember,
-    type CircleItem
+    removeCircleMember
 } from '@/api/content/circleManagement'
+import type { CircleItem } from '@/api/content/circleManagement.types'
 import { listPostByApp } from '@/api/content/post'
 import useUserStore from '@/store/modules/user'
 import { useCircleJoinStore } from '@/store/modules/circleJoin'

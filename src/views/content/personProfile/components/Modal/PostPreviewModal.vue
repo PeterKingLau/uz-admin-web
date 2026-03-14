@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div v-if="visible" class="post-preview-mask" @click.self="handleClose">
         <button type="button" class="preview-close" @click="handleClose" aria-label="关闭">
             <Icon icon="mdi:close" />
@@ -7,8 +7,15 @@
         <div class="post-preview-panel">
             <div v-if="post" class="post-preview-body">
                 <div class="preview-media-pane">
+                    <div v-if="isTextPost" class="preview-text-cover" :style="textPreviewStyle">
+                        <div class="preview-text-shell" :class="textPreviewSizeClass">
+                            <span class="preview-text-quote quote-start">“</span>
+                            <div class="preview-text-value">{{ textPreviewText }}</div>
+                            <span class="preview-text-quote quote-end">”</span>
+                        </div>
+                    </div>
                     <el-carousel
-                        v-if="mediaList.length > 1"
+                        v-else-if="mediaList.length > 1"
                         height="100%"
                         :autoplay="false"
                         :loop="false"
@@ -21,7 +28,7 @@
                     </el-carousel>
                     <el-image v-else-if="mediaList.length === 1" :src="mediaList[0]" fit="contain" class="preview-media-img single" />
                     <div v-else class="preview-media-empty">暂无图片</div>
-                    <div v-if="mediaList.length" class="preview-media-count">{{ displayMediaIndex }}/{{ mediaList.length }}</div>
+                    <div v-if="!isTextPost && mediaList.length" class="preview-media-count">{{ displayMediaIndex }}/{{ mediaList.length }}</div>
                 </div>
 
                 <div class="preview-detail-pane">
@@ -220,6 +227,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
+import { POST_TYPE } from '@/utils/enum'
+import { resolveTextCoverPalette } from '@/utils/textCover'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -277,6 +286,26 @@ const commentInputRef = ref<any | null>(null)
 const canSubmit = computed(() => Boolean(commentDraftValue.value?.trim()))
 const currentMediaIndex = ref(0)
 const displayMediaIndex = computed(() => Math.min(currentMediaIndex.value + 1, Math.max(props.mediaList?.length || 1, 1)))
+const postType = computed(() => String(props.post?.postType ?? ''))
+const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
+const textPreviewText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
+const textPreviewCharCount = computed(() => Array.from(textPreviewText.value).length)
+const textPreviewSizeClass = computed(() => {
+    const count = textPreviewCharCount.value
+    if (count <= 12) return 'size-xl'
+    if (count <= 32) return 'size-lg'
+    if (count <= 72) return 'size-md'
+    return 'size-sm'
+})
+const textPreviewStyle = computed(() => {
+    if (!isTextPost.value) return {}
+    const seed = String(props.post?.id ?? props.post?.postId ?? textPreviewText.value)
+    const palette = resolveTextCoverPalette(seed)
+    return {
+        '--preview-text-bg': `linear-gradient(135deg, ${palette.bg}, ${palette.accent}40)`,
+        '--preview-text-accent': palette.accent
+    } as Record<string, string>
+})
 
 const handleClose = () => {
     visible.value = false
@@ -336,7 +365,7 @@ defineExpose({ focusInput })
 }
 
 .post-preview-panel {
-    width: min(1120px, 100%);
+    width: min(1240px, calc(100vw - 96px));
     background: var(--el-bg-color);
     border-radius: 24px;
     overflow: hidden;
@@ -374,7 +403,7 @@ defineExpose({ focusInput })
 
 .post-preview-body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    grid-template-columns: minmax(0, 1fr) minmax(440px, 480px);
     background: var(--el-bg-color);
     height: 78vh;
     max-height: 78vh;
@@ -388,6 +417,78 @@ defineExpose({ focusInput })
     align-items: center;
     justify-content: center;
     overflow: hidden;
+}
+
+.preview-text-cover {
+    width: 100%;
+    height: 100%;
+    min-height: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    background: var(--preview-text-bg);
+    color: var(--el-color-white);
+}
+
+.preview-text-shell {
+    position: relative;
+    width: min(78%, 560px);
+    padding: 44px 54px;
+    text-align: center;
+    color: #243042;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.08);
+
+    &.size-xl .preview-text-value {
+        font-size: clamp(34px, 4.3vw, 54px);
+        line-height: 1.28;
+        font-weight: 700;
+    }
+
+    &.size-lg .preview-text-value {
+        font-size: clamp(28px, 3.4vw, 42px);
+        line-height: 1.36;
+        font-weight: 680;
+    }
+
+    &.size-md .preview-text-value {
+        font-size: clamp(22px, 2.8vw, 32px);
+        line-height: 1.48;
+        font-weight: 640;
+    }
+
+    &.size-sm .preview-text-value {
+        font-size: clamp(18px, 2.2vw, 24px);
+        line-height: 1.62;
+        font-weight: 600;
+    }
+}
+
+.preview-text-value {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.preview-text-quote {
+    position: absolute;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(56px, 7vw, 96px);
+    line-height: 1;
+    color: color-mix(in srgb, var(--preview-text-accent) 48%, white);
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.preview-text-quote.quote-start {
+    left: 0;
+    top: 0;
+    transform: translate(-8%, -18%);
+}
+
+.preview-text-quote.quote-end {
+    right: 0;
+    bottom: 0;
+    transform: translate(8%, 22%);
 }
 
 .preview-media-count {
@@ -450,8 +551,8 @@ defineExpose({ focusInput })
 .preview-detail-pane {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: 12px;
-    padding: 18px 20px;
+    gap: 22px;
+    padding: 28px 30px 24px;
     overflow: hidden;
     min-height: 0;
     background: var(--el-bg-color);
@@ -460,7 +561,7 @@ defineExpose({ focusInput })
 .detail-scroll-area {
     min-height: 0;
     overflow: auto;
-    padding-right: 6px;
+    padding-right: 12px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -475,7 +576,8 @@ defineExpose({ focusInput })
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
+    padding-bottom: 4px;
 }
 
 .follow-btn {
@@ -514,7 +616,7 @@ defineExpose({ focusInput })
 .author-block {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
 }
 
@@ -526,7 +628,7 @@ defineExpose({ focusInput })
 }
 
 .author-meta .name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     white-space: nowrap;
@@ -535,10 +637,15 @@ defineExpose({ focusInput })
 }
 
 .detail-content {
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 15px;
+    line-height: 1.9;
     color: var(--el-text-color-regular);
     white-space: pre-wrap;
+    max-width: 360px;
+}
+
+.detail-text {
+    margin: 0;
 }
 
 .detail-text.empty {
@@ -549,12 +656,13 @@ defineExpose({ focusInput })
 .detail-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
+    margin-top: 18px;
 }
 
 .detail-tag {
     font-size: 12px;
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 999px;
     color: var(--el-color-primary);
     background: var(--el-color-primary-light-9);
@@ -565,23 +673,26 @@ defineExpose({ focusInput })
 .detail-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--el-text-color-secondary);
+    margin-top: 20px;
 }
 
 .detail-divider {
-    margin: 4px 0;
+    margin: 20px 0 14px;
 }
 
 .detail-comments {
     min-height: 0;
-    padding-top: 2px;
+    padding-top: 8px;
+    padding-bottom: 10px;
 }
 
 .comment-count {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-secondary);
+    margin-bottom: 14px;
 }
 
 .comment-list {
@@ -726,7 +837,7 @@ defineExpose({ focusInput })
 }
 
 .comment-empty {
-    margin-top: 14px;
+    margin-top: 22px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -744,8 +855,8 @@ defineExpose({ focusInput })
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
-    border-radius: 18px;
+    padding: 12px 14px;
+    border-radius: 20px;
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-lighter);
     box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
@@ -771,8 +882,8 @@ defineExpose({ focusInput })
     background: var(--el-fill-color-light);
     box-shadow: none;
     border: none;
-    padding: 0 12px;
-    height: 34px;
+    padding: 0 14px;
+    height: 38px;
     transition:
         background 0.16s ease,
         border-color 0.16s ease;
@@ -899,8 +1010,8 @@ defineExpose({ focusInput })
     align-items: center;
     justify-content: center;
     gap: 4px;
-    height: 32px;
-    padding: 0 8px;
+    height: 34px;
+    padding: 0 10px;
     border-radius: 10px;
     border: none;
     background: transparent;
@@ -918,7 +1029,7 @@ defineExpose({ focusInput })
 }
 
 .action-icon .num {
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1;
     color: var(--el-text-color-secondary);
 }
@@ -979,8 +1090,18 @@ defineExpose({ focusInput })
         min-height: 260px;
     }
 
+    .preview-text-cover {
+        padding: 28px 20px;
+    }
+
+    .preview-text-shell {
+        width: 100%;
+        padding: 28px 30px;
+    }
+
     .preview-detail-pane {
-        padding: 16px;
+        gap: 14px;
+        padding: 18px 18px 16px;
         max-height: none;
     }
 

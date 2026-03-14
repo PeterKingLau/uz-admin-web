@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { MenuId, MenuPayload, MenuQuery, RoleId } from './menu.types'
 
-// 查询菜单列表
-export function listMenu(query?: any) {
+export type { MenuId, MenuPayload, MenuQuery, RoleId } from './menu.types'
+
+export function listMenu(query?: MenuQuery) {
     return request({
         url: '/system/menu/list',
         method: 'get',
@@ -9,15 +11,13 @@ export function listMenu(query?: any) {
     })
 }
 
-// 查询菜单详细
-export function getMenu(menuId: any) {
+export function getMenu(menuId: MenuId) {
     return request({
         url: '/system/menu/' + menuId,
         method: 'get'
     })
 }
 
-// 查询菜单下拉树结构
 export function treeselect() {
     return request({
         url: '/system/menu/treeselect',
@@ -25,41 +25,36 @@ export function treeselect() {
     })
 }
 
-// 根据角色ID查询菜单下拉树结构
-export function roleMenuTreeselect(roleId: any) {
+export function roleMenuTreeselect(roleId: RoleId) {
     return request({
         url: '/system/menu/roleMenuTreeselect/' + roleId,
         method: 'get'
     })
 }
 
-// 新增菜单
-export function addMenu(data: any) {
+export function addMenu(data: MenuPayload) {
     return request({
         url: '/system/menu',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改菜单
-export function updateMenu(data: any) {
+export function updateMenu(data: MenuPayload) {
     return request({
         url: '/system/menu',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除菜单
-export function delMenu(menuId: any) {
+export function delMenu(menuId: MenuId) {
     return request({
         url: '/system/menu/' + menuId,
         method: 'delete'
     })
 }
 
-// 获取路由
 export function getRouters() {
     return request({
         url: '/getRouters',

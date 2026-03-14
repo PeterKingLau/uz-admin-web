@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div v-loading="loadingPosts" class="posts-feed-container">
         <CircleDetailPostCard
             v-for="post in postList"

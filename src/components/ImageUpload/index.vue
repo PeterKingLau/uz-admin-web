@@ -1,9 +1,9 @@
-﻿<template>
+<template>
     <div ref="rootRef" class="glass-upload-container">
         <transition-group v-if="showSortAssistList" class="image-sort-assist-list" name="list-fade" tag="ul">
             <li v-for="(file, index) in fileList" :key="file.uid || `${file.rawUrl || file.url || file.name}-${index}`" class="image-sort-assist-item">
-                <div class="assist-item-main">
-                    <img class="assist-item-thumb" :src="file.url" :alt="file.name" />
+                <div class="assist-item-main" :class="{ 'no-thumb': !props.showAssistThumbnail }">
+                    <img v-if="props.showAssistThumbnail" class="assist-item-thumb" :src="file.url" :alt="file.name" />
                     <div class="assist-item-meta">
                         <span class="assist-item-order">
                             <span class="order-label">第</span>
@@ -14,9 +14,11 @@
                     </div>
                 </div>
                 <div class="assist-item-actions">
-                    <el-button v-if="props.previewable" type="primary" link @click.stop="handlePictureCardPreview(file)">预览</el-button>
+                    <el-button v-if="props.previewable && props.showAssistPreviewAction" type="primary" link @click.stop="handlePictureCardPreview(file)"
+                        >预览</el-button
+                    >
                     <el-button v-if="showDeleteAction" type="danger" link @click.stop="removeFile(file)">删除</el-button>
-                    <span class="image-sort-assist-handle" title="拖拽排序">
+                    <span v-if="showSortAction" class="image-sort-assist-handle" title="拖拽排序">
                         <Icon icon="mdi:drag" />
                     </span>
                 </div>
@@ -134,7 +136,10 @@ const props = defineProps({
     previewable: { type: Boolean, default: true },
     removable: { type: Boolean, default: true },
     showSortHandle: { type: Boolean, default: true },
-    sortAssistMode: { type: Boolean, default: false }
+    sortAssistMode: { type: Boolean, default: false },
+    showAssistThumbnail: { type: Boolean, default: true },
+    showAssistPreviewAction: { type: Boolean, default: true },
+    sortAssistListMinLength: { type: Number, default: 2 }
 })
 
 const { proxy } = getCurrentInstance()
@@ -174,7 +179,12 @@ const enableSort = computed(
 )
 const showSortAction = computed(() => enableSort.value)
 const sortAssistMode = computed(() => Boolean(props.sortAssistMode) && showSortAction.value)
-const showSortAssistList = computed(() => Boolean(sortAssistMode.value) && fileList.value.length > 1)
+const sortAssistListMinLength = computed(() => {
+    const value = Number(props.sortAssistListMinLength)
+    if (!Number.isFinite(value) || value < 1) return 1
+    return Math.floor(value)
+})
+const showSortAssistList = computed(() => Boolean(props.sortAssistMode) && fileList.value.length >= sortAssistListMinLength.value)
 
 function firstNonEmptyString(...values) {
     for (const value of values) {
@@ -926,6 +936,10 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     gap: 10px;
+
+    &.no-thumb {
+        gap: 0;
+    }
 }
 
 .assist-item-thumb {

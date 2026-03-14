@@ -1,56 +1,18 @@
 import request from '@/utils/request'
+import type {
+    AddVersionPayload,
+    AddVersionResponse,
+    DeleteVersionResponse,
+    ListVersionParams,
+    ListVersionResponse,
+    VersionItem
+} from './version.types'
+
+export type { AddVersionPayload, AddVersionResponse, DeleteVersionResponse, ListVersionParams, ListVersionResponse, VersionItem } from './version.types'
 
 const ADD_VERSION_URL = '/content/version/v1/addVersion'
 const LIST_VERSION_URL = '/content/version/list'
 const REQUEST_TIMEOUT = 300000
-
-export interface AddVersionPayload {
-    versionCode: number | string
-    versionName: string
-    releaseNotes: string
-    isForceUpdate: string | number | boolean
-    file: File
-}
-
-export interface VersionItem {
-    createBy?: string | null
-    createTime?: string
-    updateBy?: string | null
-    updateTime?: string | null
-    remark?: string | null
-    id?: number
-    platform?: string
-    versionCode?: number | string
-    versionName?: string
-    downloadUrl?: string
-    releaseNotes?: string
-    isForceUpdate?: string
-    status?: string
-}
-
-export interface AddVersionResponse {
-    code: number
-    msg: string
-    data?: VersionItem
-}
-
-export interface DeleteVersionResponse {
-    code: number
-    msg: string
-}
-
-export interface ListVersionParams {
-    pageNum?: number | string
-    pageSize?: number | string
-}
-
-export interface ListVersionResponse {
-    code?: number
-    msg?: string
-    total?: number
-    rows?: VersionItem[]
-    data?: any
-}
 
 const normalizeForceUpdate = (value: AddVersionPayload['isForceUpdate']): string => {
     if (typeof value === 'boolean') return value ? '1' : '0'

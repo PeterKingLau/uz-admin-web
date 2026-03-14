@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { PostId, PostPayload, PostQuery } from './post.types'
 
-// 查询岗位列表
-export function listPost(query: any) {
+export type { PostId, PostPayload, PostQuery } from './post.types'
+
+export function listPost(query: PostQuery) {
     return request({
         url: '/system/post/list',
         method: 'get',
@@ -9,34 +11,30 @@ export function listPost(query: any) {
     })
 }
 
-// 查询岗位详细
-export function getPost(postId: any) {
+export function getPost(postId: PostId) {
     return request({
         url: '/system/post/' + postId,
         method: 'get'
     })
 }
 
-// 新增岗位
-export function addPost(data: any) {
+export function addPost(data: PostPayload) {
     return request({
         url: '/system/post',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改岗位
-export function updatePost(data: any) {
+export function updatePost(data: PostPayload) {
     return request({
         url: '/system/post',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除岗位
-export function delPost(postId: any) {
+export function delPost(postId: PostId) {
     return request({
         url: '/system/post/' + postId,
         method: 'delete'

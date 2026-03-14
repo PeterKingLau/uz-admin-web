@@ -1,39 +1,8 @@
 import request from '@/utils/request'
+import type { AddTopbarPayload, TopbarConfigItem, TopbarConfigResponse, TopbarListParams, UpdateTopbarPayload } from './topbar.types'
 
-export interface TopbarConfigItem {
-    [key: string]: any
-}
+export type { AddTopbarPayload, TopbarConfigItem, TopbarConfigResponse, TopbarListParams, UpdateTopbarPayload } from './topbar.types'
 
-export interface TopbarConfigResponse {
-    code?: number
-    msg?: string
-    total?: number
-    data?: TopbarConfigItem[] | Record<string, any>
-    rows?: TopbarConfigItem[]
-}
-
-export interface TopbarListParams {
-    pageNum?: number
-    pageSize?: number
-    code?: string
-    name?: string
-    isActive?: string
-}
-
-export interface AddTopbarPayload {
-    code: string
-    name: string
-    sort?: string | number
-    isActive?: string
-}
-
-export interface UpdateTopbarPayload extends AddTopbarPayload {
-    id: number
-}
-
-/**
- * 查询顶部导航栏配置列表
- */
 export function listTopbarConfig(params?: TopbarListParams) {
     return request<TopbarConfigResponse>({
         url: '/content/topbar/list',
@@ -50,9 +19,6 @@ export function parseTopbarRows(payload: TopbarConfigResponse | any): TopbarConf
     return []
 }
 
-/**
- * 新增顶部导航栏配置
- */
 export function addTopbarConfig(data: AddTopbarPayload) {
     return request({
         url: '/content/topbar/add',
@@ -61,9 +27,6 @@ export function addTopbarConfig(data: AddTopbarPayload) {
     })
 }
 
-/**
- * 更新顶部导航栏配置
- */
 export function updateTopbarConfig(data: UpdateTopbarPayload) {
     return request({
         url: '/content/topbar/update',
@@ -72,9 +35,6 @@ export function updateTopbarConfig(data: UpdateTopbarPayload) {
     })
 }
 
-/**
- * 删除顶部导航栏配置
- */
 export function deleteTopbarConfig(id: number | string) {
     return request({
         url: `/content/topbar/${id}`,

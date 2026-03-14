@@ -1,8 +1,10 @@
 import request from '@/utils/request'
+import type { ServerInfo } from './server.types'
 
-// 获取服务信息
+export type { ServerInfo } from './server.types'
+
 export function getServer() {
-    return request({
+    return request<ServerInfo>({
         url: '/monitor/server',
         method: 'get'
     })

@@ -1,8 +1,18 @@
 import request from '@/utils/request'
 import { parseStrEmpty } from '@/utils/utils'
+import type {
+    AuthRolePayload,
+    ChangeUserStatusPayload,
+    ResetUserPwdPayload,
+    UpdateUserPwdPayload,
+    UserId,
+    UserPayload,
+    UserQuery
+} from './user.types'
 
-// 查询用户列表
-export function listUser(query: any) {
+export type { AuthRolePayload, ChangeUserStatusPayload, ResetUserPwdPayload, UpdateUserPwdPayload, UserId, UserPayload, UserQuery } from './user.types'
+
+export function listUser(query: UserQuery) {
     return request({
         url: '/system/user/list',
         method: 'get',
@@ -10,67 +20,60 @@ export function listUser(query: any) {
     })
 }
 
-// 查询用户详细
-export function getUser(userId?: any) {
+export function getUser(userId?: UserId) {
     return request({
-        url: '/system/user/' + parseStrEmpty(userId),
+        url: '/system/user/' + parseStrEmpty(userId == null ? '' : String(userId)),
         method: 'get'
     })
 }
 
-// 新增用户
-export function addUser(data: any) {
+export function addUser(data: UserPayload) {
     return request({
         url: '/system/user',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改用户
-export function updateUser(data: any) {
+export function updateUser(data: UserPayload) {
     return request({
         url: '/system/user',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除用户
-export function delUser(userId: any) {
+export function delUser(userId: UserId) {
     return request({
         url: '/system/user/' + userId,
         method: 'delete'
     })
 }
 
-// 用户密码重置
-export function resetUserPwd(userId: any, password: any) {
-    const data = {
+export function resetUserPwd(userId: UserId, password: string) {
+    const data: ResetUserPwdPayload = {
         userId,
         password
     }
     return request({
         url: '/system/user/resetPwd',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 用户状态修改
-export function changeUserStatus(userId: any, status: any) {
-    const data = {
+export function changeUserStatus(userId: UserId, status: string | number) {
+    const data: ChangeUserStatusPayload = {
         userId,
         status
     }
     return request({
         url: '/system/user/changeStatus',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 查询用户个人信息
 export function getUserProfile() {
     return request({
         url: '/system/user/profile',
@@ -78,8 +81,7 @@ export function getUserProfile() {
     })
 }
 
-// APP 获取指定用户个人信息
-export function getUserInfoById(userId?: any) {
+export function getUserInfoById(userId?: UserId) {
     return request({
         url: '/system/user/app/getInfoById',
         method: 'get',
@@ -87,38 +89,34 @@ export function getUserInfoById(userId?: any) {
     })
 }
 
-// 修改用户个人信息
-export function updateUserProfile(data: any) {
+export function updateUserProfile(data: UserPayload) {
     return request({
         url: '/system/user/profile',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 用户密码重置
-export function updateUserPwd(oldPassword: any, newPassword: any) {
-    const data = {
+export function updateUserPwd(oldPassword: string, newPassword: string) {
+    const data: UpdateUserPwdPayload = {
         oldPassword,
         newPassword
     }
     return request({
         url: '/system/user/profile/updatePwd',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 用户头像上传
-export function uploadAvatar(data: any) {
+export function uploadAvatar(data: FormData | UserPayload) {
     return request({
         url: '/system/user/profile/avatar',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 查询授权角色
 export function getAuthRole(userId: string) {
     return request({
         url: '/system/user/authRole/' + userId,
@@ -126,8 +124,7 @@ export function getAuthRole(userId: string) {
     })
 }
 
-// 保存授权角色
-export function updateAuthRole(data: any) {
+export function updateAuthRole(data: AuthRolePayload) {
     return request({
         url: '/system/user/authRole',
         method: 'put',
@@ -135,7 +132,6 @@ export function updateAuthRole(data: any) {
     })
 }
 
-// 查询部门下拉树结构
 export function deptTreeSelect() {
     return request({
         url: '/system/user/deptTree',

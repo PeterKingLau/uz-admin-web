@@ -1,22 +1,7 @@
 import request from '@/utils/request'
+import type { AnnouncementAddPayload, AnnouncementItem, AnnouncementListParams, AnnouncementListResponse } from './notice.types'
 
-export interface AnnouncementItem {
-    [key: string]: any
-}
-
-export interface AnnouncementListParams {
-    pageNum?: number
-    pageSize?: number
-    title?: string
-}
-
-export interface AnnouncementListResponse {
-    code?: number
-    msg?: string
-    total?: number
-    data?: AnnouncementItem[] | Record<string, any>
-    rows?: AnnouncementItem[]
-}
+export type { AnnouncementAddPayload, AnnouncementItem, AnnouncementListParams, AnnouncementListResponse } from './notice.types'
 
 export function listAnnouncements(params?: AnnouncementListParams) {
     return request<AnnouncementListResponse>({
@@ -24,13 +9,6 @@ export function listAnnouncements(params?: AnnouncementListParams) {
         method: 'get',
         params
     })
-}
-
-export interface AnnouncementAddPayload {
-    title: string
-    content: string
-    jumpUrl: string
-    status: string
 }
 
 export function addAnnouncement(data: AnnouncementAddPayload) {

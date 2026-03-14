@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { ChangeJobStatusPayload, JobId, JobPayload, JobQuery, RunJobPayload } from './job.types'
 
-// 查询定时任务调度列表
-export function listJob(query: any) {
+export type { ChangeJobStatusPayload, JobId, JobPayload, JobQuery, RunJobPayload } from './job.types'
+
+export function listJob(query: JobQuery) {
     return request({
         url: '/monitor/job/list',
         method: 'get',
@@ -9,62 +11,56 @@ export function listJob(query: any) {
     })
 }
 
-// 查询定时任务调度详细
-export function getJob(jobId: any) {
+export function getJob(jobId: JobId) {
     return request({
         url: '/monitor/job/' + jobId,
         method: 'get'
     })
 }
 
-// 新增定时任务调度
-export function addJob(data: any) {
+export function addJob(data: JobPayload) {
     return request({
         url: '/monitor/job',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改定时任务调度
-export function updateJob(data: any) {
+export function updateJob(data: JobPayload) {
     return request({
         url: '/monitor/job',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除定时任务调度
-export function delJob(jobId: any) {
+export function delJob(jobId: JobId) {
     return request({
         url: '/monitor/job/' + jobId,
         method: 'delete'
     })
 }
 
-// 任务状态修改
-export function changeJobStatus(jobId: any, status: any) {
-    const data = {
+export function changeJobStatus(jobId: JobId, status: string | number) {
+    const data: ChangeJobStatusPayload = {
         jobId,
         status
     }
     return request({
         url: '/monitor/job/changeStatus',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 定时任务立即执行一次
-export function runJob(jobId: any, jobGroup: any) {
-    const data = {
+export function runJob(jobId: JobId, jobGroup: string) {
+    const data: RunJobPayload = {
         jobId,
         jobGroup
     }
     return request({
         url: '/monitor/job/run',
         method: 'put',
-        data: data
+        data
     })
 }

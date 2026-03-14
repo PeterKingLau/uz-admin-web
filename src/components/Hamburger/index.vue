@@ -1,10 +1,12 @@
 <template>
     <div class="hamburger-container" @click="toggleClick">
-        <Icon icon="ep:fold" class="hamburger" :class="{ 'is-active': isActive }" />
+        <Icon :icon="hamburgerIcon" class="hamburger" />
     </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 const props = defineProps({
     isActive: {
         type: Boolean,
@@ -17,6 +19,8 @@ const emit = defineEmits(['toggleClick'])
 const toggleClick = () => {
     emit('toggleClick')
 }
+
+const hamburgerIcon = computed(() => (props.isActive ? 'ep:fold' : 'ep:expand'))
 </script>
 
 <style lang="scss" scoped>
@@ -40,13 +44,7 @@ const toggleClick = () => {
     .hamburger {
         font-size: 20px;
         color: var(--el-text-color-regular);
-        transition:
-            transform 0.3s ease-in-out,
-            color 0.3s;
-    }
-
-    .hamburger.is-active {
-        transform: rotate(180deg);
+        transition: color 0.3s;
     }
 }
 </style>

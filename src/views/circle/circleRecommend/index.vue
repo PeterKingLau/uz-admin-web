@@ -133,7 +133,8 @@
 import { ref, onMounted, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
-import { listCircles, listMyJoinedCircles, parseCircleRows, joinCircle, exitCircle, getCircleInfo, type CircleItem } from '@/api/content/circleManagement'
+import { listCircles, listMyJoinedCircles, parseCircleRows, joinCircle, exitCircle, getCircleInfo } from '@/api/content/circleManagement'
+import type { CircleItem } from '@/api/content/circleManagement.types'
 import useUserStore from '@/store/modules/user'
 import { useCircleJoinStore } from '@/store/modules/circleJoin'
 

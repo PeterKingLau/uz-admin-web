@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="content-wrapper">
         <div class="tabs-sticky-container">
             <div class="tabs-full">

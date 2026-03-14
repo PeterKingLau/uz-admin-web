@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <el-dialog :model-value="modelValue" width="560px" class="members-dialog" :lock-scroll="false" @update:model-value="emit('update:modelValue', $event)">
         <template #header>
             <div class="dialog-header-title">

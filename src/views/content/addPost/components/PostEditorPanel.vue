@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="edit-section">
         <div class="section-header">
             <div class="title-group">
@@ -13,7 +13,8 @@
 
         <el-card shadow="never" class="form-card">
             <el-form ref="formRef" :model="props.form" :rules="props.rules" label-position="top" class="post-form">
-                <el-form-item label="选择发布类型" prop="postType" class="type-form-item">
+                <el-form-item prop="postType" class="type-form-item custom-labeled-item">
+                    <div class="field-heading">选择发布类型</div>
                     <div class="type-grid">
                         <div
                             v-for="type in typeOptions"
@@ -61,12 +62,8 @@
                 </el-form-item>
 
                 <transition name="el-zoom-in-top">
-                    <el-form-item
-                        v-if="props.form.postType !== POST_TYPE.TEXT"
-                        :label="props.form.postType === POST_TYPE.IMAGE ? '上传图片' : '上传视频'"
-                        prop="files"
-                        class="highlight-label"
-                    >
+                    <el-form-item v-if="props.form.postType !== POST_TYPE.TEXT" prop="files" class="highlight-label custom-labeled-item">
+                        <div class="field-heading">{{ props.form.postType === POST_TYPE.IMAGE ? '上传图片' : '上传视频' }}</div>
                         <div
                             class="upload-container"
                             :class="{
@@ -82,6 +79,9 @@
                                     :drag="true"
                                     :upload-drag="false"
                                     :sort-assist-mode="true"
+                                    :sort-assist-list-min-length="1"
+                                    :show-assist-thumbnail="false"
+                                    :show-assist-preview-action="false"
                                     :file-size="10"
                                     :file-type="['jpg', 'jpeg', 'png', 'gif']"
                                     :is-show-tip="false"
@@ -90,6 +90,35 @@
                                     class="custom-upload image-upload"
                                     @uploading-change="handleImageUploadingChange"
                                 />
+                                <div v-if="imagePreviewList.length" class="image-preview-panel">
+                                    <div class="image-preview-header">
+                                        <span class="image-preview-title">图片预览</span>
+                                        <span class="image-preview-count">共 {{ imagePreviewList.length }} 张</span>
+                                    </div>
+                                    <div class="image-preview-layout" :class="{ 'is-single': imagePreviewList.length === 1 }">
+                                        <el-image
+                                            v-if="primaryImagePreview"
+                                            :src="primaryImagePreview"
+                                            :preview-src-list="imagePreviewList"
+                                            :preview-teleported="true"
+                                            :initial-index="0"
+                                            fit="cover"
+                                            class="image-preview-card image-preview-card--hero"
+                                        />
+                                        <div v-if="secondaryImagePreviewList.length" class="image-preview-grid">
+                                            <el-image
+                                                v-for="(url, index) in secondaryImagePreviewList"
+                                                :key="`${index + 1}-${url}`"
+                                                :src="url"
+                                                :preview-src-list="imagePreviewList"
+                                                :preview-teleported="true"
+                                                :initial-index="index + 1"
+                                                fit="cover"
+                                                class="image-preview-card image-preview-card--side"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </template>
 
                             <template v-else>
@@ -138,7 +167,8 @@
                     </el-form-item>
                 </transition>
 
-                <el-form-item v-if="isBatchVideoMode" label="逐条填写正文" class="highlight-label video-batch-form-item">
+                <el-form-item v-if="isBatchVideoMode" class="highlight-label video-batch-form-item custom-labeled-item">
+                    <div class="field-heading">逐条填写正文</div>
                     <div class="video-batch-editor">
                         <div
                             v-for="item in videoBatchItems"
@@ -347,6 +377,13 @@ const videoBatchTagIdsModel = computed({
 
 const videoUrlList = computed(() => parseVideoUrlList(props.videoUrls))
 const imageMediaCount = computed(() => parseVideoUrlList(props.imageUrls).length)
+const imagePreviewList = computed(() =>
+    parseVideoUrlList(props.imageUrls)
+        .map(url => getImgUrl(url))
+        .filter(Boolean)
+)
+const primaryImagePreview = computed(() => imagePreviewList.value[0] || '')
+const secondaryImagePreviewList = computed(() => imagePreviewList.value.slice(1))
 const isBatchVideoMode = computed(() => props.form.postType === POST_TYPE.VIDEO && videoUrlList.value.length > 1)
 const videoBatchErrorSet = computed(() => new Set((props.videoBatchErrorIndexes || []).map(index => Number(index))))
 const videoBatchTagErrorSet = computed(() => new Set((props.videoBatchTagErrorIndexes || []).map(index => Number(index))))
@@ -697,6 +734,25 @@ defineExpose({
             font-size: 15px;
         }
     }
+
+    .custom-labeled-item {
+        .field-heading {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 1.4;
+            color: var(--el-text-color-primary);
+        }
+
+        &.highlight-label {
+            .field-heading {
+                font-size: 15px;
+            }
+        }
+    }
 }
 
 .type-grid {
@@ -917,6 +973,99 @@ defineExpose({
         border-radius: 16px;
         border: none;
         box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    }
+
+    :deep(.image-sort-assist-item) {
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, var(--el-color-white));
+        border-color: var(--el-border-color-lighter);
+        padding: 14px 16px;
+    }
+
+    :deep(.assist-item-main.no-thumb .assist-item-meta) {
+        width: 100%;
+    }
+
+    :deep(.assist-item-name) {
+        max-width: none;
+        font-size: 14px;
+        color: var(--el-text-color-primary);
+    }
+}
+
+.image-preview-panel {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed color-mix(in srgb, var(--el-border-color) 82%, transparent);
+}
+
+.image-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.image-preview-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+}
+
+.image-preview-count {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+}
+
+.image-preview-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(220px, 0.95fr);
+    gap: 12px;
+    align-items: stretch;
+
+    &.is-single {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-content: start;
+}
+
+.image-preview-card {
+    display: block;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    cursor: zoom-in;
+
+    &.image-preview-card--hero {
+        min-height: 256px;
+        height: 100%;
+    }
+
+    &.image-preview-card--side {
+        aspect-ratio: 1;
+        min-height: 110px;
+    }
+
+    :deep(.el-image__inner) {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.25s ease;
+    }
+
+    &:hover {
+        :deep(.el-image__inner) {
+            transform: scale(1.03);
+        }
     }
 }
 
@@ -1484,6 +1633,28 @@ defineExpose({
 
     .form-card :deep(.el-card__body) {
         padding: 24px;
+    }
+
+    .image-preview-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .image-preview-card {
+        &.image-preview-card--hero {
+            min-height: 220px;
+        }
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .image-preview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .image-preview-card {
+        &.image-preview-card--hero {
+            min-height: 180px;
+        }
     }
 }
 </style>

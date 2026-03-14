@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container tag-manage">
         <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
             <el-form-item label="标签名称" prop="name">

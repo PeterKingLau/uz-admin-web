@@ -1,6 +1,9 @@
 import request from '@/utils/request'
+import type { FollowListParams, SelectFollowNumParams, ToggleFollowUserPayload } from './userFollow.types'
 
-export function selectFollowNum(params: { targetUserId?: number | string }): Promise<any> {
+export type { FollowListParams, SelectFollowNumParams, ToggleFollowUserPayload, UserId } from './userFollow.types'
+
+export function selectFollowNum(params: SelectFollowNumParams): Promise<any> {
     return request({
         url: '/content/userFollow/app/v1/selectFollowNum',
         method: 'get',
@@ -8,7 +11,7 @@ export function selectFollowNum(params: { targetUserId?: number | string }): Pro
     }) as Promise<any>
 }
 
-export function listFollowing(params: { lastId?: number | string; size?: number | string }): Promise<any> {
+export function listFollowing(params: FollowListParams): Promise<any> {
     return request({
         url: '/content/userFollow/app/v1/following',
         method: 'get',
@@ -16,7 +19,7 @@ export function listFollowing(params: { lastId?: number | string; size?: number 
     }) as Promise<any>
 }
 
-export function listFollowers(params: { lastId?: number | string; size?: number | string }): Promise<any> {
+export function listFollowers(params: FollowListParams): Promise<any> {
     return request({
         url: '/content/userFollow/app/v1/followers',
         method: 'get',
@@ -24,7 +27,7 @@ export function listFollowers(params: { lastId?: number | string; size?: number 
     }) as Promise<any>
 }
 
-export function listMutual(params: { lastId?: number | string; size?: number | string }): Promise<any> {
+export function listMutual(params: FollowListParams): Promise<any> {
     return request({
         url: '/content/userFollow/app/v1/mutual',
         method: 'get',
@@ -32,7 +35,7 @@ export function listMutual(params: { lastId?: number | string; size?: number | s
     }) as Promise<any>
 }
 
-export function toggleFollowUser(data: { targetUserId: number | string }): Promise<any> {
+export function toggleFollowUser(data: ToggleFollowUserPayload): Promise<any> {
     return request({
         url: '/content/postInfo/app/v1/follow',
         method: 'post',

@@ -1,4 +1,4 @@
-﻿const FILE_BASE: string = import.meta.env.VITE_APP_FILE_BASE_URL || ''
+const FILE_BASE: string = import.meta.env.VITE_APP_FILE_BASE_URL || ''
 
 const isAbsoluteResourcePath = (path: string): boolean => /^(https?:)?\/\//i.test(path) || /^(blob|data|file):/i.test(path)
 

@@ -1,40 +1,20 @@
 import request from '@/utils/request'
+import type {
+    AddAssessmentOptionPayload,
+    AssessmentOptionItem,
+    AssessmentOptionListParams,
+    AssessmentOptionListResponse,
+    UpdateAssessmentOptionPayload
+} from './assessmentOption.types'
 
-export interface AssessmentOptionItem {
-    [key: string]: any
-}
+export type {
+    AddAssessmentOptionPayload,
+    AssessmentOptionItem,
+    AssessmentOptionListParams,
+    AssessmentOptionListResponse,
+    UpdateAssessmentOptionPayload
+} from './assessmentOption.types'
 
-export interface AssessmentOptionListParams {
-    questionId: number
-}
-
-export interface AssessmentOptionListResponse {
-    code?: number
-    msg?: string
-    total?: number
-    data?: AssessmentOptionItem[] | Record<string, any>
-    rows?: AssessmentOptionItem[]
-}
-
-export interface AddAssessmentOptionPayload {
-    questionId: number
-    content: string
-    optionKey: string
-    scoreValue: number
-    sortOrder: number
-}
-
-export interface UpdateAssessmentOptionPayload {
-    id: number
-    content: string
-    optionKey: string
-    scoreValue: number
-    sortOrder: number
-}
-
-/**
- * 根据题目id查询选项列表
- */
 export function listAssessmentOptions(params: AssessmentOptionListParams) {
     return request<AssessmentOptionListResponse>({
         url: '/content/assessmentOption/list',
@@ -43,9 +23,6 @@ export function listAssessmentOptions(params: AssessmentOptionListParams) {
     })
 }
 
-/**
- * 新增选项
- */
 export function addAssessmentOption(data: AddAssessmentOptionPayload) {
     return request({
         url: '/content/assessmentOption/add',
@@ -54,9 +31,6 @@ export function addAssessmentOption(data: AddAssessmentOptionPayload) {
     })
 }
 
-/**
- * 修改选项
- */
 export function updateAssessmentOption(data: UpdateAssessmentOptionPayload) {
     return request({
         url: '/content/assessmentOption/edit',
@@ -65,9 +39,6 @@ export function updateAssessmentOption(data: UpdateAssessmentOptionPayload) {
     })
 }
 
-/**
- * 删除选项
- */
 export function deleteAssessmentOption(ids: string | number) {
     return request({
         url: `/content/assessmentOption/${ids}`,

@@ -1,68 +1,26 @@
 import request from '@/utils/request'
+import type {
+    CircleInfoResponse,
+    CircleItem,
+    CircleListParams,
+    CircleListResponse,
+    CircleMemberListParams,
+    CircleMemberListResponse,
+    CreateCirclePayload,
+    UpdateCirclePayload
+} from './circleManagement.types'
 
-export interface CreateCirclePayload {
-    name: string
-    description: string
-    coverUrl: string
-}
-
-export interface UpdateCirclePayload extends CreateCirclePayload {
-    id: number | string
-}
-
-export interface CircleItem {
-    id: number | string
-    name: string
-    description: string
-    coverUrl: string
-    type?: string | number
-    ownerUserId?: number | string
-    memberCount?: number
-    postCount?: number
-    status?: string | number
-    auditStatus?: string | number
-    reason?: string | null
-    remark?: string | null
-    createBy?: string
-    updateBy?: string
-    member?: boolean
-    createTime?: string
-    updateTime?: string
-    [key: string]: any
-}
-
-export interface CircleListResponse {
-    code?: number
-    msg?: string
-    total?: number
-    data?: CircleItem[] | Record<string, any>
-    rows?: CircleItem[]
-}
-
-export interface CircleListParams {
-    pageNum?: number
-    pageSize?: number
-    name?: string
-    cursorId?: number | string
-}
-
-export interface CircleMemberItem {
-    id: number | string
-    userId?: number | string
-    nickName?: string
-    avatar?: string
-    signature?: string
-    role?: string
-    relationType?: string
-    status?: string
-    [key: string]: any
-}
-
-export interface CircleMemberListParams {
-    circleId?: number | string
-    lastId?: number | string
-    limit?: number
-}
+export type {
+    CircleInfoResponse,
+    CircleItem,
+    CircleListParams,
+    CircleListResponse,
+    CircleMemberItem,
+    CircleMemberListParams,
+    CircleMemberListResponse,
+    CreateCirclePayload,
+    UpdateCirclePayload
+} from './circleManagement.types'
 
 export function createCircle(data: CreateCirclePayload) {
     return request({
@@ -119,7 +77,7 @@ export function exitCircle(circleId: number | string) {
 }
 
 export function getCircleInfo(id: number | string) {
-    return request<{ data?: CircleItem; code?: number; msg?: string }>({
+    return request<CircleInfoResponse>({
         url: '/content/circleManagement/getInfoById',
         method: 'get',
         params: { id }
@@ -127,7 +85,7 @@ export function getCircleInfo(id: number | string) {
 }
 
 export function getCircleMemberList(params?: CircleMemberListParams) {
-    return request<{ data?: CircleMemberItem[]; code?: number; msg?: string }>({
+    return request<CircleMemberListResponse>({
         url: '/content/circleMemberList/getList',
         method: 'get',
         params

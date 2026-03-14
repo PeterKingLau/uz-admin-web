@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="page-container">
         <div class="main-content">
             <el-card class="creation-card" shadow="never">
@@ -120,7 +120,8 @@
 <script setup lang="ts" name="CircleManagementCreate">
 import { ref, reactive, computed, getCurrentInstance } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import { createCircle, type CreateCirclePayload } from '@/api/content/circleManagement'
+import { createCircle } from '@/api/content/circleManagement'
+import type { CreateCirclePayload } from '@/api/content/circleManagement.types'
 import { getImgUrl } from '@/utils/img'
 import { formatMockNumber } from '@/utils/utils'
 

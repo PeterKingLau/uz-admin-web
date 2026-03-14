@@ -24,7 +24,7 @@ export const PROFILE_APPLY_TYPE = {
 export const ENUM_TAG_CONFIG = {
     POST_TYPE: {
         [POST_TYPE.TEXT]: { label: '文字', type: 'info' },
-        [POST_TYPE.IMAGE]: { label: '图片', type: 'success' },
+        [POST_TYPE.IMAGE]: { label: '图文', type: 'success' },
         [POST_TYPE.VIDEO]: { label: '视频', type: 'warning' }
     },
 

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <el-dialog v-model="visible" width="720px" append-to-body destroy-on-close :show-close="false" class="modern-comment-dialog">
         <div class="dialog-container">
             <div class="dialog-header">

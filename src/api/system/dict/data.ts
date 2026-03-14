@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { DictCode, DictDataPayload, DictDataQuery, DictType } from './data.types'
 
-// 查询字典数据列表
-export function listData(query: any) {
+export type { DictCode, DictDataPayload, DictDataQuery, DictType } from './data.types'
+
+export function listData(query: DictDataQuery) {
     return request({
         url: '/system/dict/data/list',
         method: 'get',
@@ -9,42 +11,37 @@ export function listData(query: any) {
     })
 }
 
-// 查询字典数据详细
-export function getData(dictCode: any) {
+export function getData(dictCode: DictCode) {
     return request({
         url: '/system/dict/data/' + dictCode,
         method: 'get'
     })
 }
 
-// 根据字典类型查询字典数据信息
-export function getDicts(dictType: any) {
+export function getDicts(dictType: DictType) {
     return request({
         url: '/system/dict/data/type/' + dictType,
         method: 'get'
     })
 }
 
-// 新增字典数据
-export function addData(data: any) {
+export function addData(data: DictDataPayload) {
     return request({
         url: '/system/dict/data',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改字典数据
-export function updateData(data: any) {
+export function updateData(data: DictDataPayload) {
     return request({
         url: '/system/dict/data',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除字典数据
-export function delData(dictCode: any) {
+export function delData(dictCode: DictCode) {
     return request({
         url: '/system/dict/data/' + dictCode,
         method: 'delete'

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="upload-file">
         <div v-if="showUploader" class="upload-file-uploader-wrap">
             <el-upload

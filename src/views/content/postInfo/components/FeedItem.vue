@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div v-if="!isOriginalMissing" class="feed-card" :class="{ checked, 'is-batch': isBatchMode }">
         <div
             class="card-media-wrapper"

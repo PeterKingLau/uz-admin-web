@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="audit-dashboard" v-loading="loading">
         <el-row :gutter="20" class="card-row">
             <el-col :span="6" v-for="card in statCards" :key="card.key">

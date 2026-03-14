@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { DeptId, DeptPayload, DeptQuery } from './dept.types'
 
-// 查询部门列表
-export function listDept(query?: any) {
+export type { DeptId, DeptPayload, DeptQuery } from './dept.types'
+
+export function listDept(query?: DeptQuery) {
     return request({
         url: '/system/dept/list',
         method: 'get',
@@ -9,42 +11,37 @@ export function listDept(query?: any) {
     })
 }
 
-// 查询部门列表（排除节点）
-export function listDeptExcludeChild(deptId: any) {
+export function listDeptExcludeChild(deptId: DeptId) {
     return request({
         url: '/system/dept/list/exclude/' + deptId,
         method: 'get'
     })
 }
 
-// 查询部门详细
-export function getDept(deptId: any) {
+export function getDept(deptId: DeptId) {
     return request({
         url: '/system/dept/' + deptId,
         method: 'get'
     })
 }
 
-// 新增部门
-export function addDept(data: any) {
+export function addDept(data: DeptPayload) {
     return request({
         url: '/system/dept',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改部门
-export function updateDept(data: any) {
+export function updateDept(data: DeptPayload) {
     return request({
         url: '/system/dept',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除部门
-export function delDept(deptId: any) {
+export function delDept(deptId: DeptId) {
     return request({
         url: '/system/dept/' + deptId,
         method: 'delete'

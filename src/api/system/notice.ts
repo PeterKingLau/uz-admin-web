@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { NoticeId, NoticePayload, NoticeQuery } from './notice.types'
 
-// 查询公告列表
-export function listNotice(query: any) {
+export type { NoticeId, NoticePayload, NoticeQuery } from './notice.types'
+
+export function listNotice(query: NoticeQuery) {
     return request({
         url: '/system/notice/list',
         method: 'get',
@@ -9,34 +11,30 @@ export function listNotice(query: any) {
     })
 }
 
-// 查询公告详细
-export function getNotice(noticeId: any) {
+export function getNotice(noticeId: NoticeId) {
     return request({
         url: '/system/notice/' + noticeId,
         method: 'get'
     })
 }
 
-// 新增公告
-export function addNotice(data: any) {
+export function addNotice(data: NoticePayload) {
     return request({
         url: '/system/notice',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改公告
-export function updateNotice(data: any) {
+export function updateNotice(data: NoticePayload) {
     return request({
         url: '/system/notice',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除公告
-export function delNotice(noticeId: any) {
+export function delNotice(noticeId: NoticeId) {
     return request({
         url: '/system/notice/' + noticeId,
         method: 'delete'

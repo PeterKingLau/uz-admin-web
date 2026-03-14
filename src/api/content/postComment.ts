@@ -1,24 +1,7 @@
 import request from '@/utils/request'
+import type { DeleteCommentPayload, ListCommentRepliesParams, ListTopCommentsParams } from './postComment.types'
 
-export interface ListTopCommentsParams {
-    postId: number | string
-    lastId?: number | string
-    lastCreateTime?: string
-    limit?: number
-}
-
-export interface ListCommentRepliesParams {
-    postId: number | string
-    parentId: number | string
-    lastId?: number | string
-    lastCreateTime?: string
-    limit?: number
-}
-
-export interface DeleteCommentPayload {
-    id: number | string
-    userId?: number | string
-}
+export type { DeleteCommentPayload, ListCommentRepliesParams, ListTopCommentsParams } from './postComment.types'
 
 export function listTopComments(params: ListTopCommentsParams): Promise<any> {
     return request({

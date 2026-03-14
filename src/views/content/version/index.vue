@@ -180,7 +180,8 @@ import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules, UploadFile, UploadFiles, UploadRawFile, UploadUserFile } from 'element-plus'
 import { parseTime } from '@/utils/utils'
 import { getImgUrl } from '@/utils/img'
-import { addVersion, deleteVersion, listVersion, parseVersionRows, parseVersionTotal, type VersionItem } from '@/api/content/version'
+import { addVersion, deleteVersion, listVersion, parseVersionRows, parseVersionTotal } from '@/api/content/version'
+import type { VersionItem } from '@/api/content/version.types'
 
 interface VersionTableItem {
     id: number | string

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="content-feed-root">
         <div class="app-container content-feed-page">
             <div class="page-header-wrapper">
@@ -27,11 +27,11 @@
 
                         <div class="batch-action-bar" v-if="batchMode && selectedCount > 0">
                             <span class="selected-count">已选 {{ selectedCount }} 项</span>
-                            <el-button type="danger" link @click="handleBatchDelete" :loading="deleting">
+                            <el-button type="danger" link @click="handleBatchDelete" :loading="deleting" class="batch-del-btn">
                                 <Icon icon="mdi:trash-can-outline" class="mr-1" />
                                 批量删除
                             </el-button>
-                            <el-button link @click="clearSelection">取消选择</el-button>
+                            <el-button link @click="clearSelection" class="batch-cancel-btn">取消选择</el-button>
                         </div>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
                 <el-empty v-else description="暂无内容" :image-size="100" />
             </div>
 
-            <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" :lock-scroll="false" @closed="resetEditTag">
+            <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" :lock-scroll="false" @closed="resetEditTag" class="modern-dialog">
                 <el-form label-position="top">
                     <el-form-item label="话题标签" required>
                         <el-select
@@ -87,75 +87,75 @@
                     </el-form-item>
                 </el-form>
                 <template #footer>
-                    <el-button @click="editTagVisible = false">取消</el-button>
-                    <el-button type="primary" :loading="updatingTag" @click="submitEditTag">保存</el-button>
+                    <el-button @click="editTagVisible = false" round>取消</el-button>
+                    <el-button type="primary" :loading="updatingTag" @click="submitEditTag" round>保存</el-button>
                 </template>
             </el-dialog>
+
+            <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin" class="modern-dialog">
+                <el-form label-position="top">
+                    <el-form-item label="置顶天数" required>
+                        <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" class="custom-input-number" />
+                    </el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="pinVisible = false" round>取消</el-button>
+                    <el-button type="primary" :loading="pinning" @click="submitPin" round>确定</el-button>
+                </template>
+            </el-dialog>
+
+            <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
+
+            <PostPreviewModal
+                ref="previewModalRef"
+                v-model="previewVisible"
+                :post="previewPost"
+                :media-list="previewMediaList"
+                :tags="previewTags"
+                :comments="previewComments"
+                :comments-loading="previewCommentsLoading"
+                :is-following="isPreviewFollowing"
+                :is-liked="isPreviewLiked"
+                :is-collected="isPreviewCollected"
+                :follow-loading="followActionLoading"
+                :like-loading="likeActionLoading"
+                :bookmark-loading="bookmarkActionLoading"
+                :repost-loading="repostActionLoading"
+                :is-author-self="isPreviewAuthorSelf"
+                v-model:commentDraft="commentDraft"
+                :comment-placeholder="commentPlaceholder"
+                :is-action-input-expanded="isActionInputExpanded"
+                :format-relative-time="formatRelativeTime"
+                :resolve-avatar="resolveAvatar"
+                :get-comment-reply-count="getCommentReplyCount"
+                :resolve-reply-state="resolveReplyState"
+                :can-delete-comment="canDeleteComment"
+                :is-delete-comment-loading="isDeleteCommentLoading"
+                @close="closePreview"
+                @follow="handlePreviewFollow"
+                @action="handlePreviewAction"
+                @reply-comment="handleReplyToComment"
+                @reply-reply="handleReplyToReply"
+                @toggle-replies="toggleCommentReplies"
+                @load-replies="loadCommentReplies"
+                @delete-comment="handleDeleteComment"
+                @submit-comment="submitPreviewComment"
+                @focus-comment="focusCommentInput"
+                @blur-comment="handleActionInputBlur"
+            />
+
+            <VideoModule
+                v-if="videoPreviewReady"
+                v-model="videoPreviewVisible"
+                :src="videoPreviewSrc"
+                :post="videoPreviewPost"
+                :user-info="videoUserInfo"
+                :author-info="videoAuthorInfo"
+                @close="closeVideoPreview"
+                @action="handleVideoAction"
+                @select-collection="handleVideoSelectCollectionPost"
+            />
         </div>
-
-        <el-dialog v-model="pinVisible" title="人工置顶" width="420px" @closed="resetPin">
-            <el-form label-position="top">
-                <el-form-item label="置顶天数" required>
-                    <el-input-number v-model="pinDays" :min="1" :max="365" :step="1" style="width: 100%" />
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="pinVisible = false">取消</el-button>
-                <el-button type="primary" :loading="pinning" @click="submitPin">确定</el-button>
-            </template>
-        </el-dialog>
-
-        <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
-
-        <PostPreviewModal
-            ref="previewModalRef"
-            v-model="previewVisible"
-            :post="previewPost"
-            :media-list="previewMediaList"
-            :tags="previewTags"
-            :comments="previewComments"
-            :comments-loading="previewCommentsLoading"
-            :is-following="isPreviewFollowing"
-            :is-liked="isPreviewLiked"
-            :is-collected="isPreviewCollected"
-            :follow-loading="followActionLoading"
-            :like-loading="likeActionLoading"
-            :bookmark-loading="bookmarkActionLoading"
-            :repost-loading="repostActionLoading"
-            :is-author-self="isPreviewAuthorSelf"
-            v-model:commentDraft="commentDraft"
-            :comment-placeholder="commentPlaceholder"
-            :is-action-input-expanded="isActionInputExpanded"
-            :format-relative-time="formatRelativeTime"
-            :resolve-avatar="resolveAvatar"
-            :get-comment-reply-count="getCommentReplyCount"
-            :resolve-reply-state="resolveReplyState"
-            :can-delete-comment="canDeleteComment"
-            :is-delete-comment-loading="isDeleteCommentLoading"
-            @close="closePreview"
-            @follow="handlePreviewFollow"
-            @action="handlePreviewAction"
-            @reply-comment="handleReplyToComment"
-            @reply-reply="handleReplyToReply"
-            @toggle-replies="toggleCommentReplies"
-            @load-replies="loadCommentReplies"
-            @delete-comment="handleDeleteComment"
-            @submit-comment="submitPreviewComment"
-            @focus-comment="focusCommentInput"
-            @blur-comment="handleActionInputBlur"
-        />
-
-        <VideoModule
-            v-if="videoPreviewReady"
-            v-model="videoPreviewVisible"
-            :src="videoPreviewSrc"
-            :post="videoPreviewPost"
-            :user-info="videoUserInfo"
-            :author-info="videoAuthorInfo"
-            @close="closeVideoPreview"
-            @action="handleVideoAction"
-            @select-collection="handleVideoSelectCollectionPost"
-        />
     </div>
 </template>
 
@@ -1434,80 +1434,201 @@ function handleContentListRefresh() {
 <style scoped lang="scss">
 .content-feed-page {
     padding: 0;
-    background-color: transparent;
+    background-color: var(--el-bg-color-page);
+    min-height: calc(100vh - 84px);
 }
 
 .page-header-wrapper {
     background-color: var(--el-bg-color);
-    border-bottom: 1px solid var(--el-border-color-light);
-    padding: 16px 24px;
+    padding: 18px 16px 0;
     margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+}
 
-    .header-content {
+.header-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    width: 100%;
+}
+
+.left-section {
+    flex-shrink: 0;
+    padding-top: 4px;
+
+    .title-block {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 16px;
-    }
+        flex-direction: column;
+        gap: 6px;
 
-    .left-section {
-        .title-block {
-            display: flex;
-            align-items: baseline;
-            gap: 12px;
+        .main-title {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding-left: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--el-text-color-primary);
+            line-height: 1.2;
 
-            .main-title {
-                font-size: 18px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 50%;
+                width: 4px;
+                height: 18px;
+                border-radius: 999px;
+                background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+                transform: translateY(-50%);
             }
+        }
 
-            .sub-info {
-                font-size: 13px;
-                color: var(--el-text-color-secondary);
+        .sub-info {
+            font-size: 13px;
+            color: var(--el-text-color-secondary);
 
-                .highlight {
-                    color: var(--el-color-primary);
-                    font-weight: 600;
-                    margin: 0 2px;
-                }
+            .highlight {
+                color: var(--el-color-primary);
+                font-weight: 600;
+                margin: 0 2px;
             }
         }
     }
+}
 
-    .right-section {
+.right-section {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+
+    :deep(.content-query-form) {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .batch-action-bar {
+        flex-shrink: 0;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
+        padding: 4px 16px;
+        background: var(--el-color-danger-light-9);
+        border-radius: 20px;
+        border: 1px solid var(--el-color-danger-light-5);
+        height: 36px;
+        box-sizing: border-box;
 
-        .batch-action-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-left: 16px;
-            border-left: 1px solid var(--el-border-color);
+        .selected-count {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--el-color-danger);
+        }
 
-            .selected-count {
-                font-size: 13px;
-                color: var(--el-text-color-secondary);
+        .batch-del-btn {
+            padding: 0;
+            height: auto;
+            font-weight: 500;
+        }
+
+        .batch-cancel-btn {
+            padding: 0;
+            height: auto;
+            color: var(--el-text-color-secondary);
+            font-weight: 400;
+
+            &:hover {
+                color: var(--el-text-color-regular);
             }
         }
     }
 }
 
 .feed-list-container {
-    padding: 0 24px 24px;
-    min-height: 200px;
+    padding: 0 16px 20px;
+    width: 100%;
+}
+
+.custom-select {
+    :deep(.el-select__wrapper) {
+        border-radius: 12px;
+        box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+        background-color: var(--el-fill-color-light);
+        transition: all 0.3s;
+
+        &:hover {
+            background-color: var(--el-fill-color);
+            box-shadow: 0 0 0 1px var(--el-border-color) inset;
+        }
+
+        &.is-focused {
+            background-color: var(--el-bg-color);
+            box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+        }
+    }
+}
+
+.custom-input-number {
+    :deep(.el-input__wrapper) {
+        border-radius: 12px;
+        box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+        background-color: var(--el-fill-color-light);
+        transition: all 0.3s;
+
+        &:hover {
+            background-color: var(--el-fill-color);
+            box-shadow: 0 0 0 1px var(--el-border-color) inset;
+        }
+
+        &.is-focus {
+            background-color: var(--el-bg-color);
+            box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+        }
+    }
+}
+
+.modern-dialog {
+    :deep(.el-dialog__header) {
+        padding: 20px 24px 16px;
+        margin-right: 0;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+
+        .el-dialog__title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+    }
+
+    :deep(.el-dialog__body) {
+        padding: 24px;
+    }
+
+    :deep(.el-dialog__footer) {
+        padding: 16px 24px;
+        border-top: 1px solid var(--el-border-color-lighter);
+    }
+}
+
+:global(html.dark) .page-header-wrapper {
+    border-bottom: 1px solid var(--el-border-color-dark);
+    box-shadow: none;
+}
+
+:global(html.dark) .batch-action-bar {
+    background: rgba(var(--el-color-danger-rgb), 0.1) !important;
+    border-color: rgba(var(--el-color-danger-rgb), 0.2) !important;
 }
 
 @media screen and (max-width: 768px) {
     .page-header-wrapper {
-        padding: 12px 16px;
+        padding: 14px 12px 0;
 
         .header-content {
             flex-direction: column;
             align-items: stretch;
+            gap: 16px;
         }
 
         .right-section {
@@ -1515,10 +1636,8 @@ function handleContentListRefresh() {
             align-items: stretch;
 
             .batch-action-bar {
-                padding-left: 0;
-                border-left: none;
-                border-top: 1px solid var(--el-border-color-lighter);
-                padding-top: 12px;
+                margin-top: 4px;
+                margin-bottom: 16px;
                 justify-content: space-between;
             }
         }

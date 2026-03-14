@@ -1,13 +1,13 @@
 <template>
-    <el-dialog v-model="visible" width="360px" :show-close="false" class="modern-qrcode-dialog" align-center destroy-on-close>
+    <el-dialog v-model="visible" width="360px" title="二维码分享" :show-close="false" class="modern-qrcode-dialog" align-center destroy-on-close>
         <div class="dialog-content-wrapper">
             <div class="close-btn-wrapper" @click="visible = false">
                 <Icon icon="mdi:close" class="close-icon" />
             </div>
 
             <div class="dialog-header">
-                <el-tooltip :content="title || '扫码分享'" placement="top">
-                    <h3 class="title">{{ title || '扫码分享' }}</h3>
+                <el-tooltip v-if="title" :content="title" placement="top">
+                    <h3 class="content-title">{{ title }}</h3>
                 </el-tooltip>
                 <p v-if="description" class="description">{{ description }}</p>
             </div>
@@ -79,7 +79,8 @@ const handleDownload = async () => {
     padding: 0;
 
     .el-dialog__header {
-        display: none;
+        padding: 20px 24px 0;
+        margin-right: 0;
     }
 
     .el-dialog__body {
@@ -89,7 +90,7 @@ const handleDownload = async () => {
 
 .dialog-content-wrapper {
     position: relative;
-    padding: 32px 24px;
+    padding: 16px 24px 32px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -131,21 +132,18 @@ const handleDownload = async () => {
 .dialog-header {
     width: 100%;
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     padding: 0 36px;
     box-sizing: border-box;
 
-    .title {
+    .content-title {
         max-width: 100%;
+        margin: 0 0 8px;
         font-size: 18px;
         font-weight: 700;
-        color: var(--el-text-color-primary);
-        margin: 0 0 6px;
         line-height: 1.4;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
+        color: var(--el-text-color-primary);
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }

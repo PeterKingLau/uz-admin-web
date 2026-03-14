@@ -1,72 +1,31 @@
 import request from '@/utils/request'
+import type {
+    AddTemplatePayload,
+    InterestTypeItem,
+    InterestTypeResponse,
+    RepresentativeItem,
+    TemplateItem,
+    TemplateListParams,
+    TemplateListResponse,
+    UpdateTemplatePayload
+} from './template.types'
 
-export interface TemplateItem {
-    [key: string]: any
-}
-
-export interface TemplateListResponse {
-    code?: number
-    msg?: string
-    total?: number
-    data?: TemplateItem[] | Record<string, any>
-    rows?: TemplateItem[]
-}
-
-export interface TemplateListParams {
-    pageNum?: number
-    pageSize?: number
-    interestType?: string
-    abilityLevel?: number | string
-    valueType?: string
-    personalityTrait?: string
-    status?: string
-}
-
-export interface RepresentativeItem {
-    name: string
-    description: string
-    image: string
-}
-
-export interface AddTemplatePayload {
-    interestType: string
-    abilityLevel: number
-    valueType: string
-    personalityTrait: string
-    interestDesc: string
-    abilityDesc: string
-    valueDesc: string
-    personalityDesc: string
-    comprehensiveDesc: string
-    representativeList: RepresentativeItem[]
-}
-
-export interface UpdateTemplatePayload extends AddTemplatePayload {
-    id: number
-}
-
-export interface InterestTypeItem {
-    code: string
-    name: string
-    description?: string
-    color?: string
-    [key: string]: any
-}
-
-export interface InterestTypeResponse {
-    code?: number
-    msg?: string
-    data?: InterestTypeItem[] | Record<string, any>
-    rows?: InterestTypeItem[]
-}
+export type {
+    AddTemplatePayload,
+    InterestTypeItem,
+    InterestTypeResponse,
+    RepresentativeItem,
+    TemplateItem,
+    TemplateListParams,
+    TemplateListResponse,
+    UpdateTemplatePayload
+} from './template.types'
 
 function safeParseJson<T = any>(value: unknown): T | unknown {
     if (typeof value !== 'string') return value
     const trimmed = value.trim()
     if (!trimmed) return value
-    const isJsonLike =
-        (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
-        (trimmed.startsWith('{') && trimmed.endsWith('}'))
+    const isJsonLike = (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))
     if (!isJsonLike) return value
     try {
         return JSON.parse(trimmed) as T
@@ -106,8 +65,6 @@ function normalizeTemplateItem(item: any): TemplateItem {
         )
     }
 }
-
-// ========== 模板相关接口 ==========
 
 export function listTemplates(params?: TemplateListParams) {
     return request<TemplateListResponse>({

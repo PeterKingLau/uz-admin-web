@@ -116,7 +116,8 @@
 
 <script setup name="TopbarConfig" lang="ts">
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
-import { addTopbarConfig, deleteTopbarConfig, listTopbarConfig, parseTopbarRows, updateTopbarConfig, type TopbarConfigItem } from '@/api/content/topbar'
+import { addTopbarConfig, deleteTopbarConfig, listTopbarConfig, parseTopbarRows, updateTopbarConfig } from '@/api/content/topbar'
+import type { TopbarConfigItem } from '@/api/content/topbar.types'
 import { parseTime } from '@/utils/utils'
 import ConfigTable from '@/components/ConfigTable/index.vue'
 import { useTableColumnStore } from '@/store/modules/tableColumn'

@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { DictId, DictTypePayload, DictTypeQuery } from './type.types'
 
-// 查询字典类型列表
-export function listType(query: any) {
+export type { DictId, DictTypePayload, DictTypeQuery } from './type.types'
+
+export function listType(query: DictTypeQuery) {
     return request({
         url: '/system/dict/type/list',
         method: 'get',
@@ -9,41 +11,36 @@ export function listType(query: any) {
     })
 }
 
-// 查询字典类型详细
-export function getType(dictId: any) {
+export function getType(dictId: DictId) {
     return request({
         url: '/system/dict/type/' + dictId,
         method: 'get'
     })
 }
 
-// 新增字典类型
-export function addType(data: any) {
+export function addType(data: DictTypePayload) {
     return request({
         url: '/system/dict/type',
         method: 'post',
-        data: data
+        data
     })
 }
 
-// 修改字典类型
-export function updateType(data: any) {
+export function updateType(data: DictTypePayload) {
     return request({
         url: '/system/dict/type',
         method: 'put',
-        data: data
+        data
     })
 }
 
-// 删除字典类型
-export function delType(dictId: any) {
+export function delType(dictId: DictId) {
     return request({
         url: '/system/dict/type/' + dictId,
         method: 'delete'
     })
 }
 
-// 刷新字典缓存
 export function refreshCache() {
     return request({
         url: '/system/dict/type/refreshCache',
@@ -51,7 +48,6 @@ export function refreshCache() {
     })
 }
 
-// 获取字典选择框列表
 export function optionselect() {
     return request({
         url: '/system/dict/type/optionselect',

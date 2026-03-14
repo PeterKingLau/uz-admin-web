@@ -1,7 +1,9 @@
 import request from '@/utils/request'
+import type { OnlineQuery, TokenId } from './online.types'
 
-// 查询在线用户列表
-export function list(query: any) {
+export type { OnlineQuery, TokenId } from './online.types'
+
+export function list(query: OnlineQuery) {
     return request({
         url: '/monitor/online/list',
         method: 'get',
@@ -9,8 +11,7 @@ export function list(query: any) {
     })
 }
 
-// 强退用户
-export function forceLogout(tokenId: any) {
+export function forceLogout(tokenId: TokenId) {
     return request({
         url: '/monitor/online/' + tokenId,
         method: 'delete'

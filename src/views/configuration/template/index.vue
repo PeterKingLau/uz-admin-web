@@ -224,12 +224,14 @@
                             <el-form-item :label="TEXT_MAP.representative" prop="representativeList" class="mb-0 representative-form-item">
                                 <div class="rep-list">
                                     <div v-for="(item, index) in form.representativeList" :key="index" class="rep-card">
-                                        <div class="rep-card-index">{{ index + 1 }}</div>
-                                        <el-tooltip content="删除代表人物" placement="top" :show-after="500">
-                                            <div class="rep-delete-btn" @click="removeRepresentative(index)">
-                                                <Icon icon="mdi:trash-can-outline" />
-                                            </div>
-                                        </el-tooltip>
+                                        <div class="rep-card-top">
+                                            <div class="rep-card-index">{{ index + 1 }}</div>
+                                            <el-tooltip content="删除代表人物" placement="top" :show-after="500">
+                                                <div class="rep-delete-btn" @click="removeRepresentative(index)">
+                                                    <Icon icon="mdi:trash-can-outline" />
+                                                </div>
+                                            </el-tooltip>
+                                        </div>
 
                                         <div class="rep-card-content">
                                             <div class="rep-info-panel">
@@ -288,7 +290,8 @@
 <script setup lang="ts" name="TemplateManage">
 import { reactive, ref, computed, getCurrentInstance, onMounted } from 'vue'
 import { parseTime } from '@/utils/utils'
-import { addTemplate, updateTemplate, deleteTemplate, listTemplates, parseTemplateRows, type TemplateItem } from '@/api/configuration/template'
+import { addTemplate, updateTemplate, deleteTemplate, listTemplates, parseTemplateRows } from '@/api/configuration/template'
+import type { TemplateItem } from '@/api/configuration/template.types'
 import { useDimension } from '@/features/configuration/template/composables/useDimension'
 import { useTemplateForm } from '@/features/configuration/template/composables/useTemplateForm'
 import { TEXT_MAP, ABILITY_MAP, STATIC_VALUE_MAP, STATIC_PERSONALITY_MAP, type AbilityLevel } from '@/features/configuration/template/constants'
@@ -566,10 +569,14 @@ onMounted(() => {
         }
     }
 
+    .rep-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
     .rep-card-index {
-        position: absolute;
-        top: -1px;
-        left: -1px;
         background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         color: #fff;
         font-size: 12px;
@@ -580,9 +587,7 @@ onMounted(() => {
     }
 
     .rep-delete-btn {
-        position: absolute;
-        top: 14px;
-        right: 14px;
+        position: static;
         width: 28px;
         height: 28px;
         display: flex;
@@ -593,9 +598,9 @@ onMounted(() => {
         color: var(--el-color-danger);
         background-color: transparent;
         cursor: pointer;
-        opacity: 0.6;
+        opacity: 0.68;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 10;
+        flex-shrink: 0;
 
         &:hover {
             opacity: 1;
@@ -608,10 +613,14 @@ onMounted(() => {
         display: flex;
         gap: 20px;
         align-items: stretch;
-        margin-top: 12px;
+        margin-top: 16px;
     }
 
     .rep-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
         margin-bottom: 12px;
         padding-bottom: 8px;
         border-bottom: 1px dashed var(--el-border-color-lighter);
