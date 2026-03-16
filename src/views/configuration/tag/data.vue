@@ -311,11 +311,14 @@ onMounted(() => {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
+            gap: 16px;
+            flex-wrap: wrap;
 
             .left-tools {
                 display: flex;
                 gap: 12px;
                 align-items: center;
+                flex-wrap: wrap;
             }
         }
     }

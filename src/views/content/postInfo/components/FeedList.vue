@@ -39,6 +39,7 @@
             @select="val => handleSelect(item.id, val)"
             @delete="emit('delete', $event)"
             @preview="emit('preview', $event)"
+            @prewarm-video="emit('prewarm-video', $event)"
             @view-profile="emit('view-profile', $event)"
             @edit-tag="emit('edit-tag', $event)"
             @pin="emit('pin', $event)"
@@ -79,6 +80,7 @@ const emit = defineEmits<{
     (e: 'pin', post: any): void
     (e: 'unpin', post: any): void
     (e: 'preview', post: any): void
+    (e: 'prewarm-video', src: string): void
     (e: 'view-profile', post: any): void
     (e: 'like', post: any): void
     (e: 'qr-code', post: any): void

@@ -1,5 +1,16 @@
 <template>
     <div id="tags-view-container" class="tags-view-container">
+        <button
+            v-if="hasOverflow"
+            type="button"
+            class="scroll-nav prev"
+            :class="{ disabled: !canScrollPrev }"
+            :disabled="!canScrollPrev"
+            @click.stop="scrollTabs('prev')"
+            aria-label="向左滚动标签"
+        >
+            <Icon icon="ep:arrow-left-bold" />
+        </button>
         <ScrollPane ref="scrollPaneRef" class="tags-view-wrapper" @scroll="handleScroll">
             <router-link
                 v-for="tag in visitedViews"
@@ -19,13 +30,24 @@
                 </span>
             </router-link>
         </ScrollPane>
-        <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
-            <li @click="refreshSelectedTag(selectedTag)"><Icon icon="ep:refresh-right" /> 刷新页面</li>
-            <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)"><Icon icon="ep:close" /> 关闭当前</li>
-            <li @click="closeOthersTags"><Icon icon="ep:circle-close" /> 关闭其他</li>
-            <li v-if="!isFirstView()" @click="closeLeftTags"><Icon icon="ep:back" /> 关闭左侧</li>
-            <li v-if="!isLastView()" @click="closeRightTags"><Icon icon="ep:right" /> 关闭右侧</li>
-            <li @click="closeAllTags(selectedTag)"><Icon icon="ep:circle-close-filled" /> 全部关闭</li>
+        <button
+            v-if="hasOverflow"
+            type="button"
+            class="scroll-nav next"
+            :class="{ disabled: !canScrollNext }"
+            :disabled="!canScrollNext"
+            @click.stop="scrollTabs('next')"
+            aria-label="向右滚动标签"
+        >
+            <Icon icon="ep:arrow-right-bold" />
+        </button>
+        <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu modern-contextmenu">
+            <li @click="refreshSelectedTag(selectedTag)"><Icon icon="ep:refresh-right" class="menu-icon" /> 刷新页面</li>
+            <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)"><Icon icon="ep:close" class="menu-icon" /> 关闭当前</li>
+            <li @click="closeOthersTags"><Icon icon="ep:circle-close" class="menu-icon" /> 关闭其他</li>
+            <li v-if="!isFirstView()" @click="closeLeftTags"><Icon icon="ep:back" class="menu-icon" /> 关闭左侧</li>
+            <li v-if="!isLastView()" @click="closeRightTags"><Icon icon="ep:right" class="menu-icon" /> 关闭右侧</li>
+            <li @click="closeAllTags(selectedTag)" class="danger-item"><Icon icon="ep:circle-close-filled" class="menu-icon" /> 全部关闭</li>
         </ul>
     </div>
 </template>
@@ -36,7 +58,7 @@ import { getNormalPath } from '@/utils/utils'
 import useTagsViewStore from '@/store/modules/tagsView'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
-import { ref, watch, onMounted, computed, getCurrentInstance, nextTick } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, computed, getCurrentInstance, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const visible = ref(false)
@@ -45,6 +67,10 @@ const left = ref(0)
 const selectedTag = ref({})
 const affixTags = ref([])
 const scrollPaneRef = ref(null)
+const hasOverflow = ref(false)
+const canScrollPrev = ref(false)
+const canScrollNext = ref(false)
+const TAG_SCROLL_STEP = 220
 
 const { proxy } = getCurrentInstance()
 const route = useRoute()
@@ -60,6 +86,16 @@ watch(route, () => {
     moveToCurrentTag()
 })
 
+watch(
+    visitedViews,
+    () => {
+        nextTick(() => {
+            updateScrollState()
+        })
+    },
+    { deep: true }
+)
+
 watch(visible, value => {
     if (value) {
         document.body.addEventListener('click', closeMenu)
@@ -71,6 +107,15 @@ watch(visible, value => {
 onMounted(() => {
     initTags()
     addTags()
+    nextTick(() => {
+        updateScrollState()
+    })
+    window.addEventListener('resize', updateScrollState)
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateScrollState)
+    document.body.removeEventListener('click', closeMenu)
 })
 
 function isActive(r) {
@@ -80,8 +125,9 @@ function isActive(r) {
 function activeStyle(tag) {
     if (!isActive(tag)) return {}
     return {
-        'background-color': theme.value,
-        'border-color': theme.value
+        'background-color': `var(--el-color-primary-light-9)`,
+        color: `var(--el-color-primary)`,
+        'border-color': `var(--el-color-primary-light-5)`
     }
 }
 
@@ -152,9 +198,32 @@ function moveToCurrentTag() {
                 if (r.fullPath !== route.fullPath) {
                     useTagsViewStore().updateVisitedView(route)
                 }
+                updateScrollState()
             }
         }
     })
+}
+
+function updateScrollState() {
+    const state = scrollPaneRef.value?.getScrollState?.()
+    if (!state) {
+        hasOverflow.value = false
+        canScrollPrev.value = false
+        canScrollNext.value = false
+        return
+    }
+
+    hasOverflow.value = state.scrollWidth > state.containerWidth + 2
+    canScrollPrev.value = state.scrollLeft > 2
+    canScrollNext.value = state.scrollLeft + state.containerWidth < state.scrollWidth - 2
+}
+
+function scrollTabs(direction) {
+    const distance = direction === 'prev' ? -TAG_SCROLL_STEP : TAG_SCROLL_STEP
+    scrollPaneRef.value?.scrollBy?.(distance)
+    window.setTimeout(() => {
+        updateScrollState()
+    }, 220)
 }
 
 function refreshSelectedTag(view) {
@@ -218,7 +287,7 @@ function toLastView(visitedViews, view) {
 }
 
 function openMenu(tag, e) {
-    const menuMinWidth = 105
+    const menuMinWidth = 120
     const offsetLeft = proxy.$el.getBoundingClientRect().left
     const offsetWidth = proxy.$el.offsetWidth
     const maxLeft = offsetWidth - menuMinWidth
@@ -241,85 +310,117 @@ function closeMenu() {
 
 function handleScroll() {
     closeMenu()
+    updateScrollState()
 }
 </script>
 
 <style lang="scss" scoped>
 .tags-view-container {
-    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 44px;
     width: 100%;
-    background: var(--tags-bg, #fff);
-    border-bottom: 1px solid var(--tags-item-border, #d8dce5);
-    box-shadow:
-        0 1px 3px 0 rgba(0, 0, 0, 0.12),
-        0 0 3px 0 rgba(0, 0, 0, 0.04);
+    background: var(--el-bg-color);
+    box-shadow: inset 0 -1px 0 var(--el-border-color-light);
+
+    .scroll-nav {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: 999px;
+        background: var(--el-fill-color-blank);
+        color: var(--el-text-color-regular);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(.disabled) {
+            color: var(--el-color-primary);
+            border-color: var(--el-color-primary-light-5);
+            background: var(--el-color-primary-light-9);
+        }
+
+        &.disabled,
+        &:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+    }
 
     .tags-view-wrapper {
+        flex: 1;
+        min-width: 0;
+
         .tags-view-item {
             display: inline-flex;
             align-items: center;
             position: relative;
             cursor: pointer;
-            height: 26px;
-            line-height: 26px;
-            border: 1px solid var(--tags-item-border, #d8dce5);
-            color: var(--tags-item-text, #495060);
-            background: var(--tags-item-bg, #fff);
-            padding: 0 8px;
-            font-size: 12px;
-            margin-left: 5px;
-            margin-top: 4px;
-            border-radius: 2px;
-            transition: all 0.3s;
+            height: 30px;
+            line-height: 30px;
+            border: 1px solid var(--el-border-color-lighter);
+            color: var(--el-text-color-regular);
+            background: var(--el-fill-color-blank);
+            padding: 0 12px;
+            font-size: 13px;
+            border-radius: 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-            &:first-of-type {
-                margin-left: 15px;
-            }
-
-            &:last-of-type {
-                margin-right: 15px;
+            &:hover {
+                color: var(--el-color-primary);
+                background: var(--el-color-primary-light-9);
+                border-color: var(--el-color-primary-light-7);
             }
 
             &.active {
-                background-color: #42b983;
-                color: #fff;
-                border-color: #42b983;
+                background-color: var(--el-color-primary-light-9);
+                color: var(--el-color-primary);
+                border-color: var(--el-color-primary-light-5);
+                font-weight: 500;
 
                 &::before {
                     content: '';
-                    background: #fff;
+                    background: var(--el-color-primary);
                     display: inline-block;
-                    width: 8px;
-                    height: 8px;
+                    width: 6px;
+                    height: 6px;
                     border-radius: 50%;
                     position: relative;
                     margin-right: 6px;
+                    transition: all 0.3s;
                 }
             }
 
             .tag-icon {
-                margin-right: 4px;
-                font-size: 12px;
+                margin-right: 6px;
+                font-size: 14px;
             }
 
             .close-icon-wrapper {
-                margin-left: 4px;
+                margin-left: 6px;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                transition: all 0.3s;
 
                 .el-icon-close {
-                    width: 14px;
-                    height: 14px;
-                    border-radius: 50%;
-                    text-align: center;
-                    transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-                    font-size: 10px;
-                    padding: 1px;
+                    font-size: 12px;
+                    transition: all 0.3s;
+                }
 
-                    &:hover {
-                        background-color: var(--tags-close-hover, #b4bccc);
-                        color: #fff;
+                &:hover {
+                    background-color: var(--el-color-danger);
+                    color: #fff;
+
+                    .el-icon-close {
+                        transform: scale(1.1);
                     }
                 }
             }
@@ -330,31 +431,108 @@ function handleScroll() {
         content: none !important;
     }
 
-    .contextmenu {
+    .modern-contextmenu {
         margin: 0;
-        background: var(--el-bg-color-overlay, #fff);
+        background: var(--el-bg-color-overlay);
         z-index: 3000;
         position: absolute;
         list-style-type: none;
-        padding: 5px 0;
-        border-radius: 4px;
-        font-size: 12px;
+        padding: 6px 0;
+        border-radius: 12px;
+        font-size: 13px;
         font-weight: 400;
-        color: var(--tags-item-text, #333);
-        box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--el-border-color-light, #e4e7ed);
+        color: var(--el-text-color-regular);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--el-border-color-lighter);
+        min-width: 120px;
 
         li {
             margin: 0;
-            padding: 7px 16px;
+            padding: 8px 16px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            transition: all 0.2s;
+
+            .menu-icon {
+                font-size: 15px;
+                color: var(--el-text-color-secondary);
+                transition: color 0.2s;
+            }
 
             &:hover {
-                background: var(--tags-item-hover, #eee);
+                background: var(--el-fill-color-light);
+                color: var(--el-color-primary);
+
+                .menu-icon {
+                    color: var(--el-color-primary);
+                }
             }
+
+            &.danger-item {
+                &:hover {
+                    background: var(--el-color-danger-light-9);
+                    color: var(--el-color-danger);
+
+                    .menu-icon {
+                        color: var(--el-color-danger);
+                    }
+                }
+            }
+        }
+    }
+}
+
+:global(html.dark) .tags-view-container {
+    background: var(--el-bg-color);
+    box-shadow: inset 0 -1px 0 var(--el-border-color-darker);
+
+    .scroll-nav {
+        background: var(--el-fill-color-dark);
+        border-color: var(--el-border-color-darker);
+
+        &:hover:not(.disabled) {
+            background: var(--el-fill-color-darker);
+            border-color: var(--el-color-primary-dark-2);
+        }
+    }
+
+    .tags-view-wrapper .tags-view-item {
+        background: var(--el-fill-color-dark);
+        border-color: var(--el-border-color-darker);
+
+        &:hover {
+            background: var(--el-fill-color-darker);
+            border-color: var(--el-color-primary-dark-2);
+        }
+
+        &.active {
+            background-color: var(--el-color-primary-dark-2);
+            color: var(--el-color-primary-light-3);
+            border-color: var(--el-color-primary);
+
+            &::before {
+                background: var(--el-color-primary-light-3);
+            }
+        }
+
+        .close-icon-wrapper:hover {
+            background-color: var(--el-color-danger);
+        }
+    }
+
+    .modern-contextmenu {
+        background: var(--el-bg-color-overlay);
+        border-color: var(--el-border-color-darker);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+        li:hover {
+            background: var(--el-fill-color-darker);
+        }
+
+        li.danger-item:hover {
+            background: var(--el-color-danger-dark-2);
         }
     }
 }

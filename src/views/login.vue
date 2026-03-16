@@ -556,8 +556,8 @@ function togglePassword() {
     margin-bottom: 24px;
 
     :deep(.el-checkbox) {
-        display: flex;
-        align-items: flex-start;
+        display: inline-flex;
+        align-items: center;
         white-space: normal;
         min-height: 20px;
     }
@@ -567,7 +567,7 @@ function togglePassword() {
         font-size: 13px;
         line-height: 1.5;
         font-weight: 400;
-        padding-left: 8px;
+        padding-left: 6px;
     }
 
     .inline-policy-link {

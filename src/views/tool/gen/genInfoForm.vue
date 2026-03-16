@@ -27,7 +27,7 @@
                     <template #label>
                         <div class="label-item">
                             <span>生成包路径</span>
-                            <el-tooltip content="生成在哪个java包下，例如 com.ruoyi.system" placement="top">
+                            <el-tooltip content="生成在哪个java包下，例如 com.gaobang.system" placement="top">
                                 <Icon icon="ep:question-filled" class="label-icon" />
                             </el-tooltip>
                         </div>

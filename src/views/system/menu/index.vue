@@ -238,7 +238,7 @@
                             <template #label>
                                 <div class="form-item-label">
                                     <span>路由参数</span>
-                                    <el-tooltip content='访问路由的默认传递参数，如：{"id": 1, "name": "ry"}' placement="top">
+                                    <el-tooltip content='访问路由的默认传递参数，如：{"id": 1, "name": "gb"}' placement="top">
                                         <Icon icon="mdi:help-circle-outline" class="help-icon" />
                                     </el-tooltip>
                                 </div>
@@ -678,11 +678,14 @@ onMounted(() => {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            gap: 16px;
+            flex-wrap: wrap;
 
             .left-tools {
                 display: flex;
                 gap: 12px;
                 align-items: center;
+                flex-wrap: wrap;
             }
         }
     }

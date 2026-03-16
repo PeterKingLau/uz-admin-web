@@ -170,6 +170,72 @@ aside {
     min-height: 100%;
 }
 
+.app-container {
+    .table-header {
+        > .left-tools > .el-button,
+        > .left-tools > .el-dropdown .el-button,
+        > .table-tools > .el-button,
+        > .table-tools > .el-dropdown .el-button,
+        > div > .el-button,
+        > div > .el-dropdown .el-button {
+            border-radius: 8px;
+            font-weight: 500;
+            transition:
+                transform 0.2s ease,
+                opacity 0.2s ease,
+                box-shadow 0.2s ease;
+
+            &:hover {
+                transform: translateY(-1px);
+            }
+
+            &.is-disabled,
+            &:disabled {
+                opacity: 0.55;
+                cursor: not-allowed;
+                box-shadow: none !important;
+                transform: none !important;
+            }
+
+            &.is-disabled:hover,
+            &:disabled:hover {
+                transform: none;
+            }
+        }
+    }
+
+    .mb-4.flex.items-center.justify-between > .flex > .el-button,
+    .mb-4.flex.items-center.justify-between > .flex > .el-dropdown .el-button,
+    .el-row.mb8 > .el-col > .el-button,
+    .el-row.mb8 > .el-col > .el-dropdown .el-button,
+    .el-row.mb8 > [class*='el-col-'] > .el-button,
+    .el-row.mb8 > [class*='el-col-'] > .el-dropdown .el-button {
+        border-radius: 8px;
+        font-weight: 500;
+        transition:
+            transform 0.2s ease,
+            opacity 0.2s ease,
+            box-shadow 0.2s ease;
+
+        &:hover {
+            transform: translateY(-1px);
+        }
+
+        &.is-disabled,
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        &.is-disabled:hover,
+        &:disabled:hover {
+            transform: none;
+        }
+    }
+}
+
 .components-container {
     margin: 30px 50px;
     position: relative;

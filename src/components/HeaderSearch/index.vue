@@ -2,7 +2,7 @@
     <div @click.stop="click">
         <Icon icon="ep:search" />
 
-        <el-dialog v-model="show" width="600" @close="close" :show-close="false" append-to-body>
+        <el-dialog v-model="show" title="菜单搜索" width="600" @close="close" :show-close="false" append-to-body>
             <el-input
                 v-model="search"
                 ref="headerSearchSelectRef"

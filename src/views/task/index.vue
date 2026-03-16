@@ -1183,10 +1183,13 @@ onMounted(() => {
         justify-content: space-between;
         align-items: center;
         padding-bottom: 4px;
+        gap: 16px;
+        flex-wrap: wrap;
 
         .left-tools {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
     }
 }

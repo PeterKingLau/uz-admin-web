@@ -143,6 +143,7 @@ const emit = defineEmits<{
     (e: 'pin', post: any): void
     (e: 'unpin', post: any): void
     (e: 'preview', post: any): void
+    (e: 'prewarm-video', src: string): void
     (e: 'view-profile', post: any): void
     (e: 'like', post: any): void
     (e: 'qrcode', post: any): void
@@ -250,6 +251,9 @@ const textCoverStyle = computed(() => {
 
 const handleMediaClick = () => {
     stopHoverPreview()
+    if (isVideoPost.value && videoPreviewSrc.value) {
+        emit('prewarm-video', videoPreviewSrc.value)
+    }
     if (isBatchMode.value) {
         emit('select', !props.checked)
     } else if (canPreview.value) {
@@ -285,6 +289,7 @@ const stopHoverPreview = () => {
 
 const handleMediaMouseEnter = async () => {
     if (!canHoverPlayPreview.value) return
+    emit('prewarm-video', videoPreviewSrc.value)
     await nextTick()
     const video = hoverVideoRef.value
     if (!video) return

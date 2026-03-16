@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /**
  * v-hasRole 角色权限处理
- * Copyright (c) 2019 ruoyi
+ * Copyright (c) 2025 GaoBang
  */
 
 import useUserStore from '@/store/modules/user'

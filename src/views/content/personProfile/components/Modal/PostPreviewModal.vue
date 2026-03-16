@@ -34,7 +34,7 @@
                 <div class="preview-detail-pane">
                     <div class="detail-header">
                         <div class="author-block">
-                            <el-avatar :size="36" :src="resolveAvatar(post.avatar)">
+                            <el-avatar :size="34" :src="resolveAvatar(post.avatar)">
                                 {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
                             </el-avatar>
                             <div class="author-meta">
@@ -576,15 +576,15 @@ defineExpose({ focusInput })
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding-bottom: 4px;
+    gap: 12px;
+    padding-bottom: 0;
 }
 
 .follow-btn {
-    height: 32px;
-    padding: 0 16px;
-    font-size: 13px;
-    font-weight: 700;
+    height: 30px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 600;
     letter-spacing: 0.4px;
     background: linear-gradient(135deg, var(--el-color-danger) 0%, var(--el-color-danger-light-3) 100%);
     border-color: transparent;
@@ -616,19 +616,19 @@ defineExpose({ focusInput })
 .author-block {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
 }
 
 .author-meta {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     min-width: 0;
 }
 
 .author-meta .name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     white-space: nowrap;
@@ -637,20 +637,24 @@ defineExpose({ focusInput })
 }
 
 .detail-content {
-    font-size: 15px;
-    line-height: 1.9;
-    color: var(--el-text-color-regular);
+    font-size: 16px;
+    line-height: 1.95;
+    color: var(--el-text-color-primary);
     white-space: pre-wrap;
-    max-width: 360px;
+    max-width: 380px;
+    margin-top: 6px;
 }
 
 .detail-text {
     margin: 0;
+    font-weight: 500;
+    letter-spacing: 0.01em;
 }
 
 .detail-text.empty {
     color: var(--el-text-color-placeholder);
     font-style: italic;
+    font-weight: 400;
 }
 
 .detail-tags {
@@ -675,7 +679,7 @@ defineExpose({ focusInput })
     justify-content: space-between;
     font-size: 13px;
     color: var(--el-text-color-secondary);
-    margin-top: 20px;
+    margin-top: 22px;
 }
 
 .detail-divider {
@@ -689,10 +693,10 @@ defineExpose({ focusInput })
 }
 
 .comment-count {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--el-text-color-placeholder);
+    margin-bottom: 12px;
 }
 
 .comment-list {
@@ -837,12 +841,12 @@ defineExpose({ focusInput })
 }
 
 .comment-empty {
-    margin-top: 22px;
+    margin-top: 18px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
-    color: var(--el-text-color-placeholder);
+    font-size: 12px;
+    color: color-mix(in srgb, var(--el-text-color-placeholder) 82%, transparent);
 }
 
 .comment-loading {

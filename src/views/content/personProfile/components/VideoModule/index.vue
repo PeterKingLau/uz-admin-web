@@ -1,7 +1,7 @@
 <template>
     <component :is="teleportWrapper" v-bind="teleportAttrs">
         <div
-            v-if="visible"
+            v-show="visible"
             class="video-immersive-container"
             :class="{ 'page-mode': !props.useTeleport }"
             @click="handleClose"
@@ -30,14 +30,20 @@
                             class="video-element"
                             playsinline
                             autoplay
-                            preload="metadata"
+                            preload="auto"
                             controlslist="nodownload noremoteplayback"
+                            @loadstart="onLoadStart"
+                            @loadeddata="onLoadedData"
                             @loadedmetadata="onLoadedMeta"
+                            @canplay="onCanPlay"
                             @timeupdate="onTimeUpdate"
                             @durationchange="onDurationChange"
                             @play="onPlay"
                             @playing="onPlaying"
                             @pause="onPause"
+                            @waiting="onWaiting"
+                            @stalled="onWaiting"
+                            @seeking="onWaiting"
                             @volumechange="onVolumeChange"
                             @ratechange="onRateChange"
                         ></video>
@@ -47,6 +53,15 @@
                                 <img :src="videoPosterUrl" alt="video cover" class="video-cover-image" />
                                 <div class="video-cover-play">
                                     <Icon icon="mdi:play" />
+                                </div>
+                            </div>
+                        </transition>
+
+                        <transition name="video-buffer-fade">
+                            <div v-if="showVideoBuffering" class="video-buffer-overlay" aria-live="polite">
+                                <div class="video-buffer-indicator">
+                                    <Icon icon="mdi:loading" class="buffer-icon" />
+                                    <span>{{ hasRenderedFirstFrame ? '正在缓冲...' : '正在加载视频...' }}</span>
                                 </div>
                             </div>
                         </transition>
@@ -540,6 +555,9 @@ const canSubmitRepost = computed(() => Boolean(repostContent.value.trim()))
 
 const isPlaying = ref(false)
 const videoCoverOverlayVisible = ref(false)
+const isVideoBuffering = ref(false)
+const hasRenderedFirstFrame = ref(false)
+const showVideoBuffering = computed(() => isVideoBuffering.value && (!videoCoverOverlayVisible.value || hasRenderedFirstFrame.value))
 const showPauseOverlay = computed(() => !isPlaying.value && !videoCoverOverlayVisible.value)
 
 const duration = ref(0)
@@ -1118,10 +1136,12 @@ const scheduleCloseVolumePanel = () => {
 const safePlay = async el => {
     if (!el?.play) return
     try {
+        isVideoBuffering.value = true
         const result = el.play()
         if (result?.catch) await result
     } catch (error) {
         if (error?.name === 'AbortError') return
+        isVideoBuffering.value = false
         console.error(error)
     }
 }
@@ -1146,6 +1166,21 @@ const onLoadedMeta = () => {
     updateWatermarkAndFit()
 }
 
+const onLoadStart = () => {
+    isVideoBuffering.value = true
+    hasRenderedFirstFrame.value = false
+}
+
+const onLoadedData = () => {
+    hasRenderedFirstFrame.value = true
+}
+
+const onCanPlay = () => {
+    if (isPlaying.value) {
+        isVideoBuffering.value = false
+    }
+}
+
 const onTimeUpdate = () => {
     const el = playerRef.value
     if (!el) return
@@ -1164,6 +1199,8 @@ const onPlay = () => {
 
 const onPlaying = () => {
     isPlaying.value = true
+    hasRenderedFirstFrame.value = true
+    isVideoBuffering.value = false
     videoCoverOverlayVisible.value = false
 }
 
@@ -1174,6 +1211,10 @@ const onPause = () => {
     if (Number(el.currentTime || 0) <= 0.08 && videoPosterUrl.value) {
         videoCoverOverlayVisible.value = true
     }
+}
+
+const onWaiting = () => {
+    isVideoBuffering.value = true
 }
 
 const onVolumeChange = () => {
@@ -1428,11 +1469,16 @@ const stopPlayer = () => {
     if (el) {
         try {
             el.pause?.()
+            if (Number(el.currentTime || 0) > 0) {
+                el.currentTime = 0
+            }
         } catch (e) {
             console.error(e)
         }
     }
     isPlaying.value = false
+    isVideoBuffering.value = false
+    hasRenderedFirstFrame.value = false
     showWatermark.value = false
     videoPillarSize.value = 0
     isPortraitVideo.value = false
@@ -1467,8 +1513,12 @@ const initPlayer = async () => {
     document.addEventListener('fullscreenchange', handleResize)
     window.addEventListener('keydown', onKeydown)
     lockPageScroll()
+    isVideoBuffering.value = true
+    hasRenderedFirstFrame.value = false
     el.playbackRate = Number(playbackRate.value || 1)
     el.volume = Math.min(1, Math.max(0, Number(volume.value)))
+    el.preload = 'auto'
+    el.load?.()
     updateWatermarkAndFit()
     await safePlay(el)
 }
@@ -1748,6 +1798,38 @@ $color-gold: var(--el-color-warning);
     }
 }
 
+.video-buffer-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--vm-black-18), var(--vm-black-28));
+
+    .video-buffer-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: var(--vm-black-45);
+        border: 1px solid var(--vm-white-12);
+        color: var(--vm-color-white);
+        font-size: 13px;
+        line-height: 1;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 10px 28px var(--vm-black-30);
+    }
+
+    .buffer-icon {
+        font-size: 18px;
+        animation: vm-spin 0.9s linear infinite;
+    }
+}
+
 .pause-overlay {
     position: absolute;
     inset: 0;
@@ -1785,6 +1867,19 @@ $color-gold: var(--el-color-warning);
         background: var(--vm-white-18);
         border-color: var(--vm-white-35);
     }
+}
+
+.video-buffer-fade-enter-active,
+.video-buffer-fade-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.video-buffer-fade-enter-from,
+.video-buffer-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.96);
 }
 
 .top-bar {
@@ -2788,6 +2883,13 @@ $color-gold: var(--el-color-warning);
         opacity: 0.3;
     }
 }
+
+@keyframes vm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 @keyframes soundbar {
     0%,
     100% {

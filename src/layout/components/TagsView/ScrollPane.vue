@@ -5,6 +5,7 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import useTagsViewStore from '@/store/modules/tagsView'
 
 const tagAndTagSpacing = ref(4)
@@ -14,6 +15,12 @@ const scrollWrapper = computed(() => {
     const container = scrollContainerRef.value
     return container?.wrapRef || container?.$refs?.wrapRef || null
 })
+
+const emits = defineEmits(['scroll'])
+
+const emitScroll = () => {
+    emits('scroll')
+}
 
 onMounted(() => {
     scrollWrapper.value?.addEventListener?.('scroll', emitScroll, true)
@@ -26,13 +33,38 @@ onBeforeUnmount(() => {
 function handleScroll(e) {
     const $scrollWrapper = scrollWrapper.value
     if (!$scrollWrapper) return
-    const eventDelta = e.wheelDelta || -e.deltaY * 40
+    const eventDelta = e.deltaX || e.wheelDelta || -e.deltaY * 40
     $scrollWrapper.scrollLeft = $scrollWrapper.scrollLeft + eventDelta / 4
 }
 
-const emits = defineEmits()
-const emitScroll = () => {
-    emits('scroll')
+function scrollBy(distance) {
+    const $scrollWrapper = scrollWrapper.value
+    if (!$scrollWrapper) return
+    const nextLeft = $scrollWrapper.scrollLeft + distance
+    if (typeof $scrollWrapper.scrollTo === 'function') {
+        $scrollWrapper.scrollTo({
+            left: nextLeft,
+            behavior: 'smooth'
+        })
+        return
+    }
+    $scrollWrapper.scrollLeft = nextLeft
+}
+
+function getScrollState() {
+    const $scrollWrapper = scrollWrapper.value
+    if (!$scrollWrapper) {
+        return {
+            scrollLeft: 0,
+            scrollWidth: 0,
+            containerWidth: 0
+        }
+    }
+    return {
+        scrollLeft: $scrollWrapper.scrollLeft,
+        scrollWidth: $scrollWrapper.scrollWidth,
+        containerWidth: $scrollWrapper.clientWidth
+    }
 }
 
 const tagsViewStore = useTagsViewStore()
@@ -47,7 +79,6 @@ function moveToTarget(currentTag) {
     let firstTag = null
     let lastTag = null
 
-    // find first tag and last tag
     if (visitedViews.value.length > 0) {
         firstTag = visitedViews.value[0]
         lastTag = visitedViews.value[visitedViews.value.length - 1]
@@ -61,8 +92,10 @@ function moveToTarget(currentTag) {
         const tagListDom = document.getElementsByClassName('tags-view-item')
         const currentIndex = visitedViews.value.findIndex(item => item === currentTag)
         if (currentIndex <= 0 || currentIndex >= visitedViews.value.length - 1) return
+
         let prevTag = null
         let nextTag = null
+
         for (const k in tagListDom) {
             if (k !== 'length' && Object.hasOwnProperty.call(tagListDom, k)) {
                 if (tagListDom[k].dataset.path === visitedViews.value[currentIndex - 1].path) {
@@ -75,11 +108,9 @@ function moveToTarget(currentTag) {
         }
         if (!prevTag || !nextTag) return
 
-        // the tag's offsetLeft after of nextTag
         const afterNextTagOffsetLeft = nextTag.offsetLeft + nextTag.offsetWidth + tagAndTagSpacing.value
-
-        // the tag's offsetLeft before of prevTag
         const beforePrevTagOffsetLeft = prevTag.offsetLeft - tagAndTagSpacing.value
+
         if (afterNextTagOffsetLeft > $scrollWrapper.scrollLeft + $containerWidth) {
             $scrollWrapper.scrollLeft = afterNextTagOffsetLeft - $containerWidth
         } else if (beforePrevTagOffsetLeft < $scrollWrapper.scrollLeft) {
@@ -89,21 +120,59 @@ function moveToTarget(currentTag) {
 }
 
 defineExpose({
-    moveToTarget
+    moveToTarget,
+    scrollBy,
+    getScrollState
 })
 </script>
 
 <style lang="scss" scoped>
 .scroll-container {
-    white-space: nowrap;
     position: relative;
-    overflow: hidden;
     width: 100%;
-    :deep(.el-scrollbar__bar) {
-        bottom: 0px;
-    }
+    overflow: hidden;
+    white-space: nowrap;
+    background-color: var(--el-bg-color);
+    box-shadow: inset 0 -1px 0 var(--el-border-color-light);
+
     :deep(.el-scrollbar__wrap) {
-        height: 39px;
+        height: 44px;
+        display: flex;
+        align-items: center;
     }
+
+    :deep(.el-scrollbar__view) {
+        display: inline-flex;
+        align-items: center;
+        height: 100%;
+        padding: 0 12px;
+        gap: 6px;
+    }
+
+    :deep(.el-scrollbar__bar.is-horizontal) {
+        height: 3px;
+        bottom: 0;
+        opacity: 0;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: transparent;
+
+        .el-scrollbar__thumb {
+            background-color: var(--el-border-color-dark);
+            border-radius: 3px;
+
+            &:hover {
+                background-color: var(--el-text-color-secondary);
+            }
+        }
+    }
+
+    &:hover :deep(.el-scrollbar__bar.is-horizontal) {
+        opacity: 1;
+    }
+}
+
+:global(html.dark) .scroll-container {
+    background-color: var(--el-bg-color-overlay);
+    box-shadow: inset 0 -1px 0 var(--el-border-color-darker);
 }
 </style>

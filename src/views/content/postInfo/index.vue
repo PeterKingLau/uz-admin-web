@@ -50,6 +50,7 @@
                     @load-more="loadMore"
                     @delete="handleSingleDelete"
                     @preview="handlePreview"
+                    @prewarm-video="prewarmVideoSource"
                     @view-profile="handleViewProfile"
                     @edit-tag="handleEditTag"
                     @pin="handlePin"
@@ -242,6 +243,15 @@ const previewPost = ref<any | null>(null)
 const videoPreviewVisible = ref(false)
 const videoPreviewPost = ref<any | null>(null)
 const videoPreviewSrc = ref('')
+const videoPreloadCache = new Map<
+    string,
+    {
+        el: HTMLVideoElement
+        lastUsedAt: number
+        dispose: () => void
+    }
+>()
+const maxVideoPreloadEntries = 4
 const followActionLoading = ref(false)
 const likeActionLoading = ref(false)
 const bookmarkActionLoading = ref(false)
@@ -393,6 +403,59 @@ const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|fl
 const getVideoUrl = (post: any) => {
     const list = normalizeMediaList(post).map(resolveMediaUrl).filter(Boolean)
     return list[1] || list[0] || ''
+}
+
+const disposePreloadedVideo = (src: string) => {
+    const cached = videoPreloadCache.get(src)
+    if (!cached) return
+    cached.dispose()
+    videoPreloadCache.delete(src)
+}
+
+const trimVideoPreloadCache = (preserveSrc?: string) => {
+    if (videoPreloadCache.size <= maxVideoPreloadEntries) return
+    const staleEntries = [...videoPreloadCache.entries()]
+        .filter(([src]) => src !== preserveSrc && src !== videoPreviewSrc.value)
+        .sort((a, b) => a[1].lastUsedAt - b[1].lastUsedAt)
+
+    while (videoPreloadCache.size > maxVideoPreloadEntries && staleEntries.length) {
+        const [src] = staleEntries.shift()!
+        disposePreloadedVideo(src)
+    }
+}
+
+const prewarmVideoSource = (src: string) => {
+    if (!src || typeof document === 'undefined') return
+    const normalizedSrc = String(src).trim()
+    if (!normalizedSrc) return
+
+    const cached = videoPreloadCache.get(normalizedSrc)
+    if (cached) {
+        cached.lastUsedAt = Date.now()
+        return
+    }
+
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.muted = true
+    video.defaultMuted = true
+    video.playsInline = true
+    video.src = normalizedSrc
+    video.load()
+
+    const dispose = () => {
+        video.pause()
+        video.removeAttribute('src')
+        video.load()
+    }
+
+    videoPreloadCache.set(normalizedSrc, {
+        el: video,
+        lastUsedAt: Date.now(),
+        dispose
+    })
+
+    trimVideoPreloadCache(normalizedSrc)
 }
 
 const resolveCollectionVideoSrc = (post: any) => {
@@ -865,6 +928,7 @@ function handlePreview(post: any) {
     if (type === POST_TYPE.VIDEO) {
         const src = getVideoUrl(post)
         if (!src) return
+        prewarmVideoSource(src)
         if (previewVisible.value) closePreview()
         videoPreviewPost.value = post
         videoPreviewSrc.value = src
@@ -914,14 +978,8 @@ function closePreview() {
     resetPreview()
 }
 
-function resetVideoPreview() {
-    videoPreviewPost.value = null
-    videoPreviewSrc.value = ''
-}
-
 function closeVideoPreview() {
     videoPreviewVisible.value = false
-    resetVideoPreview()
 }
 
 function focusCommentInput() {
@@ -1274,6 +1332,7 @@ const handleVideoSelectCollectionPost = (post: any) => {
     if (!post) return
     const src = resolveCollectionVideoSrc(post)
     if (!src) return
+    prewarmVideoSource(src)
     videoPreviewPost.value = normalizePostFlags(post)
     videoPreviewSrc.value = src
     videoPreviewVisible.value = true
@@ -1423,6 +1482,7 @@ onBeforeUnmount(() => {
     window.removeEventListener(CONTENT_LIST_REFRESH_EVENT, handleContentListRefresh as EventListener)
     unbindWindowScroll()
     isBodyScrollLocked.value = false
+    ;[...videoPreloadCache.keys()].forEach(disposePreloadedVideo)
 })
 
 function handleContentListRefresh() {

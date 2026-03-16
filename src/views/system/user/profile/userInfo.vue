@@ -4,31 +4,76 @@
             <el-row :gutter="24">
                 <el-col :span="12" :xs="24">
                     <el-form-item label="用户昵称" prop="nickName">
-                        <el-input v-model="form.nickName" maxlength="30" placeholder="请输入您的昵称">
-                            <template #prefix>
-                                <Icon icon="ep:user" />
-                            </template>
-                        </el-input>
+                        <div class="field-wrapper">
+                            <transition name="fade-mode" mode="out-in">
+                                <div v-if="activeEditField !== 'nickName'" class="info-view" @click="startEditField('nickName')">
+                                    <div class="view-content">
+                                        <Icon icon="ep:user" class="view-icon" />
+                                        <span class="view-text">{{ form.nickName || '请输入您的昵称' }}</span>
+                                    </div>
+                                    <span class="view-action">点击编辑</span>
+                                </div>
+
+                                <div v-else class="info-edit">
+                                    <el-input v-model="form.nickName" maxlength="30" placeholder="请输入您的昵称">
+                                        <template #prefix>
+                                            <Icon icon="ep:user" />
+                                        </template>
+                                    </el-input>
+                                    <el-button type="primary" link size="small" class="confirm-btn" @click="finishEditField('nickName')"> 确定 </el-button>
+                                </div>
+                            </transition>
+                        </div>
                     </el-form-item>
                 </el-col>
 
                 <el-col :span="12" :xs="24">
                     <el-form-item label="手机号码" prop="phonenumber">
-                        <el-input v-model="form.phonenumber" maxlength="11" placeholder="请输入手机号码">
-                            <template #prefix>
-                                <Icon icon="ep:iphone" />
-                            </template>
-                        </el-input>
+                        <div class="field-wrapper">
+                            <transition name="fade-mode" mode="out-in">
+                                <div v-if="activeEditField !== 'phonenumber'" class="info-view" @click="startEditField('phonenumber')">
+                                    <div class="view-content">
+                                        <Icon icon="ep:iphone" class="view-icon" />
+                                        <span class="view-text">{{ form.phonenumber || '请输入手机号码' }}</span>
+                                    </div>
+                                    <span class="view-action">点击编辑</span>
+                                </div>
+
+                                <div v-else class="info-edit">
+                                    <el-input v-model="form.phonenumber" maxlength="11" placeholder="请输入手机号码">
+                                        <template #prefix>
+                                            <Icon icon="ep:iphone" />
+                                        </template>
+                                    </el-input>
+                                    <el-button type="primary" link size="small" class="confirm-btn" @click="finishEditField('phonenumber')"> 确定 </el-button>
+                                </div>
+                            </transition>
+                        </div>
                     </el-form-item>
                 </el-col>
 
                 <el-col :span="12" :xs="24">
                     <el-form-item label="邮箱地址" prop="email">
-                        <el-input v-model="form.email" maxlength="50" placeholder="请输入邮箱地址">
-                            <template #prefix>
-                                <Icon icon="ep:message" />
-                            </template>
-                        </el-input>
+                        <div class="field-wrapper">
+                            <transition name="fade-mode" mode="out-in">
+                                <div v-if="activeEditField !== 'email'" class="info-view" @click="startEditField('email')">
+                                    <div class="view-content">
+                                        <Icon icon="ep:message" class="view-icon" />
+                                        <span class="view-text">{{ form.email || '请输入邮箱地址' }}</span>
+                                    </div>
+                                    <span class="view-action">点击编辑</span>
+                                </div>
+
+                                <div v-else class="info-edit">
+                                    <el-input v-model="form.email" maxlength="50" placeholder="请输入邮箱地址">
+                                        <template #prefix>
+                                            <Icon icon="ep:message" />
+                                        </template>
+                                    </el-input>
+                                    <el-button type="primary" link size="small" class="confirm-btn" @click="finishEditField('email')"> 确定 </el-button>
+                                </div>
+                            </transition>
+                        </div>
                     </el-form-item>
                 </el-col>
 
@@ -85,6 +130,7 @@ const userStore = useUserStore()
 const userRef = ref(null)
 const loading = ref(false)
 const isEditSex = ref(false)
+const activeEditField = ref('')
 
 const form = ref({
     nickName: '',
@@ -109,6 +155,8 @@ watch(
     () => props.user,
     user => {
         if (!user) return
+        activeEditField.value = ''
+        isEditSex.value = false
         form.value = {
             nickName: user.nickName || '',
             phonenumber: user.phonenumber || '',
@@ -118,6 +166,15 @@ watch(
     },
     { immediate: true, deep: true }
 )
+
+function startEditField(field) {
+    activeEditField.value = field
+}
+
+function finishEditField(field) {
+    if (activeEditField.value !== field) return
+    activeEditField.value = ''
+}
 
 function submit() {
     if (!userRef.value) return
@@ -182,6 +239,77 @@ function close() {
     height: 40px;
     display: flex;
     align-items: center;
+}
+
+.field-wrapper {
+    min-height: 40px;
+}
+
+.info-view {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: var(--el-fill-color-lighter);
+    gap: 12px;
+
+    &:hover {
+        border-color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+    }
+
+    .view-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .view-icon {
+        font-size: 16px;
+        line-height: 1;
+        color: var(--el-text-color-secondary);
+        flex-shrink: 0;
+    }
+
+    .view-text {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--el-text-color-primary);
+        word-break: break-all;
+    }
+
+    .view-action {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        opacity: 0.7;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+}
+
+.info-edit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+
+    :deep(.el-input) {
+        flex: 1;
+    }
+}
+
+.confirm-btn {
+    font-size: 14px;
+    padding: 0 8px;
+    flex-shrink: 0;
 }
 
 .gender-view {
@@ -253,11 +381,6 @@ function close() {
         &.is-bordered {
             padding: 0 15px 0 10px;
         }
-    }
-
-    .confirm-btn {
-        font-size: 14px;
-        padding: 0 8px;
     }
 }
 
