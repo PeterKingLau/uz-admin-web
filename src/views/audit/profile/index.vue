@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="app-container audit-profile">
         <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch" class="search-form">
             <el-form-item label="帖子类型" prop="postType">
@@ -123,7 +123,6 @@
         >
             <div class="drawer-content">
                 <el-descriptions :column="2" border class="detail-desc">
-                    <el-descriptions-item label="用户名">{{ current?.userName }}</el-descriptions-item>
                     <el-descriptions-item label="昵称">{{ current?.nickName }}</el-descriptions-item>
                     <el-descriptions-item label="类型">
                         <EnumTag enum-type="POST_TYPE" :value="current?.postType" />
@@ -436,6 +435,9 @@ function hasMedia(row) {
             line-height: 1.6;
             color: var(--el-text-color-regular);
             border: 1px solid var(--el-border-color-lighter);
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         .media-box {

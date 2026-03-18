@@ -1,49 +1,47 @@
 <template>
-    <div class="app-container content-post-page">
-        <el-row :gutter="40" class="content-row">
-            <el-col :xs="24" :sm="24" :md="14" :lg="15" :xl="16">
-                <PostEditorPanel
-                    ref="editorRef"
-                    :form="form"
-                    :rules="rules"
-                    v-model:image-urls="imageUrls"
-                    v-model:video-urls="videoUrls"
-                    v-model:video-batch-contents="videoBatchContents"
-                    v-model:video-batch-tag-ids="videoBatchTagIds"
-                    v-model:batch-preview-index="batchPreviewIndex"
-                    v-model:selected-tag-ids="selectedTagIds"
-                    :video-batch-error-indexes="videoBatchErrorIndexes"
-                    :video-batch-tag-error-indexes="videoBatchTagErrorIndexes"
-                    :interest-tree="interestTree"
-                    :interest-loading="interestLoading"
-                    :submitting="submitting"
-                    @video-cover-change="handleVideoCoverChange"
-                    @change-post-type="handleTypeChange"
-                    @content-input="handleContentInput"
-                    @submit="handleSubmit"
-                    @reset="handleReset"
-                />
-            </el-col>
+    <CreatePageShell title="发布内容" subtitle="编辑正文、素材与标签，实时查看移动端展示效果">
+        <template #primary>
+            <PostEditorPanel
+                ref="editorRef"
+                :form="form"
+                :rules="rules"
+                v-model:image-urls="imageUrls"
+                v-model:video-urls="videoUrls"
+                v-model:video-batch-contents="videoBatchContents"
+                v-model:video-batch-tag-ids="videoBatchTagIds"
+                v-model:batch-preview-index="batchPreviewIndex"
+                v-model:selected-tag-ids="selectedTagIds"
+                :video-batch-error-indexes="videoBatchErrorIndexes"
+                :video-batch-tag-error-indexes="videoBatchTagErrorIndexes"
+                :interest-tree="interestTree"
+                :interest-loading="interestLoading"
+                :submitting="submitting"
+                @video-cover-change="handleVideoCoverChange"
+                @change-post-type="handleTypeChange"
+                @content-input="handleContentInput"
+                @submit="handleSubmit"
+                @reset="handleReset"
+            />
+        </template>
 
-            <el-col :xs="24" :sm="24" :md="10" :lg="9" :xl="8">
-                <PostPreviewPanel
-                    :current-time="currentTime"
-                    :user-avatar="userAvatar"
-                    :user-nick-name="userNickName"
-                    :post-type="form.postType"
-                    :preview-media-list="previewMediaList"
-                    :preview-video-cover-url="previewVideoCoverUrl"
-                    :preview-content="previewContent"
-                    :preview-content-title="previewContentTitle"
-                    :preview-content-placeholder="previewContentPlaceholder"
-                    :selected-tag-names="selectedTagNames"
-                    :batch-preview-enabled="isBatchVideoMode"
-                    :batch-preview-index="safeBatchPreviewIndex"
-                    :batch-preview-total="videoMediaUrls.length"
-                />
-            </el-col>
-        </el-row>
-    </div>
+        <template #secondary>
+            <PostPreviewPanel
+                :current-time="currentTime"
+                :user-avatar="userAvatar"
+                :user-nick-name="userNickName"
+                :post-type="form.postType"
+                :preview-media-list="previewMediaList"
+                :preview-video-cover-url="previewVideoCoverUrl"
+                :preview-content="previewContent"
+                :preview-content-title="previewContentTitle"
+                :preview-content-placeholder="previewContentPlaceholder"
+                :selected-tag-names="selectedTagNames"
+                :batch-preview-enabled="isBatchVideoMode"
+                :batch-preview-index="safeBatchPreviewIndex"
+                :batch-preview-total="videoMediaUrls.length"
+            />
+        </template>
+    </CreatePageShell>
 </template>
 
 <script setup name="ContentPost" lang="ts">
@@ -55,6 +53,7 @@ import useUserStore from '@/store/modules/user'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 import { getImgUrl } from '@/utils/img'
 import { markContentListRefreshNeeded } from '@/utils/content/refreshSignal'
+import CreatePageShell from '@/components/CreatePageShell/index.vue'
 import PostEditorPanel from './components/PostEditorPanel.vue'
 import PostPreviewPanel from './components/PostPreviewPanel.vue'
 
@@ -637,13 +636,4 @@ async function handleReset() {
 }
 </script>
 
-<style lang="scss" scoped>
-.content-post-page {
-    overflow-x: hidden;
-}
-
-.content-row {
-    max-width: 1440px;
-    margin: 0 auto;
-}
-</style>
+<style lang="scss" scoped></style>

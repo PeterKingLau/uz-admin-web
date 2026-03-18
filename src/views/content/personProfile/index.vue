@@ -1360,5 +1360,3 @@ onBeforeUnmount(() => {
 @include profile.profile-header;
 @include profile.profile-skeleton;
 </style>
-
-

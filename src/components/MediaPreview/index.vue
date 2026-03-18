@@ -41,19 +41,19 @@
                     </div>
                 </div>
 
-                <el-image-viewer
-                    v-if="showViewer"
-                    :url-list="imageList"
-                    :initial-index="initialIndex"
-                    :z-index="4000"
-                    :teleported="true"
-                    :hide-on-click-modal="true"
-                    @switch="onViewerSwitch"
-                    @close="closeViewer"
-                />
-
                 <teleport to="body">
-                    <div v-if="showViewer" class="viewer-count-badge">{{ currentIndex + 1 }} / {{ imageList.length }}</div>
+                    <el-image-viewer
+                        v-if="showViewer"
+                        :url-list="imageList"
+                        :initial-index="initialIndex"
+                        :z-index="viewerZIndex"
+                        :hide-on-click-modal="true"
+                        @switch="onViewerSwitch"
+                        @close="closeViewer"
+                    />
+                    <div v-if="showViewer" class="viewer-count-badge" :style="{ zIndex: viewerZIndex + 1 }">
+                        {{ currentIndex + 1 }} / {{ imageList.length }}
+                    </div>
                 </teleport>
             </template>
 
@@ -66,6 +66,7 @@
 
 <script setup>
 import { computed, ref, getCurrentInstance } from 'vue'
+import { useZIndex } from 'element-plus'
 import { isExternal } from '@/utils/validate'
 import { POST_TYPE, AUDIT_STATUS } from '@/utils/enum'
 import VideoAssetPreview from '@/components/VideoAssetPreview/index.vue'
@@ -78,6 +79,7 @@ const props = defineProps({
 })
 
 const { proxy } = getCurrentInstance()
+const { nextZIndex } = useZIndex()
 
 const isAuditRejected = computed(() => props.auditStatus === AUDIT_STATUS.REJECTED)
 const isImagePost = computed(() => props.postType === POST_TYPE.IMAGE)
@@ -115,8 +117,10 @@ const remainingCount = computed(() => Math.max(0, imageList.value.length - Math.
 const showViewer = ref(false)
 const initialIndex = ref(0)
 const currentIndex = ref(0)
+const viewerZIndex = ref(6000)
 
 function openPreview(index) {
+    viewerZIndex.value = nextZIndex()
     initialIndex.value = index
     currentIndex.value = index
     showViewer.value = true
@@ -276,6 +280,5 @@ const videoSrc = computed(() => {
     pointer-events: none;
     backdrop-filter: blur(4px);
     font-variant-numeric: tabular-nums;
-    z-index: 4001;
 }
 </style>

@@ -18,7 +18,6 @@
 
         <el-dialog
             v-model="videoVisible"
-            :title="dialogTitle"
             width="900px"
             append-to-body
             destroy-on-close
@@ -26,6 +25,9 @@
             class="video-asset-preview-dialog"
             @close="handleVideoClose"
         >
+            <template #header>
+                <div class="dialog-title">{{ dialogTitle }}</div>
+            </template>
             <div class="video-player-wrapper">
                 <video v-if="videoVisible && src" ref="playerRef" class="video-js preview-player" playsinline />
             </div>
@@ -80,7 +82,9 @@ function openVideo() {
 
 async function loadVideoJs() {
     if (!videoJsLoader) {
-        videoJsLoader = Promise.all([import('video.js'), import('video.js/dist/video-js.css')]).then(([videoJsModule]) => videoJsModule.default || videoJsModule)
+        videoJsLoader = Promise.all([import('video.js'), import('video.js/dist/video-js.css')]).then(
+            ([videoJsModule]) => videoJsModule.default || videoJsModule
+        )
     }
     const videojsLib = await videoJsLoader
 
@@ -147,7 +151,12 @@ onBeforeUnmount(() => {
     overflow: hidden;
     cursor: pointer;
     border: 1px solid var(--el-border-color-lighter);
-    background-color: var(--el-color-black);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)), var(--el-color-black);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
 
     .video-cover {
         width: 100%;
@@ -212,6 +221,10 @@ onBeforeUnmount(() => {
     }
 
     &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+        border-color: var(--el-color-primary-light-5);
+
         .video-cover {
             transform: scale(1.05);
             opacity: 1;
@@ -229,14 +242,15 @@ onBeforeUnmount(() => {
 }
 
 .video-player-wrapper {
-    background: var(--el-color-black);
-    border-radius: 4px;
+    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 45%), var(--el-color-black);
+    border-radius: 16px;
     overflow: hidden;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     aspect-ratio: 16/9;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .preview-player {
@@ -248,16 +262,85 @@ onBeforeUnmount(() => {
 
 <style lang="scss">
 .video-asset-preview-dialog {
+    .dialog-title {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        padding-left: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 4px;
+            height: 18px;
+            border-radius: 999px;
+            background: var(--el-color-primary);
+            transform: translateY(-50%);
+        }
+    }
+
+    .el-dialog {
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--el-bg-color-overlay);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    }
+
     .el-dialog__body {
-        padding: 0;
-        background-color: var(--el-color-black);
+        padding: 20px;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0)), var(--el-bg-color-overlay);
     }
 
     .el-dialog__header {
         margin-right: 0;
-        padding: 15px 20px;
-        background-color: var(--el-bg-color);
+        padding: 20px 20px 16px;
+        background-color: var(--el-bg-color-overlay);
         border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    .el-dialog__headerbtn {
+        top: 18px;
+        right: 18px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: var(--el-fill-color-light);
+        }
+    }
+
+    .el-dialog__close {
+        font-size: 18px;
+        color: var(--el-text-color-secondary);
+    }
+}
+
+@media (max-width: 768px) {
+    .video-card {
+        width: 120px;
+        height: 72px;
+    }
+
+    .video-asset-preview-dialog {
+        .el-dialog {
+            width: calc(100vw - 24px) !important;
+            margin: 0 auto;
+        }
+
+        .el-dialog__body {
+            padding: 12px;
+        }
+
+        .video-player-wrapper {
+            border-radius: 12px;
+        }
     }
 }
 </style>
