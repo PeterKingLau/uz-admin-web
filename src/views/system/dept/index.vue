@@ -1,6 +1,6 @@
 <template>
-    <div class="app-container">
-        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
+    <div class="app-container system-crud-page system-dept">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" class="search-form">
             <el-form-item label="部门名称" prop="deptName">
                 <el-input v-model="queryParams.deptName" placeholder="请输入部门名称" clearable style="width: 200px" @keyup.enter="handleQuery" />
             </el-form-item>
@@ -9,57 +9,80 @@
                     <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
             </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery"><Icon icon="ep:search"></Icon>搜索</el-button>
-                <el-button @click="resetQuery"><Icon icon="ep:refresh"></Icon>重置</el-button>
+            <el-form-item class="form-actions">
+                <el-button type="primary" @click="handleQuery" class="action-btn"><Icon icon="ep:search" class="btn-icon" />搜索</el-button>
+                <el-button @click="resetQuery" class="action-btn"><Icon icon="ep:refresh" class="btn-icon" />重置</el-button>
             </el-form-item>
         </el-form>
 
-        <el-row :gutter="10" class="mb8">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:dept:add']"><Icon icon="ep:plus"></Icon>新增</el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="info" plain @click="toggleExpandAll"><Icon icon="ep:sort"></Icon>展开/折叠</el-button>
-            </el-col>
-            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-        </el-row>
+        <div class="table-wrapper">
+            <div class="table-toolbar">
+                <div class="left-tools">
+                    <el-button type="primary" @click="handleAdd" v-hasPermi="['system:dept:add']" class="tool-btn">
+                        <Icon icon="ep:plus" class="btn-icon" />新增
+                    </el-button>
+                    <el-button type="info" @click="toggleExpandAll" class="tool-btn"> <Icon icon="ep:sort" class="btn-icon" />展开/折叠 </el-button>
+                </div>
+                <div class="right-tools">
+                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+                </div>
+            </div>
 
-        <el-table
-            v-if="refreshTable"
-            v-loading="loading"
-            :data="deptList"
-            row-key="deptId"
-            :default-expand-all="isExpandAll"
-            :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-        >
-            <el-table-column prop="deptName" label="部门名称" width="260"></el-table-column>
-            <el-table-column prop="orderNum" label="排序" width="200"></el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-                <template #default="scope">
-                    <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
-                </template>
-            </el-table-column>
-            <el-table-column label="创建时间" align="center" prop="createTime" width="200">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.createTime) }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-                <template #default="scope">
-                    <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:dept:edit']"
-                        ><Icon icon="ep:edit"></Icon>修改</el-button
-                    >
-                    <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:dept:add']"><Icon icon="ep:plus"></Icon>新增</el-button>
-                    <el-button v-if="scope.row.parentId != 0" link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:dept:remove']"
-                        ><Icon icon="ep:delete"></Icon>删除</el-button
-                    >
-                </template>
-            </el-table-column>
-        </el-table>
+            <el-table
+                v-if="refreshTable"
+                v-loading="loading"
+                :data="deptList"
+                row-key="deptId"
+                :default-expand-all="isExpandAll"
+                :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+                class="modern-table dept-table"
+            >
+                <el-table-column prop="deptName" label="部门名称" min-width="320" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span class="dept-name">{{ scope.row.deptName }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="orderNum" label="排序" width="120" align="center">
+                    <template #default="scope">
+                        <span class="order-num">{{ scope.row.orderNum }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="status" label="状态" width="100">
+                    <template #default="scope">
+                        <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+                    </template>
+                </el-table-column>
+                <el-table-column label="创建时间" align="center" prop="createTime" width="180">
+                    <template #default="scope">
+                        <span class="time-cell">{{ parseTime(scope.row.createTime) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" align="center" width="160" fixed="right" class-name="small-padding fixed-width">
+                    <template #default="scope">
+                        <div class="action-group">
+                            <el-tooltip content="修改" placement="top">
+                                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:dept:edit']" class="op-btn">
+                                    <Icon icon="ep:edit" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-tooltip content="新增" placement="top">
+                                <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:dept:add']" class="op-btn">
+                                    <Icon icon="ep:plus" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-tooltip v-if="scope.row.parentId != 0" content="删除" placement="top">
+                                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:dept:remove']" class="op-btn">
+                                    <Icon icon="ep:delete" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </div>
 
         <!-- 添加或修改部门对话框 -->
-        <el-dialog :title="title" v-model="open" width="600px" append-to-body>
+        <el-dialog :title="title" v-model="open" width="600px" append-to-body class="modern-dialog">
             <el-form ref="deptRef" :model="form" :rules="rules" label-width="80px">
                 <el-row>
                     <el-col :span="24" v-if="form.parentId !== 0">
@@ -110,8 +133,8 @@
             </el-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button type="primary" @click="submitForm">确 定</el-button>
-                    <el-button @click="cancel">取 消</el-button>
+                    <el-button type="primary" @click="submitForm" class="dialog-btn">确 定</el-button>
+                    <el-button @click="cancel" class="dialog-btn">取 消</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -263,3 +286,27 @@ function handleDelete(row) {
 
 getList()
 </script>
+
+<style scoped lang="scss">
+@use '../crud-page.scss' as *;
+
+.system-dept {
+    .dept-table {
+        .dept-name {
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+        }
+
+        .order-num {
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            color: var(--el-text-color-secondary);
+            font-size: 13px;
+        }
+
+        .time-cell {
+            color: var(--el-text-color-secondary);
+            font-size: 13px;
+        }
+    }
+}
+</style>

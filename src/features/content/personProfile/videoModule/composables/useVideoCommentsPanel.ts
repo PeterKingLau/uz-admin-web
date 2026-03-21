@@ -1,7 +1,19 @@
 import { computed, reactive, ref, watch, type ComputedRef } from 'vue'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getPostByCollection } from '@/api/content/collection'
-import { getCommentName, getPostId, isCollectionVideoPost, normalizeCollectionPosts, resolveCollectionId, resolveCollectionNameFromResponse } from '../helpers'
+import { listPostByApp } from '@/api/content/post'
+import { selectFollowNum } from '@/api/content/userFollow'
+import { getUserInfoById } from '@/api/system/user'
+import { getImgUrl } from '@/utils/img'
+import {
+    getCommentName,
+    getPostId,
+    isCollectionVideoPost,
+    normalizeCollectionPosts,
+    resolveCollectionId,
+    resolveCollectionNameFromResponse,
+    resolveFollowFlag
+} from '../helpers'
 
 type AnyRecord = Record<string, any>
 
@@ -9,6 +21,10 @@ interface UseVideoCommentsPanelOptions {
     visible: ComputedRef<boolean>
     postData: ComputedRef<AnyRecord>
     userInfo: ComputedRef<AnyRecord>
+    authorInfo: ComputedRef<AnyRecord>
+    authorUserId: ComputedRef<string | number | null>
+    authorName: ComputedRef<string>
+    authorAvatar: ComputedRef<string>
     currentUserId: ComputedRef<string | number | null>
     proxy: any
     focusCommentInput: () => void
@@ -17,7 +33,8 @@ interface UseVideoCommentsPanelOptions {
 }
 
 export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
-    const { visible, postData, userInfo, currentUserId, proxy, focusCommentInput, emitAction, emitSelectCollection } = options
+    const { visible, postData, userInfo, authorInfo, authorUserId, authorName, authorAvatar, currentUserId, proxy, focusCommentInput, emitAction, emitSelectCollection } =
+        options
 
     const commentPanelVisible = ref(false)
     const commentDraft = ref('')
@@ -37,8 +54,10 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
     const canSubmitRepost = computed(() => Boolean(repostContent.value.trim()))
 
     const commentPageSize = 10
+    const authorWorksPageSize = 12
     const activePostId = computed(() => getPostId(postData.value))
     const activeCollectionId = computed(() => resolveCollectionId(postData.value))
+    const showAuthorWorksTab = computed(() => authorUserId.value != null && authorUserId.value !== '')
     const resolveCollectionName = (post: AnyRecord) =>
         post?.collectionName || post?.postCollectionDto?.collectionName || post?.collection?.name || post?.collection?.title || post?.collectionTitle || ''
     const collectionNameFromApi = ref('')
@@ -49,6 +68,16 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
     const collectionLoading = ref(false)
     const collectionLoaded = ref(false)
     const collectionVideoPosts = computed(() => collectionPosts.value.filter(item => isCollectionVideoPost(item)))
+    const authorProfile = ref<AnyRecord>({})
+    const authorProfileLoading = ref(false)
+    const authorProfileLoaded = ref(false)
+    const authorStatInfo = ref({ followers: 0 })
+    const authorWorksLoading = ref(false)
+    const authorWorksLoaded = ref(false)
+    const authorWorksNoMore = ref(false)
+    const authorWorksLastId = ref<number | string | undefined>(undefined)
+    const authorWorksLastCreateTime = ref<string | undefined>(undefined)
+    const authorVideoPosts = ref<AnyRecord[]>([])
 
     const getCommentId = (comment: AnyRecord) => comment?.id ?? comment?.commentId ?? null
     const getCommentUserId = (comment: AnyRecord) => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
@@ -63,6 +92,91 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
         return commentId != null && Boolean(deleteCommentLoading[commentId])
     }
     const commentPlaceholder = computed(() => (replyTarget.value ? `回复 @${replyTarget.value.replyUserName}` : '善语结善缘，恶语伤人心'))
+
+    const currentAuthorFollow = computed(() =>
+        resolveFollowFlag(
+            postData.value?.follow ??
+                postData.value?.isFollow ??
+                postData.value?.isFollowing ??
+                postData.value?.followed ??
+                postData.value?.followStatus ??
+                postData.value?.following
+        )
+    )
+    const authorPanelName = computed(() => {
+        const profile = authorProfile.value || {}
+        const fallback = authorInfo.value || {}
+        return (
+            profile.nickName ||
+            profile.userName ||
+            profile.name ||
+            fallback.nickName ||
+            fallback.userName ||
+            fallback.name ||
+            authorName.value ||
+            '未知用户'
+        )
+    })
+    const authorPanelAvatar = computed(() => {
+        const profile = authorProfile.value || {}
+        const fallback = authorInfo.value || {}
+        const avatar =
+            profile.avatar || profile.userAvatar || profile.headImg || fallback.avatar || fallback.userAvatar || fallback.headImg || authorAvatar.value || ''
+        return getImgUrl(avatar)
+    })
+    const authorPanelSignature = computed(() => {
+        const profile = authorProfile.value || {}
+        const fallback = authorInfo.value || {}
+        return String(profile.signature ?? fallback.signature ?? '').trim()
+    })
+    const authorPanelFollowers = computed(() => Math.max(0, Number(authorStatInfo.value.followers || authorInfo.value?.followers || 0)))
+    const authorPanelLikedCount = computed(() => {
+        const profile = authorProfile.value || {}
+        const fallback = authorInfo.value || {}
+        return Math.max(0, Number(profile.likedCount ?? profile.likes ?? fallback.likedCount ?? fallback.likes ?? 0))
+    })
+
+    const normalizeResponsePayload = (response: AnyRecord) => response?.data ?? response?.rows ?? response ?? {}
+    const resolveAuthorProfilePayload = (response: AnyRecord) => {
+        const data = normalizeResponsePayload(response)
+        const profile = data?.user ?? data?.profile ?? data?.userInfo ?? data?.userProfile ?? data
+        return { data, profile: profile && typeof profile === 'object' ? profile : {} }
+    }
+    const normalizeAuthorWorkPost = (item: AnyRecord) => {
+        const like = resolveFollowFlag(item?.like ?? item?.isLiked ?? item?.liked ?? item?.likeStatus ?? item?.isLike)
+        const bookmark = resolveFollowFlag(item?.bookmark ?? item?.isCollected ?? item?.collected ?? item?.collectStatus ?? item?.isCollect)
+        const follow = resolveFollowFlag(
+            item?.follow ?? item?.isFollow ?? item?.isFollowing ?? item?.followed ?? item?.followStatus ?? item?.following ?? currentAuthorFollow.value
+        )
+        return {
+            ...item,
+            like,
+            isLiked: like,
+            bookmark,
+            isCollected: bookmark,
+            follow,
+            isFollow: follow,
+            isFollowing: follow,
+            followed: follow,
+            followStatus: follow ? '1' : '0'
+        }
+    }
+
+    const resetAuthorProfile = () => {
+        authorProfile.value = {}
+        authorStatInfo.value = { followers: 0 }
+        authorProfileLoading.value = false
+        authorProfileLoaded.value = false
+    }
+
+    const resetAuthorWorks = () => {
+        authorVideoPosts.value = []
+        authorWorksLoading.value = false
+        authorWorksLoaded.value = false
+        authorWorksNoMore.value = false
+        authorWorksLastId.value = undefined
+        authorWorksLastCreateTime.value = undefined
+    }
 
     const ensureReplyState = (commentId: string | number | null) => {
         if (!commentId) return null
@@ -304,6 +418,89 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
         }
     }
 
+    const loadAuthorProfile = async (force = false) => {
+        const targetUserId = authorUserId.value
+        if (!targetUserId) return
+        if (authorProfileLoading.value) return
+        if (!force && authorProfileLoaded.value) return
+        authorProfileLoading.value = true
+        try {
+            const [profileResult, statResult] = await Promise.allSettled([getUserInfoById(targetUserId), selectFollowNum({ targetUserId })])
+            let hasLoaded = false
+
+            if (profileResult.status === 'fulfilled') {
+                const { profile } = resolveAuthorProfilePayload(profileResult.value)
+                authorProfile.value = profile || {}
+                hasLoaded = true
+            }
+
+            if (statResult.status === 'fulfilled') {
+                const responseData = statResult.value?.data ?? {}
+                authorStatInfo.value = {
+                    followers: Math.max(0, Number(responseData.fans ?? authorStatInfo.value.followers ?? 0))
+                }
+                hasLoaded = true
+            }
+
+            authorProfileLoaded.value = hasLoaded
+        } catch (error) {
+            console.error(error)
+        } finally {
+            authorProfileLoading.value = false
+        }
+    }
+
+    const loadAuthorWorks = async ({ reset = false }: { reset?: boolean } = {}) => {
+        const targetUserId = authorUserId.value
+        if (!targetUserId) return
+        if (authorWorksLoading.value) return
+        if (reset) {
+            authorWorksLastId.value = undefined
+            authorWorksLastCreateTime.value = undefined
+            authorWorksNoMore.value = false
+            authorVideoPosts.value = []
+        } else if (authorWorksNoMore.value) {
+            return
+        }
+        authorWorksLoading.value = true
+        try {
+            const res = await listPostByApp({
+                limit: authorWorksPageSize,
+                targetUserId,
+                lastId: authorWorksLastId.value,
+                lastCreateTime: authorWorksLastCreateTime.value,
+                postType: '3'
+            })
+            const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.rows) ? res.rows : []
+            const normalizedList = list.filter((item: AnyRecord) => isCollectionVideoPost(item)).map((item: AnyRecord) => normalizeAuthorWorkPost(item))
+            authorVideoPosts.value = reset ? normalizedList : [...authorVideoPosts.value, ...normalizedList]
+            const lastItem = list[list.length - 1]
+            authorWorksLastId.value = lastItem?.id ?? authorWorksLastId.value
+            authorWorksLastCreateTime.value = lastItem?.createTime ?? authorWorksLastCreateTime.value
+            authorWorksNoMore.value = list.length < authorWorksPageSize
+            authorWorksLoaded.value = true
+        } catch (error) {
+            console.error(error)
+        } finally {
+            authorWorksLoading.value = false
+        }
+    }
+
+    const loadMoreAuthorWorks = () => {
+        if (activePanelTab.value !== 'authorWorks' || authorWorksLoading.value || authorWorksNoMore.value) return
+        loadAuthorWorks()
+    }
+
+    const openAuthorWorksPanel = () => {
+        if (!showAuthorWorksTab.value) return
+        commentPanelVisible.value = true
+        activePanelTab.value = 'authorWorks'
+        loadAuthorProfile()
+        if (!authorWorksLoaded.value || authorVideoPosts.value.length === 0) {
+            loadAuthorWorks({ reset: true })
+        }
+    }
+
     const openRepostDialog = () => {
         repostContent.value = ''
         repostDialogVisible.value = true
@@ -325,6 +522,12 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
             focusCommentInput()
             if (activePanelTab.value === 'collection' && showCollectionTab.value) {
                 loadCollectionPosts()
+            }
+            if (activePanelTab.value === 'authorWorks' && showAuthorWorksTab.value) {
+                loadAuthorProfile()
+                if (!authorWorksLoaded.value || authorVideoPosts.value.length === 0) {
+                    loadAuthorWorks({ reset: true })
+                }
             }
             return
         }
@@ -395,6 +598,12 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
         if (value === 'collection' && showCollectionTab.value) {
             loadCollectionPosts()
         }
+        if (value === 'authorWorks' && showAuthorWorksTab.value) {
+            loadAuthorProfile()
+            if (!authorWorksLoaded.value || authorVideoPosts.value.length === 0) {
+                loadAuthorWorks({ reset: true })
+            }
+        }
     }
 
     const handlePanelTabClick = (tab: AnyRecord) => {
@@ -437,6 +646,11 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
                 clearReplyTarget()
                 commentDraft.value = ''
                 activePanelTab.value = 'comments'
+            } else if (activePanelTab.value === 'authorWorks' && showAuthorWorksTab.value) {
+                loadAuthorProfile()
+                if (!authorWorksLoaded.value || authorVideoPosts.value.length === 0) {
+                    loadAuthorWorks({ reset: true })
+                }
             }
         }
     )
@@ -448,6 +662,22 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
             collectionLoaded.value = false
             collectionNameFromApi.value = ''
             if (!showCollectionTab.value) activePanelTab.value = 'comments'
+        }
+    )
+
+    watch(
+        () => authorUserId.value,
+        () => {
+            resetAuthorProfile()
+            resetAuthorWorks()
+            if (!showAuthorWorksTab.value && activePanelTab.value === 'authorWorks') {
+                activePanelTab.value = 'comments'
+                return
+            }
+            if (commentPanelVisible.value && activePanelTab.value === 'authorWorks' && showAuthorWorksTab.value) {
+                loadAuthorProfile()
+                loadAuthorWorks({ reset: true })
+            }
         }
     )
 
@@ -482,6 +712,15 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
         repostContent,
         canSubmitRepost,
         activePanelTab,
+        showAuthorWorksTab,
+        authorPanelName,
+        authorPanelAvatar,
+        authorPanelSignature,
+        authorPanelFollowers,
+        authorPanelLikedCount,
+        authorWorksLoading,
+        authorWorksNoMore,
+        authorVideoPosts,
         activeCollectionName,
         showCollectionTab,
         collectionLoading,
@@ -489,6 +728,7 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
         canDeleteComment,
         resolveReplyState,
         loadMoreComments,
+        loadMoreAuthorWorks,
         handleReplyToComment,
         handleReplyToReply,
         toggleReplies,
@@ -499,6 +739,7 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
         submitRepost,
         toggleCommentPanel,
         openDetailPanel,
+        openAuthorWorksPanel,
         submitComment,
         handlePanelTabClick,
         handleSelectCollectionPost,

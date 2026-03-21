@@ -92,7 +92,7 @@ function hasTitle(title) {
     height: 1em;
     font-size: 18px;
     vertical-align: -0.15em;
-    fill: currentColor;
+    fill: currentcolor;
     overflow: hidden;
 }
 

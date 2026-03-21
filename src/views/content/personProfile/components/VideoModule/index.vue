@@ -1,9 +1,9 @@
-<template>
+﻿<template>
     <component :is="teleportWrapper" v-bind="teleportAttrs">
         <div
             v-show="visible"
             class="video-immersive-container"
-            :class="{ 'page-mode': !props.useTeleport }"
+            :class="{ 'page-mode': !props.useTeleport, 'is-audio-mode': isAudioMode }"
             @click="handleClose"
             @mousemove="onMouseMove"
             @mouseleave="onMouseLeave"
@@ -13,12 +13,12 @@
                     <div
                         ref="videoWrapperRef"
                         class="player-shell"
-                        :class="[videoFitClass, { 'is-watermarked': showWatermark, 'is-portrait-video': usePortraitGlass }]"
+                        :class="[videoFitClass, { 'is-watermarked': showWatermark, 'is-portrait-video': usePortraitGlass, 'is-audio-mode': isAudioMode }]"
                         :style="playerShellStyle"
                         @click="togglePlay"
                     >
                         <div class="player-bg" :style="bgStyle"></div>
-                        <div v-if="usePortraitGlass" class="portrait-glass-sides" aria-hidden="true">
+                        <div v-if="usePortraitGlass && !isAudioMode" class="portrait-glass-sides" aria-hidden="true">
                             <div class="glass-side left" :style="glassSideStyle"></div>
                             <div class="glass-side right" :style="glassSideStyle"></div>
                         </div>
@@ -49,6 +49,87 @@
                         ></video>
 
                         <transition name="video-cover-fade">
+                            <div v-if="isAudioMode" class="audio-mode-overlay" @click.stop="togglePlay">
+                                <div ref="audioModeCardRef" class="audio-mode-card" :class="{ dragging: isAudioDragging }" :style="audioCardStyle" @click.stop>
+                                    <div class="audio-mode-top" @pointerdown="handleAudioDragStart">
+                                        <div class="audio-mode-brand">
+                                            <Icon icon="mdi:music-circle" class="audio-mode-brand-icon" />
+                                            <span>音频播放</span>
+                                        </div>
+                                        <div class="audio-mode-actions">
+                                            <button
+                                                type="button"
+                                                class="audio-mode-action-btn"
+                                                aria-label="返回视频模式"
+                                                @pointerdown.stop
+                                                @click.stop="handleToggleAudioMode"
+                                            >
+                                                <Icon icon="mdi:arrow-expand-all" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="audio-mode-action-btn"
+                                                aria-label="关闭播放器"
+                                                @pointerdown.stop
+                                                @click.stop="handleClose"
+                                            >
+                                                <Icon icon="mdi:close" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="audio-mode-main">
+                                        <div class="audio-mode-cover">
+                                            <img v-if="audioModeCoverUrl" :src="audioModeCoverUrl" alt="audio cover" class="audio-mode-cover-image" />
+                                            <div v-else class="audio-mode-cover-fallback">
+                                                <Icon icon="mdi:music-note" />
+                                            </div>
+                                        </div>
+                                        <div class="audio-mode-content">
+                                            <div class="audio-mode-title">{{ authorName }}</div>
+                                            <div class="audio-mode-subline">
+                                                <div class="audio-mode-desc">{{ audioModeDescription }}</div>
+                                                <div class="audio-mode-status" :class="{ loading: showVideoBuffering }">
+                                                    <transition name="audio-status-swap" mode="out-in">
+                                                        <Icon v-if="showVideoBuffering" key="loading" icon="mdi:loading" class="audio-mode-status-icon" />
+                                                        <span v-else key="dot" class="audio-mode-status-dot"></span>
+                                                    </transition>
+                                                    <transition name="audio-status-swap" mode="out-in">
+                                                        <span :key="audioStatusText">{{ audioStatusText }}</span>
+                                                    </transition>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="audio-mode-track" @click.stop="handleAudioProgressClick">
+                                        <div class="audio-mode-track-fill" :style="{ width: `${audioModeProgressPercent}%` }"></div>
+                                    </div>
+                                    <div class="audio-mode-time">
+                                        <span>{{ displayCurrentTime }}</span>
+                                        <span>{{ displayDuration }}</span>
+                                    </div>
+                                    <div class="audio-mode-controls">
+                                        <button type="button" class="audio-mode-control-btn" aria-label="后退15秒" @click.stop="seekRelative(-15)">
+                                            <Icon icon="mdi:rewind-15" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="audio-mode-control-btn primary"
+                                            :aria-label="isPlaying ? '暂停' : '播放'"
+                                            @click.stop="handlePlayControlClick"
+                                        >
+                                            <transition name="audio-control-swap" mode="out-in">
+                                                <Icon :key="playControlIcon" :icon="playControlIcon" />
+                                            </transition>
+                                        </button>
+                                        <button type="button" class="audio-mode-control-btn" aria-label="前进15秒" @click.stop="seekRelative(15)">
+                                            <Icon icon="mdi:fast-forward-15" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </transition>
+
+                        <transition name="video-cover-fade">
                             <div v-if="videoCoverOverlayVisible && videoPosterUrl" class="video-cover-overlay" @click.stop="togglePlay">
                                 <img :src="videoPosterUrl" alt="video cover" class="video-cover-image" />
                                 <div class="video-cover-play">
@@ -58,7 +139,7 @@
                         </transition>
 
                         <transition name="video-buffer-fade">
-                            <div v-if="showVideoBuffering" class="video-buffer-overlay" aria-live="polite">
+                            <div v-if="showVideoBuffering && !isAudioMode" class="video-buffer-overlay" aria-live="polite">
                                 <div class="video-buffer-indicator">
                                     <Icon icon="mdi:loading" class="buffer-icon" />
                                     <span>{{ hasRenderedFirstFrame ? '正在缓冲...' : '正在加载视频...' }}</span>
@@ -76,10 +157,40 @@
                             </div>
                         </div>
 
+                        <div
+                            class="bottom-progress-layer"
+                            :class="{ ready: isPlayerUiReady, 'hide-controls': isPlayerUiReady && !controlsVisible && isPlaying }"
+                        >
+                            <div
+                                ref="progressContainerRef"
+                                class="progress-container"
+                                :class="{ disabled: !canSeekVideo }"
+                                @mousemove="onProgressHover"
+                                @mouseleave="onProgressLeave"
+                                @click.stop="onProgressTrackClick"
+                            >
+                                <div v-if="progressHover.visible" class="progress-hover-tooltip" :style="{ left: progressHover.left + 'px' }">
+                                    <div class="progress-hover-time">{{ formatClock(isDraggingProgress ? progressDraft : progressHover.time) }}</div>
+                                </div>
+                                <el-slider
+                                    :model-value="progressShown"
+                                    :min="0"
+                                    :max="progressMax"
+                                    :step="0.1"
+                                    :show-tooltip="false"
+                                    :disabled="!canSeekVideo"
+                                    class="progress-slider"
+                                    @update:modelValue="onProgressDrag"
+                                    @input="onProgressDrag"
+                                    @change="onProgressCommit"
+                                />
+                            </div>
+                        </div>
+
                         <div class="bottom-info-layer" :class="{ ready: isPlayerUiReady, 'hide-controls': isPlayerUiReady && !controlsVisible && isPlaying }">
                             <div class="info-content">
                                 <div class="author-line">
-                                    <div class="author-name">@{{ authorName }}</div>
+                                    <div class="author-name" @click.stop="openAuthorWorksPanel">@{{ authorName }}</div>
                                     <span class="publish-time" @click.stop="openDetailPanel"> {{ formatDate(postData.createTime) }} </span>
                                 </div>
                                 <div class="video-desc">
@@ -91,47 +202,24 @@
                                     </span>
                                 </div>
                             </div>
+                        </div>
 
+                        <div
+                            class="bottom-controls-layer"
+                            :class="{ ready: isPlayerUiReady, 'hide-controls': isPlayerUiReady && !controlsVisible && isPlaying }"
+                        >
                             <div class="controls-layer" @click.stop>
-                                <div
-                                    ref="progressContainerRef"
-                                    class="progress-container"
-                                    :class="{ disabled: !canSeekVideo }"
-                                    @mousemove="onProgressHover"
-                                    @mouseleave="onProgressLeave"
-                                    @click="onProgressTrackClick"
-                                >
-                                    <div v-if="progressHover.visible" class="progress-hover-tooltip" :style="{ left: progressHover.left + 'px' }">
-                                        <div class="progress-hover-time">{{ formatClock(isDraggingProgress ? progressDraft : progressHover.time) }}</div>
-                                    </div>
-                                    <el-slider
-                                        :model-value="progressShown"
-                                        :min="0"
-                                        :max="progressMax"
-                                        :step="0.1"
-                                        :show-tooltip="false"
-                                        :disabled="!canSeekVideo"
-                                        class="progress-slider"
-                                        @update:modelValue="onProgressDrag"
-                                        @input="onProgressDrag"
-                                        @change="onProgressCommit"
-                                    />
-                                </div>
-
                                 <div class="control-row">
                                     <div class="left-controls">
-                                        <div
-                                            class="play-btn"
-                                            :class="{ loading: isBufferingForControl, disabled: !canTogglePlayback }"
-                                            @click="handlePlayControlClick"
-                                        >
-                                            <Icon v-if="isBufferingForControl" icon="mdi:loading" class="play-loading-icon" />
-                                            <Icon v-else :icon="isPlaying ? 'mdi:pause' : 'mdi:play'" />
+                                        <div class="play-btn" :class="{ disabled: !canTogglePlayback }" @click="handlePlayControlClick">
+                                            <transition name="play-icon-swap" mode="out-in">
+                                                <Icon :key="playControlIcon" :icon="playControlIcon" class="play-btn-icon" />
+                                            </transition>
                                         </div>
                                         <div class="time-display" :class="{ pending: !hasDuration }">
-                                            <span>{{ displayCurrentTime }}</span>
+                                            <span class="time-current">{{ displayCurrentTime }}</span>
                                             <span class="sep">/</span>
-                                            <span>{{ displayDuration }}</span>
+                                            <span class="time-total">{{ displayDuration }}</span>
                                         </div>
                                     </div>
 
@@ -177,6 +265,14 @@
 
                                         <div class="icon-btn" :class="{ disabled: !pipSupported }" title="画中画" @click="togglePiP">
                                             <Icon :icon="pipIcon" />
+                                        </div>
+
+                                        <div
+                                            class="icon-btn"
+                                            :class="{ active: isAudioMode, loading: audioModeBusy, rotating: isAudioMode }"
+                                            @click="handleToggleAudioMode"
+                                        >
+                                            <Icon :icon="isAudioMode ? 'mdi:music-circle' : 'mdi:music-note-outline'" />
                                         </div>
 
                                         <div class="icon-btn" title="全屏" @click="toggleFullscreen">
@@ -230,6 +326,14 @@
                                 </el-tooltip>
                                 <span class="count">{{ formatCount(postData.shareCount) }}</span>
                             </div>
+
+                            <div class="sidebar-item" :class="{ active: isAudioMode, disabled: audioModeBusy }" @click.stop="handleToggleAudioMode">
+                                <el-tooltip content="转音频" placement="left">
+                                    <div class="icon-wrapper">
+                                        <Icon :icon="isAudioMode ? 'mdi:music-circle' : 'mdi:music-note-outline'" />
+                                    </div>
+                                </el-tooltip>
+                            </div>
                         </div>
                     </div>
 
@@ -239,6 +343,18 @@
                         v-model:activeTab="activePanelTab"
                         v-model:commentDraft="commentDraft"
                         :local-comment-count="localCommentCount"
+                        :show-author-works-tab="showAuthorWorksTab"
+                        :author-name="authorPanelName"
+                        :author-avatar="authorPanelAvatar"
+                        :author-signature="authorPanelSignature"
+                        :author-followers="authorPanelFollowers"
+                        :author-liked-count="authorPanelLikedCount"
+                        :author-works-loading="authorWorksLoading"
+                        :author-works-no-more="authorWorksNoMore"
+                        :author-video-posts="authorVideoPosts"
+                        :show-follow-button="!isAuthorSelf"
+                        :follow-button-label="showFollowCheck ? '已关注' : isFollowing ? '已关注' : '+ 关注'"
+                        :follow-button-active="isFollowing || showFollowCheck"
                         :show-collection-tab="showCollectionTab"
                         :comment-items="commentItems"
                         :comment-loading="commentLoading"
@@ -255,6 +371,7 @@
                         :is-current-collection-post="isCurrentCollectionPost"
                         @tab-click="handlePanelTabClick"
                         @load-more-comments="loadMoreComments"
+                        @load-more-author-works="loadMoreAuthorWorks"
                         @reply-comment="handleReplyToComment"
                         @reply-reply="handleReplyToReply"
                         @delete-comment="handleDeleteComment"
@@ -262,6 +379,7 @@
                         @load-replies="loadReplies"
                         @clear-reply="clearReplyTarget"
                         @submit-comment="submitComment"
+                        @toggle-follow-author="handleToggleFollow"
                         @select-collection="handleSelectCollectionPost"
                     />
                 </div>
@@ -273,7 +391,7 @@
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
 import useUserStore from '@/store/modules/user'
@@ -315,6 +433,7 @@ const visible = computed({
 
 const postData = computed(() => props.post || {})
 const userInfoRef = computed(() => props.userInfo || {})
+const authorInfoRef = computed(() => props.authorInfo || {})
 const srcRef = computed(() => props.src || '')
 const videoPosterUrl = computed(() => resolveVideoPoster(postData.value))
 
@@ -378,7 +497,7 @@ const {
     progressMax,
     canSeekVideo,
     canTogglePlayback,
-    isBufferingForControl,
+    playControlIcon,
     hasRenderedFirstFrame,
     hasDuration,
     displayCurrentTime,
@@ -390,6 +509,7 @@ const {
     rates,
     playbackRate,
     pipSupported,
+    pipActive,
     pipIcon,
     isFullscreen,
     togglePlay,
@@ -404,6 +524,7 @@ const {
     handleVolumeButtonClick,
     applyVolume,
     applyRate,
+    exitPiP,
     togglePiP,
     toggleFullscreen,
     onLoadStart,
@@ -427,6 +548,30 @@ const {
     videoPosterUrl
 })
 
+const isAudioMode = ref(false)
+const audioModeBusy = ref(false)
+const audioModeCardRef = ref(null)
+const isAudioDragging = ref(false)
+const audioDragOffsetX = ref(0)
+const audioDragOffsetY = ref(0)
+const audioDragStartX = ref(0)
+const audioDragStartY = ref(0)
+const audioDragOriginX = ref(0)
+const audioDragOriginY = ref(0)
+
+const panelAuthorName = computed(() => {
+    const p = postData.value || {}
+    const a = props.authorInfo || {}
+    return p.nickName || p.authorName || p.userName || p.username || p.author?.nickName || p.user?.nickName || a.nickName || a.userName || a.name || '未知用户'
+})
+
+const panelAuthorAvatar = computed(() => {
+    const p = postData.value || {}
+    const a = props.authorInfo || {}
+    const avatar = p.avatar || p.userAvatar || p.authorAvatar || p.author?.avatar || p.user?.avatar || a.avatar || a.userAvatar || ''
+    return getImgUrl(avatar)
+})
+
 const {
     commentPanelVisible,
     commentDraft,
@@ -440,6 +585,15 @@ const {
     repostContent,
     canSubmitRepost,
     activePanelTab,
+    showAuthorWorksTab,
+    authorPanelName,
+    authorPanelAvatar,
+    authorPanelSignature,
+    authorPanelFollowers,
+    authorPanelLikedCount,
+    authorWorksLoading,
+    authorWorksNoMore,
+    authorVideoPosts,
     activeCollectionName,
     showCollectionTab,
     collectionLoading,
@@ -447,6 +601,7 @@ const {
     canDeleteComment,
     resolveReplyState,
     loadMoreComments,
+    loadMoreAuthorWorks,
     handleReplyToComment,
     handleReplyToReply,
     toggleReplies,
@@ -457,6 +612,7 @@ const {
     submitRepost,
     toggleCommentPanel,
     openDetailPanel,
+    openAuthorWorksPanel,
     submitComment,
     handlePanelTabClick,
     handleSelectCollectionPost,
@@ -465,6 +621,10 @@ const {
     visible,
     postData,
     userInfo: userInfoRef,
+    authorInfo: authorInfoRef,
+    authorUserId,
+    authorName: panelAuthorName,
+    authorAvatar: panelAuthorAvatar,
     currentUserId,
     proxy,
     focusCommentInput,
@@ -555,6 +715,84 @@ const glassSideStyle = computed(() => {
     return background ? { backgroundImage: `url(${background})` } : {}
 })
 
+const audioModeCoverUrl = computed(() => String(resolveBackgroundUrl() || videoPosterUrl.value || '').trim())
+const audioModeDescription = computed(() => {
+    const content = String(postData.value?.content ?? '').trim()
+    if (content) return content
+    return '已切换为后台音频播放模式'
+})
+const audioModeProgressPercent = computed(() => {
+    const max = Number(progressMax.value || 0)
+    if (!max) return 0
+    return Math.max(0, Math.min(100, (Number(progressShown.value || 0) / max) * 100))
+})
+const audioStatusText = computed(() => {
+    if (showVideoBuffering.value) return '加载中'
+    return isPlaying.value ? '播放中' : '已暂停'
+})
+const audioCardStyle = computed(() => ({
+    transform: `translate3d(${audioDragOffsetX.value}px, ${audioDragOffsetY.value}px, 0)`
+}))
+
+const getAudioViewportPadding = () => (window.innerWidth <= 768 ? 12 : 20)
+const resetAudioCardPosition = () => {
+    audioDragOffsetX.value = 0
+    audioDragOffsetY.value = 0
+}
+const clampAudioCardOffset = (x, y) => {
+    const cardEl = audioModeCardRef.value
+    if (!cardEl) return { x, y }
+
+    const padding = getAudioViewportPadding()
+    const minX = -Math.max(0, window.innerWidth - padding * 2 - cardEl.offsetWidth)
+    const minY = -Math.max(0, window.innerHeight - padding * 2 - cardEl.offsetHeight)
+
+    return {
+        x: Math.max(minX, Math.min(0, x)),
+        y: Math.max(minY, Math.min(0, y))
+    }
+}
+const syncAudioCardPosition = () => {
+    const next = clampAudioCardOffset(audioDragOffsetX.value, audioDragOffsetY.value)
+    audioDragOffsetX.value = next.x
+    audioDragOffsetY.value = next.y
+}
+const removeAudioDragListeners = () => {
+    window.removeEventListener('pointermove', handleAudioDragMove)
+    window.removeEventListener('pointerup', handleAudioDragEnd)
+    window.removeEventListener('pointercancel', handleAudioDragEnd)
+}
+const handleAudioDragMove = event => {
+    if (!isAudioDragging.value) return
+
+    const next = clampAudioCardOffset(
+        audioDragOriginX.value + (event.clientX - audioDragStartX.value),
+        audioDragOriginY.value + (event.clientY - audioDragStartY.value)
+    )
+    audioDragOffsetX.value = next.x
+    audioDragOffsetY.value = next.y
+}
+const handleAudioDragEnd = () => {
+    if (!isAudioDragging.value) return
+    isAudioDragging.value = false
+    removeAudioDragListeners()
+}
+const handleAudioDragStart = event => {
+    if (!isAudioMode.value || audioModeBusy.value) return
+    if (event.button != null && event.button !== 0) return
+
+    isAudioDragging.value = true
+    audioDragStartX.value = event.clientX
+    audioDragStartY.value = event.clientY
+    audioDragOriginX.value = audioDragOffsetX.value
+    audioDragOriginY.value = audioDragOffsetY.value
+
+    window.addEventListener('pointermove', handleAudioDragMove)
+    window.addEventListener('pointerup', handleAudioDragEnd)
+    window.addEventListener('pointercancel', handleAudioDragEnd)
+    event.preventDefault()
+}
+
 const handleClose = () => {
     emit('update:modelValue', false)
     emit('close')
@@ -620,6 +858,41 @@ const handleToggleCollect = () => {
     emitAction('collect', { active: !isCollected.value })
 }
 
+const seekRelative = delta => {
+    const base = Number(progressShown.value || 0)
+    seekTo(base + Number(delta || 0))
+}
+
+const handleAudioProgressClick = event => {
+    const target = event.currentTarget
+    const max = Number(progressMax.value || 0)
+    if (!target || !max) return
+    const rect = target.getBoundingClientRect()
+    if (!rect.width) return
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+    seekTo(max * ratio)
+}
+
+const handleToggleAudioMode = async () => {
+    if (audioModeBusy.value) return
+    audioModeBusy.value = true
+    const next = !isAudioMode.value
+    try {
+        isAudioMode.value = next
+        if (next) {
+            resetAudioCardPosition()
+            await nextTick()
+            syncAudioCardPosition()
+            if (pipActive.value) {
+                await exitPiP()
+            }
+            return
+        }
+    } finally {
+        audioModeBusy.value = false
+    }
+}
+
 watch(isFollowing, value => {
     if (!followRequested.value || !value) return
     followRequested.value = false
@@ -630,9 +903,36 @@ watch(isFollowing, value => {
     }, 800)
 })
 
+watch(isAudioMode, async value => {
+    if (!value) {
+        handleAudioDragEnd()
+        resetAudioCardPosition()
+        return
+    }
+    await nextTick()
+    syncAudioCardPosition()
+})
+
+watch(
+    () => [visible.value, srcRef.value],
+    ([nextVisible]) => {
+        if (nextVisible) return
+        handleAudioDragEnd()
+        isAudioMode.value = false
+        audioModeBusy.value = false
+        resetAudioCardPosition()
+    }
+)
+
 defineExpose({ seekTo })
 
+onMounted(() => {
+    window.addEventListener('resize', syncAudioCardPosition)
+})
+
 onBeforeUnmount(() => {
+    removeAudioDragListeners()
+    window.removeEventListener('resize', syncAudioCardPosition)
     if (followCheckTimer) clearTimeout(followCheckTimer)
     if (followRequestResetTimer) clearTimeout(followRequestResetTimer)
 })

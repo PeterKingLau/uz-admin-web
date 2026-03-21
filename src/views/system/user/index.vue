@@ -78,8 +78,8 @@
                             />
                         </el-form-item>
                         <el-form-item class="form-actions">
-                            <el-button type="primary" @click="handleQuery" class="action-btn"> <Icon icon="ep:search" class="mr-1" /> 搜索 </el-button>
-                            <el-button @click="resetQuery" class="action-btn"> <Icon icon="ep:refresh" class="mr-1" /> 重置 </el-button>
+                            <el-button type="primary" @click="handleQuery" class="action-btn"> <Icon icon="ep:search" class="btn-icon" /> 搜索 </el-button>
+                            <el-button @click="resetQuery" class="action-btn"> <Icon icon="ep:refresh" class="btn-icon" /> 重置 </el-button>
                         </el-form-item>
                     </el-form>
 
@@ -87,19 +87,19 @@
                         <div class="table-header">
                             <div class="left-tools">
                                 <el-button type="primary" @click="handleAdd" v-hasPermi="['system:user:add']" class="tool-btn">
-                                    <Icon icon="ep:plus" class="mr-1" /> 新增
+                                    <Icon icon="ep:plus" class="btn-icon" /> 新增
                                 </el-button>
                                 <el-button type="success" :disabled="single" @click="handleUpdate" v-hasPermi="['system:user:edit']" class="tool-btn">
-                                    <Icon icon="ep:edit" class="mr-1" /> 修改
+                                    <Icon icon="ep:edit" class="btn-icon" /> 修改
                                 </el-button>
                                 <el-button type="danger" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:user:remove']" class="tool-btn">
-                                    <Icon icon="ep:delete" class="mr-1" /> 删除
+                                    <Icon icon="ep:delete" class="btn-icon" /> 删除
                                 </el-button>
                                 <el-button type="info" @click="handleImport" v-hasPermi="['system:user:import']" class="tool-btn">
-                                    <Icon icon="ep:upload" class="mr-1" /> 导入
+                                    <Icon icon="ep:upload" class="btn-icon" /> 导入
                                 </el-button>
                                 <el-button type="warning" @click="handleExport" v-hasPermi="['system:user:export']" class="tool-btn">
-                                    <Icon icon="ep:download" class="mr-1" /> 导出
+                                    <Icon icon="ep:download" class="btn-icon" /> 导出
                                 </el-button>
                             </div>
                             <div class="right-tools">
@@ -185,7 +185,7 @@
                                         </el-tooltip>
                                         <el-tooltip content="分配角色" placement="top" v-if="scope.row.userId !== 1">
                                             <el-button link type="success" @click="handleAuthRole(scope.row)" v-hasPermi="['system:user:edit']" class="op-btn">
-                                                <Icon icon="mdi:shield-account-outline" />
+                                                <Icon icon="ep:user" />
                                             </el-button>
                                         </el-tooltip>
                                     </div>
@@ -905,6 +905,21 @@ onMounted(() => {
         &:disabled:hover {
             transform: none;
         }
+    }
+
+    :deep(.action-btn > span),
+    :deep(.tool-btn > span),
+    :deep(.dialog-btn > span) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .btn-icon {
+        font-size: 16px;
+        line-height: 1;
+        flex-shrink: 0;
     }
 
     .action-btn.el-button--primary {

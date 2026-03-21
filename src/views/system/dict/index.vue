@@ -1,6 +1,6 @@
 <template>
-    <div class="app-container">
-        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+    <div class="app-container system-crud-page system-dict">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px" class="search-form">
             <el-form-item label="字典名称" prop="dictName">
                 <el-input v-model="queryParams.dictName" placeholder="请输入字典名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
             </el-form-item>
@@ -22,53 +22,48 @@
                     end-placeholder="结束日期"
                 ></el-date-picker>
             </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery">
-                    <el-icon><Icon icon="ep:search" /></el-icon>
+            <el-form-item class="form-actions">
+                <el-button type="primary" @click="handleQuery" class="action-btn">
+                    <Icon icon="ep:search" class="btn-icon" />
                     搜索
                 </el-button>
-                <el-button @click="resetQuery">
-                    <el-icon><Icon icon="ep:refresh" /></el-icon>
+                <el-button @click="resetQuery" class="action-btn">
+                    <Icon icon="ep:refresh" class="btn-icon" />
                     重置
                 </el-button>
             </el-form-item>
         </el-form>
 
-        <el-row :gutter="10" class="mb8">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:dict:add']">
-                    <el-icon><Icon icon="ep:plus" /></el-icon>
-                    新增
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="success" plain :disabled="single" @click="handleUpdate" v-hasPermi="['system:dict:edit']">
-                    <el-icon><Icon icon="ep:edit" /></el-icon>
-                    修改
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="danger" plain :disabled="multiple" @click="handleDelete" v-hasPermi="['system:dict:remove']">
-                    <el-icon><Icon icon="ep:delete" /></el-icon>
-                    删除
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="warning" plain @click="handleExport" v-hasPermi="['system:dict:export']">
-                    <el-icon><Icon icon="ep:download" /></el-icon>
-                    导出
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="danger" plain @click="handleRefreshCache" v-hasPermi="['system:dict:remove']">
-                    <el-icon><Icon icon="ep:refresh" /></el-icon>
-                    刷新缓存
-                </el-button>
-            </el-col>
-            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-        </el-row>
+        <div class="table-wrapper">
+            <div class="table-toolbar">
+                <div class="left-tools">
+                    <el-button type="primary" @click="handleAdd" v-hasPermi="['system:dict:add']" class="tool-btn">
+                        <Icon icon="ep:plus" class="btn-icon" />
+                        新增
+                    </el-button>
+                    <el-button type="success" :disabled="single" @click="handleUpdate" v-hasPermi="['system:dict:edit']" class="tool-btn">
+                        <Icon icon="ep:edit" class="btn-icon" />
+                        修改
+                    </el-button>
+                    <el-button type="danger" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:dict:remove']" class="tool-btn">
+                        <Icon icon="ep:delete" class="btn-icon" />
+                        删除
+                    </el-button>
+                    <el-button type="warning" @click="handleExport" v-hasPermi="['system:dict:export']" class="tool-btn">
+                        <Icon icon="ep:download" class="btn-icon" />
+                        导出
+                    </el-button>
+                    <el-button type="danger" @click="handleRefreshCache" v-hasPermi="['system:dict:remove']" class="tool-btn">
+                        <Icon icon="ep:refresh" class="btn-icon" />
+                        刷新缓存
+                    </el-button>
+                </div>
+                <div class="right-tools">
+                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+                </div>
+            </div>
 
-        <el-table v-loading="loading" :data="typeList" @selection-change="handleSelectionChange">
+            <el-table v-loading="loading" :data="typeList" @selection-change="handleSelectionChange" class="modern-table">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="字典编号" align="center" prop="dictId" />
             <el-table-column label="字典名称" align="center" prop="dictName" :show-overflow-tooltip="true" />
@@ -90,24 +85,31 @@
                     <span>{{ parseTime(scope.row.createTime) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
+            <el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:dict:edit']">
-                        <el-icon><Icon icon="ep:edit" /></el-icon>
-                        修改
-                    </el-button>
-                    <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['system:dict:remove']">
-                        <el-icon><Icon icon="ep:delete" /></el-icon>
-                        删除
-                    </el-button>
+                    <div class="action-group">
+                        <el-tooltip content="修改" placement="top">
+                            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:dict:edit']" class="op-btn">
+                                <Icon icon="ep:edit" class="btn-icon" />
+                            </el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:dict:remove']" class="op-btn">
+                                <Icon icon="ep:delete" class="btn-icon" />
+                            </el-button>
+                        </el-tooltip>
+                    </div>
                 </template>
             </el-table-column>
-        </el-table>
+            </el-table>
 
-        <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+            <div class="pagination-container">
+                <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+            </div>
+        </div>
 
         <!-- 添加或修改参数配置对话框 -->
-        <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+        <el-dialog :title="title" v-model="open" width="500px" append-to-body class="modern-dialog">
             <el-form ref="dictRef" :model="form" :rules="rules" label-width="80px">
                 <el-form-item label="字典名称" prop="dictName">
                     <el-input v-model="form.dictName" placeholder="请输入字典名称" />
@@ -126,8 +128,8 @@
             </el-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button type="primary" @click="submitForm">确 定</el-button>
-                    <el-button @click="cancel">取 消</el-button>
+                    <el-button type="primary" @click="submitForm" class="dialog-btn">确 定</el-button>
+                    <el-button @click="cancel" class="dialog-btn">取 消</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -292,3 +294,7 @@ function handleRefreshCache() {
 
 getList()
 </script>
+
+<style scoped lang="scss">
+@use '../crud-page.scss' as *;
+</style>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="edit-section">
         <div class="section-header">
             <div class="title-group">
@@ -40,7 +40,8 @@
                     <el-radio-group v-model="props.form.postType" v-show="false"></el-radio-group>
                 </el-form-item>
 
-                <el-form-item v-if="!isBatchVideoMode" label="正文内容" prop="content" class="highlight-label">
+                <el-form-item v-if="!isBatchVideoMode" prop="content" class="custom-labeled-item">
+                    <div class="field-heading">正文内容</div>
                     <div class="input-wrapper">
                         <transition name="el-fade-in-linear">
                             <el-button v-if="String(props.form.content || '').trim()" class="clear-content-btn" circle @click="clearContent">
@@ -206,6 +207,7 @@
                                     :model-value="getVideoBatchTagIds(item.index)"
                                     multiple
                                     filterable
+                                    :filter-method="resolveBatchTagFilterMethod(item.index)"
                                     :reserve-keyword="false"
                                     placeholder="请选择该视频的话题标签"
                                     style="width: 100%"
@@ -214,11 +216,12 @@
                                     class="video-batch-tag-select"
                                     popper-class="custom-select-popper custom-select-popper--batch"
                                     @update:model-value="onVideoBatchTagChange(item.index, $event)"
+                                    @visible-change="resolveBatchTagVisibleChange(item.index)"
                                 >
                                     <template #prefix>
                                         <Icon icon="mdi:pound" />
                                     </template>
-                                    <template v-for="cate in props.interestTree" :key="`${item.index}-${cate.id}`">
+                                    <template v-for="cate in getFilteredBatchInterestTree(item.index)" :key="`${item.index}-${cate.id}`">
                                         <el-option-group v-if="cate.children?.length" :label="cate.name">
                                             <el-option v-for="child in cate.children" :key="`${item.index}-${child.id}`" :label="child.name" :value="child.id">
                                                 <span class="option-tag-pill" :style="resolveOptionTagStyle(child, 'batch')">
@@ -234,11 +237,13 @@
                     </div>
                 </el-form-item>
 
-                <el-form-item v-if="!isBatchVideoMode" label="添加话题标签" prop="tagStr">
+                <el-form-item v-if="!isBatchVideoMode" prop="tagStr" class="custom-labeled-item">
+                    <div class="field-heading">添加话题标签</div>
                     <el-select
                         v-model="selectedTagIdsModel"
                         multiple
                         filterable
+                        :filter-method="handleNormalTagFilter"
                         :reserve-keyword="false"
                         placeholder="请选择话题标签 (必选)"
                         style="width: 100%"
@@ -246,11 +251,12 @@
                         :loading="props.interestLoading"
                         class="custom-select"
                         popper-class="custom-select-popper custom-select-popper--normal"
+                        @visible-change="handleNormalTagVisibleChange"
                     >
                         <template #prefix>
                             <Icon icon="mdi:pound" />
                         </template>
-                        <template v-for="cate in props.interestTree" :key="cate.id">
+                        <template v-for="cate in filteredNormalInterestTree" :key="cate.id">
                             <el-option-group v-if="cate.children?.length" :label="cate.name">
                                 <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id">
                                     <span class="option-tag-pill" :style="resolveOptionTagStyle(child, 'normal')">
@@ -283,6 +289,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import PinyinMatch from 'pinyin-match'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { resolveOptionTagStyle } from '@/utils/content/tagOptionStyle'
@@ -347,6 +354,8 @@ const videoCoverSourceUrl = ref('')
 const selectedCoverFile = ref<File | null>(null)
 const selectedCoverPreviewUrl = ref('')
 const capturingCover = ref(false)
+const normalTagKeyword = ref('')
+const batchTagKeywordMap = ref<Record<number, string>>({})
 let videoCoverObjectUrl = ''
 let selectedCoverPreviewObjectUrl = ''
 
@@ -411,6 +420,7 @@ const videoBatchItems = computed(() =>
 )
 
 const isUploading = computed(() => imageUploading.value || videoUploading.value)
+const filteredNormalInterestTree = computed(() => filterInterestTree(normalTagKeyword.value))
 
 function parseVideoUrlList(value: unknown): string[] {
     const text = String(value || '').trim()
@@ -419,6 +429,75 @@ function parseVideoUrlList(value: unknown): string[] {
         .split(',')
         .map(item => item.trim())
         .filter(Boolean)
+}
+
+function normalizeTagKeyword(value: unknown): string {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '')
+}
+
+function matchInterestKeyword(name: unknown, keyword: unknown): boolean {
+    const label = String(name || '').trim()
+    if (!label) return false
+
+    const rawKeyword = String(keyword || '').trim()
+    if (!rawKeyword) return true
+
+    const normalizedKeyword = normalizeTagKeyword(rawKeyword)
+    const normalizedLabel = normalizeTagKeyword(label)
+    if (normalizedLabel.includes(normalizedKeyword)) return true
+
+    return Boolean(PinyinMatch.match(label, rawKeyword) || (normalizedKeyword !== rawKeyword ? PinyinMatch.match(label, normalizedKeyword) : false))
+}
+
+function filterInterestTree(keyword: unknown): any[] {
+    const source = Array.isArray(props.interestTree) ? props.interestTree : []
+    const rawKeyword = String(keyword || '').trim()
+    if (!rawKeyword) return source
+
+    return source
+        .map(group => {
+            const children = Array.isArray(group?.children) ? group.children : []
+            if (matchInterestKeyword(group?.name, rawKeyword)) {
+                return { ...group, children }
+            }
+
+            const matchedChildren = children.filter((child: any) => matchInterestKeyword(child?.name, rawKeyword))
+            if (!matchedChildren.length) return null
+            return { ...group, children: matchedChildren }
+        })
+        .filter(Boolean)
+}
+
+function handleNormalTagFilter(value: string): void {
+    normalTagKeyword.value = String(value || '')
+}
+
+function handleBatchTagFilter(index: number, value: string): void {
+    batchTagKeywordMap.value = {
+        ...batchTagKeywordMap.value,
+        [index]: String(value || '')
+    }
+}
+
+function getFilteredBatchInterestTree(index: number): any[] {
+    return filterInterestTree(batchTagKeywordMap.value[index] || '')
+}
+
+function resolveBatchTagFilterMethod(index: number): (value: string) => void {
+    return (value: string) => handleBatchTagFilter(index, value)
+}
+
+function resolveBatchTagVisibleChange(index: number): (visible: boolean) => void {
+    return (visible: boolean) => {
+        if (!visible) handleBatchTagFilter(index, '')
+    }
+}
+
+function handleNormalTagVisibleChange(visible: boolean): void {
+    if (!visible) handleNormalTagFilter('')
 }
 
 function resolveVideoNameFromUrl(url: string): string {
@@ -1498,15 +1577,44 @@ defineExpose({
             background: var(--el-fill-color-darker);
         }
 
-        &.active {
-            background: color-mix(in srgb, var(--el-color-primary) 20%, var(--el-fill-color-dark));
-            border-color: color-mix(in srgb, var(--el-color-primary) 80%, var(--el-border-color));
-            box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
-
-            .type-name {
-                color: var(--el-color-primary-light-3);
-            }
+        .icon-box {
+            background: color-mix(in srgb, var(--el-color-black) 55%, var(--el-fill-color-darker));
+            color: var(--el-text-color-primary);
         }
+
+        .type-name {
+            color: color-mix(in srgb, var(--el-color-white) 92%, var(--el-text-color-primary));
+        }
+
+        .type-desc {
+            color: color-mix(in srgb, var(--el-color-white) 68%, var(--el-text-color-secondary));
+        }
+
+        &.active {
+            background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-fill-color-darker));
+            border-color: color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+            box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+        }
+    }
+
+    .type-grid .type-card.active .info-box .type-name {
+        color: var(--el-color-primary) !important;
+        -webkit-text-fill-color: currentColor;
+    }
+
+    .type-grid .type-card.active .info-box .type-desc {
+        color: color-mix(in srgb, var(--el-color-primary) 70%, var(--el-text-color-secondary)) !important;
+        -webkit-text-fill-color: currentColor;
+    }
+
+    .type-grid .type-card.active .info-box .type-name {
+        color: #203247 !important;
+        -webkit-text-fill-color: currentColor;
+    }
+
+    .type-grid .type-card.active .info-box .type-desc {
+        color: rgba(32, 50, 71, 0.76) !important;
+        -webkit-text-fill-color: currentColor;
     }
 
     .custom-textarea :deep(.el-textarea__inner),

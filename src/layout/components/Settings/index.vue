@@ -88,6 +88,7 @@
 
 <script setup>
 import { ref, getCurrentInstance } from 'vue'
+import defaultSettings from '@/settings'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
@@ -103,6 +104,7 @@ const permissionStore = usePermissionStore()
 const showSettings = ref(false)
 const theme = ref(settingsStore.theme)
 const sideTheme = ref(settingsStore.sideTheme)
+const DEFAULT_THEME = '#409EFF'
 
 const predefineColors = ['#409EFF', '#ff4500', '#ff8c00', '#ffd700', '#90ee90', '#00ced1', '#1e90ff', '#c71585']
 
@@ -134,9 +136,8 @@ function handleTheme(val) {
     sideTheme.value = val
 }
 
-function saveSetting() {
-    proxy.$modal.loading('正在保存到本地，请稍候...')
-    const layoutSetting = {
+function buildLayoutSetting() {
+    return {
         topNav: settingsStore.topNav,
         tagsView: settingsStore.tagsView,
         tagsIcon: settingsStore.tagsIcon,
@@ -147,22 +148,47 @@ function saveSetting() {
         sideTheme: settingsStore.sideTheme,
         theme: settingsStore.theme
     }
+}
+
+function applyLayoutSetting(layoutSetting) {
+    settingsStore.topNav = layoutSetting.topNav
+    settingsStore.tagsView = layoutSetting.tagsView
+    settingsStore.tagsIcon = layoutSetting.tagsIcon
+    settingsStore.fixedHeader = layoutSetting.fixedHeader
+    settingsStore.sidebarLogo = layoutSetting.sidebarLogo
+    settingsStore.dynamicTitle = layoutSetting.dynamicTitle
+    settingsStore.footerVisible = layoutSetting.footerVisible
+    settingsStore.sideTheme = layoutSetting.sideTheme
+    settingsStore.theme = layoutSetting.theme
+    theme.value = layoutSetting.theme
+    sideTheme.value = layoutSetting.sideTheme
+    handleThemeStyle(layoutSetting.theme)
+    topNavChange(layoutSetting.topNav)
+    dynamicTitleChange()
+}
+
+function saveSetting() {
+    const layoutSetting = buildLayoutSetting()
     localStorage.setItem('layout-setting', JSON.stringify(layoutSetting))
     showSettings.value = false
-    setTimeout(() => {
-        proxy.$modal.closeLoading()
-        window.location.reload()
-    }, 1000)
+    proxy.$modal.msgSuccess?.('配置已保存')
 }
 
 function resetSetting() {
-    proxy.$modal.loading('正在清除设置缓存并刷新，请稍候...')
     localStorage.removeItem('layout-setting')
+    applyLayoutSetting({
+        topNav: defaultSettings.topNav,
+        tagsView: defaultSettings.tagsView,
+        tagsIcon: defaultSettings.tagsIcon,
+        fixedHeader: defaultSettings.fixedHeader,
+        sidebarLogo: defaultSettings.sidebarLogo,
+        dynamicTitle: defaultSettings.dynamicTitle,
+        footerVisible: defaultSettings.footerVisible,
+        sideTheme: defaultSettings.sideTheme,
+        theme: DEFAULT_THEME
+    })
     showSettings.value = false
-    setTimeout(() => {
-        proxy.$modal.closeLoading()
-        window.location.reload()
-    }, 1000)
+    proxy.$modal.msgSuccess?.('已恢复默认配置')
 }
 
 function openSetting() {

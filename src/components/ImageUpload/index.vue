@@ -424,20 +424,25 @@ function handleExceed() {
 }
 
 function handleUploadSuccess(res, file) {
-    if (res.code === 200) {
+    const response = res && typeof res === 'object' ? res : {}
+    const responseCode = Number(response.code)
+    const rawFileName = String(response.fileName || response.url || '').trim()
+    const isSuccess = responseCode === 200 || Boolean(rawFileName)
+
+    if (isSuccess) {
         const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
         uploadList.value.push(
             createFileListItem({
-                name: String(rawFile?.name || file?.name || res.fileName || ''),
+                name: String(rawFile?.name || file?.name || rawFileName || ''),
                 originalName: String(rawFile?.name || file?.name || ''),
-                rawUrl: res.fileName,
-                url: res.fileName
+                rawUrl: rawFileName,
+                url: rawFileName
             })
         )
         uploadedSuccessfully()
     } else {
         number.value--
-        proxy.$modal.msgError(res.msg)
+        proxy.$modal.msgError(response.msg || '上传图片失败')
         imageUploadRef.value?.handleRemove?.(file)
         uploadedSuccessfully()
     }

@@ -1,10 +1,11 @@
 <template>
-    <div class="comment-panel" :class="{ open: visible, 'with-collection': showCollectionTab }" @click.stop>
+    <div class="comment-panel" :class="{ open: visible, 'with-collection': showCollectionTab, 'with-works': showAuthorWorksTab }" @click.stop>
         <div class="comment-panel-header">
             <div class="header-left">
                 <el-tabs v-model="activeTabModel" class="panel-tabs" @tab-click="emit('tab-click', $event)">
                     <el-tab-pane name="detail" label="详情" />
-                    <el-tab-pane name="comments" :label="`评论 ${formatCount(localCommentCount)}`" />
+                    <el-tab-pane v-if="showAuthorWorksTab" name="authorWorks" label="TA的作品" />
+                    <el-tab-pane name="comments" label="评论" />
                     <el-tab-pane v-if="showCollectionTab" name="collection" label="合集" />
                 </el-tabs>
             </div>
@@ -100,6 +101,66 @@
                 </div>
             </template>
 
+            <template v-else-if="activeTab === 'authorWorks'">
+                <div class="author-works-panel">
+                    <div class="author-summary-card">
+                        <el-avatar :size="52" :src="authorAvatar" class="author-summary-avatar" />
+                        <div class="author-summary-main">
+                            <div class="author-summary-top">
+                                <div class="author-summary-name">@{{ authorName || '未知用户' }}</div>
+                                <button
+                                    v-if="showFollowButton"
+                                    type="button"
+                                    class="author-follow-btn"
+                                    :class="{ active: followButtonActive }"
+                                    @click="emit('toggle-follow-author')"
+                                >
+                                    {{ followButtonLabel || '+ 关注' }}
+                                </button>
+                            </div>
+                            <div class="author-summary-stats">
+                                <span>{{ formatCount(authorFollowers) }}粉丝</span>
+                                <span class="dot">|</span>
+                                <span>{{ formatCount(authorLikedCount) }}获赞</span>
+                            </div>
+                            <div v-if="authorSignature" class="author-summary-signature">{{ authorSignature }}</div>
+                        </div>
+                    </div>
+
+                    <LoadingState v-if="authorWorksLoading && authorVideoPosts.length === 0" class="collection-loading" theme="inverse" :min-height="200" />
+                    <div v-else-if="authorVideoPosts.length === 0" class="collection-empty">暂无作品</div>
+                    <div v-else class="author-works-grid">
+                        <button
+                            v-for="item in authorVideoPosts"
+                            :key="getPostId(item) ?? item.id"
+                            type="button"
+                            class="author-work-card"
+                            :class="{ active: isCurrentCollectionPost(item) }"
+                            @click="emit('select-collection', item)"
+                        >
+                            <div class="author-work-cover">
+                                <el-image v-if="resolveCollectionCover(item)" :src="resolveCollectionCover(item)" fit="cover" class="author-work-image" />
+                                <div v-else class="collection-thumb-empty">
+                                    <Icon icon="mdi:video-outline" />
+                                </div>
+                                <div class="author-work-overlay">
+                                    <div class="author-work-like">
+                                        <Icon icon="mdi:heart-outline" />
+                                        <span>{{ formatCount(item.likeCount) }}</span>
+                                    </div>
+                                </div>
+                                <div v-if="isCurrentCollectionPost(item)" class="playing-overlay">
+                                    <div class="bar-anim"><span></span><span></span><span></span></div>
+                                </div>
+                            </div>
+                            <div class="author-work-title">{{ resolveCollectionTitle(item) }}</div>
+                        </button>
+                    </div>
+                    <LoadingState v-if="authorWorksLoading && authorVideoPosts.length > 0" class="comment-loading" theme="inverse" :min-height="120" />
+                    <div v-if="authorWorksNoMore && authorVideoPosts.length > 0" class="comment-end">- 没有更多作品了 -</div>
+                </div>
+            </template>
+
             <template v-else>
                 <div class="collection-panel-title">
                     <Icon icon="mdi:playlist-play" class="collection-icon" />
@@ -184,6 +245,18 @@ const props = defineProps({
     visible: { type: Boolean, default: false },
     activeTab: { type: String, default: 'comments' },
     localCommentCount: { type: Number, default: 0 },
+    showAuthorWorksTab: { type: Boolean, default: false },
+    authorName: { type: String, default: '' },
+    authorAvatar: { type: String, default: '' },
+    authorSignature: { type: String, default: '' },
+    authorFollowers: { type: Number, default: 0 },
+    authorLikedCount: { type: Number, default: 0 },
+    authorWorksLoading: { type: Boolean, default: false },
+    authorWorksNoMore: { type: Boolean, default: false },
+    authorVideoPosts: { type: Array as PropType<Record<string, any>[]>, default: () => [] },
+    showFollowButton: { type: Boolean, default: false },
+    followButtonLabel: { type: String, default: '' },
+    followButtonActive: { type: Boolean, default: false },
     showCollectionTab: { type: Boolean, default: false },
     commentItems: { type: Array as PropType<Record<string, any>[]>, default: () => [] },
     commentLoading: { type: Boolean, default: false },
@@ -207,6 +280,7 @@ const emit = defineEmits([
     'update:commentDraft',
     'tab-click',
     'load-more-comments',
+    'load-more-author-works',
     'reply-comment',
     'reply-reply',
     'delete-comment',
@@ -214,6 +288,7 @@ const emit = defineEmits([
     'load-replies',
     'clear-reply',
     'submit-comment',
+    'toggle-follow-author',
     'select-collection'
 ])
 
@@ -231,11 +306,23 @@ const activeTabModel = computed({
 })
 
 const handleBodyScroll = () => {
-    if (props.activeTab !== 'comments') return
     const element = commentBodyRef.value
-    if (!element || props.commentLoading || props.commentNoMore) return
-    if (element.scrollTop + element.clientHeight >= element.scrollHeight - 60) {
+    if (!element) return
+    if (
+        props.activeTab === 'comments' &&
+        !props.commentLoading &&
+        !props.commentNoMore &&
+        element.scrollTop + element.clientHeight >= element.scrollHeight - 60
+    ) {
         emit('load-more-comments')
+    }
+    if (
+        props.activeTab === 'authorWorks' &&
+        !props.authorWorksLoading &&
+        !props.authorWorksNoMore &&
+        element.scrollTop + element.clientHeight >= element.scrollHeight - 80
+    ) {
+        emit('load-more-author-works')
     }
 }
 
@@ -261,20 +348,54 @@ $color-accent: var(--vm-color-accent);
     width: 0;
     height: 100%;
     background: $color-bg-panel;
-    backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(155%);
     border-left: 1px solid $color-border;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    flex: 0 0 auto;
+    opacity: 0;
+    pointer-events: none;
+    will-change: width, opacity;
+    contain: layout paint style;
+    backface-visibility: hidden;
+    transition:
+        width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.18s ease,
+        box-shadow 0.3s ease;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
 
     &.open {
-        width: 420px;
+        width: var(--comment-panel-width, 420px);
+        opacity: 1;
+        pointer-events: auto;
+        box-shadow: -20px 0 48px var(--vm-black-30);
     }
 
-    &.with-collection.open {
-        width: 480px;
+    &.with-collection {
+        --comment-panel-width: 480px;
     }
+
+    &.with-works {
+        --comment-panel-width: 560px;
+    }
+}
+
+.comment-panel-header,
+.comment-panel-body,
+.comment-panel-footer {
+    opacity: 0;
+    transform: translate3d(12px, 0, 0);
+    transition:
+        opacity 0.2s ease,
+        transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.comment-panel.open .comment-panel-header,
+.comment-panel.open .comment-panel-body,
+.comment-panel.open .comment-panel-footer {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
 }
 
 .comment-panel-header {
@@ -640,6 +761,147 @@ $color-accent: var(--vm-color-accent);
         color: $color-accent;
         font-size: 18px;
     }
+}
+
+.author-works-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.author-summary-card {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--vm-white-8), var(--vm-white-4));
+    border: 1px solid var(--vm-white-10);
+}
+
+.author-summary-avatar {
+    flex-shrink: 0;
+    border: 1px solid var(--vm-white-12);
+}
+
+.author-summary-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.author-summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.author-summary-name {
+    font-size: 18px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--vm-color-white);
+}
+
+.author-follow-btn {
+    border: none;
+    padding: 0 16px;
+    height: 34px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff4d6d, #ff355d);
+    color: var(--vm-color-white);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &.active {
+        background: var(--vm-white-12);
+        color: var(--vm-color-white);
+        border: 1px solid var(--vm-white-20);
+    }
+}
+
+.author-summary-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--vm-white-75);
+
+    .dot {
+        color: var(--vm-white-40);
+    }
+}
+
+.author-summary-signature {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--vm-white-85);
+    white-space: pre-wrap;
+}
+
+.author-works-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.author-work-card {
+    border: none;
+    padding: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+
+    &.active .author-work-cover {
+        box-shadow: 0 0 0 2px var(--vm-color-accent);
+    }
+}
+
+.author-work-cover {
+    position: relative;
+    aspect-ratio: 0.72;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--vm-white-10);
+}
+
+.author-work-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.author-work-overlay {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 12px 10px 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+}
+
+.author-work-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--vm-color-white);
+    font-size: 12px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.author-work-title {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--vm-white-90);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 34px;
 }
 
 .collection-list {

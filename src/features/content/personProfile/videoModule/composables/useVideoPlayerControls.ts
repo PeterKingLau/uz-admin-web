@@ -21,6 +21,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const isPortraitVideo = ref(false)
 
     const isPlaying = ref(false)
+    const playIntent = ref<'play' | 'pause' | null>(null)
     const videoCoverOverlayVisible = ref(false)
     const isVideoBuffering = ref(false)
     const hasRenderedFirstFrame = ref(false)
@@ -33,7 +34,11 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const hasDuration = computed(() => Number.isFinite(duration.value) && duration.value > 0)
     const canSeekVideo = computed(() => hasDuration.value)
     const canTogglePlayback = computed(() => Boolean(playerRef.value))
-    const isBufferingForControl = computed(() => isVideoBuffering.value && !isPlaying.value)
+    const playControlIcon = computed(() => {
+        if (playIntent.value === 'play') return 'mdi:pause'
+        if (playIntent.value === 'pause') return 'mdi:play'
+        return isPlaying.value ? 'mdi:pause' : 'mdi:play'
+    })
     const displayCurrentTime = computed(() => (hasDuration.value ? formatClock(currentTime.value) : '--:--'))
     const displayDuration = computed(() => (hasDuration.value ? formatClock(duration.value) : '--:--'))
 
@@ -68,6 +73,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
 
     let hideControlsTimer: ReturnType<typeof setTimeout> | null = null
     let volumePanelHideTimer: ReturnType<typeof setTimeout> | null = null
+    let initialPlayFallbackTimer: ReturnType<typeof setTimeout> | null = null
     let prevHtmlOverflow = ''
     let prevBodyOverflow = ''
     let prevHtmlScrollbarGutter = ''
@@ -204,6 +210,12 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const syncPiPSupport = () => {
         const el = playerRef.value
         pipSupported.value = Boolean(el && document.pictureInPictureEnabled)
+        pipActive.value = Boolean(el && document.pictureInPictureElement === el)
+    }
+
+    const syncPiPActiveState = () => {
+        const el = playerRef.value
+        pipActive.value = Boolean(el && document.pictureInPictureElement === el)
     }
 
     const applyRate = (value: number) => {
@@ -233,6 +245,23 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         if (!volumePanelHideTimer) return
         clearTimeout(volumePanelHideTimer)
         volumePanelHideTimer = null
+    }
+
+    const clearInitialPlayFallbackTimer = () => {
+        if (!initialPlayFallbackTimer) return
+        clearTimeout(initialPlayFallbackTimer)
+        initialPlayFallbackTimer = null
+    }
+
+    const scheduleInitialPlayFallback = () => {
+        clearInitialPlayFallbackTimer()
+        initialPlayFallbackTimer = setTimeout(() => {
+            initialPlayFallbackTimer = null
+            if (hasRenderedFirstFrame.value || isPlaying.value) return
+            playIntent.value = null
+            isVideoBuffering.value = false
+            revealPlayerUi()
+        }, 2500)
     }
 
     const openVolumePanel = () => {
@@ -267,11 +296,15 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         if (!el?.play) return
         try {
             isVideoBuffering.value = true
+            scheduleInitialPlayFallback()
             const result = el.play()
             await result
         } catch (error: any) {
+            clearInitialPlayFallbackTimer()
             if (error?.name === 'AbortError') return
+            playIntent.value = null
             isVideoBuffering.value = false
+            revealPlayerUi()
             console.error(error)
         }
     }
@@ -279,8 +312,13 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const togglePlay = () => {
         const el = playerRef.value
         if (!el) return
-        if (el.paused) safePlay(el)
-        else el.pause()
+        if (el.paused) {
+            playIntent.value = 'play'
+            safePlay(el)
+        } else {
+            playIntent.value = 'pause'
+            el.pause()
+        }
     }
 
     const handlePlayControlClick = (event?: Event) => {
@@ -309,12 +347,14 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     }
 
     const onLoadedData = () => {
+        clearInitialPlayFallbackTimer()
         hasRenderedFirstFrame.value = true
         hideVideoCoverOnFirstFrame()
         revealPlayerUi()
     }
 
     const onCanPlay = () => {
+        clearInitialPlayFallbackTimer()
         isVideoBuffering.value = false
         hideVideoCoverOnFirstFrame()
         revealPlayerUi()
@@ -333,10 +373,14 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     }
 
     const onPlay = () => {
+        clearInitialPlayFallbackTimer()
+        playIntent.value = null
         isPlaying.value = true
     }
 
     const onPlaying = () => {
+        clearInitialPlayFallbackTimer()
+        playIntent.value = null
         isPlaying.value = true
         hasRenderedFirstFrame.value = true
         isVideoBuffering.value = false
@@ -345,6 +389,8 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     }
 
     const onPause = () => {
+        clearInitialPlayFallbackTimer()
+        playIntent.value = null
         isPlaying.value = false
         const el = playerRef.value
         if (!el) return
@@ -384,21 +430,50 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         }
     }
 
-    const togglePiP = async () => {
+    const enterPiP = async () => {
         const el = playerRef.value as any
         if (!el || !document.pictureInPictureEnabled) return
         try {
+            if (document.pictureInPictureElement === el) {
+                pipActive.value = true
+                return true
+            }
             if (document.pictureInPictureElement) {
                 await document.exitPictureInPicture()
-                pipActive.value = false
-            } else {
-                await el.requestPictureInPicture()
-                pipActive.value = true
             }
+            await el.requestPictureInPicture()
+            pipActive.value = true
+            return true
         } catch (error) {
             console.error(error)
-            pipActive.value = Boolean(document.pictureInPictureElement)
+            syncPiPActiveState()
+            return false
         }
+    }
+
+    const exitPiP = async () => {
+        const el = playerRef.value as any
+        if (!el || document.pictureInPictureElement !== el) {
+            pipActive.value = false
+            return true
+        }
+        try {
+            await document.exitPictureInPicture()
+            pipActive.value = false
+            return true
+        } catch (error) {
+            console.error(error)
+            syncPiPActiveState()
+            return false
+        }
+    }
+
+    const togglePiP = async () => {
+        if (document.pictureInPictureElement) {
+            await exitPiP()
+            return
+        }
+        await enterPiP()
     }
 
     const onKeydown = (event: KeyboardEvent) => {
@@ -441,6 +516,9 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         const el = playerRef.value
         if (el) {
             try {
+                if (document.pictureInPictureElement === el) {
+                    document.exitPictureInPicture().catch(error => console.error(error))
+                }
                 el.pause?.()
                 if (Number(el.currentTime || 0) > 0) {
                     el.currentTime = 0
@@ -450,6 +528,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
             }
         }
         isPlaying.value = false
+        playIntent.value = null
         isVideoBuffering.value = false
         hasRenderedFirstFrame.value = false
         isPlayerUiReady.value = false
@@ -462,10 +541,15 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         progressHover.visible = false
         volumePanelVisible.value = false
         clearVolumePanelHideTimer()
+        clearInitialPlayFallbackTimer()
 
         window.removeEventListener('resize', handleResize)
         document.removeEventListener('fullscreenchange', handleResize)
         window.removeEventListener('keydown', onKeydown)
+        if (el) {
+            el.removeEventListener('enterpictureinpicture', syncPiPActiveState)
+            el.removeEventListener('leavepictureinpicture', syncPiPActiveState)
+        }
         if (hideControlsTimer) {
             clearTimeout(hideControlsTimer)
             hideControlsTimer = null
@@ -478,6 +562,10 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         await nextTick()
         const el = playerRef.value
         if (!el) return
+        el.removeEventListener('enterpictureinpicture', syncPiPActiveState)
+        el.removeEventListener('leavepictureinpicture', syncPiPActiveState)
+        el.addEventListener('enterpictureinpicture', syncPiPActiveState)
+        el.addEventListener('leavepictureinpicture', syncPiPActiveState)
         syncPiPSupport()
         window.addEventListener('resize', handleResize)
         document.addEventListener('fullscreenchange', handleResize)
@@ -566,15 +654,18 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         showVideoBuffering,
         showPauseOverlay,
         isPlayerUiReady,
+        isPlaying,
         controlsVisible,
+        hasRenderedFirstFrame,
         isDraggingProgress,
         progressDraft,
         progressHover,
         progressShown,
         progressMax,
+        hasDuration,
         canSeekVideo,
         canTogglePlayback,
-        isBufferingForControl,
+        playControlIcon,
         displayCurrentTime,
         displayDuration,
         volume,
@@ -584,6 +675,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         rates,
         playbackRate,
         pipSupported,
+        pipActive,
         pipIcon,
         isFullscreen,
         togglePlay,
@@ -598,6 +690,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         handleVolumeButtonClick,
         applyVolume,
         applyRate,
+        exitPiP,
         togglePiP,
         toggleFullscreen,
         onLoadStart,

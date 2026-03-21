@@ -82,6 +82,7 @@ html.dark .modern-notification {
 }
 
 .modern-message-box {
+    position: relative !important;
     border-radius: 20px !important;
     padding: 24px !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
@@ -89,25 +90,86 @@ html.dark .modern-notification {
 }
 
 .modern-message-box .el-message-box__header {
-    padding-bottom: 16px !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    min-height: 32px !important;
+    padding: 0 44px 16px 0 !important;
 }
 
 .modern-message-box .el-message-box__title {
     font-weight: 700 !important;
     font-size: 18px !important;
+    line-height: 1.4 !important;
+    color: var(--el-text-color-primary) !important;
+}
+
+.modern-message-box .el-message-box__headerbtn {
+    top: 0 !important;
+    right: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--el-text-color-secondary) !important;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease !important;
+}
+
+.modern-message-box .el-message-box__headerbtn:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 10%, transparent) !important;
+    color: var(--el-color-primary) !important;
+    transform: scale(1.04) !important;
+}
+
+.modern-message-box .el-message-box__close {
+    font-size: 18px !important;
+    line-height: 1 !important;
 }
 
 .modern-message-box .el-message-box__content {
     font-size: 15px !important;
-    padding: 10px 0 20px !important;
+    padding: 0 0 20px !important;
     line-height: 1.6 !important;
 }
 
+.modern-message-box .el-message-box__container {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+}
+
+.modern-message-box .el-message-box__status {
+    position: static !important;
+    margin-top: 2px !important;
+    transform: none !important;
+    flex-shrink: 0 !important;
+    font-size: 22px !important;
+}
+
+.modern-message-box .el-message-box__message {
+    margin: 0 !important;
+    color: var(--el-text-color-regular) !important;
+    line-height: 1.7 !important;
+}
+
 .modern-message-box .el-message-box__btns {
-    padding-top: 0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    padding-top: 4px !important;
+}
+
+.modern-message-box .el-message-box__btns .el-button + .el-button {
+    margin-left: 0 !important;
 }
 
 .modern-message-box .el-button {
+    min-width: 80px !important;
     border-radius: 10px !important;
     padding: 10px 24px !important;
     height: auto !important;
@@ -145,6 +207,10 @@ html.dark .modern-notification {
 html.dark .modern-message-box {
     background-color: var(--el-bg-color-overlay) !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .modern-message-box .el-message-box__headerbtn:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 18%, transparent) !important;
 }
 
 .modern-loading .el-loading-spinner {

@@ -1,5 +1,5 @@
 <template>
-    <div class="app-container system-menu">
+    <div class="app-container system-crud-page system-menu">
         <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
             <el-form-item label="菜单名称" prop="menuName">
                 <el-input v-model="queryParams.menuName" placeholder="请输入菜单名称" clearable class="search-input" @keyup.enter="handleQuery">
@@ -13,23 +13,29 @@
                     <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
             </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1" /> 搜索 </el-button>
-                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1" /> 重置 </el-button>
+            <el-form-item class="form-actions">
+                <el-button type="primary" @click="handleQuery" class="action-btn"> <Icon icon="mdi:magnify" class="btn-icon" /> 搜索 </el-button>
+                <el-button @click="resetQuery" class="action-btn"> <Icon icon="mdi:refresh" class="btn-icon" /> 重置 </el-button>
             </el-form-item>
         </el-form>
 
         <div class="table-wrapper">
-            <div class="table-header">
+            <div class="table-header table-toolbar">
                 <div class="left-tools">
-                    <el-button type="primary" plain @click="handleAdd" v-hasPermi="['system:menu:add']"> <Icon icon="mdi:plus" class="mr-1" /> 新增 </el-button>
-                    <el-button type="info" plain @click="toggleExpandAll"> <Icon icon="mdi:sort-variant" class="mr-1" /> 展开/折叠 </el-button>
-                    <el-button :type="dragEnabled ? 'warning' : 'default'" plain @click="toggleDrag">
-                        <Icon :icon="dragEnabled ? 'mdi:check' : 'mdi:drag'" class="mr-1" />
+                    <el-button type="primary" @click="handleAdd" v-hasPermi="['system:menu:add']" class="tool-btn">
+                        <Icon icon="ep:plus" class="btn-icon" /> 新增
+                    </el-button>
+                    <el-button type="info" @click="toggleExpandAll" class="tool-btn">
+                        <Icon icon="mdi:sort-variant" class="btn-icon" /> 展开/折叠
+                    </el-button>
+                    <el-button :type="dragEnabled ? 'warning' : 'default'" @click="toggleDrag" class="tool-btn">
+                        <Icon :icon="dragEnabled ? 'mdi:check' : 'mdi:drag'" class="btn-icon" />
                         {{ dragEnabled ? '完成排序' : '开启拖拽' }}
                     </el-button>
                 </div>
-                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                <div class="right-tools">
+                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                </div>
             </div>
 
             <el-alert v-if="dragEnabled" title="按住左侧手柄拖动排序 (仅支持同级)" type="warning" show-icon :closable="false" style="margin-bottom: 16px" />
@@ -40,6 +46,7 @@
                 v-loading="loading"
                 :data="menuList"
                 :class="{ 'drag-enabled-table': dragEnabled }"
+                class="modern-table"
                 row-key="menuId"
                 :default-expand-all="isExpandAll"
                 :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
@@ -100,25 +107,31 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" align="center" width="240" fixed="right">
+                <el-table-column label="操作" align="center" width="140" fixed="right">
                     <template #default="scope">
-                        <div class="table-actions">
-                            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']">
-                                <Icon icon="mdi:pencil-outline" class="action-icon" /> 修改
-                            </el-button>
-                            <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']">
-                                <Icon icon="mdi:plus" class="action-icon" /> 新增
-                            </el-button>
-                            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']">
-                                <Icon icon="mdi:trash-can-outline" class="action-icon" /> 删除
-                            </el-button>
+                        <div class="action-group">
+                            <el-tooltip content="修改" placement="top">
+                                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:menu:edit']" class="op-btn">
+                                    <Icon icon="ep:edit" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-tooltip content="新增" placement="top">
+                                <el-button link type="primary" @click="handleAdd(scope.row)" v-hasPermi="['system:menu:add']" class="op-btn">
+                                    <Icon icon="ep:plus" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-tooltip content="删除" placement="top">
+                                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:menu:remove']" class="op-btn">
+                                    <Icon icon="ep:delete" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
                         </div>
                     </template>
                 </el-table-column>
             </el-table>
         </div>
 
-        <el-dialog :title="title" v-model="open" width="680px" append-to-body @close="handleDialogClose" class="custom-dialog system-menu-dialog" top="5vh">
+        <el-dialog :title="title" v-model="open" width="680px" append-to-body @close="handleDialogClose" class="custom-dialog system-menu-dialog modern-dialog" top="5vh">
             <el-form ref="menuRef" :model="form" :rules="rules" label-width="100px">
                 <el-row :gutter="24">
                     <el-col :span="24">
@@ -300,8 +313,8 @@
 
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="cancel">取 消</el-button>
-                    <el-button type="primary" @click="submitForm">确 定</el-button>
+                    <el-button @click="cancel" class="dialog-btn">取 消</el-button>
+                    <el-button type="primary" @click="submitForm" class="dialog-btn">确 定</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -669,23 +682,17 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use '../crud-page.scss' as *;
+
 .system-menu {
     .table-wrapper {
         border-radius: 6px;
 
         .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 16px;
-            flex-wrap: wrap;
+            margin-bottom: 0;
 
             .left-tools {
-                display: flex;
                 gap: 12px;
-                align-items: center;
-                flex-wrap: wrap;
             }
         }
     }
@@ -764,18 +771,6 @@ onMounted(() => {
     :deep(.el-table__row) {
         td {
             padding: 16px 0;
-        }
-    }
-
-    .table-actions {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-
-        .action-icon {
-            margin-right: 3px;
-            font-size: 15px;
         }
     }
 

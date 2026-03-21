@@ -298,21 +298,26 @@ function handleUploadError(err) {
 }
 
 function handleUploadSuccess(res, file) {
-    if (res.code === 200) {
-        const normalizedUrl = normalizeUploadUrl(res.fileName)
+    const response = res && typeof res === 'object' ? res : {}
+    const responseCode = Number(response.code)
+    const rawFileName = String(response.fileName || response.url || '').trim()
+    const isSuccess = responseCode === 200 || Boolean(rawFileName)
+
+    if (isSuccess) {
+        const normalizedUrl = normalizeUploadUrl(rawFileName)
         const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
         if (normalizedUrl && rawFile) {
             rawFileMap.set(normalizedUrl, rawFile)
         }
         uploadList.value.push({
-            name: String(rawFile?.name || file?.name || res.fileName || ''),
-            url: res.fileName,
-            rawUrl: res.fileName
+            name: String(rawFile?.name || file?.name || rawFileName || ''),
+            url: rawFileName,
+            rawUrl: rawFileName
         })
         uploadedSuccessfully()
     } else {
         number.value--
-        proxy.$modal.msgError(res.msg)
+        proxy.$modal.msgError(response.msg || '上传文件失败')
         proxy.$refs.fileUpload.handleRemove(file)
         uploadedSuccessfully()
     }

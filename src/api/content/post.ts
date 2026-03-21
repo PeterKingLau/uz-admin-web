@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+﻿import request from '@/utils/request'
 import { buildVideoCoverFile, normalizeMediaUrls, normalizeStoragePath } from '@/utils/content/postMedia'
 import { getPostUploadCredentials, uploadFilesToOss } from '@/utils/content/ossUpload'
 import type { OssCredentialType, UploadCredentialParams } from '@/utils/content/ossUpload'
@@ -70,10 +70,10 @@ export async function addPost(data: AddPostPayload) {
         if (!coverUrl) {
             const videoFile = files.find(f => f instanceof File && /\.(mp4|mov|webm|avi|mkv)$/i.test(f.name || ''))
             const coverFile = customCoverFile || (await buildVideoCoverFile({ file: videoFile, mediaUrl: videoUrl }))
-            if (!coverFile) throw new Error('瑙嗛灏侀潰鐢熸垚澶辫触')
+            if (!coverFile) throw new Error('视频封面生成失败')
             const coverUrls = await uploadFilesToOss(IMAGE_POST_TYPE, [coverFile], data.ossType)
             const uploadedCover = String(coverUrls?.[0] || '').trim()
-            if (!uploadedCover) throw new Error('瑙嗛灏侀潰涓婁紶澶辫触')
+            if (!uploadedCover) throw new Error('视频封面上传失败')
             coverUrl = normalizeStoragePath(uploadedCover)
         }
 

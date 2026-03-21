@@ -1,6 +1,6 @@
 <template>
     <div class="relative w-full h-[50px] flex items-center justify-center bg-transparent overflow-hidden">
-        <transition name="sidebarLogoFade">
+        <transition name="sidebarLogoFade" mode="out-in">
             <router-link v-if="collapse" key="collapse" class="!flex items-center justify-center w-full h-full" to="/">
                 <img v-if="logo" :src="logo" class="w-8 h-8 object-contain select-none" />
                 <h1 v-else class="font-bold text-base select-none truncate" :style="{ color: getLogoTextColor }">
@@ -47,12 +47,25 @@ const getLogoTextColor = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.sidebarLogoFade-enter-active {
-    transition: opacity 1.5s;
+.sidebarLogoFade-enter-active,
+.sidebarLogoFade-leave-active {
+    transition:
+        opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sidebarLogoFade-enter-from,
 .sidebarLogoFade-leave-to {
     opacity: 0;
+    transform: translateX(-8px) scale(0.985);
+    filter: blur(2px);
+}
+
+.sidebarLogoFade-enter-to,
+.sidebarLogoFade-leave-from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
 }
 </style>

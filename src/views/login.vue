@@ -67,13 +67,13 @@
             </div>
 
             <div class="agreement-box">
-                <el-checkbox v-model="agreementChecked">
+                <el-checkbox :model-value="agreementChecked" @update:model-value="handleAgreementChange">
                     <span class="agreement-text">我已阅读并同意</span>
-                    <router-link class="policy-link inline-policy-link" to="/h5/user-agreement" target="_blank" rel="noopener noreferrer">
+                    <router-link class="policy-link inline-policy-link" to="/h5/user-agreement" target="_blank" rel="noopener noreferrer" @click.stop>
                         《用户协议》
                     </router-link>
                     <span class="agreement-text">和</span>
-                    <router-link class="policy-link inline-policy-link" to="/h5/privacy-policy" target="_blank" rel="noopener noreferrer">
+                    <router-link class="policy-link inline-policy-link" to="/h5/privacy-policy" target="_blank" rel="noopener noreferrer" @click.stop>
                         《隐私政策》
                     </router-link>
                 </el-checkbox>
@@ -168,6 +168,15 @@ const loading = ref(false)
 const register = ref(false)
 const redirect = ref()
 const agreementChecked = ref(false)
+
+function handleAgreementChange(val) {
+    if (val) {
+        agreementChecked.value = true
+        proxy?.$modal?.alertWarning?.('您已勾选阅读协议，请确认您已阅读《用户协议》和《隐私政策》。')
+    } else {
+        agreementChecked.value = false
+    }
+}
 
 watch(
     () => loginForm.value.loginType,

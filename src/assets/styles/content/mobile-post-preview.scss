@@ -93,6 +93,24 @@
         }
     }
 
+    :global(html.dark) .preview-header {
+        .header-left {
+            .header-icon {
+                color: var(--el-color-primary-light-3);
+                filter: drop-shadow(0 0 10px rgba(var(--el-color-primary-rgb), 0.22));
+            }
+
+            .label {
+                color: rgba(255, 255, 255, 0.94);
+                text-shadow: 0 1px 10px rgba(0, 0, 0, 0.28);
+            }
+        }
+
+        .header-time {
+            color: rgba(255, 255, 255, 0.78);
+        }
+    }
+
     .mobile-frame {
         width: 350px;
         height: 720px;

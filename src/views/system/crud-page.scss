@@ -1,0 +1,230 @@
+.system-crud-page {
+    .search-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 16px;
+
+        :deep(.el-form-item) {
+            margin-right: 0;
+            margin-bottom: 0;
+        }
+
+        :deep(.el-form-item__label) {
+            font-weight: 600;
+        }
+
+        .form-actions {
+            margin-left: auto;
+        }
+    }
+
+    .table-wrapper {
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: 12px;
+        background-color: var(--el-bg-color);
+        overflow: hidden;
+    }
+
+    .table-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 16px;
+        background-color: var(--el-fill-color-light);
+        border-bottom: 1px solid var(--el-border-color-lighter);
+
+        .left-tools {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .right-tools {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+    }
+
+    .action-btn,
+    .tool-btn,
+    .dialog-btn,
+    .op-text-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :deep(.action-btn > span),
+    :deep(.tool-btn > span),
+    :deep(.dialog-btn > span),
+    :deep(.op-text-btn > span) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .action-btn,
+    .tool-btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+
+        &:hover {
+            transform: translateY(-1px);
+        }
+
+        &.is-disabled,
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+    }
+
+    .action-btn.el-button--primary {
+        box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+
+    .modern-table {
+        width: 100%;
+
+        :deep(th.el-table__cell) {
+            background-color: var(--el-fill-color-light);
+            color: var(--el-text-color-primary);
+            font-weight: 600;
+            height: 48px;
+        }
+    }
+
+    .btn-icon {
+        font-size: 16px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    .action-group {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .op-btn {
+        padding: 4px;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+
+        &:hover {
+            background-color: var(--el-fill-color-light);
+        }
+
+        .btn-icon {
+            font-size: 16px;
+        }
+    }
+
+    .text-action-group {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+
+    .op-text-btn {
+        padding: 0 4px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .dialog-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+
+        .dialog-btn {
+            border-radius: 8px;
+            padding: 8px 24px;
+            font-weight: 500;
+        }
+    }
+
+    .pagination-container {
+        padding: 16px;
+        border-top: 1px solid var(--el-border-color-lighter);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .modern-dialog {
+        :deep(.el-dialog__header) {
+            padding: 20px 24px 16px;
+            margin-right: 0;
+            border-bottom: 1px solid var(--el-border-color-lighter);
+
+            .el-dialog__title {
+                font-size: 16px;
+                font-weight: 600;
+            }
+        }
+
+        :deep(.el-dialog__body) {
+            padding: 24px;
+        }
+
+        :deep(.el-dialog__footer) {
+            padding: 16px 24px;
+            border-top: 1px solid var(--el-border-color-lighter);
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+        .search-form {
+            flex-direction: column;
+            gap: 12px;
+
+            :deep(.el-form-item) {
+                width: 100%;
+            }
+
+            .form-actions {
+                margin-left: 0;
+            }
+        }
+
+        .table-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+
+            .right-tools {
+                margin-left: 0;
+                justify-content: flex-end;
+            }
+        }
+    }
+}
+
+:global(html.dark) .system-crud-page {
+    .table-wrapper {
+        border-color: var(--el-border-color-darker);
+        background-color: var(--el-bg-color-overlay);
+    }
+
+    .table-toolbar {
+        background-color: var(--el-fill-color-darker);
+        border-bottom-color: var(--el-border-color-darker);
+    }
+
+    .pagination-container {
+        border-top-color: var(--el-border-color-darker);
+    }
+}
