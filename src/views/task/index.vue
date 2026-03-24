@@ -1,35 +1,51 @@
 <template>
-    <div class="app-container">
-        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true">
+    <div class="app-container system-crud-page task-page">
+        <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
             <el-form-item label="题目名称" prop="title">
-                <el-input v-model="queryParams.title" placeholder="请输入题目名称" clearable style="width: 240px" @keyup.enter="handleQuery">
+                <el-input v-model="queryParams.title" placeholder="请输入题目名称" clearable class="search-input" @keyup.enter="handleQuery">
                     <template #prefix>
-                        <Icon icon="mdi:magnify" />
+                        <Icon icon="mdi:magnify" class="btn-icon" />
                     </template>
                 </el-input>
             </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery"> <Icon icon="mdi:magnify" class="mr-1 text-[16px]" /> 搜索 </el-button>
-                <el-button @click="resetQuery"> <Icon icon="mdi:refresh" class="mr-1 text-[16px]" /> 重置 </el-button>
+            <el-form-item class="form-actions">
+                <el-button type="primary" @click="handleQuery" class="action-btn">
+                    <Icon icon="mdi:magnify" class="btn-icon" />
+                    搜索
+                </el-button>
+                <el-button @click="resetQuery" class="action-btn">
+                    <Icon icon="mdi:refresh" class="btn-icon" />
+                    重置
+                </el-button>
             </el-form-item>
         </el-form>
 
         <div class="table-wrapper">
-            <div class="table-header">
+            <div class="table-toolbar">
                 <div class="left-tools">
-                    <el-button type="primary" plain @click="handleAdd"> <Icon icon="mdi:plus" class="mr-1 text-[16px]" /> 新增题目 </el-button>
-                    <el-button type="success" plain @click="handleBatchOpen">
-                        <Icon icon="mdi:file-document-plus-outline" class="mr-1 text-[16px]" /> 批量导入
+                    <el-button type="primary" @click="handleAdd" class="tool-btn">
+                        <Icon icon="mdi:plus" class="btn-icon" />
+                        新增题目
                     </el-button>
-                    <el-button type="info" plain @click="handleBatchExport"> <Icon icon="mdi:download" class="mr-1 text-[16px]" /> 批量导出 </el-button>
-                    <el-button type="danger" plain :disabled="!ids.length" @click="handleDelete()">
-                        <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" /> 批量删除
+                    <el-button type="success" @click="handleBatchOpen" class="tool-btn">
+                        <Icon icon="mdi:file-document-plus-outline" class="btn-icon" />
+                        批量导入
+                    </el-button>
+                    <el-button type="info" @click="handleBatchExport" class="tool-btn">
+                        <Icon icon="mdi:download" class="btn-icon" />
+                        批量导出
+                    </el-button>
+                    <el-button type="danger" :disabled="!ids.length" @click="handleDelete()" class="tool-btn">
+                        <Icon icon="mdi:trash-can-outline" class="btn-icon" />
+                        批量删除
                     </el-button>
                 </div>
-                <right-toolbar v-model:showSearch="showSearch" @queryTable="resetQuery" />
+                <div class="right-tools">
+                    <right-toolbar v-model:showSearch="showSearch" @queryTable="resetQuery" />
+                </div>
             </div>
 
-            <el-table v-loading="loading" :data="displayQuestionList" @selection-change="handleSelectionChange" header-cell-class-name="table-header-cell">
+            <el-table v-loading="loading" :data="displayQuestionList" @selection-change="handleSelectionChange" class="modern-table">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column label="所属模块" align="center" prop="moduleCode" min-width="140" show-overflow-tooltip>
                     <template #default="{ row }">
@@ -72,10 +88,16 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center" width="180" fixed="right">
                     <template #default="{ row }">
-                        <el-button link type="primary" @click="handleEdit(row)"> <Icon icon="mdi:pencil" class="mr-1 text-[16px]" /> 修改 </el-button>
-                        <el-button link type="danger" @click="handleDelete(row)">
-                            <Icon icon="mdi:trash-can-outline" class="mr-1 text-[16px]" /> 删除
-                        </el-button>
+                        <div class="text-action-group">
+                            <el-button link type="primary" @click="handleEdit(row)" class="op-text-btn">
+                                <Icon icon="mdi:pencil" class="btn-icon" />
+                                修改
+                            </el-button>
+                            <el-button link type="danger" @click="handleDelete(row)" class="op-text-btn">
+                                <Icon icon="mdi:trash-can-outline" class="btn-icon" />
+                                删除
+                            </el-button>
+                        </div>
                     </template>
                 </el-table-column>
             </el-table>
@@ -339,6 +361,33 @@ const displayQuestionList = computed(() => {
     return rows.slice(start, end)
 })
 
+const QUESTION_MODE_LABEL_MAP: Record<'1' | '2', string> = {
+    '1': '单选题',
+    '2': '多选题'
+}
+
+function resolveQuestionModeSource(row: AssessmentQuestionItem | Record<string, unknown> | null | undefined): unknown {
+    const anyRow = (row || {}) as Record<string, unknown>
+    return anyRow.questionType ?? anyRow.questionTypeCode ?? anyRow.questionMode ?? anyRow.mode ?? anyRow.questionModeCode
+}
+
+function normalizeQuestionModeCode(value: unknown): '1' | '2' | '' {
+    const raw = String(value ?? '').trim()
+    if (!raw) return ''
+
+    const normalized = raw.toUpperCase()
+
+    if (raw === '1' || ['SINGLE', 'RADIO', 'ONE', '单选', '单选题'].includes(normalized) || ['单选', '单选题'].includes(raw)) {
+        return '1'
+    }
+
+    if (raw === '2' || ['MULTIPLE', 'MULTI', 'CHECKBOX', 'MANY', '多选', '多选题'].includes(normalized) || ['多选', '多选题'].includes(raw)) {
+        return '2'
+    }
+
+    return ''
+}
+
 function getQuestionTitle(row: AssessmentQuestionItem) {
     return (row as any).title || (row as any).questionTitle || (row as any).name || (row as any).questionName || (row as any).content || '-'
 }
@@ -351,10 +400,10 @@ function getQuestionType(row: AssessmentQuestionItem) {
 }
 
 function getQuestionMode(row: AssessmentQuestionItem) {
-    const val = String((row as any).questionType ?? '')
-    if (val === '1') return '单选题'
-    if (val === '2') return '多选题'
-    return val ? val : '-'
+    const raw = resolveQuestionModeSource(row)
+    const code = normalizeQuestionModeCode(raw)
+    if (code) return QUESTION_MODE_LABEL_MAP[code]
+    return raw == null || String(raw).trim() === '' ? '-' : String(raw)
 }
 
 function getModuleName(code: string | number | undefined | null) {
@@ -392,7 +441,7 @@ async function handleStatusChange(row: AssessmentQuestionItem, value: string | n
             moduleCode: anyRow.moduleCode || undefined,
             type: anyRow.type || undefined,
             content: anyRow.content || anyRow.title || anyRow.questionContent || '',
-            questionType: String(anyRow.questionType ?? anyRow.questionTypeCode ?? '1'),
+            questionType: normalizeQuestionModeCode(resolveQuestionModeSource(anyRow)) || '1',
             correctAnswer: anyRow.correctAnswer || anyRow.answer || undefined,
             sortOrder: Number(anyRow.sortOrder ?? anyRow.sort ?? 0),
             status: anyRow.status
@@ -556,7 +605,7 @@ function handleEdit(row: AssessmentQuestionItem) {
         moduleCode: anyRow.moduleCode || '',
         type: anyRow.type || '',
         content: anyRow.content || anyRow.title || anyRow.questionContent || '',
-        questionType: String(anyRow.questionType ?? anyRow.questionTypeCode ?? '1'),
+        questionType: normalizeQuestionModeCode(resolveQuestionModeSource(anyRow)) || '1',
         correctAnswer: anyRow.correctAnswer || anyRow.answer || '',
         sortOrder: Number(anyRow.sortOrder ?? anyRow.sort ?? 0)
     }
@@ -1137,7 +1186,7 @@ function submitForm() {
                 moduleCode: form.value.moduleCode || undefined,
                 type: form.value.type || undefined,
                 content: form.value.content,
-                questionType: String(form.value.questionType),
+                questionType: normalizeQuestionModeCode(form.value.questionType) || '1',
                 correctAnswer: form.value.correctAnswer || undefined,
                 sortOrder: Number(form.value.sortOrder ?? 0)
             }
@@ -1177,33 +1226,52 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.table-wrapper {
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 4px;
-        gap: 16px;
-        flex-wrap: wrap;
+@use '../system/crud-page.scss' as *;
 
-        .left-tools {
+.task-page {
+    .search-input {
+        width: 240px;
+
+        :deep(.el-input__wrapper) {
+            border-radius: 10px;
+            box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+            background-color: var(--el-fill-color-blank);
+            transition: all 0.2s;
+
+            &:hover {
+                box-shadow: 0 0 0 1px var(--el-border-color) inset;
+            }
+
+            &.is-focus,
+            &.is-focused {
+                box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+                background-color: var(--el-color-primary-light-9);
+            }
+        }
+    }
+
+    .modern-table {
+        .row-title {
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+        }
+
+        .time-cell {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            color: var(--el-text-color-secondary);
+            font-size: 13px;
         }
     }
 }
 
-.row-title {
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-}
-
-.time-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--el-text-color-secondary);
+@media screen and (max-width: 768px) {
+    .task-page {
+        .search-input {
+            width: 100%;
+        }
+    }
 }
 
 .option-section {

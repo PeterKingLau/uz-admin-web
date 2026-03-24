@@ -20,6 +20,7 @@ interface ViteRuntimeEnv {
     VITE_DROP_CONSOLE?: string
     VITE_GENERATE_SOURCEMAP?: string
     VITE_ENABLE_OBFUSCATION?: string
+    VITE_USE_TERSER?: string
 }
 
 function resolveProxyTarget(env: ViteRuntimeEnv): string {
@@ -67,13 +68,12 @@ function manualChunks(id: string): string | undefined {
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd()) as ViteRuntimeEnv
     const isBuild = command === 'build'
-    const isProductionMode = mode === 'production'
-    const isReleaseMode = mode === 'release'
-    const isProductionLikeMode = isProductionMode || isReleaseMode
+    const isProdBuild = isBuild && mode === 'production'
     const proxyTarget = resolveProxyTarget(env)
-    const enableObfuscation = isBuild && env.VITE_ENABLE_OBFUSCATION === 'true'
-    const shouldDropConsole = isBuild && isProductionLikeMode && env.VITE_DROP_CONSOLE !== 'false'
-    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProductionLikeMode)
+    const useTerserMinify = isProdBuild && env.VITE_USE_TERSER === 'true'
+    const enableObfuscation = useTerserMinify && env.VITE_ENABLE_OBFUSCATION !== 'false'
+    const shouldDropConsole = isProdBuild && env.VITE_DROP_CONSOLE !== 'false'
+    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProdBuild)
     const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
 
     return {
@@ -94,19 +94,25 @@ export default defineConfig(({ mode, command }) => {
             assetsDir: 'assets',
             chunkSizeWarningLimit: 2000,
             reportCompressedSize: false,
-            minify: enableObfuscation ? 'terser' : 'esbuild',
-            terserOptions: enableObfuscation
+            minify: isProdBuild && useTerserMinify ? 'terser' : 'esbuild',
+            terserOptions: useTerserMinify
                 ? {
                       compress: {
-                          passes: 2,
+                          passes: enableObfuscation ? 2 : 1,
                           drop_console: shouldDropConsole,
                           drop_debugger: shouldDropConsole
                       },
-                      mangle: {
-                          safari10: true
-                      },
+                      mangle: enableObfuscation
+                          ? {
+                                safari10: true,
+                                toplevel: true
+                            }
+                          : {
+                                safari10: true
+                            },
                       format: {
-                          comments: false
+                          comments: false,
+                          beautify: false
                       }
                   }
                 : undefined,
@@ -119,7 +125,8 @@ export default defineConfig(({ mode, command }) => {
                 }
             },
             esbuild: {
-                drop: enableObfuscation ? [] : shouldDropConsole ? ['console', 'debugger'] : []
+                drop: shouldDropConsole ? ['console', 'debugger'] : [],
+                legalComments: 'none'
             }
         },
 

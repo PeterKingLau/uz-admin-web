@@ -1,6 +1,6 @@
 @echo off
 echo.
-echo [信息] 打包Web工程，生成dist文件。
+echo [INFO] Building web project and generating dist output...
 echo.
 
 %~d0

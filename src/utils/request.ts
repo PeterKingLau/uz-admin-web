@@ -14,6 +14,91 @@ export const isRelogin = { show: false }
 const REPEAT_SUBMIT_INTERVAL = 1000
 const REQUEST_SIZE_LIMIT = 10 * 1024 * 1024
 const DEFAULT_TIMEOUT = 300000
+const DOWNLOAD_LOADING_CLASS = 'modern-download-loading'
+const DOWNLOAD_LOADING_STYLE_ID = 'app-modern-download-loading-style'
+const DOWNLOAD_LOADING_STYLE_TEXT = `
+.el-loading-mask.${DOWNLOAD_LOADING_CLASS} {
+    background:
+        radial-gradient(circle at top, rgba(var(--el-color-primary-rgb), 0.12), transparent 48%),
+        rgba(15, 23, 42, 0.24) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.el-loading-mask.${DOWNLOAD_LOADING_CLASS} .el-loading-spinner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 188px;
+    top: 50% !important;
+    left: 50%;
+    margin-top: 0 !important;
+    transform: translate(-50%, -50%);
+    padding: 28px 24px 22px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+        0 20px 48px rgba(15, 23, 42, 0.16),
+        0 8px 20px rgba(var(--el-color-primary-rgb), 0.12);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.el-loading-mask.${DOWNLOAD_LOADING_CLASS} .el-loading-spinner::before {
+    content: '';
+    position: absolute;
+    inset: 14px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.08), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.el-loading-mask.${DOWNLOAD_LOADING_CLASS} .circular {
+    width: 42px;
+    height: 42px;
+    filter: drop-shadow(0 6px 14px rgba(var(--el-color-primary-rgb), 0.18));
+}
+
+.el-loading-mask.${DOWNLOAD_LOADING_CLASS} .path {
+    stroke: var(--el-color-primary);
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.el-loading-mask.${DOWNLOAD_LOADING_CLASS} .el-loading-text {
+    margin: 14px 0 0 !important;
+    font-size: 15px !important;
+    line-height: 1.5;
+    font-weight: 600 !important;
+    letter-spacing: 0.4px;
+    color: var(--el-text-color-primary) !important;
+}
+
+html.dark .el-loading-mask.${DOWNLOAD_LOADING_CLASS} {
+    background:
+        radial-gradient(circle at top, rgba(var(--el-color-primary-rgb), 0.16), transparent 48%),
+        rgba(2, 6, 23, 0.46) !important;
+}
+
+html.dark .el-loading-mask.${DOWNLOAD_LOADING_CLASS} .el-loading-spinner {
+    background: rgba(17, 24, 39, 0.82);
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.38),
+        0 10px 28px rgba(var(--el-color-primary-rgb), 0.14);
+}
+
+html.dark .el-loading-mask.${DOWNLOAD_LOADING_CLASS} .el-loading-spinner::before {
+    background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.12), rgba(15, 23, 42, 0));
+}
+
+html.dark .el-loading-mask.${DOWNLOAD_LOADING_CLASS} .el-loading-text {
+    color: var(--el-color-white) !important;
+}
+`
 
 axios.defaults.headers.common['Content-Type'] = 'application/json;charset=utf-8'
 
@@ -29,6 +114,19 @@ type AbortControllerLike = {
 
 const supportsAbortController = typeof globalThis !== 'undefined' && typeof (globalThis as any).AbortController === 'function'
 const pendingRequests = new Map<string, AbortControllerLike>()
+
+function isClient() {
+    return typeof window !== 'undefined' && typeof document !== 'undefined'
+}
+
+function ensureDownloadLoadingStyles() {
+    if (!isClient()) return
+    if (document.getElementById(DOWNLOAD_LOADING_STYLE_ID)) return
+    const style = document.createElement('style')
+    style.id = DOWNLOAD_LOADING_STYLE_ID
+    style.textContent = DOWNLOAD_LOADING_STYLE_TEXT
+    document.head.appendChild(style)
+}
 
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
     rawResponse?: boolean
@@ -318,9 +416,13 @@ export function requestOss(config: AxiosRequestConfig): Promise<any> {
 }
 
 export function download(url: string, params: Record<string, any>, filename: string, config?: AxiosRequestConfig): Promise<void> {
+    ensureDownloadLoadingStyles()
     downloadLoadingInstance = ElLoading.service({
         text: '正在下载数据，请稍候',
-        background: 'rgba(0, 0, 0, 0.7)'
+        background: 'rgba(15, 23, 42, 0.24)',
+        lock: true,
+        fullscreen: true,
+        customClass: DOWNLOAD_LOADING_CLASS
     })
 
     return service

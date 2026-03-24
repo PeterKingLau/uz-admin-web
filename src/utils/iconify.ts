@@ -3,10 +3,6 @@ import type { IconifyJSON } from '@iconify/types'
 import epSubset from '@/assets/iconify/subsets/ep.json'
 import mdiSubset from '@/assets/iconify/subsets/mdi.json'
 import materialSymbolsSubset from '@/assets/iconify/subsets/material-symbols.json'
-import epIconsUrl from '@iconify-json/ep/icons.json?url'
-import mdiIconsUrl from '@iconify-json/mdi/icons.json?url'
-import materialSymbolsIconsUrl from '@iconify-json/material-symbols/icons.json?url'
-import simpleIconsUrl from '@iconify-json/simple-icons/icons.json?url'
 
 export type IconCollectionPrefix = 'ep' | 'mdi' | 'material-symbols' | 'simple-icons'
 
@@ -28,11 +24,11 @@ export function createIconStringMap<T>(factory: () => T): Record<IconCollectionP
 }
 
 const staticCollections = [epSubset, mdiSubset, materialSymbolsSubset] as IconifyJSON[]
-const collectionAssetUrls: Record<IconCollectionPrefix, string> = {
-    ep: epIconsUrl,
-    mdi: mdiIconsUrl,
-    'material-symbols': materialSymbolsIconsUrl,
-    'simple-icons': simpleIconsUrl
+const collectionAssetFiles: Record<IconCollectionPrefix, string> = {
+    ep: 'ep-icons.json',
+    mdi: 'mdi-icons.json',
+    'material-symbols': 'material-symbols-icons.json',
+    'simple-icons': 'simple-icons-icons.json'
 }
 
 const loadedPrefixes = new Set<string>()
@@ -64,8 +60,8 @@ function registerStaticCollections() {
 }
 
 function resolveCollectionUrl(prefix: string): string | null {
-    if (!prefix || !(prefix in collectionAssetUrls)) return null
-    return collectionAssetUrls[prefix as IconCollectionPrefix]
+    if (!prefix || !(prefix in collectionAssetFiles)) return null
+    return `${import.meta.env.BASE_URL}iconify/${collectionAssetFiles[prefix as IconCollectionPrefix]}`
 }
 
 async function fetchCollectionJson(url: string): Promise<IconifyJSON | null> {

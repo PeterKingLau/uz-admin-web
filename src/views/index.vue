@@ -36,6 +36,44 @@
             </el-col>
         </el-row>
 
+        <el-row :gutter="20" class="card-row">
+            <el-col :span="6" v-for="card in insightCards" :key="card.key">
+                <el-card shadow="hover" class="stat-card stat-card--insight" :body-style="{ padding: '0px' }">
+                    <div class="stat-card-inner">
+                        <div class="stat-content">
+                            <div class="stat-title">{{ card.title }}</div>
+                            <div class="stat-value">
+                                <span class="number">{{ formatCardValue(extraStats[card.key], card) }}</span>
+                            </div>
+                            <div v-if="card.desc" class="stat-desc">{{ card.desc }}</div>
+                        </div>
+                        <div class="stat-icon" :style="getCardIconStyle(card)">
+                            <Icon :icon="card.icon" width="32" height="32" />
+                        </div>
+                    </div>
+                </el-card>
+            </el-col>
+        </el-row>
+
+        <el-row :gutter="20" class="card-row">
+            <el-col :span="6" v-for="card in contentCards" :key="card.key">
+                <el-card shadow="hover" class="stat-card stat-card--content" :body-style="{ padding: '0px' }">
+                    <div class="stat-card-inner">
+                        <div class="stat-content">
+                            <div class="stat-title">{{ card.title }}</div>
+                            <div class="stat-value">
+                                <span class="number">{{ formatCardValue(contentStats[card.key], card) }}</span>
+                            </div>
+                            <div v-if="card.desc" class="stat-desc">{{ card.desc }}</div>
+                        </div>
+                        <div class="stat-icon" :style="getCardIconStyle(card)">
+                            <Icon :icon="card.icon" width="32" height="32" />
+                        </div>
+                    </div>
+                </el-card>
+            </el-col>
+        </el-row>
+
         <el-row :gutter="20" class="charts-row">
             <el-col :span="16">
                 <el-card shadow="never" class="chart-card">
@@ -85,6 +123,11 @@
                     <el-table :data="trend" style="width: 100%" size="small" stripe>
                         <el-table-column prop="date" label="日期" min-width="100" />
                         <el-table-column prop="total" label="总数" width="80" align="center" />
+                        <el-table-column prop="pending" label="待审" width="80" align="center">
+                            <template #default="{ row }">
+                                <span class="text-warning">{{ row.pending }}</span>
+                            </template>
+                        </el-table-column>
                         <el-table-column prop="approved" label="通过" width="80" align="center">
                             <template #default="{ row }">
                                 <span class="text-success">{{ row.approved }}</span>
@@ -116,7 +159,12 @@
                             <template #default="{ row }">
                                 <div class="latest-item">
                                     <div class="latest-title text-ellipsis">{{ row.title }}</div>
-                                    <div class="latest-meta">{{ row.auditTime }}</div>
+                                    <div class="latest-meta">
+                                        <el-tag size="small" effect="plain" :type="row.sourceType">
+                                            {{ row.sourceLabel }}
+                                        </el-tag>
+                                        <span>{{ row.auditTime }}</span>
+                                    </div>
                                 </div>
                             </template>
                         </el-table-column>
@@ -142,7 +190,7 @@ import { listUserAuditDetail } from '@/api/audit/person/person'
 import { listAssessmentQuestions, parseAssessmentQuestionRows } from '@/api/content/assessmentQuestion'
 import useSettingsStore from '@/store/modules/settings'
 import useUserStore from '@/store/modules/user'
-import { AUDIT_STATUS } from '@/utils/enum'
+import { AUDIT_STATUS, POST_TYPE } from '@/utils/enum'
 
 const settingsStore = useSettingsStore()
 const userStore = useUserStore()
@@ -157,6 +205,13 @@ const stats = ref({
     pendingCount: 0,
     approvedCount: 0,
     rejectedCount: 0
+})
+
+const contentStats = ref({
+    textPostCount: 0,
+    imagePostCount: 0,
+    videoPostCount: 0,
+    mediaPostRate: 0
 })
 
 const adminStatCards = [
@@ -197,7 +252,11 @@ const extraStats = ref({
     recentSubmitCount: 0,
     assessmentTotal: 0,
     abilityCount: 0,
-    normalCount: 0
+    normalCount: 0,
+    todayCount: 0,
+    todayApprovedCount: 0,
+    avgDailyCount: 0,
+    peakDailyCount: 0
 })
 
 const userStatCards = [
@@ -252,8 +311,88 @@ const userExtraCards = [
     { key: 'recentSubmitCount', title: '近 7 天提审', icon: 'mdi:chart-line', color: '#6f7ad3', bgColor: 'rgba(111, 122, 211, 0.12)' }
 ]
 
+const adminInsightCards = [
+    { key: 'todayCount', title: '今日审核', icon: 'mdi:calendar-today', color: '#409eff', bgColor: 'rgba(64, 158, 255, 0.1)', desc: '今日累计审核量' },
+    {
+        key: 'todayApprovedCount',
+        title: '今日通过',
+        icon: 'mdi:check-decagram-outline',
+        color: '#67c23a',
+        bgColor: 'rgba(103, 194, 58, 0.12)',
+        desc: '今日已通过数量'
+    },
+    {
+        key: 'avgDailyCount',
+        title: '7天日均',
+        icon: 'mdi:chart-timeline-variant',
+        color: '#6f7ad3',
+        bgColor: 'rgba(111, 122, 211, 0.12)',
+        formatter: value => formatDecimalValue(value),
+        desc: '近 7 天平均每日处理'
+    },
+    { key: 'peakDailyCount', title: '单日峰值', icon: 'mdi:fire-circle', color: '#e6a23c', bgColor: 'rgba(230, 162, 60, 0.12)', desc: '近 7 天最高单日量' }
+]
+
+const userInsightCards = [
+    { key: 'todayCount', title: '今日提审', icon: 'mdi:calendar-today', color: '#409eff', bgColor: 'rgba(64, 158, 255, 0.1)', desc: '今天发起的提审量' },
+    {
+        key: 'todayApprovedCount',
+        title: '今日通过',
+        icon: 'mdi:check-decagram-outline',
+        color: '#67c23a',
+        bgColor: 'rgba(103, 194, 58, 0.12)',
+        desc: '今天完成通过数量'
+    },
+    {
+        key: 'avgDailyCount',
+        title: '7天日均',
+        icon: 'mdi:chart-timeline-variant',
+        color: '#6f7ad3',
+        bgColor: 'rgba(111, 122, 211, 0.12)',
+        formatter: value => formatDecimalValue(value),
+        desc: '近 7 天平均每日提审'
+    },
+    { key: 'peakDailyCount', title: '单日峰值', icon: 'mdi:fire-circle', color: '#e6a23c', bgColor: 'rgba(230, 162, 60, 0.12)', desc: '近 7 天最高单日量' }
+]
+
 const statCards = computed(() => (isAdmin.value ? adminStatCards : userStatCards))
 const extraCards = computed(() => (isAdmin.value ? adminExtraCards : userExtraCards))
+const insightCards = computed(() => (isAdmin.value ? adminInsightCards : userInsightCards))
+const contentCards = computed(() => [
+    {
+        key: 'textPostCount',
+        title: isAdmin.value ? '文字内容' : '我的文字内容',
+        icon: 'mdi:format-text',
+        color: '#909399',
+        bgColor: 'rgba(144, 147, 153, 0.12)',
+        desc: '纯文字内容数量'
+    },
+    {
+        key: 'imagePostCount',
+        title: isAdmin.value ? '图文内容' : '我的图文内容',
+        icon: 'mdi:image-outline',
+        color: '#409eff',
+        bgColor: 'rgba(64, 158, 255, 0.12)',
+        desc: '带图片的内容数量'
+    },
+    {
+        key: 'videoPostCount',
+        title: isAdmin.value ? '视频内容' : '我的视频内容',
+        icon: 'mdi:video-outline',
+        color: '#e6a23c',
+        bgColor: 'rgba(230, 162, 60, 0.12)',
+        desc: '视频类内容数量'
+    },
+    {
+        key: 'mediaPostRate',
+        title: isAdmin.value ? '媒体内容占比' : '我的媒体占比',
+        icon: 'mdi:chart-donut',
+        color: '#6f7ad3',
+        bgColor: 'rgba(111, 122, 211, 0.12)',
+        formatter: value => `${Number(value || 0)}%`,
+        desc: '图文与视频在内容中的占比'
+    }
+])
 
 const trend = ref([])
 const latest = ref([])
@@ -273,6 +412,12 @@ const customColors = [
     { color: '#6f7ad3', percentage: 100 }
 ]
 
+function formatDecimalValue(value) {
+    const n = Number(value)
+    if (!Number.isFinite(n)) return '0'
+    return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
 function getStatusType(status) {
     if (String(status) === String(AUDIT_STATUS.APPROVED)) return 'success'
     if (String(status) === String(AUDIT_STATUS.REJECTED)) return 'danger'
@@ -291,6 +436,46 @@ function getCardIconStyle(card) {
     return {
         color: card?.color || '#409eff',
         background: card?.bgColor || 'rgba(64, 158, 255, 0.1)'
+    }
+}
+
+function resolveAuditSource(item) {
+    const source = String(item?.__sourceType || '')
+        .trim()
+        .toLowerCase()
+    if (source === 'content') return { label: '内容审核', type: 'primary' }
+    if (source === 'profile') return { label: '资料审核', type: 'info' }
+    return { label: '审核记录', type: 'warning' }
+}
+
+function normalizeMediaList(item) {
+    const raw = item?.mediaUrls
+    if (Array.isArray(raw)) {
+        return raw.map(value => String(value || '').trim()).filter(Boolean)
+    }
+    const text = String(raw || '').trim()
+    if (!text) return []
+    return text
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean)
+}
+
+function calcContentStats(contentData) {
+    const textPostCount = contentData.filter(item => String(item?.postType ?? '') === String(POST_TYPE.TEXT)).length
+    const imagePostCount = contentData.filter(item => String(item?.postType ?? '') === String(POST_TYPE.IMAGE)).length
+    const videoPostCount = contentData.filter(item => String(item?.postType ?? '') === String(POST_TYPE.VIDEO)).length
+    const mediaPostCount = contentData.filter(item => {
+        const postType = String(item?.postType ?? '')
+        return postType === String(POST_TYPE.IMAGE) || postType === String(POST_TYPE.VIDEO) || normalizeMediaList(item).length > 0
+    }).length
+    const totalCount = contentData.length
+
+    contentStats.value = {
+        textPostCount,
+        imagePostCount,
+        videoPostCount,
+        mediaPostRate: totalCount > 0 ? Math.round((mediaPostCount / totalCount) * 100) : 0
     }
 }
 
@@ -354,6 +539,7 @@ function renderTrendChart(bgColor) {
 
     const dates = trend.value.map(x => x.date.slice(5))
     const totals = trend.value.map(x => x.total)
+    const pending = trend.value.map(x => x.pending)
     const approved = trend.value.map(x => x.approved)
     const rejected = trend.value.map(x => x.rejected)
 
@@ -369,7 +555,7 @@ function renderTrendChart(bgColor) {
             textStyle: { color: isDark.value ? '#fff' : '#333' }
         },
         legend: {
-            data: ['总数', '通过', '驳回'],
+            data: ['总数', '待审', '通过', '驳回'],
             bottom: 0,
             icon: 'circle',
             textStyle: { color: textColor }
@@ -402,6 +588,19 @@ function renderTrendChart(bgColor) {
                 barWidth: 12,
                 itemStyle: { color: '#409eff', borderRadius: [4, 4, 0, 0] },
                 data: totals
+            },
+            {
+                name: '待审',
+                type: 'line',
+                smooth: true,
+                itemStyle: { color: '#e6a23c' },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(230, 162, 60, 0.22)' },
+                        { offset: 1, color: 'rgba(230, 162, 60, 0.02)' }
+                    ])
+                },
+                data: pending
             },
             {
                 name: '通过',
@@ -563,6 +762,12 @@ function resetStats() {
         approvedCount: 0,
         rejectedCount: 0
     }
+    contentStats.value = {
+        textPostCount: 0,
+        imagePostCount: 0,
+        videoPostCount: 0,
+        mediaPostRate: 0
+    }
     extraStats.value = {
         contentTotal: 0,
         profileTotal: 0,
@@ -570,7 +775,11 @@ function resetStats() {
         recentSubmitCount: 0,
         assessmentTotal: 0,
         abilityCount: 0,
-        normalCount: 0
+        normalCount: 0,
+        todayCount: 0,
+        todayApprovedCount: 0,
+        avgDailyCount: 0,
+        peakDailyCount: 0
     }
     trend.value = []
     latest.value = []
@@ -589,12 +798,13 @@ async function loadData() {
         const userData = userRes.status === 'fulfilled' ? getRows(userRes.value) : []
         const assessmentRows = assessmentRes.status === 'fulfilled' ? parseAssessmentQuestionRows(assessmentRes.value) || [] : []
 
-        const scopedContent = scopeByRole(contentData)
-        const scopedUser = scopeByRole(userData)
+        const scopedContent = scopeByRole(contentData).map(item => ({ ...item, __sourceType: 'content' }))
+        const scopedUser = scopeByRole(userData).map(item => ({ ...item, __sourceType: 'profile' }))
         const merged = [...scopedContent, ...scopedUser]
 
         contentList.value = merged
         calcStats(merged)
+        calcContentStats(scopedContent)
         if (isAdmin.value) {
             calcAdminExtraStats(scopedContent, assessmentRows)
         } else {
@@ -648,13 +858,14 @@ function calcTrend(list) {
         const day = new Date(now)
         day.setDate(now.getDate() - i)
         const d = formatDateKey(day)
-        map[d] = { date: d, total: 0, approved: 0, rejected: 0 }
+        map[d] = { date: d, total: 0, pending: 0, approved: 0, rejected: 0 }
     }
 
     list.forEach(item => {
         const day = String(resolveAuditTime(item)).slice(0, 10)
         if (map[day]) {
             map[day].total++
+            if (String(item.auditStatus) === String(AUDIT_STATUS.PENDING)) map[day].pending++
             if (String(item.auditStatus) === String(AUDIT_STATUS.APPROVED)) map[day].approved++
             if (String(item.auditStatus) === String(AUDIT_STATUS.REJECTED)) map[day].rejected++
         }
@@ -665,23 +876,32 @@ function calcTrend(list) {
         approvedRate: x.total ? Math.round((x.approved / x.total) * 100) : 0
     }))
     extraStats.value.recentSubmitCount = trend.value.reduce((sum, item) => sum + Number(item.total || 0), 0)
+    extraStats.value.todayCount = Number(trend.value[trend.value.length - 1]?.total || 0)
+    extraStats.value.todayApprovedCount = Number(trend.value[trend.value.length - 1]?.approved || 0)
+    extraStats.value.avgDailyCount = trend.value.length ? Number((extraStats.value.recentSubmitCount / trend.value.length).toFixed(1)) : 0
+    extraStats.value.peakDailyCount = trend.value.reduce((max, item) => Math.max(max, Number(item.total || 0)), 0)
 }
 
 function calcLatest(list) {
     latest.value = [...list]
         .sort((a, b) => new Date(resolveAuditTime(b)) - new Date(resolveAuditTime(a)))
         .slice(0, 8)
-        .map(x => ({
-            title: x.title || x.postTitle || '(无标题)',
-            originStatus: x.auditStatus,
-            auditStatus:
-                String(x.auditStatus) === String(AUDIT_STATUS.APPROVED)
-                    ? '已通过'
-                    : String(x.auditStatus) === String(AUDIT_STATUS.REJECTED)
-                      ? '已驳回'
-                      : '待审核',
-            auditTime: resolveAuditTime(x) ? String(resolveAuditTime(x)).slice(5, 16) : '-'
-        }))
+        .map(x => {
+            const source = resolveAuditSource(x)
+            return {
+                title: x.title || x.postTitle || x.applyTypeName || '(无标题)',
+                originStatus: x.auditStatus,
+                auditStatus:
+                    String(x.auditStatus) === String(AUDIT_STATUS.APPROVED)
+                        ? '已通过'
+                        : String(x.auditStatus) === String(AUDIT_STATUS.REJECTED)
+                          ? '已驳回'
+                          : '待审核',
+                auditTime: resolveAuditTime(x) ? String(resolveAuditTime(x)).slice(5, 16) : '-',
+                sourceLabel: source.label,
+                sourceType: source.type
+            }
+        })
 }
 
 watch(
@@ -747,6 +967,11 @@ onBeforeUnmount(() => {
                     font-weight: 700;
                     color: var(--el-text-color-primary);
                     font-family: 'DIN Alternate', sans-serif;
+                }
+                .stat-desc {
+                    margin-top: 8px;
+                    font-size: 12px;
+                    color: var(--el-text-color-secondary);
                 }
             }
 
@@ -840,6 +1065,9 @@ onBeforeUnmount(() => {
     .text-success {
         color: #67c23a;
     }
+    .text-warning {
+        color: #e6a23c;
+    }
     .text-danger {
         color: #f56c6c;
     }
@@ -860,6 +1088,10 @@ onBeforeUnmount(() => {
         .latest-meta {
             font-size: 12px;
             color: var(--el-text-color-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
     }
 }

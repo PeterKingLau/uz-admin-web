@@ -159,6 +159,8 @@ const uploadFileUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
 const rawFileMap = new Map()
+const successfulUploadKeys = new Set()
+const failedUploadKeys = new Set()
 const uploadingCount = ref(0)
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
@@ -217,6 +219,79 @@ const resolveOssPostType = () => {
     return hasVideoType ? '3' : '2'
 }
 
+const resolveUploadFileKey = (file, fallbackValue = '') => {
+    const uid = file?.uid ?? file?.raw?.uid
+    if (uid !== undefined && uid !== null && String(uid).trim()) {
+        return `uid:${String(uid).trim()}`
+    }
+
+    const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
+    if (rawFile) {
+        const signature = [rawFile.name, rawFile.size, rawFile.lastModified].map(value => String(value ?? '').trim()).join(':')
+        if (signature.replace(/:/g, '')) return `file:${signature}`
+    }
+
+    const fallback = String(file?.name || file?.url || fallbackValue || '').trim()
+    return fallback ? `name:${fallback}` : ''
+}
+
+const resolveUploadDisplayName = file => {
+    const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
+    const explicitName = String(rawFile?.name || file?.name || '').trim()
+    if (explicitName && !explicitName.includes('/')) return explicitName
+
+    const rawUrl = String(file?.url || '').trim()
+    if (!rawUrl) return ''
+
+    const filename = getFileName(rawUrl.split('?')[0].split('#')[0])
+    if (!filename) return ''
+    try {
+        return decodeURIComponent(filename)
+    } catch {
+        return filename
+    }
+}
+
+const resolveUploadOrder = file => {
+    const uploadFiles = proxy?.$refs?.fileUpload?.uploadFiles
+    if (!Array.isArray(uploadFiles) || !uploadFiles.length) return 0
+    const targetKey = resolveUploadFileKey(file)
+    if (!targetKey) return 0
+    const index = uploadFiles.findIndex(item => resolveUploadFileKey(item) === targetKey)
+    return index >= 0 ? index + 1 : 0
+}
+
+const resolveUploadTargetLabel = file => {
+    const displayName = resolveUploadDisplayName(file)
+    if (displayName) return `文件“${displayName}”`
+    const order = resolveUploadOrder(file)
+    if (order > 0) return `第${order}个文件`
+    return '文件'
+}
+
+const resolveUploadErrorMessage = (error, file, serverMessage = '') => {
+    const targetLabel = resolveUploadTargetLabel(file)
+    const normalizedServerMessage = String(serverMessage || '').trim()
+    if (normalizedServerMessage) {
+        return `${targetLabel}上传失败：${normalizedServerMessage}`
+    }
+
+    const message = String(error?.message || '').toLowerCase()
+    if (error?.code === 'ECONNABORTED' || message.includes('timeout')) {
+        return `${targetLabel}上传超时，请检查网络或压缩文件后重试`
+    }
+    return `${targetLabel}上传失败，请重试`
+}
+
+const resetUploadProgressState = () => {
+    uploadList.value = []
+    number.value = 0
+    successfulUploadKeys.clear()
+    failedUploadKeys.clear()
+}
+
+const getSettledUploadCount = () => uploadList.value.length + failedUploadKeys.size
+
 async function handleOssUploadRequest(options) {
     const rawFile = options?.file
     if (!(rawFile instanceof File)) {
@@ -257,6 +332,7 @@ watch(
             if (!fileList.value.length) return
             fileList.value = []
             rawFileMap.clear()
+            resetUploadProgressState()
             return []
         }
     },
@@ -285,6 +361,11 @@ function handleBeforeUpload(file) {
         }
     }
     number.value++
+    const uploadKey = resolveUploadFileKey(file)
+    if (uploadKey) {
+        successfulUploadKeys.delete(uploadKey)
+        failedUploadKeys.delete(uploadKey)
+    }
     return true
 }
 
@@ -292,9 +373,14 @@ function handleExceed() {
     proxy.$modal.msgError(`上传文件数量不能超过 ${props.limit} 个!`)
 }
 
-function handleUploadError(err) {
-    proxy.$modal.msgError('上传文件失败')
-    if (number.value > 0) number.value--
+function handleUploadError(err, file) {
+    const uploadKey = resolveUploadFileKey(file)
+    if (uploadKey) {
+        if (successfulUploadKeys.has(uploadKey) || failedUploadKeys.has(uploadKey)) return
+        failedUploadKeys.add(uploadKey)
+    }
+    proxy.$modal.msgError(resolveUploadErrorMessage(err, file))
+    uploadedSuccessfully()
 }
 
 function handleUploadSuccess(res, file) {
@@ -302,8 +388,17 @@ function handleUploadSuccess(res, file) {
     const responseCode = Number(response.code)
     const rawFileName = String(response.fileName || response.url || '').trim()
     const isSuccess = responseCode === 200 || Boolean(rawFileName)
+    const uploadKey = resolveUploadFileKey(file, rawFileName)
 
     if (isSuccess) {
+        if (uploadKey && successfulUploadKeys.has(uploadKey)) {
+            uploadedSuccessfully()
+            return
+        }
+        if (uploadKey) {
+            successfulUploadKeys.add(uploadKey)
+            failedUploadKeys.delete(uploadKey)
+        }
         const normalizedUrl = normalizeUploadUrl(rawFileName)
         const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
         if (normalizedUrl && rawFile) {
@@ -316,8 +411,12 @@ function handleUploadSuccess(res, file) {
         })
         uploadedSuccessfully()
     } else {
-        number.value--
-        proxy.$modal.msgError(response.msg || '上传文件失败')
+        if (uploadKey && successfulUploadKeys.has(uploadKey)) {
+            uploadedSuccessfully()
+            return
+        }
+        if (uploadKey) failedUploadKeys.add(uploadKey)
+        proxy.$modal.msgError(resolveUploadErrorMessage(undefined, file, response.msg))
         proxy.$refs.fileUpload.handleRemove(file)
         uploadedSuccessfully()
     }
@@ -334,10 +433,9 @@ function handleDelete(index) {
 }
 
 function uploadedSuccessfully() {
-    if (number.value > 0 && uploadList.value.length === number.value) {
+    if (number.value > 0 && getSettledUploadCount() >= number.value) {
         fileList.value = fileList.value.filter(f => f.url !== undefined).concat(uploadList.value)
-        uploadList.value = []
-        number.value = 0
+        resetUploadProgressState()
         emit('update:modelValue', listToString(fileList.value))
     }
 }
@@ -375,8 +473,7 @@ function open() {
 }
 
 function clear() {
-    uploadList.value = []
-    number.value = 0
+    resetUploadProgressState()
     fileList.value = []
     rawFileMap.clear()
     emit('update:modelValue', '')

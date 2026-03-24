@@ -38,36 +38,49 @@
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
             </div>
 
-            <ConfigTable
-                :columns="columns"
-                :data="topbarList"
-                :loading="loading"
-                header-cell-class-name="table-header-cell"
-                @selection-change="handleSelectionChange"
-            >
-                <template #status="{ row }">
-                    <el-switch
-                        v-model="row.isActive"
-                        active-value="1"
-                        inactive-value="0"
-                        inline-prompt
-                        active-text="启"
-                        inactive-text="禁"
-                        :loading="statusLoading === row.id"
-                        @change="handleToggleStatus(row, $event)"
-                    />
+            <el-table v-loading="loading" :data="topbarList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
+                <template v-for="col in columns" :key="String(col.key)">
+                    <el-table-column v-if="col.type === 'selection'" v-bind="getTableColumnProps(col)" />
+
+                    <el-table-column v-else-if="col.type === 'index'" v-bind="getTableColumnProps(col)" />
+
+                    <el-table-column v-else-if="col.slot === 'status'" v-bind="getTableColumnProps(col)">
+                        <template #default="{ row }">
+                            <el-switch
+                                v-model="row.isActive"
+                                active-value="1"
+                                inactive-value="0"
+                                inline-prompt
+                                active-text="启"
+                                inactive-text="禁"
+                                :loading="statusLoading === row.id"
+                                @change="handleToggleStatus(row, $event)"
+                            />
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column v-else-if="col.slot === 'actions'" v-bind="getTableColumnProps(col)">
+                        <template #default="{ row }">
+                            <el-button link type="primary" @click="handleUpdate(row)"> <Icon icon="mdi:pencil-outline" class="mr-1" /> 编辑 </el-button>
+                            <el-button link type="danger" @click="handleDelete(row)"> <Icon icon="mdi:trash-can-outline" class="mr-1" /> 删除 </el-button>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column v-else-if="col.prop === 'code'" v-bind="getTableColumnProps(col)">
+                        <template #default="{ row }">
+                            <span class="row-code">{{ row.code || '--' }}</span>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column v-else-if="col.prop === 'name'" v-bind="getTableColumnProps(col)">
+                        <template #default="{ row }">
+                            <span class="row-title">{{ row.name || '--' }}</span>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column v-else v-bind="getTableColumnProps(col)" />
                 </template>
-                <template #createTime="{ row }">
-                    <span class="time-cell">{{ formatTime(row.createTime) }}</span>
-                </template>
-                <template #updateTime="{ row }">
-                    <span class="time-cell">{{ formatTime(row.updateTime) }}</span>
-                </template>
-                <template #actions="{ row }">
-                    <el-button link type="primary" @click="handleUpdate(row)"> <Icon icon="mdi:pencil-outline" class="mr-1" /> 编辑 </el-button>
-                    <el-button link type="danger" @click="handleDelete(row)"> <Icon icon="mdi:trash-can-outline" class="mr-1" /> 删除 </el-button>
-                </template>
-            </ConfigTable>
+            </el-table>
 
             <div class="pagination-container">
                 <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
@@ -106,8 +119,8 @@
             </div>
             <template #footer>
                 <div class="drawer-footer">
-                    <el-button @click="open = false" class="btn-cancel">取 消</el-button>
-                    <el-button type="primary" @click="submitForm" class="btn-submit">确 定</el-button>
+                    <el-button @click="open = false" class="btn-cancel">取消</el-button>
+                    <el-button type="primary" @click="submitForm" class="btn-submit">确定</el-button>
                 </div>
             </template>
         </el-drawer>
@@ -118,10 +131,10 @@
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
 import { addTopbarConfig, deleteTopbarConfig, listTopbarConfig, parseTopbarRows, updateTopbarConfig } from '@/api/content/topbar'
 import type { TopbarConfigItem } from '@/api/content/topbar.types'
-import { parseTime } from '@/utils/utils'
-import ConfigTable from '@/components/ConfigTable/index.vue'
 import { useTableColumnStore } from '@/store/modules/tableColumn'
 import { TOPBAR_COLUMNS, TOPBAR_TABLE_KEY } from '@/config/table/topbarColumns'
+
+type TopbarColumn = Record<string, any>
 
 const { proxy } = getCurrentInstance() as any
 const tableColumnStore = useTableColumnStore()
@@ -163,24 +176,24 @@ const data = reactive({
 const { queryParams, form, rules } = toRefs(data)
 
 const baseColumnMap = computed(() => {
-    const map = new Map<string, any>()
-    TOPBAR_COLUMNS.forEach(col => map.set(col.key, col))
+    const map = new Map<string, TopbarColumn>()
+    TOPBAR_COLUMNS.forEach(col => map.set(String(col.key), col))
     return map
 })
 
-const columns = computed(() => {
+const columns = computed<TopbarColumn[]>(() => {
     const enabledKeys = tableColumnStore.getEnabledKeys(TOPBAR_TABLE_KEY) || TOPBAR_COLUMNS.map(c => c.key)
     const map = baseColumnMap.value
-    return enabledKeys.map(key => map.get(key)).filter(Boolean)
+    return enabledKeys.map(key => map.get(String(key))).filter((col): col is TopbarColumn => Boolean(col))
 })
+
+function getTableColumnProps(col: TopbarColumn) {
+    const { key, slot, visible, children, ...rest } = col
+    return rest
+}
 
 function statusLabel(val: any) {
     return String(val) === '1' ? '启用' : '禁用'
-}
-
-function formatTime(val: any) {
-    if (!val) return ''
-    return parseTime(val)
 }
 
 async function getList() {
@@ -351,11 +364,6 @@ onMounted(() => {
                 flex-wrap: wrap;
             }
         }
-    }
-
-    .time-cell {
-        color: var(--el-text-color-secondary);
-        font-size: 13px;
     }
 
     .row-title {

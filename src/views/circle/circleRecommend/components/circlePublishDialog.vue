@@ -122,6 +122,7 @@ import type { FormInstance } from 'element-plus'
 import { addPost, uploadFilesToOss } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
+import { logSubmitError, resolveSubmitErrorMessage } from '@/utils/submitError'
 
 const props = defineProps<{
     modelValue: boolean
@@ -385,8 +386,8 @@ const submitPublish = async () => {
         await resetPublishForm()
         emit('published')
     } catch (error) {
-        console.error(error)
-        proxy?.$modal?.msgError?.('发布失败')
+        logSubmitError(error)
+        proxy?.$modal?.msgError?.(resolveSubmitErrorMessage(error, '发布失败'))
     } finally {
         publishSubmitting.value = false
     }

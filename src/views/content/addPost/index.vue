@@ -53,6 +53,7 @@ import useUserStore from '@/store/modules/user'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 import { getImgUrl } from '@/utils/img'
 import { markContentListRefreshNeeded } from '@/utils/content/refreshSignal'
+import { logSubmitError, resolveSubmitErrorMessage } from '@/utils/submitError'
 import CreatePageShell from '@/components/CreatePageShell/index.vue'
 import PostEditorPanel from './components/PostEditorPanel.vue'
 import PostPreviewPanel from './components/PostPreviewPanel.vue'
@@ -541,6 +542,7 @@ async function handleSubmit() {
         if (isBatchVideoPost) {
             let successCount = 0
             const failedIndexes: number[] = []
+            let firstErrorMessage = ''
 
             for (let index = 0; index < mediaUrls.length; index += 1) {
                 const mediaUrl = String(mediaUrls[index] || '').trim()
@@ -566,7 +568,8 @@ async function handleSubmit() {
                     })
                     successCount += 1
                 } catch (error) {
-                    console.error(error)
+                    logSubmitError(error)
+                    if (!firstErrorMessage) firstErrorMessage = resolveSubmitErrorMessage(error)
                     failedIndexes.push(index + 1)
                 }
             }
@@ -584,7 +587,7 @@ async function handleSubmit() {
                 return
             }
 
-            proxy?.$modal?.msgError('批量发布失败，请重试')
+            proxy?.$modal?.msgError(firstErrorMessage || '批量发布失败，请重试')
             return
         }
 
@@ -604,7 +607,8 @@ async function handleSubmit() {
         proxy?.$modal?.msgSuccess('发布成功')
         await handleReset()
     } catch (e) {
-        console.error(e)
+        logSubmitError(e)
+        proxy?.$modal?.msgError(resolveSubmitErrorMessage(e))
     } finally {
         submitting.value = false
     }

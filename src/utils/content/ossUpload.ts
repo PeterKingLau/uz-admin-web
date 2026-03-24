@@ -1,7 +1,8 @@
 import request, { requestOss } from '@/utils/request'
 
 const POST_UPLOAD_CREDENTIALS_URL = '/content/postInfo/upload/credentials'
-const REQUEST_TIMEOUT = 300000
+const CREDENTIAL_REQUEST_TIMEOUT = 300000
+const OSS_UPLOAD_TIMEOUT = 30 * 60 * 1000
 const DEFAULT_OSS_CREDENTIAL_TYPE = 'posts'
 const VALID_OSS_CREDENTIAL_TYPES = ['posts', 'collections', 'circles', 'templates'] as const
 
@@ -14,6 +15,8 @@ export interface UploadCredentialParams {
     fileCount?: string
     type?: OssCredentialType
 }
+
+export type OssUploadSettledResult = { success: true; url: string } | { success: false; error: unknown }
 
 const isRecord = (value: unknown): value is UnknownRecord => typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -366,7 +369,7 @@ export function getPostUploadCredentials(params: UploadCredentialParams) {
         url: POST_UPLOAD_CREDENTIALS_URL,
         method: 'get',
         params,
-        timeout: REQUEST_TIMEOUT
+        timeout: CREDENTIAL_REQUEST_TIMEOUT
     })
 }
 
@@ -399,7 +402,7 @@ const uploadByPut = async (targetUrl: string, file: File, credential: UnknownRec
         method: 'put',
         data: file,
         headers,
-        timeout: REQUEST_TIMEOUT
+        timeout: OSS_UPLOAD_TIMEOUT
     })
     const responseDataObj = isRecord(responseData) ? responseData : undefined
     const nestedData = responseDataObj?.data
@@ -452,7 +455,7 @@ const uploadByPost = async (host: string, file: File, credential: UnknownRecord,
             url: resolvedHost,
             method: 'post',
             data: formData,
-            timeout: REQUEST_TIMEOUT,
+            timeout: OSS_UPLOAD_TIMEOUT,
             withCredentials: false
         })
     } catch (error: any) {
@@ -539,7 +542,7 @@ const uploadByStsPut = async (credential: UnknownRecord, file: File, index: numb
                 method: 'put',
                 data: file,
                 headers: { 'Content-Type': contentType },
-                timeout: REQUEST_TIMEOUT,
+                timeout: OSS_UPLOAD_TIMEOUT,
                 withCredentials: false
             })
             return objectKey
@@ -670,4 +673,46 @@ export const uploadFilesToOss = async (postType: string, files: File[], ossType?
         uploadedUrls.push(uploadedUrl)
     }
     return uploadedUrls
+}
+
+export const uploadFilesToOssSettled = async (
+    postType: string,
+    files: File[],
+    ossType?: string,
+    credentialFileCount?: number
+): Promise<OssUploadSettledResult[]> => {
+    if (!files.length) return []
+
+    const credentialType = normalizeOssCredentialType(ossType)
+    const parsedCredentialCount = Number(credentialFileCount)
+    const requestCredentialCount = Number.isFinite(parsedCredentialCount) && parsedCredentialCount > 0 ? Math.floor(parsedCredentialCount) : files.length
+
+    let credentialList: unknown[] = []
+    try {
+        credentialList = await requestUploadCredentialList(toStringOrUndefined(postType), requestCredentialCount, credentialType)
+        if (!credentialList.length) {
+            throw new Error('未获取到 OSS 上传凭证')
+        }
+    } catch (error) {
+        return files.map(() => ({ success: false, error }))
+    }
+
+    const shouldForceUniqueObjectKey = credentialList.length === 1 && requestCredentialCount > 1
+
+    const results: OssUploadSettledResult[] = []
+    for (let index = 0; index < files.length; index += 1) {
+        try {
+            const credentialRaw = credentialList[index] ?? credentialList[0]
+            const credential = shouldForceUniqueObjectKey && isRecord(credentialRaw) ? { ...credentialRaw, __forceUniqueKey: true } : credentialRaw
+            const uploadedUrl = await uploadSingleFile(files[index], credential, index)
+            if (!uploadedUrl) {
+                throw new Error(`第 ${index + 1} 个文件上传失败，未返回文件地址`)
+            }
+            results.push({ success: true, url: uploadedUrl })
+        } catch (error) {
+            results.push({ success: false, error })
+        }
+    }
+
+    return results
 }

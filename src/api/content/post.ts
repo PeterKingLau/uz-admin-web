@@ -1,7 +1,7 @@
 ﻿import request from '@/utils/request'
 import { buildVideoCoverFile, normalizeMediaUrls, normalizeStoragePath } from '@/utils/content/postMedia'
-import { getPostUploadCredentials, uploadFilesToOss } from '@/utils/content/ossUpload'
-import type { OssCredentialType, UploadCredentialParams } from '@/utils/content/ossUpload'
+import { getPostUploadCredentials, uploadFilesToOss, uploadFilesToOssSettled } from '@/utils/content/ossUpload'
+import type { OssCredentialType, OssUploadSettledResult, UploadCredentialParams } from '@/utils/content/ossUpload'
 import type {
     AddCommentPayload,
     AddPostPayload,
@@ -50,8 +50,8 @@ const normalizeIsQuestion = (value: AddPostPayload['isQuestion']): string => {
     return String(value)
 }
 
-export { getPostUploadCredentials, uploadFilesToOss }
-export type { OssCredentialType, UploadCredentialParams }
+export { getPostUploadCredentials, uploadFilesToOss, uploadFilesToOssSettled }
+export type { OssCredentialType, OssUploadSettledResult, UploadCredentialParams }
 
 export async function addPost(data: AddPostPayload) {
     const files = Array.isArray(data.files) ? data.files.filter(file => file instanceof File) : []

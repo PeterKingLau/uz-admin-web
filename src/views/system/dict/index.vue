@@ -64,43 +64,43 @@
             </div>
 
             <el-table v-loading="loading" :data="typeList" @selection-change="handleSelectionChange" class="modern-table">
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="字典编号" align="center" prop="dictId" />
-            <el-table-column label="字典名称" align="center" prop="dictName" :show-overflow-tooltip="true" />
-            <el-table-column label="字典类型" align="center" :show-overflow-tooltip="true">
-                <template #default="scope">
-                    <router-link :to="'/system/dict-data/index/' + scope.row.dictId" class="link-type">
-                        <span>{{ scope.row.dictType }}</span>
-                    </router-link>
-                </template>
-            </el-table-column>
-            <el-table-column label="状态" align="center" prop="status">
-                <template #default="scope">
-                    <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
-                </template>
-            </el-table-column>
-            <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
-            <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.createTime) }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width">
-                <template #default="scope">
-                    <div class="action-group">
-                        <el-tooltip content="修改" placement="top">
-                            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:dict:edit']" class="op-btn">
-                                <Icon icon="ep:edit" class="btn-icon" />
-                            </el-button>
-                        </el-tooltip>
-                        <el-tooltip content="删除" placement="top">
-                            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:dict:remove']" class="op-btn">
-                                <Icon icon="ep:delete" class="btn-icon" />
-                            </el-button>
-                        </el-tooltip>
-                    </div>
-                </template>
-            </el-table-column>
+                <el-table-column type="selection" width="55" align="center" />
+                <el-table-column label="字典编号" align="center" prop="dictId" />
+                <el-table-column label="字典名称" align="center" prop="dictName" :show-overflow-tooltip="true" />
+                <el-table-column label="字典类型" align="center" :show-overflow-tooltip="true">
+                    <template #default="scope">
+                        <router-link :to="'/system/dict-data/index/' + scope.row.dictId" class="link-type">
+                            <span>{{ scope.row.dictType }}</span>
+                        </router-link>
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态" align="center" prop="status">
+                    <template #default="scope">
+                        <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+                    </template>
+                </el-table-column>
+                <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
+                <el-table-column label="创建时间" align="center" prop="createTime" width="180">
+                    <template #default="scope">
+                        <span>{{ parseTime(scope.row.createTime) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width">
+                    <template #default="scope">
+                        <div class="action-group">
+                            <el-tooltip content="修改" placement="top">
+                                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:dict:edit']" class="op-btn">
+                                    <Icon icon="ep:edit" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-tooltip content="删除" placement="top">
+                                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:dict:remove']" class="op-btn">
+                                    <Icon icon="ep:delete" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                </el-table-column>
             </el-table>
 
             <div class="pagination-container">
@@ -171,7 +171,6 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询字典类型列表 */
 function getList() {
     loading.value = true
     listType(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
@@ -181,13 +180,11 @@ function getList() {
     })
 }
 
-/** 取消按钮 */
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 表单重置 */
 function reset() {
     form.value = {
         dictId: undefined,
@@ -199,34 +196,29 @@ function reset() {
     proxy.resetForm('dictRef')
 }
 
-/** 搜索按钮操作 */
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
 function resetQuery() {
     dateRange.value = []
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-/** 新增按钮操作 */
 function handleAdd() {
     reset()
     open.value = true
     title.value = '添加字典类型'
 }
 
-/** 多选框选中数据 */
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.dictId)
     single.value = selection.length != 1
     multiple.value = !selection.length
 }
 
-/** 修改按钮操作 */
 function handleUpdate(row) {
     reset()
     const dictId = row.dictId || ids.value
@@ -237,7 +229,6 @@ function handleUpdate(row) {
     })
 }
 
-/** 提交按钮 */
 function submitForm() {
     proxy.$refs['dictRef'].validate(valid => {
         if (valid) {
@@ -258,7 +249,6 @@ function submitForm() {
     })
 }
 
-/** 删除按钮操作 */
 function handleDelete(row) {
     const dictIds = row.dictId || ids.value
     proxy.$modal
@@ -273,7 +263,6 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 导出按钮操作 */
 function handleExport() {
     proxy.download(
         'system/dict/type/export',
@@ -284,7 +273,6 @@ function handleExport() {
     )
 }
 
-/** 刷新缓存按钮操作 */
 function handleRefreshCache() {
     refreshCache().then(() => {
         proxy.$modal.msgSuccess('刷新成功')

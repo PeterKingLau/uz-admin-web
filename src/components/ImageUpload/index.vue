@@ -112,7 +112,7 @@
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
 import { isExternal } from '@/utils/validate'
-import { uploadFilesToOss } from '@/api/content/post'
+import { uploadFilesToOssSettled } from '@/api/content/post'
 import Sortable from 'sortablejs'
 import { ElImageViewer } from 'element-plus'
 import { ref, computed, watch, getCurrentInstance, onBeforeUnmount, onMounted, nextTick } from 'vue'
@@ -152,6 +152,8 @@ const baseUrl = import.meta.env.VITE_APP_FILE_BASE_URL || ''
 const uploadImgUrl = ref(import.meta.env.VITE_APP_BASE_API + props.action)
 const headers = ref({ Authorization: 'Bearer ' + getToken() })
 const fileList = ref([])
+const successfulUploadKeys = new Set()
+const failedUploadKeys = new Set()
 const showImageViewer = ref(false)
 const previewSrcList = ref([])
 const initialIndex = ref(0)
@@ -247,6 +249,64 @@ function normalizeUploadUrl(url) {
     return baseUrl ? raw.replace(baseUrl, '') : raw
 }
 
+function resolveUploadFileKey(file, fallbackValue = '') {
+    const uid = file?.uid ?? file?.raw?.uid
+    if (uid !== undefined && uid !== null && String(uid).trim()) {
+        return `uid:${String(uid).trim()}`
+    }
+
+    const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
+    if (rawFile) {
+        const signature = [rawFile.name, rawFile.size, rawFile.lastModified].map(value => String(value ?? '').trim()).join(':')
+        if (signature.replace(/:/g, '')) return `file:${signature}`
+    }
+
+    const fallback = String(file?.name || file?.url || fallbackValue || '').trim()
+    return fallback ? `name:${fallback}` : ''
+}
+
+function resolveUploadOrder(file) {
+    const uploadFiles = imageUploadRef.value?.uploadFiles
+    if (!Array.isArray(uploadFiles) || !uploadFiles.length) return 0
+    const targetKey = resolveUploadFileKey(file)
+    if (!targetKey) return 0
+    const index = uploadFiles.findIndex(item => resolveUploadFileKey(item) === targetKey)
+    return index >= 0 ? index + 1 : 0
+}
+
+function resolveUploadTargetLabel(file) {
+    const displayName = resolveImageDisplayName(file)
+    if (displayName) return `图片“${displayName}”`
+    const order = resolveUploadOrder(file)
+    if (order > 0) return `第${order}张图片`
+    return '图片'
+}
+
+function resolveUploadErrorMessage(error, file, serverMessage = '') {
+    const targetLabel = resolveUploadTargetLabel(file)
+    const normalizedServerMessage = String(serverMessage || '').trim()
+    if (normalizedServerMessage) {
+        return `${targetLabel}上传失败：${normalizedServerMessage}`
+    }
+
+    const message = String(error?.message || '').toLowerCase()
+    if (error?.code === 'ECONNABORTED' || message.includes('timeout')) {
+        return `${targetLabel}上传超时，请检查网络或压缩文件后重试`
+    }
+    return `${targetLabel}上传失败，请重试`
+}
+
+function resetUploadProgressState() {
+    uploadList.value = []
+    number.value = 0
+    successfulUploadKeys.clear()
+    failedUploadKeys.clear()
+}
+
+function getSettledUploadCount() {
+    return uploadList.value.length + failedUploadKeys.size
+}
+
 function resolveDisplayUrl(rawUrl) {
     const raw = String(rawUrl || '').trim()
     if (!raw) return ''
@@ -333,18 +393,21 @@ const runOssRequestQueue = async () => {
             try {
                 const queueFiles = resolveQueueFiles()
                 const credentialFileCount = Math.max(files.length, queueFiles.length)
-                const uploadedUrls = await uploadFilesToOss(props.ossPostType || '2', files, props.ossType, credentialFileCount)
+                const uploadResults = await uploadFilesToOssSettled(props.ossPostType || '2', files, props.ossType, credentialFileCount)
 
                 batch.forEach((item, index) => {
-                    const url = String(uploadedUrls?.[index] || '').trim()
-                    if (!url) {
-                        item.options?.onError?.(new Error(`empty upload url at index ${index}`))
+                    const result = uploadResults[index]
+                    if (result?.success) {
+                        const url = String(result.url || '').trim()
+                        if (!url) {
+                            item.options?.onError?.(new Error(`empty upload url at index ${index}`))
+                            return
+                        }
+                        item.options?.onSuccess?.({ code: 200, fileName: url }, item.file)
                         return
                     }
-                    item.options?.onSuccess?.({ code: 200, fileName: url }, item.file)
+                    item.options?.onError?.(result?.error || new Error(`upload failed at index ${index}`))
                 })
-            } catch (error) {
-                batch.forEach(item => item.options?.onError?.(error))
             } finally {
                 uploadingCount.value = Math.max(0, uploadingCount.value - files.length)
             }
@@ -416,6 +479,11 @@ function handleBeforeUpload(file) {
         }
     }
     number.value++
+    const uploadKey = resolveUploadFileKey(file)
+    if (uploadKey) {
+        successfulUploadKeys.delete(uploadKey)
+        failedUploadKeys.delete(uploadKey)
+    }
     return true
 }
 
@@ -428,8 +496,17 @@ function handleUploadSuccess(res, file) {
     const responseCode = Number(response.code)
     const rawFileName = String(response.fileName || response.url || '').trim()
     const isSuccess = responseCode === 200 || Boolean(rawFileName)
+    const uploadKey = resolveUploadFileKey(file, rawFileName)
 
     if (isSuccess) {
+        if (uploadKey && successfulUploadKeys.has(uploadKey)) {
+            uploadedSuccessfully()
+            return
+        }
+        if (uploadKey) {
+            successfulUploadKeys.add(uploadKey)
+            failedUploadKeys.delete(uploadKey)
+        }
         const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
         uploadList.value.push(
             createFileListItem({
@@ -441,8 +518,12 @@ function handleUploadSuccess(res, file) {
         )
         uploadedSuccessfully()
     } else {
-        number.value--
-        proxy.$modal.msgError(response.msg || '上传图片失败')
+        if (uploadKey && successfulUploadKeys.has(uploadKey)) {
+            uploadedSuccessfully()
+            return
+        }
+        if (uploadKey) failedUploadKeys.add(uploadKey)
+        proxy.$modal.msgError(resolveUploadErrorMessage(undefined, file, response.msg))
         imageUploadRef.value?.handleRemove?.(file)
         uploadedSuccessfully()
     }
@@ -466,17 +547,21 @@ function removeFile(file) {
 }
 
 function uploadedSuccessfully() {
-    if (number.value > 0 && uploadList.value.length === number.value) {
+    if (number.value > 0 && getSettledUploadCount() >= number.value) {
         fileList.value = fileList.value.filter(f => f.url !== undefined).concat(uploadList.value)
-        uploadList.value = []
-        number.value = 0
+        resetUploadProgressState()
         emit('update:modelValue', listToString(fileList.value))
     }
 }
 
-function handleUploadError() {
-    proxy.$modal.msgError('上传失败，请重试')
-    if (number.value > 0) number.value--
+function handleUploadError(error, file) {
+    const uploadKey = resolveUploadFileKey(file)
+    if (uploadKey) {
+        if (successfulUploadKeys.has(uploadKey) || failedUploadKeys.has(uploadKey)) return
+        failedUploadKeys.add(uploadKey)
+    }
+    proxy.$modal.msgError(resolveUploadErrorMessage(error, file))
+    uploadedSuccessfully()
 }
 
 function handlePictureCardPreview(file) {
@@ -515,8 +600,7 @@ function clear() {
         ossQueueTimer = null
     }
     ossQueueScheduled = false
-    uploadList.value = []
-    number.value = 0
+    resetUploadProgressState()
     fileList.value = []
     emit('update:modelValue', '')
 }
