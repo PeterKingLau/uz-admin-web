@@ -23,7 +23,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="LayoutComponentsSidebarLogo">
 import { computed } from 'vue'
 import logo from '@/assets/logo/logo.png'
 import useSettingsStore from '@/store/modules/settings'

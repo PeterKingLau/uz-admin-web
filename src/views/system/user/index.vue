@@ -352,6 +352,7 @@
 <script setup name="User">
 import { getToken } from '@/utils/auth'
 import useAppStore from '@/store/modules/app'
+import { getConfigKey } from '@/api/system/config'
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from '@/api/system/user'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
@@ -692,7 +693,7 @@ function submitForm() {
 onMounted(() => {
     getDeptTree()
     getList()
-    proxy.getConfigKey('sys.user.initPassword').then(response => {
+    getConfigKey('sys.user.initPassword').then(response => {
         initPassword.value = response.msg
     })
 })

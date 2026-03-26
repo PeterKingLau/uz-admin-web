@@ -49,7 +49,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ComponentsRightToolbar">
 import { computed, ref } from 'vue'
 
 const props = defineProps({

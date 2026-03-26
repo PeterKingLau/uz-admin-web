@@ -40,7 +40,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsError401">
 import { ref, getCurrentInstance } from 'vue'
 import errImage from '@/assets/401_images/401.gif'
 

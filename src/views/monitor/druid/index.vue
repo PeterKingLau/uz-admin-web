@@ -4,7 +4,7 @@
    </div>
 </template>
 
-<script setup>
+<script setup name="ViewsMonitorDruid">
 import iFrame from '@/components/iFrame'
 
 import { ref } from 'vue'

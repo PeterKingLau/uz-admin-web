@@ -175,6 +175,7 @@
 
 <script setup name="Operlog">
 import { list, delOperlog, cleanOperlog } from '@/api/monitor/operlog'
+import { selectDictLabel } from '@/utils/utils'
 
 const { proxy } = getCurrentInstance()
 const { sys_oper_type, sys_common_status } = proxy.useDict('sys_oper_type', 'sys_common_status')
@@ -218,7 +219,7 @@ function getList() {
 
 /** 操作日志类型字典翻译 */
 function typeFormat(row, column) {
-    return proxy.selectDictLabel(sys_oper_type.value, row.businessType)
+    return selectDictLabel(sys_oper_type.value, row.businessType)
 }
 
 /** 搜索按钮操作 */

@@ -21,7 +21,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsError404">
 const message = '找不到网页！'
 </script>
 

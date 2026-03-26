@@ -11,7 +11,7 @@
     </el-breadcrumb>
 </template>
 
-<script setup>
+<script setup name="ComponentsBreadcrumb">
 import { ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import usePermissionStore from '@/store/modules/permission'

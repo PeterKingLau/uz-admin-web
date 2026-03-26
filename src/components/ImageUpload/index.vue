@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div ref="rootRef" class="glass-upload-container">
         <transition-group v-if="showSortAssistList" class="image-sort-assist-list" name="list-fade" tag="ul">
             <li v-for="(file, index) in fileList" :key="file.uid || `${file.rawUrl || file.url || file.name}-${index}`" class="image-sort-assist-item">
@@ -92,7 +92,7 @@
             </div>
             <div class="info-item" v-if="fileSize">
                 <Icon icon="ep:warning-filled" class="icon" />
-                <span>大小: ≤ {{ fileSize }}MB</span>
+                <span>大小: ≤{{ fileSize }}MB</span>
             </div>
         </div>
 
@@ -108,7 +108,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ImageUpload">
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
 import { isExternal } from '@/utils/validate'
@@ -1182,3 +1182,5 @@ onBeforeUnmount(() => {
     }
 }
 </style>
+
+

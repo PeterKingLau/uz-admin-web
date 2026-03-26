@@ -26,7 +26,7 @@
     </el-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsContentPersonProfileComponentsVideoModuleComponentsVideoRepostDialog" lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps({

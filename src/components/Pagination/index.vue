@@ -15,7 +15,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ComponentsPagination">
 import { computed } from 'vue'
 import { scrollTo } from '@/utils/scroll-to'
 

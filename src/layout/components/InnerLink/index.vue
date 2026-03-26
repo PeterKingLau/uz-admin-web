@@ -4,7 +4,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="LayoutComponentsInnerLink">
 const props = defineProps({
     src: {
         type: String,

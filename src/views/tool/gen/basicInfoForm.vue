@@ -31,7 +31,7 @@
     </el-form>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsToolGenBasicInfoForm" lang="ts">
 import { FormInstance } from 'element-plus'
 import { ref } from 'vue'
 defineProps({

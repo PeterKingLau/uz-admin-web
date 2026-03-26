@@ -51,7 +51,7 @@
     </el-form>
 </template>
 
-<script setup>
+<script setup name="ComponentsCrontabDay">
 const emit = defineEmits(['update'])
 
 const props = defineProps({

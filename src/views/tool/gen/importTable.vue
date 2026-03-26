@@ -37,7 +37,7 @@
     </el-dialog>
 </template>
 
-<script setup>
+<script setup name="ViewsToolGenImportTable">
 import { listDbTable, importTable } from '@/api/tool/gen'
 import { ref, reactive, getCurrentInstance } from 'vue'
 

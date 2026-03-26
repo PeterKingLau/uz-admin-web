@@ -18,7 +18,6 @@
         "@iconify-json/material-symbols": "^1.2.50",
         "@iconify-json/simple-icons": "^1.2.59",
         "@iconify/vue": "^5.0.0",
-        "@vueup/vue-quill": "^1.2.0",
         "@vueuse/core": "^14.0.0",
         "@zeronejs/utils": "^2.2.1",
         "axios": "^1.13.2",
@@ -30,6 +29,7 @@
         "js-beautify": "^1.15.4",
         "js-cookie": "^3.0.5",
         "jsencrypt": "^3.5.4",
+        "md-editor-v3": "^6.4.1",
         "nprogress": "^0.2.0",
         "pinia": "^3.0.4",
         "pinia-plugin-persistedstate": "^4.7.1",
@@ -72,15 +72,11 @@
         "typescript": "^5.9.3",
         "unplugin-auto-import": "^21.0.0",
         "unplugin-vue-components": "^30.0.0",
-        "unplugin-vue-setup-extend-plus": "1.0.1",
         "vite": "5.3.2",
         "vite-plugin-compression": "0.5.1",
-        "vite-plugin-svg-icons": "2.0.1",
+        "unplugin-vue-setup-extend-plus": "1.0.1",
         "vite-plugin-zip-pack": "^1.2.4",
         "vue-tsc": "^3.1.4"
-    },
-    "overrides": {
-        "quill": "2.0.2"
     },
     "resolutions": {
         "stylelint-config-recommended": "14.0.1"

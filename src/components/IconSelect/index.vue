@@ -36,7 +36,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ComponentsIconSelect" lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { createIconStringMap, ensureIconCollectionByPrefix, iconCollectionTabs, loadIconNamesByPrefix, type IconCollectionPrefix } from '@/utils/iconify'
 

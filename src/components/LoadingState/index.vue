@@ -7,7 +7,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ComponentsLoadingState" lang="ts">
 import { Loading } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 

@@ -12,7 +12,7 @@
     </section>
 </template>
 
-<script setup>
+<script setup name="LayoutComponentsAppMain">
 import { computed } from 'vue'
 import copyright from './Copyright/index'
 import iframeToggle from './IframeToggle/index'

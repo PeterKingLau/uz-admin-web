@@ -250,6 +250,7 @@
 <script setup name="Job">
 import Crontab from '@/components/Crontab'
 import { listJob, getJob, delJob, addJob, updateJob, runJob, changeJobStatus } from '@/api/monitor/job'
+import { selectDictLabel } from '@/utils/utils'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -298,7 +299,7 @@ function getList() {
 
 /** 任务组名字典翻译 */
 function jobGroupFormat(row, column) {
-    return proxy.selectDictLabel(sys_job_group.value, row.jobGroup)
+    return selectDictLabel(sys_job_group.value, row.jobGroup)
 }
 
 /** 取消按钮 */

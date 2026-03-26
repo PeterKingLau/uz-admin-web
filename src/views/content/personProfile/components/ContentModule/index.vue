@@ -343,7 +343,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsContentPersonProfileComponentsContentModule" lang="ts">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import Sortable from 'sortablejs'

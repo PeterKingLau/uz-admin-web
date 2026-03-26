@@ -289,6 +289,7 @@
 
 <script setup lang="ts" name="TemplateManage">
 import { reactive, ref, computed, getCurrentInstance, onMounted } from 'vue'
+import ImageUpload from '@/components/ImageUpload/index.vue'
 import { parseTime } from '@/utils/utils'
 import { addTemplate, updateTemplate, deleteTemplate, listTemplates, parseTemplateRows } from '@/api/configuration/template'
 import type { TemplateItem } from '@/api/configuration/template.types'

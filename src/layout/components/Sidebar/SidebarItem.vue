@@ -33,7 +33,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="LayoutComponentsSidebarSidebarItem">
 import { ref } from 'vue'
 import { isExternal } from '@/utils/validate'
 import AppLink from './Link'

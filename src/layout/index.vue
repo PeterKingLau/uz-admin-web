@@ -17,7 +17,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="Layout">
 import { useWindowSize } from '@vueuse/core'
 import { computed, watch, watchEffect, shallowRef } from 'vue'
 import Sidebar from './components/Sidebar/index.vue'

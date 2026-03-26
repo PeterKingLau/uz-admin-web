@@ -20,7 +20,7 @@
   </el-dialog>
 </template>
 
-<script setup>
+<script setup name="ViewsToolBuildCodeTypeDialog">
 const open = defineModel()
 const props = defineProps({
   showFileName: Boolean

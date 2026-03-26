@@ -149,7 +149,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsContentAddPostComponentsPostPreviewPanel" lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
 

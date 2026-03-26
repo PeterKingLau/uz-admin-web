@@ -24,22 +24,11 @@ import elementIcons from '@/components/SvgIcon/svgicon'
 import './permission' // permission control
 
 import { useDict } from '@/utils/dict'
-import { getConfigKey } from '@/api/system/config'
-import { parseTime, resetForm, addDateRange, handleTree, selectDictLabel, selectDictLabels } from '@/utils/utils'
+import { parseTime, resetForm, addDateRange, handleTree } from '@/utils/utils'
 
 // 分页组件
 import Pagination from '@/components/Pagination/index.vue'
-// 自定义表格工具组件
 import RightToolbar from '@/components/RightToolbar/index.vue'
-// 富文本组件
-import Editor from '@/components/Editor/index.vue'
-// 文件上传组件
-import FileUpload from '@/components/FileUpload/index.vue'
-// 图片上传组件
-import ImageUpload from '@/components/ImageUpload/index.vue'
-// 图片预览组件
-import MediaPreview from '@/components/MediaPreview/index.vue'
-// 字典标签组件
 import DictTag from '@/components/DictTag/index.vue'
 
 import AppIcon from '@/components/Icon/index.vue'
@@ -110,17 +99,10 @@ app.config.globalProperties.parseTime = parseTime
 app.config.globalProperties.resetForm = resetForm
 app.config.globalProperties.handleTree = handleTree
 app.config.globalProperties.addDateRange = addDateRange
-app.config.globalProperties.getConfigKey = getConfigKey
-app.config.globalProperties.selectDictLabel = selectDictLabel
-app.config.globalProperties.selectDictLabels = selectDictLabels
 
 app.component('DictTag', DictTag)
 app.component('Pagination', Pagination)
-app.component('FileUpload', FileUpload)
-app.component('ImageUpload', ImageUpload)
-app.component('MediaPreview', MediaPreview)
 app.component('RightToolbar', RightToolbar)
-app.component('Editor', Editor)
 
 store.use(piniaPluginPersistedstate)
 

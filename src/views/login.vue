@@ -97,7 +97,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsLogin">
 import { ref, computed, watch, onMounted, nextTick, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Cookies from 'js-cookie'

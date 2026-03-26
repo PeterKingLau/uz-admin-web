@@ -133,7 +133,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsCircleCircleManagementComponentsCirclePreviewPanel" lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = defineProps<{

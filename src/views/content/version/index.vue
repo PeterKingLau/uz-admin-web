@@ -163,7 +163,11 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button link type="danger" class="action-delete-btn" @click="handleDelete(row)"> 删除 </el-button>
+                        <el-tooltip content="删除" placement="bottom" :show-after="500">
+                            <div class="action-icon-btn danger" @click="handleDelete(row)">
+                                <Icon icon="mdi:trash-can-outline" />
+                            </div>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
             </el-table>
@@ -835,13 +839,27 @@ onMounted(() => {
             color: var(--el-text-color-secondary);
         }
 
-        .action-delete-btn {
-            font-weight: 500;
-            padding: 4px 8px;
-            border-radius: 6px;
+        .action-icon-btn {
+            width: 30px;
+            height: 30px;
+            margin: 0 auto;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--el-text-color-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
 
             &:hover {
+                background-color: var(--el-fill-color-light);
+                color: var(--el-color-primary);
+                transform: translateY(-1px);
+            }
+
+            &.danger:hover {
                 background-color: var(--el-color-danger-light-9);
+                color: var(--el-color-danger);
             }
         }
     }

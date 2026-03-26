@@ -33,7 +33,7 @@
     </el-form>
 </template>
 
-<script setup>
+<script setup name="ComponentsCrontabMonth">
 const emit = defineEmits(['update'])
 const props = defineProps({
     cron: {

@@ -40,7 +40,7 @@
     </el-form>
 </template>
 
-<script setup>
+<script setup name="ComponentsCrontabYear">
 const emit = defineEmits(['update'])
 const props = defineProps({
     cron: {

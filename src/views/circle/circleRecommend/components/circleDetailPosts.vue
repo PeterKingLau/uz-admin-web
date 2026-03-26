@@ -44,7 +44,7 @@
     />
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsCircleCircleRecommendComponentsCircleDetailPosts" lang="ts">
 import { computed, getCurrentInstance, nextTick, reactive, ref, watch } from 'vue'
 import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'

@@ -159,7 +159,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsToolBuild">
 import { ref, getCurrentInstance, nextTick, onMounted, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import ClipboardJS from 'clipboard'

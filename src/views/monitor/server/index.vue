@@ -238,7 +238,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsMonitorServer">
 import { getServer } from '@/api/monitor/server'
 
 const server = ref([])

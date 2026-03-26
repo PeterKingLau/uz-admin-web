@@ -59,7 +59,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsContentPostInfoComponentsFeedList" lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import FeedItem from './FeedItem.vue'
 

@@ -4,7 +4,7 @@
     </span>
 </template>
 
-<script setup lang="ts">
+<script setup name="ComponentsIcon" lang="ts">
 import { computed, ref, useAttrs, watch } from 'vue'
 import { Icon as IconifyIcon } from '@iconify/vue/dist/offline'
 import type { IconProps } from '@iconify/vue'

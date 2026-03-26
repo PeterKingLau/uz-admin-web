@@ -286,10 +286,12 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsContentAddPostComponentsPostEditorPanel" lang="ts">
 import { computed, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import PinyinMatch from 'pinyin-match'
+import FileUpload from '@/components/FileUpload/index.vue'
+import ImageUpload from '@/components/ImageUpload/index.vue'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { resolveOptionTagStyle } from '@/utils/content/tagOptionStyle'
@@ -1766,3 +1768,5 @@ defineExpose({
     }
 }
 </style>
+
+

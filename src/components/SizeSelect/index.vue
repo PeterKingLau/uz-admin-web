@@ -13,7 +13,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ComponentsSizeSelect">
 import useAppStore from '@/store/modules/app'
 
 const appStore = useAppStore()

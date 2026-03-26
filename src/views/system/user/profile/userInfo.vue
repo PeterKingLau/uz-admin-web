@@ -113,7 +113,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsSystemUserProfileUserInfo">
 import { ref, watch, getCurrentInstance } from 'vue'
 import { updateUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'

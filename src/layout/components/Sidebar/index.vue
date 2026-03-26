@@ -21,7 +21,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="LayoutComponentsSidebar">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Logo from './Logo'

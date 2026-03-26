@@ -390,7 +390,7 @@
     </component>
 </template>
 
-<script setup>
+<script setup name="ViewsContentPersonProfileComponentsVideoModule">
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'

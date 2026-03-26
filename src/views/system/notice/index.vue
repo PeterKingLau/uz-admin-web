@@ -46,41 +46,41 @@
             </div>
 
             <el-table v-loading="loading" :data="noticeList" @selection-change="handleSelectionChange" class="modern-table">
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="序号" align="center" prop="noticeId" width="100" />
-            <el-table-column label="公告标题" align="center" prop="noticeTitle" :show-overflow-tooltip="true" />
-            <el-table-column label="公告类型" align="center" prop="noticeType" width="100">
-                <template #default="scope">
-                    <dict-tag :options="sys_notice_type" :value="scope.row.noticeType" />
-                </template>
-            </el-table-column>
-            <el-table-column label="状态" align="center" prop="status" width="100">
-                <template #default="scope">
-                    <dict-tag :options="sys_notice_status" :value="scope.row.status" />
-                </template>
-            </el-table-column>
-            <el-table-column label="创建者" align="center" prop="createBy" width="100" />
-            <el-table-column label="创建时间" align="center" prop="createTime" width="100">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width">
-                <template #default="scope">
-                    <div class="action-group">
-                        <el-tooltip content="修改" placement="top">
-                            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:notice:edit']" class="op-btn">
-                                <Icon icon="ep:edit" class="btn-icon" />
-                            </el-button>
-                        </el-tooltip>
-                        <el-tooltip content="删除" placement="top">
-                            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:notice:remove']" class="op-btn">
-                                <Icon icon="ep:delete" class="btn-icon" />
-                            </el-button>
-                        </el-tooltip>
-                    </div>
-                </template>
-            </el-table-column>
+                <el-table-column type="selection" width="55" align="center" />
+                <el-table-column label="序号" align="center" prop="noticeId" width="100" />
+                <el-table-column label="公告标题" align="center" prop="noticeTitle" :show-overflow-tooltip="true" />
+                <el-table-column label="公告类型" align="center" prop="noticeType" width="100">
+                    <template #default="scope">
+                        <dict-tag :options="sys_notice_type" :value="scope.row.noticeType" />
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态" align="center" prop="status" width="100">
+                    <template #default="scope">
+                        <dict-tag :options="sys_notice_status" :value="scope.row.status" />
+                    </template>
+                </el-table-column>
+                <el-table-column label="创建者" align="center" prop="createBy" width="100" />
+                <el-table-column label="创建时间" align="center" prop="createTime" width="100">
+                    <template #default="scope">
+                        <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width">
+                    <template #default="scope">
+                        <div class="action-group">
+                            <el-tooltip content="修改" placement="top">
+                                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:notice:edit']" class="op-btn">
+                                    <Icon icon="ep:edit" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                            <el-tooltip content="删除" placement="top">
+                                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:notice:remove']" class="op-btn">
+                                    <Icon icon="ep:delete" class="btn-icon" />
+                                </el-button>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                </el-table-column>
             </el-table>
 
             <div class="pagination-container">
@@ -89,7 +89,7 @@
         </div>
 
         <!-- 添加或修改公告对话框 -->
-        <el-dialog :title="title" v-model="open" width="780px" append-to-body class="modern-dialog">
+        <el-dialog :title="title" v-model="open" width="780px" append-to-body destroy-on-close class="modern-dialog">
             <el-form ref="noticeRef" :model="form" :rules="rules" label-width="80px">
                 <el-row>
                     <el-col :span="12">
@@ -113,7 +113,7 @@
                     </el-col>
                     <el-col :span="24">
                         <el-form-item label="内容">
-                            <editor v-model="form.noticeContent" :min-height="192" />
+                            <Editor v-if="open" v-model="form.noticeContent" mode="textarea" :min-height="192" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -129,7 +129,10 @@
 </template>
 
 <script setup name="Notice">
+import { defineAsyncComponent } from 'vue'
 import { listNotice, getNotice, delNotice, addNotice, updateNotice } from '@/api/system/notice'
+
+const Editor = defineAsyncComponent(() => import('@/components/Editor/index.vue'))
 
 const { proxy } = getCurrentInstance()
 const { sys_notice_status, sys_notice_type } = proxy.useDict('sys_notice_status', 'sys_notice_type')
@@ -266,5 +269,5 @@ getList()
 </script>
 
 <style scoped lang="scss">
-@use '../crud-page.scss' as *;
+@use '@/assets/styles/crud-page.scss' as *;
 </style>

@@ -107,7 +107,7 @@
     </aside>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsCircleCircleRecommendComponentsCircleDetailRightSidebar" lang="ts">
 import { ref } from 'vue'
 
 interface CircleInfoSummary {

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="upload-file">
         <div v-if="showUploader" class="upload-file-uploader-wrap">
             <el-upload
@@ -43,10 +43,10 @@
             <div class="tip-content">
                 <span>请上传</span>
                 <template v-if="fileSize">
-                    大小不超过<span class="highlight">{{ fileSize }}MB</span>
+                    大小不超过 <span class="highlight">{{ fileSize }}MB</span>
                 </template>
                 <template v-if="fileType">
-                    格式为<span class="highlight">{{ fileType.join('/') }}</span>
+                    格式为 <span class="highlight">{{ fileType.join('/') }}</span>
                 </template>
                 的文件
             </div>
@@ -81,7 +81,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="FileUpload">
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
 import { uploadFilesToOss } from '@/api/content/post'
@@ -345,7 +345,7 @@ function handleBeforeUpload(file) {
         const fileExt = (fileName[fileName.length - 1] || '').toLowerCase()
         const isTypeOk = normalizedFileTypes.value.includes(fileExt)
         if (!isTypeOk) {
-            proxy.$modal.msgError(`文件格式不正确，请上传${normalizedFileTypes.value.join('/')}格式文件!`)
+            proxy.$modal.msgError(`文件格式不正确，请上传 ${normalizedFileTypes.value.join('/')} 格式文件!`)
             return false
         }
     }
@@ -417,9 +417,22 @@ function handleUploadSuccess(res, file) {
         }
         if (uploadKey) failedUploadKeys.add(uploadKey)
         proxy.$modal.msgError(resolveUploadErrorMessage(undefined, file, response.msg))
-        proxy.$refs.fileUpload.handleRemove(file)
+        removeUploadRequestFile(file)
         uploadedSuccessfully()
     }
+}
+
+function removeUploadRequestFile(file) {
+    const uploadRef = proxy?.$refs?.fileUpload
+    if (uploadRef?.handleRemove) {
+        uploadRef.handleRemove(file)
+        return
+    }
+
+    const targetKey = resolveUploadFileKey(file)
+    if (!targetKey) return
+
+    fileList.value = fileList.value.filter(item => resolveUploadFileKey(item) !== targetKey)
 }
 
 function handleDelete(index) {
@@ -743,3 +756,5 @@ onMounted(() => {
     }
 }
 </style>
+
+

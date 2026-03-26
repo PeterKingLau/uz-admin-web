@@ -39,7 +39,6 @@ function manualChunks(id: string): string | undefined {
     if (!id.includes('node_modules')) return undefined
     const normalizedId = id.replace(/\\/g, '/')
 
-    // Keep framework ecosystem in one chunk to avoid circular chunk warnings.
     if (
         normalizedId.includes('/vue/') ||
         normalizedId.includes('/vue-router/') ||
@@ -55,11 +54,46 @@ function manualChunks(id: string): string | undefined {
     if (normalizedId.includes('/sortablejs/') || normalizedId.includes('/vue-draggable-plus/')) return 'vendor-dnd'
     if (normalizedId.includes('/clipboard/') || normalizedId.includes('/js-beautify/')) return 'vendor-builder'
     if (normalizedId.includes('/jsencrypt/') || normalizedId.includes('/js-cookie/')) return 'vendor-auth'
-    if (normalizedId.includes('/vue3-next-qrcode/')) return 'vendor-qrcode'
+    if (normalizedId.includes('/vue3-next-qrcode/') || normalizedId.includes('/js-binary-schema-parser/')) return 'vendor-misc'
+    if (
+        normalizedId.includes('/md-editor-v3/') ||
+        normalizedId.includes('/codemirror/') ||
+        normalizedId.includes('/@codemirror/') ||
+        normalizedId.includes('/@lezer/') ||
+        normalizedId.includes('/@marijn/') ||
+        normalizedId.includes('/style-mod/') ||
+        normalizedId.includes('/w3c-keyname/') ||
+        normalizedId.includes('/crelt/') ||
+        normalizedId.includes('/markdown-it/') ||
+        normalizedId.includes('/markdown-it-image-figures/') ||
+        normalizedId.includes('/markdown-it-sub/') ||
+        normalizedId.includes('/markdown-it-sup/') ||
+        normalizedId.includes('/linkify-it/') ||
+        normalizedId.includes('/mdurl/') ||
+        normalizedId.includes('/uc.micro/') ||
+        normalizedId.includes('/medium-zoom/') ||
+        normalizedId.includes('/xss/') ||
+        normalizedId.includes('/jszip/')
+    ) {
+        return 'vendor-markdown'
+    }
+    if (normalizedId.includes('/dayjs/')) return 'vendor-date'
+    if (normalizedId.includes('/fuse.js/') || normalizedId.includes('/pinyin-match/')) return 'vendor-search'
+    if (
+        normalizedId.includes('/lodash/') ||
+        normalizedId.includes('/lodash-es/') ||
+        normalizedId.includes('/lodash-unified/') ||
+        normalizedId.includes('/lodash.clonedeep/') ||
+        normalizedId.includes('/lodash.isequal/') ||
+        normalizedId.includes('/lodash.merge/') ||
+        normalizedId.includes('/lodash.truncate/')
+    ) {
+        return 'vendor-lodash'
+    }
     if (normalizedId.includes('/@iconify-json/mdi/')) return 'vendor-iconify-mdi'
     if (normalizedId.includes('/@iconify-json/ep/')) return 'vendor-iconify-ep'
+    if (normalizedId.includes('/@iconify-json/material-symbols/') || normalizedId.includes('/@iconify-json/simple-icons/')) return 'vendor-iconify-extra'
     if (normalizedId.includes('/@iconify/')) return 'vendor-iconify-core'
-    if (normalizedId.includes('/@vueup/vue-quill/') || normalizedId.includes('/quill/')) return 'vendor-editor'
     if (normalizedId.includes('/axios/') || normalizedId.includes('/nprogress/') || normalizedId.includes('/file-saver/')) return 'vendor-network'
     if (normalizedId.includes('/@vueuse/core/') || normalizedId.includes('/@zeronejs/utils/')) return 'vendor-utils'
     return 'vendor-misc'

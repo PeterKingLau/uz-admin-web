@@ -98,7 +98,7 @@
     </el-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsCircleCircleRecommendComponentsCircleMembersDialog" lang="ts">
 interface MemberItem {
     id: string | number
     userId?: string | number

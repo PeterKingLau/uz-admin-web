@@ -27,7 +27,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ComponentsCreatePageShell" lang="ts">
 import { computed, useSlots } from 'vue'
 
 type ColSize = number | undefined

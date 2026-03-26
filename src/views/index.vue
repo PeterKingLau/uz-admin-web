@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="audit-dashboard" v-loading="loading">
         <el-row :gutter="20" class="card-row">
             <el-col :span="6" v-for="card in statCards" :key="card.key">
@@ -182,9 +182,8 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="AuditDashboard">
 import { ref, onMounted, nextTick, onBeforeUnmount, watch, computed } from 'vue'
-import * as echarts from 'echarts'
 import { listContentAudit } from '@/api/audit/profile/content'
 import { listUserAuditDetail } from '@/api/audit/person/person'
 import { listAssessmentQuestions, parseAssessmentQuestionRows } from '@/api/content/assessmentQuestion'
@@ -400,6 +399,8 @@ const latest = ref([])
 const trendChartRef = ref(null)
 const statusPieRef = ref(null)
 const assessmentPieRef = ref(null)
+let echartsLib = null
+let echartsLoader = null
 let trendChart = null
 let statusChart = null
 let assessmentChart = null
@@ -479,6 +480,17 @@ function calcContentStats(contentData) {
     }
 }
 
+async function ensureEchartsLoaded() {
+    if (echartsLib) return echartsLib
+    if (!echartsLoader) {
+        echartsLoader = import('echarts').then(module => {
+            echartsLib = module
+            return module
+        })
+    }
+    return echartsLoader
+}
+
 function disposeCharts() {
     if (trendChart) {
         trendChart.dispose()
@@ -496,7 +508,9 @@ function disposeCharts() {
 
 watch(isDark, () => {
     disposeCharts()
-    nextTick(() => initCharts())
+    nextTick(() => {
+        void initCharts()
+    })
 })
 
 watch(isAdmin, (nextRole, prevRole) => {
@@ -516,7 +530,8 @@ watch(
     }
 )
 
-function initCharts() {
+async function initCharts() {
+    const echarts = await ensureEchartsLoaded()
     const theme = isDark.value ? 'dark' : undefined
     const bgColor = isDark.value ? 'transparent' : undefined
 
@@ -535,7 +550,7 @@ function initCharts() {
 }
 
 function renderTrendChart(bgColor) {
-    if (!trendChart || !trend.value.length) return
+    if (!trendChart || !trend.value.length || !echartsLib) return
 
     const dates = trend.value.map(x => x.date.slice(5))
     const totals = trend.value.map(x => x.total)
@@ -595,7 +610,7 @@ function renderTrendChart(bgColor) {
                 smooth: true,
                 itemStyle: { color: '#e6a23c' },
                 areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    color: new echartsLib.graphic.LinearGradient(0, 0, 0, 1, [
                         { offset: 0, color: 'rgba(230, 162, 60, 0.22)' },
                         { offset: 1, color: 'rgba(230, 162, 60, 0.02)' }
                     ])
@@ -608,7 +623,7 @@ function renderTrendChart(bgColor) {
                 smooth: true,
                 itemStyle: { color: '#67c23a' },
                 areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    color: new echartsLib.graphic.LinearGradient(0, 0, 0, 1, [
                         { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
                         { offset: 1, color: 'rgba(103, 194, 58, 0.01)' }
                     ])
@@ -627,7 +642,7 @@ function renderTrendChart(bgColor) {
 }
 
 function renderStatusPie(bgColor) {
-    if (!statusChart) return
+    if (!statusChart || !echartsLib) return
 
     const { approvedCount, rejectedCount, pendingCount } = stats.value
     const data = [
@@ -666,7 +681,7 @@ function renderStatusPie(bgColor) {
 }
 
 function renderAssessmentPie(bgColor) {
-    if (!assessmentChart) return
+    if (!assessmentChart || !echartsLib) return
 
     const data = isAdmin.value
         ? [
@@ -814,7 +829,7 @@ async function loadData() {
         calcLatest(merged)
 
         await nextTick()
-        initCharts()
+        await initCharts()
     } catch (e) {
         console.error(e)
     } finally {
@@ -908,6 +923,7 @@ watch(
     [() => trend.value, () => stats.value, () => extraStats.value],
     () => {
         nextTick(() => {
+            if (!echartsLib) return
             renderTrendChart()
             renderStatusPie()
             renderAssessmentPie()
@@ -1096,3 +1112,5 @@ onBeforeUnmount(() => {
     }
 }
 </style>
+
+

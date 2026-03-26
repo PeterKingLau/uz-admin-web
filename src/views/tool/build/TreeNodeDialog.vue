@@ -31,7 +31,7 @@
     </el-dialog>
   </div>
 </template>
-<script setup>
+<script setup name="ViewsToolBuildTreeNodeDialog">
 const open = defineModel()
 const emit = defineEmits(['confirm'])
 const formData = ref({

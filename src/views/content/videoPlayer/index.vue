@@ -14,7 +14,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsContentVideoPlayer">
 import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'

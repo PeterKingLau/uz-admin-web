@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <el-dialog v-model="dialogVisible" width="540px" append-to-body destroy-on-close class="follow-dialog custom-dialog-theme">
         <template #header>
             <div class="dialog-header-title">用户列表</div>
@@ -36,8 +36,8 @@
             <div class="follow-list" ref="followListRef">
                 <div v-for="item in followList" :key="item.id || item.userId" class="follow-user-row">
                     <div class="left-section">
-                        <el-avatar :size="48" :src="item.avatar" class="row-avatar">
-                            {{ item.nickName?.charAt(0)?.toUpperCase() || 'U' }}
+                        <el-avatar :size="48" :src="resolveAvatarSrc(item.avatar)" class="row-avatar">
+                            <Icon icon="mdi:account-outline" class="avatar-placeholder-icon" />
                         </el-avatar>
                     </div>
 
@@ -77,7 +77,7 @@
     </el-dialog>
 </template>
 
-<script setup>
+<script setup name="FollowDialog">
 import { computed, ref, toRefs } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
 
@@ -130,6 +130,11 @@ const isFollowedRelation = item => {
 
 const getRelationActionType = item => (isFollowedRelation(item) ? 'info' : 'primary')
 
+const resolveAvatarSrc = avatar => {
+    const value = String(avatar || '').trim()
+    return value || undefined
+}
+
 const getRelationActionText = item => {
     const relationType = normalizeRelationType(item)
     if (relationType === 'MUTUAL') return '互相关注'
@@ -151,7 +156,7 @@ defineExpose({
 
     .el-dialog__header {
         margin-right: 0;
-        padding: 16px 20px;
+        padding: 16px 56px 16px 20px;
         border-bottom: 1px solid var(--el-border-color-lighter);
 
         .dialog-header-title {
@@ -176,10 +181,23 @@ defineExpose({
                 border-radius: 2px;
             }
         }
+    }
 
-        .el-dialog__headerbtn {
-            top: 16px;
-            right: 16px;
+    .el-dialog__headerbtn {
+        top: 14px;
+        right: 16px;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: var(--el-text-color-secondary);
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: var(--el-text-color-primary);
+            background-color: var(--el-fill-color-light);
         }
     }
 
@@ -325,6 +343,11 @@ defineExpose({
             border: 1px solid var(--el-border-color-lighter);
             transition: transform 0.2s;
             background-color: var(--el-fill-color-light);
+            color: var(--el-text-color-placeholder);
+        }
+
+        .avatar-placeholder-icon {
+            font-size: 22px;
         }
     }
 
@@ -392,3 +415,5 @@ defineExpose({
     }
 }
 </style>
+
+

@@ -4,7 +4,7 @@
     </footer>
 </template>
 
-<script setup>
+<script setup name="LayoutComponentsCopyright">
 import useSettingsStore from '@/store/modules/settings'
 
 const settingsStore = useSettingsStore()

@@ -38,7 +38,7 @@
     </div>
 </template>
 
-<script setup lang="ts">
+<script setup name="ViewsToolBuildIconsDialog" lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { createIconStringMap, ensureIconCollectionByPrefix, iconCollectionTabs, loadIconNamesByPrefix, type IconCollectionPrefix } from '@/utils/iconify'
 

@@ -20,7 +20,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ComponentsDictTag">
 // 记录未匹配的项
 const unmatchArray = ref([])
 

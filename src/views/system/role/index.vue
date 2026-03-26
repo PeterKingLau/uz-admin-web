@@ -591,5 +591,5 @@ getList()
 </script>
 
 <style scoped lang="scss">
-@use '../crud-page.scss' as *;
+@use '@/assets/styles/crud-page.scss' as *;
 </style>

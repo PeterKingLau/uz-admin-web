@@ -132,7 +132,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup name="ViewsContentPersonProfile">
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
