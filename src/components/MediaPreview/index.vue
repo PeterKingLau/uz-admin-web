@@ -64,7 +64,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsMediaPreview">
+<script setup>
+defineOptions({ name: 'ComponentsMediaPreview' })
 import { computed, ref, getCurrentInstance } from 'vue'
 import { useZIndex } from 'element-plus'
 import { isExternal } from '@/utils/validate'

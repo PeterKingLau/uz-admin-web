@@ -4,7 +4,8 @@
     </component>
 </template>
 
-<script setup name="LayoutComponentsSidebarLink">
+<script setup>
+defineOptions({ name: 'LayoutComponentsSidebarLink' })
 import { isExternal } from '@/utils/validate'
 
 const props = defineProps({

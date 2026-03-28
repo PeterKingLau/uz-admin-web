@@ -64,7 +64,8 @@
     </div>
 </template>
 
-<script setup name="ViewsCircleCircleManagementComponentsCircleEditorPanel" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsCircleCircleManagementComponentsCircleEditorPanel' })
 import { ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { CreateCirclePayload } from '@/api/content/circleManagement.types'

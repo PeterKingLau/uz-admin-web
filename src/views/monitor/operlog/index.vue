@@ -173,7 +173,8 @@
     </div>
 </template>
 
-<script setup name="Operlog">
+<script setup>
+defineOptions({ name: 'Operlog' })
 import { list, delOperlog, cleanOperlog } from '@/api/monitor/operlog'
 import { selectDictLabel } from '@/utils/utils'
 

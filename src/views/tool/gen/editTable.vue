@@ -113,7 +113,8 @@
     </el-card>
 </template>
 
-<script setup name="GenEdit" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'GenEdit' })
 import { getGenTable, updateGenTable } from '@/api/tool/gen'
 import { optionselect as getDictOptionselect } from '@/api/system/dict/type'
 import basicInfoForm from './basicInfoForm.vue'

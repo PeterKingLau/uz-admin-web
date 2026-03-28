@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import { resolve } from 'path'
 import createVitePlugins from './vite/plugins'
 import zipPack from 'vite-plugin-zip-pack'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 const proxyTargets = {
     wired: 'http://192.168.10.7:8080/api',
@@ -15,6 +16,7 @@ type ProxyMode = keyof typeof proxyTargets
 interface ViteRuntimeEnv {
     VITE_BUILD_COMPRESS?: string
     VITE_BUILD_ZIP?: string
+    VITE_BUILD_ANALYZE?: string
     VITE_PROXY_TARGET?: string
     VITE_PROXY_MODE?: ProxyMode
     VITE_DROP_CONSOLE?: string
@@ -43,27 +45,64 @@ function manualChunks(id: string): string | undefined {
         normalizedId.includes('/vue/') ||
         normalizedId.includes('/vue-router/') ||
         normalizedId.includes('/pinia/') ||
-        normalizedId.includes('/element-plus/')
+        normalizedId.includes('/element-plus/') ||
+        normalizedId.includes('/@element-plus/icons-vue/') ||
+        normalizedId.includes('/@popperjs/') ||
+        normalizedId.includes('/@floating-ui/') ||
+        normalizedId.includes('/async-validator/') ||
+        normalizedId.includes('/@ctrl/tinycolor/') ||
+        normalizedId.includes('/normalize-wheel-es/') ||
+        normalizedId.includes('/memoize-one/')
     ) {
         return 'vendor-framework'
     }
-    if (normalizedId.includes('/echarts/')) return 'vendor-echarts'
-    if (normalizedId.includes('/video.js/')) return 'vendor-videojs'
+    if (normalizedId.includes('/echarts/') || normalizedId.includes('/zrender/')) return 'vendor-echarts'
+    if (
+        normalizedId.includes('/video.js/') ||
+        normalizedId.includes('/@videojs/') ||
+        normalizedId.includes('/videojs-vtt.js/') ||
+        normalizedId.includes('/m3u8-parser/') ||
+        normalizedId.includes('/url-toolkit/') ||
+        normalizedId.includes('/mpd-parser/') ||
+        normalizedId.includes('/@xmldom/') ||
+        normalizedId.includes('/mux.js/')
+    ) {
+        return 'vendor-videojs'
+    }
     if (normalizedId.includes('/vue-cropper/')) return 'vendor-cropper'
     if (normalizedId.includes('/splitpanes/')) return 'vendor-layout'
     if (normalizedId.includes('/sortablejs/') || normalizedId.includes('/vue-draggable-plus/')) return 'vendor-dnd'
     if (normalizedId.includes('/clipboard/') || normalizedId.includes('/js-beautify/')) return 'vendor-builder'
-    if (normalizedId.includes('/jsencrypt/') || normalizedId.includes('/js-cookie/')) return 'vendor-auth'
-    if (normalizedId.includes('/vue3-next-qrcode/') || normalizedId.includes('/js-binary-schema-parser/')) return 'vendor-misc'
+    if (normalizedId.includes('/js-cookie/')) return 'vendor-auth'
     if (
-        normalizedId.includes('/md-editor-v3/') ||
+        normalizedId.includes('/vue3-next-qrcode/') ||
+        normalizedId.includes('/js-binary-schema-parser/') ||
+        normalizedId.includes('/qrcode/')
+    ) {
+        return 'vendor-qrcode'
+    }
+    if (
         normalizedId.includes('/codemirror/') ||
         normalizedId.includes('/@codemirror/') ||
         normalizedId.includes('/@lezer/') ||
         normalizedId.includes('/@marijn/') ||
         normalizedId.includes('/style-mod/') ||
         normalizedId.includes('/w3c-keyname/') ||
-        normalizedId.includes('/crelt/') ||
+        normalizedId.includes('/crelt/')
+    ) {
+        return 'vendor-markdown-codemirror'
+    }
+    if (
+        normalizedId.includes('/mermaid/') ||
+        normalizedId.includes('/katex/') ||
+        normalizedId.includes('/highlight.js/') ||
+        normalizedId.includes('/medium-zoom/') ||
+        normalizedId.includes('/jszip/')
+    ) {
+        return 'vendor-markdown-plugins'
+    }
+    if (
+        normalizedId.includes('/md-editor-v3/') ||
         normalizedId.includes('/markdown-it/') ||
         normalizedId.includes('/markdown-it-image-figures/') ||
         normalizedId.includes('/markdown-it-sub/') ||
@@ -71,12 +110,11 @@ function manualChunks(id: string): string | undefined {
         normalizedId.includes('/linkify-it/') ||
         normalizedId.includes('/mdurl/') ||
         normalizedId.includes('/uc.micro/') ||
-        normalizedId.includes('/medium-zoom/') ||
-        normalizedId.includes('/xss/') ||
-        normalizedId.includes('/jszip/')
+        normalizedId.includes('/xss/')
     ) {
         return 'vendor-markdown'
     }
+    if (normalizedId.includes('/prettier/')) return 'vendor-prettier'
     if (normalizedId.includes('/dayjs/')) return 'vendor-date'
     if (normalizedId.includes('/fuse.js/') || normalizedId.includes('/pinyin-match/')) return 'vendor-search'
     if (
@@ -109,10 +147,30 @@ export default defineConfig(({ mode, command }) => {
     const shouldDropConsole = isProdBuild && env.VITE_DROP_CONSOLE !== 'false'
     const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProdBuild)
     const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
+    const shouldAnalyzeBuild = isBuild && env.VITE_BUILD_ANALYZE === 'true'
 
     return {
         base: '/',
-        plugins: [...createVitePlugins(env, isBuild), shouldGenerateZip && zipPack({ outDir: 'dist', outFileName: 'dist.zip' })].filter(Boolean),
+        plugins: [
+            ...createVitePlugins(env, isBuild),
+            shouldGenerateZip && zipPack({ outDir: 'dist', outFileName: 'dist.zip' }),
+            shouldAnalyzeBuild &&
+                visualizer({
+                    filename: 'dist/stats.html',
+                    template: 'treemap',
+                    gzipSize: true,
+                    brotliSize: true,
+                    emitFile: false
+                }),
+            shouldAnalyzeBuild &&
+                visualizer({
+                    filename: 'dist/stats.json',
+                    template: 'raw-data',
+                    gzipSize: true,
+                    brotliSize: true,
+                    emitFile: false
+                })
+        ].filter(Boolean),
 
         resolve: {
             alias: {

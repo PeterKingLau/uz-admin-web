@@ -1,9 +1,9 @@
 <template>
     <section class="app-main">
         <router-view v-slot="{ Component, route: viewRoute }">
-            <transition name="fade-transform" mode="out-in">
+            <transition name="fade-transform">
                 <keep-alive :include="cachedViews">
-                    <component v-if="Component && !viewRoute.meta.link" :is="Component" :key="viewRoute.fullPath" />
+                    <component v-if="Component && !viewRoute.meta.link" :is="Component" :key="resolveRouteKey(viewRoute)" />
                 </keep-alive>
             </transition>
         </router-view>
@@ -12,8 +12,9 @@
     </section>
 </template>
 
-<script setup name="LayoutComponentsAppMain">
-import { computed } from 'vue'
+<script setup>
+defineOptions({ name: 'LayoutComponentsAppMain' })
+import { computed, watch } from 'vue'
 import copyright from './Copyright/index'
 import iframeToggle from './IframeToggle/index'
 import useTagsViewStore from '@/store/modules/tagsView'
@@ -23,13 +24,17 @@ const tagsViewStore = useTagsViewStore()
 
 const cachedViews = computed(() => tagsViewStore.cachedViews)
 
-onMounted(() => {
-    addIframe()
-})
+watch(
+    () => route.fullPath,
+    () => {
+        addIframe()
+    },
+    { immediate: true }
+)
 
-watchEffect(() => {
-    addIframe()
-})
+function resolveRouteKey(viewRoute) {
+    return viewRoute.path || viewRoute.name || viewRoute.fullPath
+}
 
 function addIframe() {
     if (route.meta.link) {

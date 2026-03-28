@@ -1,20 +1,10 @@
 <template>
-    <div class="relative w-full h-[50px] flex items-center justify-center bg-transparent overflow-hidden">
+    <div class="sidebar-logo">
         <transition name="sidebarLogoFade" mode="out-in">
-            <router-link v-if="collapse" key="collapse" class="!flex items-center justify-center w-full h-full" to="/">
-                <img v-if="logo" :src="logo" class="w-8 h-8 object-contain select-none" />
-                <h1 v-else class="font-bold text-base select-none truncate" :style="{ color: getLogoTextColor }">
-                    {{ title }}
-                </h1>
-            </router-link>
-
-            <router-link v-else key="expand" class="!flex items-center justify-center w-full h-full" to="/">
-                <div class="flex items-center justify-center gap-3 h-full">
-                    <img v-if="logo" :src="logo" class="w-7 h-7 object-contain select-none block" />
-                    <h1
-                        class="font-bold text-base select-none whitespace-nowrap leading-none mt-0.5"
-                        :style="{ color: getLogoTextColor, fontFamily: 'Avenir, Helvetica Neue, Arial, Helvetica, sans-serif' }"
-                    >
+            <router-link :key="collapse ? 'collapse' : 'expand'" to="/" class="logo-link" :class="{ 'is-collapse': collapse }">
+                <div class="logo-content" :class="{ 'is-collapse': collapse }">
+                    <img v-if="logo" :src="logo" class="logo-image" :class="{ 'is-collapse': collapse }" />
+                    <h1 v-if="!collapse" class="logo-title" :class="{ 'is-collapse': collapse }" :style="{ color: logoTextColor }">
                         {{ title }}
                     </h1>
                 </div>
@@ -23,9 +13,11 @@
     </div>
 </template>
 
-<script setup name="LayoutComponentsSidebarLogo">
+<script setup>
+defineOptions({ name: 'LayoutComponentsSidebarLogo' })
 import { computed } from 'vue'
 import logo from '@/assets/logo/logo.png'
+import variables from '@/assets/styles/variables.module.scss'
 import useSettingsStore from '@/store/modules/settings'
 
 defineProps({
@@ -38,15 +30,88 @@ defineProps({
 const title = import.meta.env.VITE_APP_TITLE
 const settingsStore = useSettingsStore()
 
-const getLogoTextColor = computed(() => {
-    if (settingsStore.isDark || settingsStore.sideTheme === 'theme-dark') {
-        return '#ffffff'
+const logoTextColor = computed(() => {
+    if (settingsStore.sideTheme === 'theme-dark') {
+        return variables.menuActiveText
     }
-    return '#1f2937'
+    if (settingsStore.isDark) {
+        return variables.menuActiveText
+    }
+    return variables.menuLightText
 })
 </script>
 
 <style lang="scss" scoped>
+.sidebar-logo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 50px;
+    overflow: hidden;
+    background: transparent;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+
+    &.is-collapse {
+        padding: 0 8px;
+    }
+}
+
+.logo-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 100%;
+    min-width: 0;
+
+    &.is-collapse {
+        gap: 0;
+    }
+}
+
+.logo-image {
+    display: block;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    user-select: none;
+
+    &.is-collapse {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+.logo-title {
+    margin: 2px 0 0;
+    font-family:
+        Avenir,
+        Helvetica Neue,
+        Arial,
+        Helvetica,
+        sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    user-select: none;
+
+    &.is-collapse {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 .sidebarLogoFade-enter-active,
 .sidebarLogoFade-leave-active {
     transition:

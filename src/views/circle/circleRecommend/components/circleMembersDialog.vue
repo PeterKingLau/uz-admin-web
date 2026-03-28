@@ -98,7 +98,8 @@
     </el-dialog>
 </template>
 
-<script setup name="ViewsCircleCircleRecommendComponentsCircleMembersDialog" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleMembersDialog' })
 interface MemberItem {
     id: string | number
     userId?: string | number

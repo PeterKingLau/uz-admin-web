@@ -28,7 +28,8 @@
     </el-dialog>
 </template>
 
-<script setup name="ViewsContentPostInfoComponentsQrcodeDialog" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentPostInfoComponentsQrcodeDialog' })
 import { computed, ref } from 'vue'
 import { Vue3NextQrcode } from 'vue3-next-qrcode'
 import type { QRCodeInst } from 'vue3-next-qrcode'

@@ -51,7 +51,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsHeaderSearch">
+<script setup>
+defineOptions({ name: 'ComponentsHeaderSearch' })
 import Fuse from 'fuse.js'
 import { getNormalPath } from '@/utils/utils'
 import { isHttp } from '@/utils/validate'

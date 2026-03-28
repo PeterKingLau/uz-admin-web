@@ -23,7 +23,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsAvatarPreview">
+<script setup>
+defineOptions({ name: 'ComponentsAvatarPreview' })
 import { computed, ref, getCurrentInstance } from 'vue'
 
 const props = defineProps({

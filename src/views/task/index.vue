@@ -238,7 +238,8 @@
     </div>
 </template>
 
-<script setup name="AssessmentQuestionList" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'AssessmentQuestionList' })
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
 import { parseTime } from '@/utils/utils'
 import type { AssessmentQuestionItem, DimensionNode } from '@/api/content/assessmentQuestion.types'
@@ -264,7 +265,6 @@ type DimensionNodeWithDisabled = DimensionNode & { disabled?: boolean; children?
 const questionList = ref<AssessmentQuestionItem[]>([])
 const dimensionTree = ref<DimensionNodeWithDisabled[]>([])
 const dimensionLoading = ref(false)
-const queryRef = ref()
 const formRef = ref()
 const open = ref(false)
 const dialogTitle = ref('新增题目')
@@ -416,13 +416,6 @@ function getModuleCodeFromInput(input: string) {
     const key = String(input || '').trim()
     if (!key) return ''
     return dimensionCodeMap.value.get(key) || key
-}
-
-function getStatusLabel(row: AssessmentQuestionItem) {
-    const val = String((row as any).status ?? '')
-    if (val === '0') return '启用'
-    if (val === '1') return '停用'
-    return val ? val : '-'
 }
 
 async function handleStatusChange(row: AssessmentQuestionItem, value: string | number | boolean) {
@@ -760,32 +753,6 @@ function handleDelete(row?: AssessmentQuestionItem) {
 
 type BatchOption = { optionKey: string; content: string; scoreValue: number }
 type BatchFlatItem = { moduleCode: string; content: string; options: BatchOption[]; type: 'ABILITY' | 'NORMAL' }
-
-function splitInlineOptions(line: string) {
-    const parts: string[] = []
-    const re = /([A-F])[\.\s、\)）]\s*/gi
-    let match: RegExpExecArray | null = null
-    const indices: { idx: number; key: string }[] = []
-
-    while ((match = re.exec(line)) !== null) {
-        indices.push({ idx: match.index, key: match[1] })
-    }
-
-    if (!indices.length) return [line]
-
-    if (indices[0].idx > 0) {
-        const head = line.slice(0, indices[0].idx).trim()
-        if (head) parts.push(head)
-    }
-
-    for (let i = 0; i < indices.length; i++) {
-        const start = indices[i].idx
-        const end = i + 1 < indices.length ? indices[i + 1].idx : line.length
-        const seg = line.slice(start, end).trim()
-        if (seg) parts.push(seg)
-    }
-    return parts
-}
 
 function normalizeLinesExpanded(text: string) {
     const rawLines = (text || '')

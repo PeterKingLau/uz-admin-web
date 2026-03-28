@@ -77,7 +77,8 @@
     </el-dialog>
 </template>
 
-<script setup name="FollowDialog">
+<script setup>
+defineOptions({ name: 'FollowDialog' })
 import { computed, ref, toRefs } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
 

@@ -226,7 +226,8 @@
     </div>
 </template>
 
-<script setup name="Role">
+<script setup>
+defineOptions({ name: 'Role' })
 import { addRole, changeRoleStatus, dataScope, delRole, getRole, listRole, updateRole, deptTreeSelect } from '@/api/system/role'
 import { roleMenuTreeselect, treeselect as menuTreeselect } from '@/api/system/menu'
 

@@ -43,7 +43,7 @@ interface FormConf {
  */
 const componentChild: Record<string, Record<string, (h: typeof import('vue').h, conf: FormConf, key: string) => any>> = {
     'el-button': {
-        default(h, conf, key) {
+        default(_h, conf, key) {
             return conf[key]
         }
     },

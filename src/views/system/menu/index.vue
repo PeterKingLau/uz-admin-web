@@ -321,7 +321,8 @@
     </div>
 </template>
 
-<script setup name="Menu">
+<script setup>
+defineOptions({ name: 'Menu' })
 import { getCurrentInstance, onMounted, nextTick, reactive, ref, toRefs, watch } from 'vue'
 import { addMenu, delMenu, getMenu, listMenu, updateMenu } from '@/api/system/menu'
 import IconSelect from '@/components/IconSelect'

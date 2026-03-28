@@ -4,7 +4,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsIFrame">
+<script setup>
+defineOptions({ name: 'ComponentsIFrame' })
 const props = defineProps({
     src: {
         type: String,

@@ -84,7 +84,8 @@
     </div>
 </template>
 
-<script setup name="CacheList">
+<script setup>
+defineOptions({ name: 'CacheList' })
 import { listCacheName, listCacheKey, getCacheValue, clearCacheName, clearCacheKey, clearCacheAll } from '@/api/monitor/cache'
 
 const { proxy } = getCurrentInstance()

@@ -10,7 +10,8 @@
 	</div>
 </template>
 
-<script setup name="ComponentsCrontabResult">
+<script setup>
+defineOptions({ name: 'ComponentsCrontabResult' })
 const props = defineProps({
     ex: {
         type: String,

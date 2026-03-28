@@ -349,7 +349,8 @@
     </div>
 </template>
 
-<script setup name="User">
+<script setup>
+defineOptions({ name: 'User' })
 import { getToken } from '@/utils/auth'
 import useAppStore from '@/store/modules/app'
 import { getConfigKey } from '@/api/system/config'

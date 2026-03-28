@@ -74,7 +74,8 @@
     </div>
 </template>
 
-<script setup name="AuthRole">
+<script setup>
+defineOptions({ name: 'AuthRole' })
 import { ref, nextTick, getCurrentInstance } from 'vue'
 import { useRoute } from 'vue-router'
 import { getAuthRole, updateAuthRole } from '@/api/system/user'

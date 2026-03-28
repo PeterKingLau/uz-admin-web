@@ -75,7 +75,8 @@
   </el-col>
 </template>
 
-<script setup name="DraggableItem">
+<script setup>
+defineOptions({ name: 'DraggableItem' })
 import { ref, watch } from "vue";
 import { VueDraggable } from "vue-draggable-plus";
 import render from "@/utils/generator/render";

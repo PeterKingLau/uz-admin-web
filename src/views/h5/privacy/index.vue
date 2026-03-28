@@ -78,7 +78,8 @@
     </div>
 </template>
 
-<script setup name="ViewsH5Privacy" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsH5Privacy' })
 import { onMounted } from 'vue'
 
 const companyName = '职场吧'

@@ -4,7 +4,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsHamburger">
+<script setup>
+defineOptions({ name: 'ComponentsHamburger' })
 import { computed } from 'vue'
 
 const props = defineProps({

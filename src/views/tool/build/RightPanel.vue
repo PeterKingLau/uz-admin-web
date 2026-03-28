@@ -452,7 +452,8 @@
     </div>
 </template>
 
-<script setup name="ViewsToolBuildRightPanel">
+<script setup>
+defineOptions({ name: 'ViewsToolBuildRightPanel' })
 import { computed, reactive, toRefs, ref, getCurrentInstance, resolveComponent } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { isNumberStr } from '@/utils/index'

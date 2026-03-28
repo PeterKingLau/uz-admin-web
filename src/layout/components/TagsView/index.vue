@@ -52,7 +52,8 @@
     </div>
 </template>
 
-<script setup name="LayoutComponentsTagsView">
+<script setup>
+defineOptions({ name: 'LayoutComponentsTagsView' })
 import ScrollPane from './ScrollPane'
 import { getNormalPath } from '@/utils/utils'
 import useTagsViewStore from '@/store/modules/tagsView'

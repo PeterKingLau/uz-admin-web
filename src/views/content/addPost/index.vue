@@ -44,7 +44,8 @@
     </CreatePageShell>
 </template>
 
-<script setup name="ContentPost" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ContentPost' })
 import { ref, reactive, computed, onMounted, watch, getCurrentInstance, onBeforeUnmount, nextTick } from 'vue'
 import { addPost } from '@/api/content/post'
 import { POST_TYPE } from '@/utils/enum'
@@ -317,7 +318,7 @@ const rules = {
     postType: [{ required: true, message: '请选择发布类型', trigger: 'change' }],
     tagStr: [
         {
-            validator: (rule: any, value: string, callback: any) => {
+            validator: (_rule: any, value: string, callback: any) => {
                 if (isBatchVideoMode.value) callback()
                 else if (!String(value || '').trim()) callback(new Error('请至少选择一个话题标签'))
                 else callback()
@@ -327,7 +328,7 @@ const rules = {
     ],
     content: [
         {
-            validator: (rule: any, value: string, callback: any) => {
+            validator: (_rule: any, value: string, callback: any) => {
                 if (form.postType === POST_TYPE.TEXT && (!value || !value.trim())) callback(new Error('纯文字模式下，正文不能为空'))
                 else callback()
             },
@@ -336,7 +337,7 @@ const rules = {
     ],
     files: [
         {
-            validator: (rule: any, value: any, callback: any) => {
+            validator: (_rule: any, _value: any, callback: any) => {
                 if (form.postType !== POST_TYPE.TEXT && !currentMediaUrls.value.length) callback(new Error('请上传素材文件'))
                 else callback()
             },

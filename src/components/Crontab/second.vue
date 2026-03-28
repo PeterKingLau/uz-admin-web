@@ -35,7 +35,8 @@
     </el-form>
 </template>
 
-<script setup name="ComponentsCrontabSecond">
+<script setup>
+defineOptions({ name: 'ComponentsCrontabSecond' })
 const emit = defineEmits(['update'])
 
 const props = defineProps({

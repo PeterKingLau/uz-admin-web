@@ -227,7 +227,8 @@
     </div>
 </template>
 
-<script setup name="ViewsContentPersonProfileComponentsVideoModuleComponentsVideoCommentsPanel" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentPersonProfileComponentsVideoModuleComponentsVideoCommentsPanel' })
 import { computed, ref, type PropType } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
 import {

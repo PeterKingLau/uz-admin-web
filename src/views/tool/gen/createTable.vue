@@ -37,7 +37,8 @@
     </el-dialog>
 </template>
 
-<script setup name="ViewsToolGenCreateTable">
+<script setup>
+defineOptions({ name: 'ViewsToolGenCreateTable' })
 import { createTable } from '@/api/tool/gen'
 import { ref, getCurrentInstance, watch } from 'vue'
 

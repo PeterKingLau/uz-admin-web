@@ -127,7 +127,8 @@
     </div>
 </template>
 
-<script setup name="Gen" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'Gen' })
 import { listTable, previewTable, delTable, genCode, synchDb } from '@/api/tool/gen'
 import router from '@/router'
 import { oneOf } from '@zeronejs/utils'
@@ -208,7 +209,7 @@ function handleGenTable(row: any) {
         return
     }
     if (row.genType === '1') {
-        genCode(row.tableName).then(response => {
+        genCode(row.tableName).then(() => {
             proxy?.$modal.msgSuccess('成功生成到自定义路径：' + row.genPath)
         })
     } else {

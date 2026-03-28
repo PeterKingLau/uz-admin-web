@@ -68,7 +68,8 @@
     </el-form>
 </template>
 
-<script setup name="ComponentsCrontabWeek">
+<script setup>
+defineOptions({ name: 'ComponentsCrontabWeek' })
 const emit = defineEmits(['update'])
 const props = defineProps({
     cron: {

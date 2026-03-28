@@ -224,7 +224,8 @@
     </div>
 </template>
 
-<script setup name="ViewsContentPersonProfileComponentsModalPostPreviewModal" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentPersonProfileComponentsModalPostPreviewModal' })
 import { computed, ref, watch } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
 import { POST_TYPE } from '@/utils/enum'

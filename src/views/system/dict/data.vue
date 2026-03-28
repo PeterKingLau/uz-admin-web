@@ -143,7 +143,8 @@
     </div>
 </template>
 
-<script setup name="Data">
+<script setup>
+defineOptions({ name: 'Data' })
 import useDictStore from '@/store/modules/dict'
 import { optionselect as getDictOptionselect, getType } from '@/api/system/dict/type'
 import { listData, getData, delData, addData, updateData } from '@/api/system/dict/data'

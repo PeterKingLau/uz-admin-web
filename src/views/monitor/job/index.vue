@@ -247,7 +247,8 @@
     </div>
 </template>
 
-<script setup name="Job">
+<script setup>
+defineOptions({ name: 'Job' })
 import Crontab from '@/components/Crontab'
 import { listJob, getJob, delJob, addJob, updateJob, runJob, changeJobStatus } from '@/api/monitor/job'
 import { selectDictLabel } from '@/utils/utils'

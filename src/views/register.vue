@@ -42,14 +42,15 @@
                 </div>
             </el-form-item>
         </el-form>
-        <!--  搴曢儴  -->
+        <!-- 底部 -->
         <div class="el-register-footer">
-            <span>Copyright 漏 2026 All Rights Reserved.</span>
+            <span>Copyright © 2026 All Rights Reserved.</span>
         </div>
     </div>
 </template>
 
-<script setup name="Register">
+<script setup>
+defineOptions({ name: 'Register' })
 import { getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCodeImg, register } from '@/api/login/login'

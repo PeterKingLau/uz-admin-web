@@ -159,14 +159,16 @@
     </div>
 </template>
 
-<script setup name="ViewsToolBuild">
+<script setup>
+defineOptions({ name: 'ViewsToolBuild' })
 import { ref, getCurrentInstance, nextTick, onMounted, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import ClipboardJS from 'clipboard'
-import beautifier from 'js-beautify'
+import * as prettier from 'prettier/standalone'
+import * as prettierPluginHtml from 'prettier/plugins/html'
+import * as prettierPluginEstree from 'prettier/plugins/estree'
 import logo from '@/assets/logo/logo.png'
 import { inputComponents, selectComponents, layoutComponents, formConf as formConfData } from '@/utils/generator/config'
-import { beautifierConf } from '@/utils/index'
 import drawingDefalut from '@/utils/generator/drawingDefalut'
 import { makeUpHtml, vueTemplate, vueScript, cssStyle } from '@/utils/generator/html'
 import { makeUpJs } from '@/utils/generator/js'
@@ -357,7 +359,15 @@ function generateCode() {
     const script = vueScript(makeUpJs(formData.value, type))
     const html = vueTemplate(makeUpHtml(formData.value, type))
     const css = cssStyle(makeUpCss(formData.value))
-    return beautifier.html(html + script + css, beautifierConf.html)
+    return prettier.format(html + script + css, {
+        parser: 'vue',
+        plugins: [prettierPluginHtml, prettierPluginEstree],
+        printWidth: 110,
+        tabWidth: 2,
+        useTabs: false,
+        htmlWhitespaceSensitivity: 'ignore',
+        singleAttributePerLine: false
+    })
 }
 
 watch(

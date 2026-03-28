@@ -286,7 +286,8 @@
     </div>
 </template>
 
-<script setup name="ViewsContentAddPostComponentsPostEditorPanel" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentAddPostComponentsPostEditorPanel' })
 import { computed, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import PinyinMatch from 'pinyin-match'
@@ -387,7 +388,6 @@ const videoBatchTagIdsModel = computed({
 })
 
 const videoUrlList = computed(() => parseVideoUrlList(props.videoUrls))
-const imageMediaCount = computed(() => parseVideoUrlList(props.imageUrls).length)
 const imagePreviewList = computed(() =>
     parseVideoUrlList(props.imageUrls)
         .map(url => getImgUrl(url))

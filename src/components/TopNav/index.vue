@@ -21,7 +21,8 @@
     </el-menu>
 </template>
 
-<script setup name="ComponentsTopNav">
+<script setup>
+defineOptions({ name: 'ComponentsTopNav' })
 import { constantRoutes } from '@/router'
 import { isHttp } from '@/utils/validate'
 import useAppStore from '@/store/modules/app'

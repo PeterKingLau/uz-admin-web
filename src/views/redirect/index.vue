@@ -2,7 +2,8 @@
     <div></div>
 </template>
 
-<script setup name="ViewsRedirect">
+<script setup>
+defineOptions({ name: 'ViewsRedirect' })
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()

@@ -128,7 +128,8 @@
     </div>
 </template>
 
-<script setup name="Notice">
+<script setup>
+defineOptions({ name: 'Notice' })
 import { defineAsyncComponent } from 'vue'
 import { listNotice, getNotice, delNotice, addNotice, updateNotice } from '@/api/system/notice'
 

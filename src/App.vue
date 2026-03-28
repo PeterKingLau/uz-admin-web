@@ -2,7 +2,8 @@
     <router-view />
 </template>
 
-<script setup name="App">
+<script setup>
+defineOptions({ name: 'App' })
 import { nextTick, onBeforeUnmount, onMounted } from 'vue'
 import useSettingsStore from '@/store/modules/settings'
 import useUserStore from '@/store/modules/user'

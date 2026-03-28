@@ -57,7 +57,8 @@
     </div>
 </template>
 
-<script setup name="ViewsCircleCircleRecommendComponentsCircleDetailHeader" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleDetailHeader' })
 interface CircleInfoHeader {
     name?: string
     coverUrl?: string

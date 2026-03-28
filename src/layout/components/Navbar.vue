@@ -51,7 +51,8 @@
     </div>
 </template>
 
-<script setup name="LayoutComponentsNavbar">
+<script setup>
+defineOptions({ name: 'LayoutComponentsNavbar' })
 import { getCurrentInstance } from 'vue'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'

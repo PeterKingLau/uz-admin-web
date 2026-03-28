@@ -14,17 +14,17 @@
                 </div>
 
                 <div class="admin-toolbar">
-                    <el-tooltip content="缂栬緫鏍囩" placement="bottom" :show-after="500">
+                    <el-tooltip content="编辑标签" placement="bottom" :show-after="500">
                         <div class="tool-btn" @click="emit('edit-tag', post)">
                             <Icon icon="mdi:tag-outline" />
                         </div>
                     </el-tooltip>
-                    <el-tooltip :content="post.isTop ? '鍙栨秷缃《' : '缃《'" placement="bottom" :show-after="500">
+                    <el-tooltip :content="post.isTop ? '取消置顶' : '置顶'" placement="bottom" :show-after="500">
                         <div class="tool-btn" :class="{ active: post.isTop }" @click="handleTogglePin">
                             <Icon :icon="post.isTop ? 'mdi:pin-off-outline' : 'mdi:pin-outline'" />
                         </div>
                     </el-tooltip>
-                    <el-tooltip content="鍒犻櫎" placement="bottom" :show-after="500">
+                    <el-tooltip content="删除" placement="bottom" :show-after="500">
                         <div class="tool-btn danger" @click="emit('delete', currentPostId)">
                             <Icon icon="mdi:trash-can-outline" />
                         </div>
@@ -40,9 +40,9 @@
 
             <div v-if="isTextPost" class="text-cover" :style="textCoverStyle">
                 <div class="text-content-inner" :class="textCoverSizeClass">
-                    <span class="quote quote-start">鈥?/span>
+                    <span class="quote quote-start">“</span>
                     <span class="text-value">{{ textCoverText }}</span>
-                    <span class="quote quote-end">鈥?/span>
+                    <span class="quote quote-end">”</span>
                 </div>
             </div>
 
@@ -88,14 +88,14 @@
             <transition name="preview-badge-fade">
                 <div v-if="isVideoHoverActive" class="hover-preview-badge">
                     <Icon icon="mdi:volume-off" class="badge-icon" />
-                    <span>闈欓煶棰勮</span>
+                    <span>静音预览</span>
                 </div>
             </transition>
         </div>
 
         <div class="card-bottom">
             <div class="content-text" :class="{ 'is-empty': !post.content }">
-                {{ post.content || '鏃犳鏂囧唴瀹? }}
+                {{ post.content || '暂无正文内容' }}
             </div>
 
             <div class="card-footer">
@@ -103,11 +103,11 @@
                     <el-avatar :size="28" :src="resolveAvatar(post.avatar)" class="user-avatar">
                         {{ post.nickName?.charAt(0).toUpperCase() || 'U' }}
                     </el-avatar>
-                    <span class="user-name">{{ post.nickName || '鏈煡鐢ㄦ埛' }}</span>
+                    <span class="user-name">{{ post.nickName || '未知用户' }}</span>
                 </div>
 
                 <div class="footer-actions">
-                    <el-tooltip content="浜岀淮鐮? placement="top" v-if="isVideoPost">
+                    <el-tooltip content="二维码" placement="top" v-if="isVideoPost">
                         <div class="action-item" @click.stop="emit('qrcode', post)">
                             <Icon icon="mdi:qrcode" />
                         </div>
@@ -124,7 +124,8 @@
     </div>
 </template>
 
-<script setup name="ViewsContentPostInfoComponentsFeedItem" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentPostInfoComponentsFeedItem' })
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
 import { resolveTextCoverPalette } from '@/utils/textCover'
@@ -163,7 +164,7 @@ const isOriginalMissing = computed(() => {
 const postType = computed(() => String(props.post?.postType ?? ''))
 const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
-const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '鏆傛棤鏂囧瓧')
+const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
 const textCoverCharCount = computed(() => Array.from(textCoverText.value).length)
 const textCoverSizeClass = computed(() => {
     const count = textCoverCharCount.value
@@ -174,12 +175,12 @@ const textCoverSizeClass = computed(() => {
 })
 
 const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
-    [POST_TYPE.TEXT]: { text: '鏂囧瓧', icon: 'mdi:format-text' },
-    [POST_TYPE.IMAGE]: { text: '鍥炬枃', icon: 'mdi:image-outline' },
-    [POST_TYPE.VIDEO]: { text: '瑙嗛', icon: 'mdi:video-outline' }
+    [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },
+    [POST_TYPE.IMAGE]: { text: '图文', icon: 'mdi:image-outline' },
+    [POST_TYPE.VIDEO]: { text: '视频', icon: 'mdi:video-outline' }
 }
 
-const typeText = computed(() => TYPE_CONFIG[postType.value]?.text || '鏈煡')
+const typeText = computed(() => TYPE_CONFIG[postType.value]?.text || '未知')
 const typeIcon = computed(() => TYPE_CONFIG[postType.value]?.icon || 'mdi:help-circle-outline')
 
 const mediaSource = computed(() => {
@@ -851,5 +852,3 @@ onBeforeUnmount(() => {
     }
 }
 </style>
-
-

@@ -88,7 +88,8 @@
     </div>
 </template>
 
-<script setup name="ViewsSystemUserProfileResetPwd">
+<script setup>
+defineOptions({ name: 'ViewsSystemUserProfileResetPwd' })
 import { ref, reactive, getCurrentInstance } from 'vue'
 import { updateUserPwd } from '@/api/system/user'
 

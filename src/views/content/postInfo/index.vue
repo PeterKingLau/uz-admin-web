@@ -160,7 +160,8 @@
     </div>
 </template>
 
-<script setup name="ContentList" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ContentList' })
 import { ref, reactive, computed, onMounted, onActivated, onDeactivated, onBeforeUnmount, getCurrentInstance, nextTick, watch } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { useRouter } from 'vue-router'

@@ -127,7 +127,8 @@
     </div>
 </template>
 
-<script setup name="TopbarConfig" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'TopbarConfig' })
 import { computed, getCurrentInstance, onMounted, reactive, ref, toRefs } from 'vue'
 import { addTopbarConfig, deleteTopbarConfig, listTopbarConfig, parseTopbarRows, updateTopbarConfig } from '@/api/content/topbar'
 import type { TopbarConfigItem } from '@/api/content/topbar.types'
@@ -148,7 +149,6 @@ const topbarList = ref<TopbarConfigItem[]>([])
 const selectedRows = ref<TopbarConfigItem[]>([])
 const selectedIds = computed(() => selectedRows.value.map(r => r.id).filter(id => id !== undefined && id !== null))
 const statusLoading = ref<number | string | null>(null)
-const queryRef = ref()
 const formRef = ref()
 
 const data = reactive({

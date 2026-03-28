@@ -19,7 +19,8 @@
     </div>
 </template>
 
-<script setup name="Editor">
+<script setup>
+defineOptions({ name: 'Editor' })
 import { computed, ref, watch, getCurrentInstance } from 'vue'
 import axios from 'axios'
 import { MdEditor } from 'md-editor-v3'
@@ -146,14 +147,14 @@ async function handleUploadImg(files, callback) {
 
             const data = res?.data
             if (data?.code !== 200 || !data?.fileName) {
-                proxy?.$modal?.msgError?.('鍥剧墖鎻掑叆澶辫触')
+                proxy?.$modal?.msgError?.('图片插入失败')
                 return
             }
 
             uploadedUrls.push(getImgUrl(data.fileName))
         } catch (error) {
             console.error(error)
-            proxy?.$modal?.msgError?.('鍥剧墖鎻掑叆澶辫触')
+            proxy?.$modal?.msgError?.('图片插入失败')
             return
         }
     }
@@ -167,14 +168,14 @@ function handleBeforeUpload(file) {
     const types = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'image/svg']
     const isValidType = types.includes(file.type)
     if (!isValidType) {
-        proxy?.$modal?.msgError?.('鍥剧墖鏍煎紡閿欒')
+        proxy?.$modal?.msgError?.('图片格式错误')
         return false
     }
 
     if (props.fileSize) {
         const isLt = file.size / 1024 / 1024 < props.fileSize
         if (!isLt) {
-            proxy?.$modal?.msgError?.(`涓婁紶鏂囦欢澶у皬涓嶈兘瓒呰繃 ${props.fileSize} MB`)
+            proxy?.$modal?.msgError?.(`上传文件大小不能超过 ${props.fileSize} MB`)
             return false
         }
     }

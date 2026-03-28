@@ -61,7 +61,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsCrontab">
+<script setup>
+defineOptions({ name: 'ComponentsCrontab' })
 import { ref, computed, watch, onMounted } from 'vue'
 
 import CrontabSecond from './second.vue'

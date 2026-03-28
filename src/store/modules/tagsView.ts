@@ -112,7 +112,7 @@ const useTagsViewStore = defineStore('tags-view', {
                 })
             })
         },
-        delAllVisitedViews(view?: RouteLocationNormalizedLoaded) {
+        delAllVisitedViews(_view?: RouteLocationNormalizedLoaded) {
             return new Promise(resolve => {
                 const affixTags = this.visitedViews.filter(tag => tag.meta.affix)
                 this.visitedViews = affixTags
@@ -120,7 +120,7 @@ const useTagsViewStore = defineStore('tags-view', {
                 resolve([...this.visitedViews])
             })
         },
-        delAllCachedViews(view?: RouteLocationNormalizedLoaded) {
+        delAllCachedViews(_view?: RouteLocationNormalizedLoaded) {
             return new Promise(resolve => {
                 this.cachedViews = []
                 resolve([...this.cachedViews])

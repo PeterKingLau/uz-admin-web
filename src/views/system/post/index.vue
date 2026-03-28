@@ -140,7 +140,8 @@
    </div>
 </template>
 
-<script setup name="Post">
+<script setup>
+defineOptions({ name: 'Post' })
 import { listPost, addPost, delPost, getPost, updatePost } from "@/api/system/post"
 
 const { proxy } = getCurrentInstance()

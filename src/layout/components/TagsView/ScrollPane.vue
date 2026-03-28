@@ -4,7 +4,8 @@
     </el-scrollbar>
 </template>
 
-<script setup name="LayoutComponentsTagsViewScrollPane">
+<script setup>
+defineOptions({ name: 'LayoutComponentsTagsViewScrollPane' })
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import useTagsViewStore from '@/store/modules/tagsView'
 

@@ -58,7 +58,8 @@
     </div>
 </template>
 
-<script setup name="AuthUser">
+<script setup>
+defineOptions({ name: 'AuthUser' })
 import selectUser from './selectUser'
 import { allocatedUserList, authUserCancel, authUserCancelAll } from '@/api/system/role'
 

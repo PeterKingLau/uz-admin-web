@@ -20,18 +20,20 @@
  * =============================================== */
 .fade-transform-leave-active,
 .fade-transform-enter-active {
-    transition: all 0.5s;
+    transition:
+        opacity 0.18s ease-out,
+        transform 0.18s ease-out;
 }
 
 .fade-transform-enter-from {
     // Vue 3 写法
     opacity: 0;
-    transform: translateX(-30px);
+    transform: translateX(-12px);
 }
 
 .fade-transform-leave-to {
     opacity: 0;
-    transform: translateX(30px);
+    transform: translateX(12px);
 }
 
 /* ===============================================

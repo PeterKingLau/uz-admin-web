@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="login">
         <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
             <div class="header-box">
@@ -89,19 +89,26 @@
         <div class="el-login-footer">
             <div class="copyright-info">
                 <span>Copyright © 2026 All Rights Reserved.</span>
-                <a class="beian-link" href="https://beian.miit.gov.cn/#/Integrated/recordQuery" target="_blank" rel="noopener noreferrer">
-                    蜀ICP备2026006423号-1
+                <a
+                    class="beian-link"
+                    href="https://beian.miit.gov.cn/#/Integrated/recordQuery"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    @click.prevent="handleBeianLinkClick"
+                >
+                    {{ beianRecordNumber }}
                 </a>
             </div>
         </div>
     </div>
 </template>
 
-<script setup name="ViewsLogin">
+<script setup>
+defineOptions({ name: 'ViewsLogin' })
 import { ref, computed, watch, onMounted, nextTick, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Cookies from 'js-cookie'
-import { encrypt, decrypt } from '@/utils/jsencrypt'
+import { encryptRememberedPassword, decryptRememberedPassword } from '@/utils/rememberMeCrypto'
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
 
@@ -152,6 +159,7 @@ const activeRules = computed(() => {
 })
 
 const usernameMaxlength = computed(() => (loginForm.value.loginType === 'SMS' ? 11 : 50))
+const usernamePlaceholder = computed(() => (loginForm.value.loginType === 'SMS' ? '请输入手机号' : '请输入您的账号'))
 
 function handleUsernameInput(val) {
     if (loginForm.value.loginType === 'SMS') {
@@ -162,12 +170,107 @@ function handleUsernameInput(val) {
     }
 }
 
-const usernamePlaceholder = computed(() => (loginForm.value.loginType === 'SMS' ? '请输入手机号' : '请输入您的账号'))
-
 const loading = ref(false)
 const register = ref(false)
 const redirect = ref()
 const agreementChecked = ref(false)
+const beianRecordNumber = '蜀ICP备2026006423号-1'
+const beianRecordUrl = 'https://beian.miit.gov.cn/#/Integrated/recordQuery'
+const BEIAN_REDIRECT_DELAY_MS = 320
+const DAY_IN_MS = 24 * 60 * 60 * 1000
+const DEFAULT_REMEMBER_ME_DAYS = 30
+const MIN_REMEMBER_ME_DAYS = 1
+const MAX_REMEMBER_ME_DAYS = 365
+const appStoragePrefix = `${String(import.meta.env.VITE_APP_TITLE || 'uz-web').trim() || 'uz-web'}`
+const rememberedPasswordStorageKey = `${appStoragePrefix}:remembered-password`
+const rememberedAgreementStorageKey = `${appStoragePrefix}:remembered-agreement`
+
+function resolveRememberMeDays() {
+    const rawDays = Number(import.meta.env.VITE_APP_REMEMBER_ME_DAYS || DEFAULT_REMEMBER_ME_DAYS)
+    if (!Number.isFinite(rawDays)) return DEFAULT_REMEMBER_ME_DAYS
+    return Math.min(MAX_REMEMBER_ME_DAYS, Math.max(MIN_REMEMBER_ME_DAYS, Math.round(rawDays)))
+}
+
+const rememberMeDays = resolveRememberMeDays()
+
+function parseStoredBoolean(value) {
+    return value === 'true' || value === '1'
+}
+
+function buildRememberedRecord(value) {
+    return JSON.stringify({
+        value: String(value ?? ''),
+        expiresAt: Date.now() + rememberMeDays * DAY_IN_MS
+    })
+}
+
+function getRememberedRecord(key) {
+    try {
+        const raw = localStorage.getItem(key)
+        if (!raw) return null
+        const parsed = JSON.parse(raw)
+        const expiresAt = Number(parsed?.expiresAt || 0)
+        if (!Number.isFinite(expiresAt) || expiresAt <= 0 || Date.now() >= expiresAt) {
+            localStorage.removeItem(key)
+            return null
+        }
+        return {
+            value: String(parsed?.value ?? ''),
+            expiresAt
+        }
+    } catch {
+        try {
+            localStorage.removeItem(key)
+        } catch {
+            return null
+        }
+        return null
+    }
+}
+
+function getRememberedPasswordCipher() {
+    return getRememberedRecord(rememberedPasswordStorageKey)?.value || ''
+}
+
+function removeRememberedAgreementState() {
+    try {
+        localStorage.removeItem(rememberedAgreementStorageKey)
+    } catch {
+        return
+    }
+}
+
+function setRememberedPasswordCipher(value) {
+    try {
+        localStorage.setItem(rememberedPasswordStorageKey, buildRememberedRecord(value))
+    } catch {
+        return
+    }
+}
+
+function removeRememberedPasswordCipher() {
+    try {
+        localStorage.removeItem(rememberedPasswordStorageKey)
+    } catch {
+        return
+    }
+}
+
+function clearRememberedLoginState() {
+    Cookies.remove('username')
+    Cookies.remove('password')
+    Cookies.remove('rememberMe')
+    removeRememberedPasswordCipher()
+    removeRememberedAgreementState()
+}
+
+async function persistRememberedLoginState() {
+    Cookies.set('username', loginForm.value.username, { expires: rememberMeDays })
+    Cookies.set('rememberMe', 'true', { expires: rememberMeDays })
+    setRememberedPasswordCipher(await encryptRememberedPassword(loginForm.value.password))
+    Cookies.remove('password')
+    removeRememberedAgreementState()
+}
 
 function handleAgreementChange(val) {
     if (val) {
@@ -178,9 +281,58 @@ function handleAgreementChange(val) {
     }
 }
 
+function copyTextWithFallback(value) {
+    const text = String(value ?? '')
+    if (!text) return false
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'absolute'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+    textarea.selectionStart = 0
+    textarea.selectionEnd = text.length
+
+    let success = false
+    try {
+        success = document.execCommand('copy')
+    } catch {
+        success = false
+    }
+
+    textarea.remove()
+    return success
+}
+
+async function copyBeianRecordNumber() {
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(beianRecordNumber)
+            return true
+        } catch {
+            return copyTextWithFallback(beianRecordNumber)
+        }
+    }
+    return copyTextWithFallback(beianRecordNumber)
+}
+
+async function handleBeianLinkClick() {
+    const copied = await copyBeianRecordNumber()
+    if (copied) {
+        proxy?.$modal?.msgSuccess?.('备案号已复制')
+    } else {
+        proxy?.$modal?.msgWarning?.('备案号复制失败，请手动复制后查询')
+    }
+    window.setTimeout(() => {
+        window.open(beianRecordUrl, '_blank', 'noopener,noreferrer')
+    }, BEIAN_REDIRECT_DELAY_MS)
+}
+
 watch(
     () => loginForm.value.loginType,
     async val => {
+        agreementChecked.value = false
         if (val === 'SMS') {
             loginForm.value.username = ''
             loginForm.value.password = ''
@@ -214,22 +366,58 @@ async function sendSms() {
             smsCountdown.value--
             if (smsCountdown.value <= 0) clearInterval(timer)
         }, 1000)
-    } catch (err) {
+    } catch {
         proxy?.$modal?.msgError?.('发送失败，请稍后重试')
     } finally {
         smsSending.value = false
     }
 }
 
-onMounted(() => {
+async function restoreRememberedLoginState() {
+    removeRememberedAgreementState()
     const username = Cookies.get('username')
-    const password = Cookies.get('password')
-    const rememberMe = Cookies.get('rememberMe')
-    loginForm.value.username = username ?? loginForm.value.username
-    if (rememberMe) {
-        loginForm.value.password = password ? decrypt(password) : loginForm.value.password
-        loginForm.value.rememberMe = Boolean(rememberMe)
+    const passwordCookie = Cookies.get('password')
+    const passwordCipher = getRememberedPasswordCipher()
+    const rememberMeEnabled = parseStoredBoolean(Cookies.get('rememberMe'))
+
+    if (passwordCookie) {
+        Cookies.remove('password')
     }
+
+    if (!rememberMeEnabled) {
+        clearRememberedLoginState()
+        loginForm.value.rememberMe = false
+        loginForm.value.password = ''
+        agreementChecked.value = false
+        return
+    }
+
+    if (!username || !passwordCipher) {
+        clearRememberedLoginState()
+        loginForm.value.rememberMe = false
+        loginForm.value.password = ''
+        agreementChecked.value = false
+        return
+    }
+
+    loginForm.value.loginType = 'PASSWORD'
+    loginForm.value.rememberMe = true
+    loginForm.value.username = username ?? loginForm.value.username
+    agreementChecked.value = false
+
+    try {
+        loginForm.value.password = await decryptRememberedPassword(passwordCipher)
+    } catch (error) {
+        console.warn('Failed to restore remembered password', error)
+        clearRememberedLoginState()
+        loginForm.value.rememberMe = false
+        loginForm.value.password = ''
+        agreementChecked.value = false
+    }
+}
+
+onMounted(() => {
+    void restoreRememberedLoginState()
 })
 
 function handleLogin() {
@@ -243,19 +431,9 @@ function handleLogin() {
         return
     }
 
-    loginRef.value.validate(valid => {
+    loginRef.value.validate(async valid => {
         if (!valid) return
         loading.value = true
-
-        if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.rememberMe) {
-            Cookies.set('username', loginForm.value.username, { expires: 30 })
-            Cookies.set('password', encrypt(loginForm.value.password), { expires: 30 })
-            Cookies.set('rememberMe', loginForm.value.rememberMe, { expires: 30 })
-        } else {
-            Cookies.remove('username')
-            Cookies.remove('password')
-            Cookies.remove('rememberMe')
-        }
 
         const payload = {
             loginType: loginForm.value.loginType,
@@ -266,7 +444,18 @@ function handleLogin() {
 
         userStore
             .login(payload)
-            .then(() => {
+            .then(async () => {
+                try {
+                    if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.rememberMe) {
+                        await persistRememberedLoginState()
+                    } else {
+                        clearRememberedLoginState()
+                    }
+                } catch (error) {
+                    clearRememberedLoginState()
+                    console.warn('Failed to persist remembered password', error)
+                }
+
                 const query = route.query
                 const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
                     if (cur !== 'redirect') acc[cur] = query[cur]
@@ -281,6 +470,7 @@ function handleLogin() {
 }
 
 const showPassword = ref(false)
+
 function togglePassword() {
     showPassword.value = !showPassword.value
 }
@@ -298,23 +488,40 @@ function togglePassword() {
     --login-surface-muted: color-mix(in srgb, var(--el-fill-color-light) 84%, transparent);
     --login-border: color-mix(in srgb, var(--el-border-color) 72%, transparent);
     --login-border-strong: color-mix(in srgb, var(--el-border-color) 92%, transparent);
-    --login-overlay: radial-gradient(
-        circle at center,
-        color-mix(in srgb, var(--login-black) 10%, transparent) 0%,
-        color-mix(in srgb, var(--login-black) 40%, transparent) 100%
-    );
     --login-shadow: color-mix(in srgb, var(--login-black) 10%, transparent);
     --login-shadow-strong: color-mix(in srgb, var(--login-black) 30%, transparent);
     --login-white-soft: color-mix(in srgb, var(--login-white) 40%, transparent);
     --login-white-muted: color-mix(in srgb, var(--login-white) 80%, transparent);
     --login-white-faint: color-mix(in srgb, var(--login-white) 60%, transparent);
     --login-white-dim: color-mix(in srgb, var(--login-white) 40%, transparent);
+    --login-overlay-focus-x: 50%;
+    --login-overlay-shadow-x: 50%;
+    --login-accent-x: 50%;
+    --login-accent-y: 24%;
+    --login-accent-opacity: 0.18;
+    --login-air-x: 50%;
+    --login-air-opacity: 0.12;
+    --login-overlay:
+        radial-gradient(circle at var(--login-overlay-focus-x) 28%, color-mix(in srgb, var(--login-white) 14%, transparent) 0%, transparent 32%),
+        linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--login-black) 10%, transparent) 0%,
+            color-mix(in srgb, var(--login-black) 18%, transparent) 35%,
+            color-mix(in srgb, var(--login-black) 34%, transparent) 100%
+        ),
+        radial-gradient(
+            circle at var(--login-overlay-shadow-x) 50%,
+            color-mix(in srgb, var(--login-black) 6%, transparent) 0%,
+            color-mix(in srgb, var(--login-black) 44%, transparent) 100%
+        );
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
+    box-sizing: border-box;
     width: 100%;
     min-height: 100vh;
+    padding: 32px clamp(24px, 6vw, 96px) 96px;
     background-image: url('../assets/images/login-background.jpg');
     background-size: cover;
     background-position: center;
@@ -327,6 +534,24 @@ function togglePassword() {
         inset: 0;
         background: var(--login-overlay);
         z-index: 0;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 42% 58% at var(--login-air-x) 50%, color-mix(in srgb, var(--login-white) 18%, transparent) 0%, transparent 72%),
+            radial-gradient(
+                circle at var(--login-accent-x) var(--login-accent-y),
+                color-mix(in srgb, var(--login-primary) 24%, transparent) 0%,
+                color-mix(in srgb, var(--login-primary-soft) 12%, transparent) 18%,
+                transparent 48%
+            ),
+            radial-gradient(circle at calc(100% - var(--login-accent-x)) 78%, color-mix(in srgb, var(--login-white) 12%, transparent) 0%, transparent 34%);
+        opacity: calc((var(--login-accent-opacity) + var(--login-air-opacity)) * 0.5);
+        z-index: 0;
+        pointer-events: none;
     }
 }
 
@@ -355,6 +580,7 @@ function togglePassword() {
 .login-form {
     position: relative;
     z-index: 10;
+    flex-shrink: 0;
     width: 420px;
     padding: 40px;
     background: var(--login-surface);
@@ -490,6 +716,7 @@ function togglePassword() {
     color: var(--el-text-color-placeholder);
     font-size: 18px;
     transition: color 0.2s;
+
     &:hover {
         color: var(--el-text-color-secondary);
     }
@@ -555,6 +782,7 @@ function togglePassword() {
         text-decoration: none;
         font-weight: 500;
         transition: color 0.2s;
+
         &:hover {
             color: var(--el-color-primary-dark-2);
         }
@@ -643,6 +871,13 @@ function togglePassword() {
     }
 }
 
+@media (max-width: 768px) {
+    .login {
+        justify-content: center;
+        padding: 24px 20px 88px;
+    }
+}
+
 @media (max-width: 480px) {
     .login-form {
         width: calc(100% - 40px);
@@ -659,11 +894,31 @@ function togglePassword() {
 
 html.dark {
     .login::before {
-        background: radial-gradient(
-            circle at center,
-            color-mix(in srgb, var(--login-black) 20%, transparent) 0%,
-            color-mix(in srgb, var(--login-black) 60%, transparent) 100%
-        );
+        background:
+            radial-gradient(circle at var(--login-overlay-focus-x) 26%, color-mix(in srgb, var(--login-white) 6%, transparent) 0%, transparent 24%),
+            linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--login-black) 18%, transparent) 0%,
+                color-mix(in srgb, var(--login-black) 32%, transparent) 38%,
+                color-mix(in srgb, var(--login-black) 58%, transparent) 100%
+            ),
+            radial-gradient(
+                circle at var(--login-overlay-shadow-x) 50%,
+                color-mix(in srgb, var(--login-black) 24%, transparent) 0%,
+                color-mix(in srgb, var(--login-black) 68%, transparent) 100%
+            );
+    }
+
+    .login::after {
+        background:
+            radial-gradient(ellipse 42% 58% at var(--login-air-x) 50%, color-mix(in srgb, var(--login-white) 8%, transparent) 0%, transparent 70%),
+            radial-gradient(
+                circle at var(--login-accent-x) var(--login-accent-y),
+                color-mix(in srgb, var(--login-primary) 20%, transparent) 0%,
+                transparent 42%
+            ),
+            radial-gradient(circle at calc(100% - var(--login-accent-x)) 74%, color-mix(in srgb, var(--login-white) 5%, transparent) 0%, transparent 30%);
+        opacity: calc((var(--login-accent-opacity) + var(--login-air-opacity)) * 0.41);
     }
 
     .login-form {

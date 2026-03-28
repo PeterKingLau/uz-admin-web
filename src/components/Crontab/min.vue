@@ -35,7 +35,8 @@
     </el-form>
 </template>
 
-<script setup name="ComponentsCrontabMin">
+<script setup>
+defineOptions({ name: 'ComponentsCrontabMin' })
 const emit = defineEmits(['update'])
 
 const props = defineProps({

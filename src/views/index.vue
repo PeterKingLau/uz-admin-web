@@ -113,14 +113,14 @@
         </el-row>
 
         <el-row :gutter="20" class="bottom-row">
-            <el-col :span="14">
-                <el-card shadow="never" class="table-card">
+            <el-col :span="14" class="bottom-col">
+                <el-card shadow="never" class="table-card table-card--trend">
                     <template #header>
                         <div class="card-header">
                             <span class="header-title">{{ isAdmin ? '趋势明细数据' : '我的趋势明细' }}</span>
                         </div>
                     </template>
-                    <el-table :data="trend" style="width: 100%" size="small" stripe>
+                    <el-table :data="trend" class="trend-table" style="width: 100%" size="small" stripe>
                         <el-table-column prop="date" label="日期" min-width="100" />
                         <el-table-column prop="total" label="总数" width="80" align="center" />
                         <el-table-column prop="pending" label="待审" width="80" align="center">
@@ -147,14 +147,14 @@
                 </el-card>
             </el-col>
 
-            <el-col :span="10">
-                <el-card shadow="never" class="table-card">
+            <el-col :span="10" class="bottom-col">
+                <el-card shadow="never" class="table-card table-card--latest">
                     <template #header>
                         <div class="card-header">
                             <span class="header-title">{{ isAdmin ? '最新审核动态' : '我的最新提审' }}</span>
                         </div>
                     </template>
-                    <el-table :data="latest" style="width: 100%" size="small" :show-header="false">
+                    <el-table :data="latest" class="latest-table" style="width: 100%" size="small" :show-header="false">
                         <el-table-column min-width="200">
                             <template #default="{ row }">
                                 <div class="latest-item">
@@ -170,7 +170,7 @@
                         </el-table-column>
                         <el-table-column width="100" align="right">
                             <template #default="{ row }">
-                                <el-tag size="small" :type="getStatusType(row.originStatus)" effect="light" round>
+                                <el-tag size="small" class="latest-status-tag" :type="getStatusType(row.originStatus)" effect="light" round>
                                     {{ row.auditStatus }}
                                 </el-tag>
                             </template>
@@ -182,7 +182,8 @@
     </div>
 </template>
 
-<script setup name="AuditDashboard">
+<script setup>
+defineOptions({ name: 'AuditDashboard' })
 import { ref, onMounted, nextTick, onBeforeUnmount, watch, computed } from 'vue'
 import { listContentAudit } from '@/api/audit/profile/content'
 import { listUserAuditDetail } from '@/api/audit/person/person'
@@ -388,7 +389,7 @@ const contentCards = computed(() => [
         icon: 'mdi:chart-donut',
         color: '#6f7ad3',
         bgColor: 'rgba(111, 122, 211, 0.12)',
-        formatter: value => `${Number(value || 0)}%`,
+        formatter: value => `${formatPercentValue(value, 2)}%`,
         desc: '图文与视频在内容中的占比'
     }
 ])
@@ -417,6 +418,12 @@ function formatDecimalValue(value) {
     const n = Number(value)
     if (!Number.isFinite(n)) return '0'
     return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
+function formatPercentValue(value, digits = 0) {
+    const n = Number(value)
+    if (!Number.isFinite(n)) return (0).toFixed(digits)
+    return n.toFixed(digits)
 }
 
 function getStatusType(status) {
@@ -476,7 +483,7 @@ function calcContentStats(contentData) {
         textPostCount,
         imagePostCount,
         videoPostCount,
-        mediaPostRate: totalCount > 0 ? Math.round((mediaPostCount / totalCount) * 100) : 0
+        mediaPostRate: totalCount > 0 ? Number(((mediaPostCount / totalCount) * 100).toFixed(2)) : 0
     }
 }
 
@@ -1078,6 +1085,76 @@ onBeforeUnmount(() => {
         height: 260px;
     }
 
+    .bottom-row {
+        align-items: stretch;
+    }
+
+    .bottom-col {
+        display: flex;
+    }
+
+    .table-card {
+        width: 100%;
+
+        :deep(.el-card__header) {
+            padding: 18px 20px 16px;
+            border-bottom: 1px solid var(--el-border-color-lighter);
+        }
+
+        :deep(.el-card__body) {
+            padding: 12px 20px 18px;
+        }
+    }
+
+    .table-card--trend,
+    .table-card--latest {
+        :deep(.el-card__body) {
+            height: 100%;
+        }
+    }
+
+    .trend-table {
+        :deep(.el-table__header-wrapper th) {
+            height: 44px;
+            background: var(--el-fill-color-light);
+        }
+
+        :deep(.el-table__row td) {
+            padding: 10px 0;
+        }
+
+        :deep(.el-progress-bar__outer) {
+            background-color: var(--el-fill-color-light);
+        }
+    }
+
+    .latest-table {
+        :deep(.el-table__inner-wrapper::before) {
+            display: none;
+        }
+
+        :deep(.el-table__row td) {
+            padding: 14px 0;
+            vertical-align: middle;
+            border-bottom-color: var(--el-border-color-lighter);
+        }
+
+        :deep(.el-tag) {
+            font-weight: 500;
+        }
+    }
+
+    .latest-status-tag {
+        min-width: 58px;
+        justify-content: center;
+        padding: 0 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border-color: transparent;
+        box-shadow: none;
+        opacity: 0.78;
+    }
+
     .text-success {
         color: #67c23a;
     }
@@ -1094,23 +1171,24 @@ onBeforeUnmount(() => {
     }
 
     .latest-item {
-        padding: 4px 0;
+        padding-right: 12px;
 
         .latest-title {
             font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
             color: var(--el-text-color-regular);
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
         .latest-meta {
             font-size: 12px;
             color: var(--el-text-color-secondary);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             flex-wrap: wrap;
+            line-height: 1.2;
         }
     }
 }
 </style>
-
-

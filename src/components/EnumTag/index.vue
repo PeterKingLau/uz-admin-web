@@ -8,7 +8,8 @@
     </el-tag>
 </template>
 
-<script setup name="ComponentsEnumTag">
+<script setup>
+defineOptions({ name: 'ComponentsEnumTag' })
 import { computed } from 'vue'
 import { ENUM_TAG_CONFIG } from '@/utils/enum'
 

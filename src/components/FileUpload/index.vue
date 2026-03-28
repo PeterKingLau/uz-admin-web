@@ -81,7 +81,8 @@
     </div>
 </template>
 
-<script setup name="FileUpload">
+<script setup>
+defineOptions({ name: 'FileUpload' })
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
 import { uploadFilesToOss } from '@/api/content/post'

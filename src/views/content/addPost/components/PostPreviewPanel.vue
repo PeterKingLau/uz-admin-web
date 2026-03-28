@@ -149,7 +149,8 @@
     </div>
 </template>
 
-<script setup name="ViewsContentAddPostComponentsPostPreviewPanel" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentAddPostComponentsPostPreviewPanel' })
 import { nextTick, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
 

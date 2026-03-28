@@ -173,7 +173,8 @@
     </div>
 </template>
 
-<script setup name="ViewsContentUserProfile">
+<script setup>
+defineOptions({ name: 'ViewsContentUserProfile' })
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'

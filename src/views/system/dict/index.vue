@@ -136,7 +136,8 @@
     </div>
 </template>
 
-<script setup name="Dict">
+<script setup>
+defineOptions({ name: 'Dict' })
 import useDictStore from '@/store/modules/dict'
 import { listType, getType, delType, addType, updateType, refreshCache } from '@/api/system/dict/type'
 

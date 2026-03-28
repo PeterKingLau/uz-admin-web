@@ -86,7 +86,8 @@
     </el-drawer>
 </template>
 
-<script setup name="LayoutComponentsSettings">
+<script setup>
+defineOptions({ name: 'LayoutComponentsSettings' })
 import { ref, getCurrentInstance } from 'vue'
 import defaultSettings from '@/settings'
 import useAppStore from '@/store/modules/app'

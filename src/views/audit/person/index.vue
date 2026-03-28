@@ -214,7 +214,8 @@
     </div>
 </template>
 
-<script setup name="ProfileAudit">
+<script setup>
+defineOptions({ name: 'ProfileAudit' })
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { listUserAuditDetail, auditUserAvatar } from '@/api/audit/person/person'
 import AvatarPreview from '@/components/AvatarPreview/index.vue'

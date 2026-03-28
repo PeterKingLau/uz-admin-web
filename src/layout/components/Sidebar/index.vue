@@ -21,7 +21,8 @@
     </div>
 </template>
 
-<script setup name="LayoutComponentsSidebar">
+<script setup>
+defineOptions({ name: 'LayoutComponentsSidebar' })
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Logo from './Logo'
@@ -41,27 +42,39 @@ const showLogo = computed(() => settingsStore.sidebarLogo)
 const sideTheme = computed(() => settingsStore.sideTheme)
 const theme = computed(() => settingsStore.theme)
 const isCollapse = computed(() => !appStore.sidebar.opened)
+const LIGHT_MENU_BG = '#fafbfc'
+const LIGHT_MENU_TEXT = '#475569'
+const DARK_MENU_BG = '#0a0a0a'
+const DARK_MENU_TEXT = '#b4bcc8'
 
-const menuBgColor = computed(() => {
-    if (settingsStore.isDark) return '#0a0a0a'
-    return sideTheme.value === 'theme-dark' ? variables.menuBg : '#fafbfc'
+const menuColors = computed(() => {
+    if (settingsStore.isDark) {
+        return {
+            background: DARK_MENU_BG,
+            text: DARK_MENU_TEXT
+        }
+    }
+
+    if (sideTheme.value === 'theme-dark') {
+        return {
+            background: variables.menuBg,
+            text: variables.menuText
+        }
+    }
+
+    return {
+        background: LIGHT_MENU_BG,
+        text: LIGHT_MENU_TEXT
+    }
 })
 
-const menuTextColor = computed(() => {
-    if (settingsStore.isDark) return '#b4bcc8'
-    return sideTheme.value === 'theme-dark' ? variables.menuText : '#475569'
-})
-
-const activeMenu = computed(() => {
-    const { meta, path } = route
-    if (meta.activeMenu) return meta.activeMenu
-    return path
-})
+const menuBgColor = computed(() => menuColors.value.background)
+const menuTextColor = computed(() => menuColors.value.text)
+const activeMenu = computed(() => route.meta.activeMenu || route.path)
 
 function handleMenuSelect() {
-    const activeEl = document.activeElement
-    if (activeEl && activeEl instanceof HTMLElement) {
-        activeEl.blur()
+    if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
     }
 }
 </script>

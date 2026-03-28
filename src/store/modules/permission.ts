@@ -38,7 +38,7 @@ const usePermissionStore = defineStore('permission', {
         setSidebarRouters(routes: RouteRecordRaw[]) {
             this.sidebarRouters = routes
         },
-        generateRoutes(routes?: RouteRecordRaw[]) {
+        generateRoutes() {
             return new Promise<any[]>(resolve => {
                 // 向后端请求路由数据
                 getRouters().then(res => {
@@ -46,7 +46,7 @@ const usePermissionStore = defineStore('permission', {
                     const rdata = JSON.parse(JSON.stringify(res.data))
                     const defaultData = JSON.parse(JSON.stringify(res.data))
                     const sidebarRoutes = filterAsyncRouter(sdata)
-                    const rewriteRoutes = filterAsyncRouter(rdata, false, true)
+                    const rewriteRoutes = filterAsyncRouter(rdata, true)
                     const defaultRoutes = filterAsyncRouter(defaultData)
                     ensureUniqueRouteNames(rewriteRoutes)
                     ensureUniqueRouteNames(sidebarRoutes)
@@ -67,7 +67,7 @@ const usePermissionStore = defineStore('permission', {
 })
 
 // 遍历后台传来的路由字符串，转换为组件对象
-function filterAsyncRouter(asyncRouterMap: any[], lastRouter = false, type = false) {
+function filterAsyncRouter(asyncRouterMap: any[], type = false) {
     return asyncRouterMap.filter(route => {
         if (type && route.children) {
             route.children = filterChildren(route.children)
@@ -85,7 +85,7 @@ function filterAsyncRouter(asyncRouterMap: any[], lastRouter = false, type = fal
             }
         }
         if (route.children != null && route.children && route.children.length) {
-            route.children = filterAsyncRouter(route.children, route, type)
+            route.children = filterAsyncRouter(route.children, type)
         } else {
             delete route['children']
             delete route['redirect']
@@ -122,7 +122,7 @@ function ensureUniqueRouteNames(routes: any[], usedNames = new Set<string>(), pa
 
 function filterChildren(childrenMap: any[], lastRouter: any = false) {
     let children: any[] = []
-    childrenMap.forEach((el, index) => {
+    childrenMap.forEach(el => {
         if (el.children && el.children.length) {
             if (el.component === 'ParentView' && !lastRouter) {
                 el.children.forEach((c: any) => {

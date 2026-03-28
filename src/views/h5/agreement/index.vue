@@ -48,7 +48,8 @@
     </div>
 </template>
 
-<script setup name="ViewsH5Agreement" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsH5Agreement' })
 import { onMounted } from 'vue'
 
 const serviceName = '职场吧'

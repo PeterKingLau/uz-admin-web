@@ -2,7 +2,8 @@
     <Icon :icon="iconName" class="svg-icon" />
 </template>
 
-<script setup name="ComponentsSvgIcon">
+<script setup>
+defineOptions({ name: 'ComponentsSvgIcon' })
 import { computed } from 'vue'
 
 import { iconMap } from '@/utils/generator/iconMap'

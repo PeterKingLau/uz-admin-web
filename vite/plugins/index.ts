@@ -1,7 +1,6 @@
 import type { PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import autoImport from 'unplugin-auto-import/vite'
-import vueSetupExtend from 'unplugin-vue-setup-extend-plus/vite'
 import compression from 'vite-plugin-compression'
 
 interface ViteEnv {
@@ -11,7 +10,6 @@ interface ViteEnv {
 export default function createVitePlugins(env: ViteEnv, isBuild = false): PluginOption[] {
     return [
         vue(),
-        vueSetupExtend({ enableAutoExpose: true }),
         autoImport({
             imports: ['vue', 'vue-router', 'pinia'],
             dts: false

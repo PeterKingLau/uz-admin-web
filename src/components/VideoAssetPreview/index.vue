@@ -35,7 +35,8 @@
     </div>
 </template>
 
-<script setup name="ComponentsVideoAssetPreview">
+<script setup>
+defineOptions({ name: 'ComponentsVideoAssetPreview' })
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 
 const props = defineProps({

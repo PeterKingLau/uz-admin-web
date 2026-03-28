@@ -107,7 +107,8 @@
     </div>
 </template>
 
-<script setup name="ContentNotice">
+<script setup>
+defineOptions({ name: 'ContentNotice' })
 import { listAnnouncements, addAnnouncement, deleteAnnouncement, parseAnnouncementRows } from '@/api/content/notice'
 
 const { proxy } = getCurrentInstance()

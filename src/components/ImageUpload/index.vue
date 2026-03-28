@@ -108,7 +108,8 @@
     </div>
 </template>
 
-<script setup name="ImageUpload">
+<script setup>
+defineOptions({ name: 'ImageUpload' })
 import { getToken } from '@/utils/auth'
 import { getImgUrl } from '@/utils/img'
 import { isExternal } from '@/utils/validate'

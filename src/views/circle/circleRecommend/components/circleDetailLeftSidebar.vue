@@ -28,7 +28,8 @@
     </aside>
 </template>
 
-<script setup name="ViewsCircleCircleRecommendComponentsCircleDetailLeftSidebar" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleDetailLeftSidebar' })
 defineProps<{ circleName?: string }>()
 
 const emit = defineEmits<{

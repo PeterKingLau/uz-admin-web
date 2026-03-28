@@ -4,14 +4,14 @@
     </span>
 </template>
 
-<script setup name="ComponentsIcon" lang="ts">
+<script setup lang="ts">
 import { computed, ref, useAttrs, watch } from 'vue'
 import { Icon as IconifyIcon } from '@iconify/vue/dist/offline'
 import type { IconProps } from '@iconify/vue'
 import type { HTMLAttributes, StyleValue } from 'vue'
 import { ensureIconCollectionByName } from '@/utils/iconify'
 
-defineOptions({ inheritAttrs: false })
+defineOptions({ name: 'ComponentsIcon', inheritAttrs: false })
 
 const props = defineProps<IconProps>()
 const attrs = useAttrs()

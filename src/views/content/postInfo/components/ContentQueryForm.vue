@@ -73,7 +73,8 @@
     </el-form>
 </template>
 
-<script setup name="ViewsContentPostInfoComponentsContentQueryForm" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsContentPostInfoComponentsContentQueryForm' })
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { resolveOptionTagStyle } from '@/utils/content/tagOptionStyle'
 

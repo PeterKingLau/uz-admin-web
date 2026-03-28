@@ -304,8 +304,6 @@ const showSearch = ref(true)
 const total = ref(0)
 const templateList = ref<TemplateItem[]>([])
 const selectedIds = ref<(number | string)[]>([])
-const queryRef = ref()
-
 const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,

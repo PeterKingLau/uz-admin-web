@@ -85,7 +85,8 @@
     </div>
 </template>
 
-<script setup name="Profile">
+<script setup>
+defineOptions({ name: 'Profile' })
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import userAvatar from './userAvatar.vue'

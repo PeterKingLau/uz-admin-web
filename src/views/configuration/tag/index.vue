@@ -140,7 +140,8 @@
     </div>
 </template>
 
-<script setup name="InterestCategory">
+<script setup>
+defineOptions({ name: 'InterestCategory' })
 import { ref, reactive, toRefs, getCurrentInstance, onMounted, computed } from 'vue'
 import { parseTime } from '@/utils/utils'
 import { addInterestCategory, deleteInterestCategory, listInterestCategory, updateInterestCategory } from '@/api/configuration/tag'

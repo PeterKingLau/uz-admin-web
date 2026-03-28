@@ -7,7 +7,7 @@
 import useUserStore from '@/store/modules/user'
 
 export default {
-    mounted(el: any, binding: any, vnode: any) {
+    mounted(el: any, binding: any) {
         const { value } = binding
         const super_admin = 'admin'
         const roles = useUserStore().roles

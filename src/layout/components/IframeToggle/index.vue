@@ -8,7 +8,8 @@
     ></inner-link>
 </template>
 
-<script setup name="LayoutComponentsIframeToggle">
+<script setup>
+defineOptions({ name: 'LayoutComponentsIframeToggle' })
 import InnerLink from '../InnerLink/index'
 import useTagsViewStore from '@/store/modules/tagsView'
 

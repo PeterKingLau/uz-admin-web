@@ -134,7 +134,8 @@
     </el-dialog>
 </template>
 
-<script setup name="ViewsCircleCircleRecommendComponentsCircleCommentsDialog" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleCommentsDialog' })
 import { computed, ref, watch } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'

@@ -258,7 +258,8 @@
     </el-form>
 </template>
 
-<script setup name="ViewsToolGenGenInfoForm">
+<script setup>
+defineOptions({ name: 'ViewsToolGenGenInfoForm' })
 import { listMenu } from '@/api/system/menu'
 import { ref, watch, onMounted, getCurrentInstance } from 'vue'
 

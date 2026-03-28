@@ -66,7 +66,8 @@
     </div>
 </template>
 
-<script setup name="ViewsSystemUserProfileUserAvatar">
+<script setup>
+defineOptions({ name: 'ViewsSystemUserProfileUserAvatar' })
 import 'vue-cropper/dist/index.css'
 import { VueCropper } from 'vue-cropper'
 import { uploadAvatar } from '@/api/system/user'

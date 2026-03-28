@@ -200,7 +200,8 @@
     </div>
 </template>
 
-<script setup name="ViewsCircleCircleRecommendComponentsCircleDetailPostCard" lang="ts">
+<script setup lang="ts">
+defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleDetailPostCard' })
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import type { PostItem } from '@/types/circle'
 

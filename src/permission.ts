@@ -17,7 +17,7 @@ NProgress.configure({
 
 const whiteList = ['/login', '/register', '/h5/user-agreement', '/h5/privacy-policy']
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
     NProgress.start()
     if (getToken()) {
         to.meta.title && useSettingsStore().setTitle(to.meta.title)

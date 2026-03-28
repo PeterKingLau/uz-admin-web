@@ -176,7 +176,8 @@
     </div>
 </template>
 
-<script setup name="ContentAudit">
+<script setup>
+defineOptions({ name: 'ContentAudit' })
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { listContentAudit, auditPost } from '@/api/audit/profile/content'
 import { deletePost } from '@/api/content/post'

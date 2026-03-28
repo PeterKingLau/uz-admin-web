@@ -90,7 +90,8 @@
     </div>
 </template>
 
-<script setup name="TagData">
+<script setup>
+defineOptions({ name: 'TagData' })
 import { onMounted, reactive, ref, toRefs, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { parseTime } from '@/utils/utils'
