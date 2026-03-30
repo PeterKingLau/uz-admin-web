@@ -16,6 +16,7 @@
                         :class="[videoFitClass, { 'is-watermarked': showWatermark, 'is-portrait-video': usePortraitGlass, 'is-audio-mode': isAudioMode }]"
                         :style="playerShellStyle"
                         @click="togglePlay"
+                        @contextmenu.prevent.stop
                     >
                         <div class="player-bg" :style="bgStyle"></div>
                         <div v-if="usePortraitGlass && !isAudioMode" class="portrait-glass-sides" aria-hidden="true">
@@ -28,10 +29,13 @@
                             :src="src"
                             :poster="videoPosterUrl || undefined"
                             class="video-element"
+                            draggable="false"
                             playsinline
                             autoplay
                             preload="auto"
                             controlslist="nodownload noremoteplayback"
+                            @contextmenu.prevent.stop
+                            @dragstart.prevent
                             @loadstart="onLoadStart"
                             @loadeddata="onLoadedData"
                             @loadedmetadata="onLoadedMeta"
@@ -79,7 +83,15 @@
                                     </div>
                                     <div class="audio-mode-main">
                                         <div class="audio-mode-cover">
-                                            <img v-if="audioModeCoverUrl" :src="audioModeCoverUrl" alt="audio cover" class="audio-mode-cover-image" />
+                                            <img
+                                                v-if="audioModeCoverUrl"
+                                                :src="audioModeCoverUrl"
+                                                alt="audio cover"
+                                                class="audio-mode-cover-image"
+                                                draggable="false"
+                                                @contextmenu.prevent.stop
+                                                @dragstart.prevent
+                                            />
                                             <div v-else class="audio-mode-cover-fallback">
                                                 <Icon icon="mdi:music-note" />
                                             </div>
@@ -130,8 +142,20 @@
                         </transition>
 
                         <transition name="video-cover-fade">
-                            <div v-if="videoCoverOverlayVisible && videoPosterUrl" class="video-cover-overlay" @click.stop="togglePlay">
-                                <img :src="videoPosterUrl" alt="video cover" class="video-cover-image" />
+                            <div
+                                v-if="videoCoverOverlayVisible && videoPosterUrl"
+                                class="video-cover-overlay"
+                                @click.stop="togglePlay"
+                                @contextmenu.prevent.stop
+                            >
+                                <img
+                                    :src="videoPosterUrl"
+                                    alt="video cover"
+                                    class="video-cover-image"
+                                    draggable="false"
+                                    @contextmenu.prevent.stop
+                                    @dragstart.prevent
+                                />
                                 <div class="video-cover-play">
                                     <Icon icon="mdi:play" />
                                 </div>

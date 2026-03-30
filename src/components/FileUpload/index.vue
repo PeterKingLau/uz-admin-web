@@ -162,6 +162,7 @@ const fileList = ref([])
 const rawFileMap = new Map()
 const successfulUploadKeys = new Set()
 const failedUploadKeys = new Set()
+const recentSuccessfulUploadKeys = new Map()
 const uploadingCount = ref(0)
 const showTip = computed(() => props.isShowTip && (props.fileType || props.fileSize))
 const useOssUpload = computed(() => Boolean(String(props.ossType || '').trim()))
@@ -220,20 +221,47 @@ const resolveOssPostType = () => {
     return hasVideoType ? '3' : '2'
 }
 
-const resolveUploadFileKey = (file, fallbackValue = '') => {
+const resolveUploadFileKeys = (file, fallbackValue = '') => {
+    const keys = new Set()
     const uid = file?.uid ?? file?.raw?.uid
     if (uid !== undefined && uid !== null && String(uid).trim()) {
-        return `uid:${String(uid).trim()}`
+        keys.add(`uid:${String(uid).trim()}`)
     }
 
     const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
     if (rawFile) {
         const signature = [rawFile.name, rawFile.size, rawFile.lastModified].map(value => String(value ?? '').trim()).join(':')
-        if (signature.replace(/:/g, '')) return `file:${signature}`
+        if (signature.replace(/:/g, '')) {
+            keys.add(`file:${signature}`)
+        }
     }
 
     const fallback = String(file?.name || file?.url || fallbackValue || '').trim()
-    return fallback ? `name:${fallback}` : ''
+    if (fallback) {
+        keys.add(`name:${fallback}`)
+    }
+
+    return Array.from(keys)
+}
+
+const resolveUploadFileKey = (file, fallbackValue = '') => resolveUploadFileKeys(file, fallbackValue)[0] || ''
+const hasTrackedUploadKey = (targetSet, keys) => keys.some(key => targetSet.has(key))
+const addTrackedUploadKeys = (targetSet, keys) => keys.forEach(key => targetSet.add(key))
+const deleteTrackedUploadKeys = (targetSet, keys) => keys.forEach(key => targetSet.delete(key))
+const rememberRecentSuccessfulUploadKeys = keys => {
+    const expireAt = Date.now() + 10000
+    keys.forEach(key => recentSuccessfulUploadKeys.set(key, expireAt))
+}
+const deleteRecentSuccessfulUploadKeys = keys => keys.forEach(key => recentSuccessfulUploadKeys.delete(key))
+const hasRecentSuccessfulUploadKeys = keys => {
+    const now = Date.now()
+    keys.forEach(key => {
+        const expireAt = Number(recentSuccessfulUploadKeys.get(key) || 0)
+        if (expireAt > 0 && expireAt <= now) {
+            recentSuccessfulUploadKeys.delete(key)
+        }
+    })
+    return keys.some(key => recentSuccessfulUploadKeys.has(key))
 }
 
 const resolveUploadDisplayName = file => {
@@ -293,23 +321,38 @@ const resetUploadProgressState = () => {
 
 const getSettledUploadCount = () => uploadList.value.length + failedUploadKeys.size
 
-async function handleOssUploadRequest(options) {
+function handleOssUploadRequest(options) {
     const rawFile = options?.file
+    let aborted = false
     if (!(rawFile instanceof File)) {
         options?.onError?.(new Error('invalid file'))
-        return
+        return {
+            abort() {}
+        }
     }
 
     uploadingCount.value++
-    try {
-        const uploaded = await uploadFilesToOss(resolveOssPostType(), [rawFile], props.ossType)
-        const url = String(uploaded?.[0] || '').trim()
-        if (!url) throw new Error('empty upload url')
-        options?.onSuccess?.({ code: 200, fileName: url }, rawFile)
-    } catch (error) {
-        options?.onError?.(error)
-    } finally {
-        if (uploadingCount.value > 0) uploadingCount.value--
+    ;(async () => {
+        try {
+            const uploaded = await uploadFilesToOss(resolveOssPostType(), [rawFile], props.ossType)
+            const url = String(uploaded?.[0] || '').trim()
+            if (!url) throw new Error('empty upload url')
+            if (!aborted) {
+                options?.onSuccess?.({ code: 200, fileName: url }, rawFile)
+            }
+        } catch (error) {
+            if (!aborted) {
+                options?.onError?.(error)
+            }
+        } finally {
+            if (uploadingCount.value > 0) uploadingCount.value--
+        }
+    })()
+
+    return {
+        abort() {
+            aborted = true
+        }
     }
 }
 
@@ -362,10 +405,11 @@ function handleBeforeUpload(file) {
         }
     }
     number.value++
-    const uploadKey = resolveUploadFileKey(file)
-    if (uploadKey) {
-        successfulUploadKeys.delete(uploadKey)
-        failedUploadKeys.delete(uploadKey)
+    const uploadKeys = resolveUploadFileKeys(file)
+    if (uploadKeys.length) {
+        deleteTrackedUploadKeys(successfulUploadKeys, uploadKeys)
+        deleteTrackedUploadKeys(failedUploadKeys, uploadKeys)
+        deleteRecentSuccessfulUploadKeys(uploadKeys)
     }
     return true
 }
@@ -375,10 +419,15 @@ function handleExceed() {
 }
 
 function handleUploadError(err, file) {
-    const uploadKey = resolveUploadFileKey(file)
-    if (uploadKey) {
-        if (successfulUploadKeys.has(uploadKey) || failedUploadKeys.has(uploadKey)) return
-        failedUploadKeys.add(uploadKey)
+    const uploadKeys = resolveUploadFileKeys(file)
+    const duplicateBySuccess = uploadKeys.length ? hasTrackedUploadKey(successfulUploadKeys, uploadKeys) : false
+    const duplicateByRecentSuccess = uploadKeys.length ? hasRecentSuccessfulUploadKeys(uploadKeys) : false
+    const duplicateByFailure = uploadKeys.length ? hasTrackedUploadKey(failedUploadKeys, uploadKeys) : false
+    if (uploadKeys.length) {
+        if (duplicateBySuccess || duplicateByRecentSuccess || duplicateByFailure) {
+            return
+        }
+        addTrackedUploadKeys(failedUploadKeys, uploadKeys)
     }
     proxy.$modal.msgError(resolveUploadErrorMessage(err, file))
     uploadedSuccessfully()
@@ -389,16 +438,17 @@ function handleUploadSuccess(res, file) {
     const responseCode = Number(response.code)
     const rawFileName = String(response.fileName || response.url || '').trim()
     const isSuccess = responseCode === 200 || Boolean(rawFileName)
-    const uploadKey = resolveUploadFileKey(file, rawFileName)
+    const uploadKeys = resolveUploadFileKeys(file, rawFileName)
 
     if (isSuccess) {
-        if (uploadKey && successfulUploadKeys.has(uploadKey)) {
+        if (uploadKeys.length && hasTrackedUploadKey(successfulUploadKeys, uploadKeys)) {
             uploadedSuccessfully()
             return
         }
-        if (uploadKey) {
-            successfulUploadKeys.add(uploadKey)
-            failedUploadKeys.delete(uploadKey)
+        if (uploadKeys.length) {
+            addTrackedUploadKeys(successfulUploadKeys, uploadKeys)
+            deleteTrackedUploadKeys(failedUploadKeys, uploadKeys)
+            rememberRecentSuccessfulUploadKeys(uploadKeys)
         }
         const normalizedUrl = normalizeUploadUrl(rawFileName)
         const rawFile = file?.raw instanceof File ? file.raw : file instanceof File ? file : null
@@ -412,11 +462,11 @@ function handleUploadSuccess(res, file) {
         })
         uploadedSuccessfully()
     } else {
-        if (uploadKey && successfulUploadKeys.has(uploadKey)) {
+        if (uploadKeys.length && hasTrackedUploadKey(successfulUploadKeys, uploadKeys)) {
             uploadedSuccessfully()
             return
         }
-        if (uploadKey) failedUploadKeys.add(uploadKey)
+        if (uploadKeys.length) addTrackedUploadKeys(failedUploadKeys, uploadKeys)
         proxy.$modal.msgError(resolveUploadErrorMessage(undefined, file, response.msg))
         removeUploadRequestFile(file)
         uploadedSuccessfully()
@@ -757,5 +807,3 @@ onMounted(() => {
     }
 }
 </style>
-
-

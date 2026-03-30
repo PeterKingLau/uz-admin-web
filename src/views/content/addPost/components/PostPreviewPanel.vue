@@ -53,7 +53,7 @@
                                 arrow="always"
                                 class="media-carousel"
                             >
-                                <el-carousel-item v-for="(url, index) in props.previewMediaList" :key="index">
+                                <el-carousel-item v-for="(url, index) in props.previewMediaList" :key="resolveMediaPreviewKey(url, index)">
                                     <div class="carousel-img" :style="{ backgroundImage: `url(${url})` }"></div>
                                 </el-carousel-item>
                             </el-carousel>
@@ -84,7 +84,12 @@
                             </div>
 
                             <div class="indicator-dots" v-if="props.postType === POST_TYPE.IMAGE && props.previewMediaList.length > 1">
-                                <span v-for="(_, i) in props.previewMediaList" :key="i" class="dot" :class="{ active: i === 0 }"></span>
+                                <span
+                                    v-for="(url, i) in props.previewMediaList"
+                                    :key="resolveMediaPreviewKey(url, i)"
+                                    class="dot"
+                                    :class="{ active: i === 0 }"
+                                ></span>
                             </div>
                         </div>
                     </transition>
@@ -102,7 +107,7 @@
 
                         <transition name="tags-slide">
                             <div class="tags-row" v-if="props.selectedTagNames.length">
-                                <span v-for="tag in props.selectedTagNames" :key="tag.id" class="hash-tag"> #{{ tag.name }} </span>
+                                <span v-for="(tag, index) in props.selectedTagNames" :key="resolveTagKey(tag, index)" class="hash-tag"> #{{ tag.name }} </span>
                             </div>
                         </transition>
 
@@ -177,6 +182,16 @@ const props = defineProps<{
 
 const previewVideoRef = ref<HTMLVideoElement>()
 const showVideoCoverOverlay = ref(false)
+const resolveMediaPreviewKey = (url: string, index: number) => {
+    const normalizedUrl = String(url || '').trim()
+    return normalizedUrl ? `media:${normalizedUrl}:${index}` : `media-index:${index}`
+}
+const resolveTagKey = (tag: TagItem, index: number) => {
+    const tagId = String(tag?.id ?? '').trim()
+    if (tagId) return `tag:${tagId}`
+    const tagName = String(tag?.name ?? '').trim()
+    return tagName ? `tag-name:${tagName}:${index}` : `tag-index:${index}`
+}
 
 const shouldShowCoverOverlay = () =>
     props.postType === POST_TYPE.VIDEO && Boolean(props.previewMediaList[0]) && Boolean(String(props.previewVideoCoverUrl || '').trim())
