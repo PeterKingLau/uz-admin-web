@@ -13,6 +13,9 @@
         "lint:style": "stylelint \"src/**/*.vue\" --allow-empty-input",
         "clean": "rimraf node_modules yarn.lock && yarn install"
     },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    },
     "dependencies": {
         "@element-plus/icons-vue": "^2.3.2",
         "@iconify-json/material-symbols": "^1.2.50",
@@ -50,12 +53,13 @@
         "@types/node": "^24.10.1",
         "@types/nprogress": "^0.2.3",
         "@types/sortablejs": "^1.15.8",
-        "@vitejs/plugin-vue": "^6.0.3",
+        "@vitejs/plugin-vue": "^6.0.5",
         "autoprefixer": "^10.4.21",
         "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
         "eslint-plugin-vue": "^10.5.1",
+        "esbuild": "^0.27.0",
         "postcss": "^8.4.38",
         "postcss-html": "^1.8.0",
         "prettier": "^3.6.2",
@@ -71,8 +75,8 @@
         "rollup-plugin-visualizer": "^6.0.3",
         "unplugin-auto-import": "^21.0.0",
         "unplugin-vue-components": "^30.0.0",
-        "vite": "^7.3.1",
-        "vite-plugin-compression": "0.5.1",
+        "vite": "^8.0.0",
+        "vite-plugin-compression2": "^2.2.1",
         "vite-plugin-zip-pack": "^1.2.4",
         "vue-tsc": "^3.1.4"
     },

@@ -1,7 +1,7 @@
 import type { PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import autoImport from 'unplugin-auto-import/vite'
-import compression from 'vite-plugin-compression'
+import { compression } from 'vite-plugin-compression2'
 
 interface ViteEnv {
     VITE_BUILD_COMPRESS?: string
@@ -21,19 +21,21 @@ export default function createVitePlugins(env: ViteEnv, isBuild = false): Plugin
 function createCompression(env: ViteEnv, isBuild: boolean): PluginOption[] {
     if (!isBuild || !env.VITE_BUILD_COMPRESS) return []
 
-    const compressTypes = env.VITE_BUILD_COMPRESS.split(',')
-    const configs = [
-        { type: 'gzip', ext: '.gz', algorithm: undefined },
-        { type: 'brotli', ext: '.br', algorithm: 'brotliCompress' as const }
-    ]
+    const algorithmMap = {
+        gzip: 'gzip',
+        brotli: 'brotliCompress'
+    } as const
+    const algorithms = env.VITE_BUILD_COMPRESS.split(',')
+        .map(type => String(type || '').trim().toLowerCase())
+        .map(type => algorithmMap[type as keyof typeof algorithmMap])
+        .filter((type): type is (typeof algorithmMap)[keyof typeof algorithmMap] => Boolean(type))
 
-    return configs
-        .filter(c => compressTypes.includes(c.type))
-        .map(c =>
-            compression({
-                ext: c.ext,
-                algorithm: c.algorithm,
-                deleteOriginFile: false
-            })
-        )
+    if (!algorithms.length) return []
+
+    return [
+        compression({
+            algorithms,
+            deleteOriginalAssets: false
+        })
+    ]
 }

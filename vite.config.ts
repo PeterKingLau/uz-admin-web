@@ -1,8 +1,12 @@
 import { defineConfig, loadEnv } from 'vite'
-import { resolve } from 'path'
+import { resolve } from 'node:path'
+import { fileURLToPath, URL } from 'node:url'
 import createVitePlugins from './vite/plugins'
 import zipPack from 'vite-plugin-zip-pack'
 import { visualizer } from 'rollup-plugin-visualizer'
+
+const projectRootDir = fileURLToPath(new URL('.', import.meta.url))
+const srcDir = fileURLToPath(new URL('./src', import.meta.url))
 
 const proxyTargets = {
     wired: 'http://192.168.10.7:8080/api',
@@ -74,11 +78,7 @@ function manualChunks(id: string): string | undefined {
     if (normalizedId.includes('/sortablejs/') || normalizedId.includes('/vue-draggable-plus/')) return 'vendor-dnd'
     if (normalizedId.includes('/clipboard/') || normalizedId.includes('/js-beautify/')) return 'vendor-builder'
     if (normalizedId.includes('/js-cookie/')) return 'vendor-auth'
-    if (
-        normalizedId.includes('/vue3-next-qrcode/') ||
-        normalizedId.includes('/js-binary-schema-parser/') ||
-        normalizedId.includes('/qrcode/')
-    ) {
+    if (normalizedId.includes('/vue3-next-qrcode/') || normalizedId.includes('/js-binary-schema-parser/') || normalizedId.includes('/qrcode/')) {
         return 'vendor-qrcode'
     }
     if (
@@ -138,7 +138,7 @@ function manualChunks(id: string): string | undefined {
 }
 
 export default defineConfig(({ mode, command }) => {
-    const env = loadEnv(mode, process.cwd()) as ViteRuntimeEnv
+    const env = loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv
     const isBuild = command === 'build'
     const isProdBuild = isBuild && mode === 'production'
     const proxyTarget = resolveProxyTarget(env)
@@ -174,8 +174,8 @@ export default defineConfig(({ mode, command }) => {
 
         resolve: {
             alias: {
-                '~': resolve(__dirname, './'),
-                '@': resolve(__dirname, './src')
+                '~': resolve(projectRootDir),
+                '@': srcDir
             },
             extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
         },
@@ -186,6 +186,7 @@ export default defineConfig(({ mode, command }) => {
             assetsDir: 'assets',
             chunkSizeWarningLimit: 2000,
             reportCompressedSize: false,
+            cssMinify: 'esbuild',
             minify: isProdBuild && useTerserMinify ? 'terser' : 'esbuild',
             terserOptions: useTerserMinify
                 ? {
@@ -208,7 +209,7 @@ export default defineConfig(({ mode, command }) => {
                       }
                   }
                 : undefined,
-            rollupOptions: {
+            rolldownOptions: {
                 output: {
                     manualChunks,
                     chunkFileNames: 'static/js/[name]-[hash].js',
