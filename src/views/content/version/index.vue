@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="app-container version-manage">
         <el-card class="version-form-card" shadow="never">
             <template #header>
@@ -142,12 +142,18 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="下载地址" prop="downloadUrl" min-width="260" show-overflow-tooltip>
+                <el-table-column label="下载地址" prop="downloadUrl" min-width="260">
                     <template #default="{ row }">
-                        <a v-if="row.downloadUrl" :href="resolveDownloadUrl(row.downloadUrl)" target="_blank" class="download-link">
-                            <Icon icon="mdi:link-variant" />
-                            {{ resolveDownloadUrl(row.downloadUrl) }}
-                        </a>
+                        <div v-if="row.downloadUrl" class="download-cell">
+                            <a :href="resolveDownloadUrl(row.downloadUrl)" target="_blank" rel="noopener noreferrer" class="download-link">
+                                <Icon icon="mdi:link-variant" />
+                                {{ resolveDownloadUrl(row.downloadUrl) }}
+                            </a>
+                            <el-button link type="primary" class="download-qr-btn" @click="handleOpenDownloadQr(row)">
+                                <Icon icon="mdi:qrcode" />
+                                二维码
+                            </el-button>
+                        </div>
                         <span v-else class="empty-text">-</span>
                     </template>
                 </el-table-column>
@@ -176,6 +182,8 @@
                 <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
             </div>
         </el-card>
+
+        <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
     </div>
 </template>
 
@@ -186,6 +194,7 @@ import { parseTime } from '@/utils/utils'
 import { getImgUrl } from '@/utils/img'
 import { addVersion, deleteVersion, listVersion, parseVersionRows, parseVersionTotal } from '@/api/content/version'
 import type { VersionItem } from '@/api/content/version.types'
+import QrcodeDialog from '../postInfo/components/QrcodeDialog.vue'
 
 interface VersionTableItem {
     id: number | string
@@ -219,6 +228,11 @@ const uploadFileList = ref<UploadUserFile[]>([])
 const selectedFile = ref<File | null>(null)
 const selectedRows = ref<VersionTableItem[]>([])
 const versionList = ref<VersionTableItem[]>([])
+const qrcodeVisible = ref(false)
+const qrcodeText = ref('')
+const qrcodeTitle = ref('')
+const qrcodeDescription = ref('')
+const qrcodeFileName = ref('')
 const queryParams = reactive({
     pageNum: 1,
     pageSize: 10
@@ -319,6 +333,30 @@ const formatTime = (time: string) => {
 const resolveDownloadUrl = (url: string) => {
     const raw = String(url || '').trim()
     return raw ? getImgUrl(raw) : ''
+}
+
+const resolveQrFileName = (row: VersionTableItem) => {
+    const versionSeed = String(row.versionName || row.versionCode || 'version').trim()
+    const sanitizedVersion = versionSeed
+        .replace(/[^\w.-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+    const fallback = sanitizedVersion || 'version'
+    return `apk-download-${fallback}-${Date.now()}.png`
+}
+
+const handleOpenDownloadQr = (row: VersionTableItem) => {
+    const text = resolveDownloadUrl(row.downloadUrl)
+    if (!text) {
+        proxy?.$modal?.msgWarning?.('下载地址为空，无法生成二维码')
+        return
+    }
+    const versionText = String(row.versionName || row.versionCode || '').trim()
+    qrcodeText.value = text
+    qrcodeTitle.value = versionText ? `APK 下载二维码 - v${versionText}` : 'APK 下载二维码'
+    qrcodeDescription.value = text
+    qrcodeFileName.value = resolveQrFileName(row)
+    qrcodeVisible.value = true
 }
 
 const normalizeRecord = (row: VersionItem | undefined, fallback?: FormModel, index = 0): VersionTableItem => ({
@@ -817,11 +855,37 @@ onMounted(() => {
             text-decoration: none;
             font-size: 13px;
             transition: color 0.2s;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
 
             &:hover {
                 color: var(--el-color-primary-light-3);
                 text-decoration: underline;
             }
+        }
+
+        .download-cell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .download-qr-btn {
+            flex-shrink: 0;
+            height: auto;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            line-height: 1;
         }
 
         .empty-text {

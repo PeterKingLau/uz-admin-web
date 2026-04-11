@@ -1,10 +1,12 @@
+@use 'sass:meta';
+@use './variables.module.scss' as *;
+@use './tokens.scss' as *;
+@use './mixin.scss' as *;
+@use './transition.scss' as *;
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import './variables.module.scss';
-@import './mixin.scss';
-@import './transition.scss';
 
 :root {
     --sidebar-bg: #{$menuBg};
@@ -40,8 +42,8 @@ body {
         Microsoft YaHei,
         Arial,
         sans-serif;
-    background-color: var(--el-bg-color, #fff);
-    color: var(--el-text-color-primary, #303133);
+    background-color: var(--el-bg-color);
+    color: var(--el-text-color-primary);
     transition:
         background-color 0.3s,
         color 0.3s;
@@ -254,12 +256,12 @@ aside {
 
     .subtitle {
         font-size: 20px;
-        color: #fff;
+        color: var(--el-color-white);
     }
 
     &.draft,
     &.deleted {
-        background: #d0d0d0;
+        background: var(--el-fill-color-dark);
     }
 }
 
@@ -286,35 +288,35 @@ html.dark {
     --navbar-hover: #25262b;
 
     .tags-view-container {
-        background-color: #141414 !important;
-        border-bottom: 1px solid #363637 !important;
+        background-color: var(--el-bg-color-overlay) !important;
+        border-bottom: 1px solid var(--el-border-color) !important;
 
         .tags-view-wrapper {
             .tags-view-item {
-                background-color: #1d1e1f !important;
-                color: #a3a6ad !important;
-                border: 1px solid #363637 !important;
+                background-color: var(--el-fill-color-dark) !important;
+                color: var(--el-text-color-regular) !important;
+                border: 1px solid var(--el-border-color) !important;
 
                 &:hover {
-                    background-color: #262727 !important;
-                    color: #fff !important;
+                    background-color: var(--el-fill-color-darker) !important;
+                    color: var(--el-color-white) !important;
                 }
 
                 &.active {
-                    background-color: rgba(59, 130, 246, 0.15) !important;
-                    color: #5c7cfa !important;
-                    border-color: #5c7cfa !important;
+                    background-color: color-mix(in srgb, var(--el-color-primary) 15%, transparent) !important;
+                    color: var(--el-color-primary) !important;
+                    border-color: var(--el-color-primary) !important;
 
                     &::before {
-                        background-color: #5c7cfa !important;
+                        background-color: var(--el-color-primary) !important;
                     }
                 }
 
                 .el-icon-close {
-                    color: #a3a6ad !important;
+                    color: var(--el-text-color-regular) !important;
                     &:hover {
-                        background-color: #ef4444 !important;
-                        color: #fff !important;
+                        background-color: var(--el-color-danger) !important;
+                        color: var(--el-color-white) !important;
                     }
                 }
             }
@@ -322,15 +324,15 @@ html.dark {
     }
 
     .contextmenu {
-        background-color: #1d1e1f !important;
-        border: 1px solid #363637 !important;
-        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3) !important;
+        background-color: var(--el-fill-color-dark) !important;
+        border: 1px solid var(--el-border-color) !important;
+        box-shadow: 0 2px 12px 0 color-mix(in srgb, var(--el-color-black) 30%, transparent) !important;
 
         li {
-            color: #e5eaf3 !important;
+            color: var(--el-text-color-primary) !important;
             &:hover {
-                background-color: rgba(59, 130, 246, 0.15) !important;
-                color: #5c7cfa !important;
+                background-color: color-mix(in srgb, var(--el-color-primary) 15%, transparent) !important;
+                color: var(--el-color-primary) !important;
             }
         }
     }
@@ -372,7 +374,7 @@ html.dark {
     transform: rotate(3deg) translate(0px, -4px);
 }
 
-@import './element-ui.scss';
-@import './sidebar.scss';
-@import './btn.scss';
-@import './primary.scss';
+@include meta.load-css('./element-ui.scss');
+@include meta.load-css('./sidebar.scss');
+@include meta.load-css('./btn.scss');
+@include meta.load-css('./primary.scss');

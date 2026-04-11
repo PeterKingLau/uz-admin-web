@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
-import createVitePlugins from './vite/plugins'
+import createVitePlugins from './vite/plugins/index.ts'
 import zipPack from 'vite-plugin-zip-pack'
 import { visualizer } from 'rollup-plugin-visualizer'
 
@@ -181,6 +181,7 @@ export default defineConfig(({ mode, command }) => {
         },
 
         build: {
+            target: 'esnext',
             sourcemap: shouldGenerateSourceMap,
             outDir: 'dist',
             assetsDir: 'assets',

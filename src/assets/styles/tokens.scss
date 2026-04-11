@@ -1,0 +1,13 @@
+:root {
+    --app-on-dark-color: var(--el-color-white);
+    --app-overlay-mask-weak: color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    --app-overlay-mask-medium: color-mix(in srgb, var(--el-color-black) 35%, transparent);
+    --app-overlay-mask-strong: color-mix(in srgb, var(--el-color-black) 55%, transparent);
+    --app-overlay-mask-heavy: color-mix(in srgb, var(--el-color-black) 70%, transparent);
+    --app-shadow-soft: 0 4px 12px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+    --app-shadow-medium: 0 8px 20px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+    --app-shadow-strong: 0 14px 28px color-mix(in srgb, var(--el-color-black) 16%, transparent);
+    --app-shadow-dialog: 0 20px 46px color-mix(in srgb, var(--el-color-black) 24%, transparent);
+    --app-overlay-border-soft: 1px solid color-mix(in srgb, var(--el-color-white) 45%, transparent);
+    --app-overlay-border-strong: 1px solid color-mix(in srgb, var(--el-color-white) 65%, transparent);
+}

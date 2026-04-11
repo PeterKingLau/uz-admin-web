@@ -494,22 +494,73 @@ $color-gold: var(--el-color-warning);
     .video-buffer-indicator {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 18px;
+        gap: 12px;
+        padding: 12px 16px;
         border-radius: 999px;
         background: var(--vm-black-45);
         border: 1px solid var(--vm-white-12);
         color: var(--vm-color-white);
         font-size: 13px;
-        line-height: 1;
+        line-height: 1.1;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         box-shadow: 0 10px 28px var(--vm-black-30);
     }
 
+    .buffer-icon-wrapper {
+        position: relative;
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
     .buffer-icon {
         font-size: 18px;
         animation: vm-spin 0.9s linear infinite;
+    }
+
+    .buffer-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1px solid var(--vm-white-30);
+        animation: vm-buffer-ring 1.4s ease-out infinite;
+    }
+
+    .buffer-content {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .buffer-text {
+        letter-spacing: 0.2px;
+    }
+
+    .buffer-dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+
+        i {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: currentcolor;
+            opacity: 0.35;
+            animation: vm-buffer-dot 1.05s ease-in-out infinite;
+        }
+
+        i:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        i:nth-child(3) {
+            animation-delay: 0.3s;
+        }
     }
 }
 
@@ -550,6 +601,54 @@ $color-gold: var(--el-color-warning);
         background: var(--vm-white-18);
         border-color: var(--vm-white-35);
     }
+}
+
+.video-volume-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.video-volume-indicator {
+    min-width: 112px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: var(--vm-black-45);
+    border: 1px solid var(--vm-white-16);
+    color: var(--vm-color-white);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 12px 28px var(--vm-black-35);
+    backdrop-filter: blur(10px);
+}
+
+.video-volume-icon {
+    font-size: 22px;
+}
+
+.video-volume-value {
+    font-variant-numeric: tabular-nums;
+}
+
+.video-volume-fade-enter-active,
+.video-volume-fade-leave-active {
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.video-volume-fade-enter-from,
+.video-volume-fade-leave-to {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.94);
 }
 
 .video-buffer-fade-enter-active,
@@ -738,10 +837,10 @@ $color-gold: var(--el-color-warning);
 
 .bottom-info-layer {
     position: absolute;
-    bottom: 86px;
+    bottom: 44px;
     left: 0;
     right: 0;
-    padding: 0 32px 8px;
+    padding: 0 32px 2px 14px;
     background: none;
     z-index: 15;
     opacity: 0;
@@ -1250,6 +1349,33 @@ $color-gold: var(--el-color-warning);
     }
 }
 
+@keyframes vm-buffer-ring {
+    0% {
+        opacity: 0.65;
+        transform: scale(0.7);
+    }
+    70% {
+        opacity: 0.1;
+        transform: scale(1.25);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.35);
+    }
+}
+
+@keyframes vm-buffer-dot {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: translateY(0);
+    }
+    45% {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+}
+
 @keyframes vm-audio-icon-spin {
     from {
         transform: rotate(0deg);
@@ -1269,8 +1395,8 @@ $color-gold: var(--el-color-warning);
     }
 
     .bottom-info-layer {
-        bottom: 68px;
-        padding: 0 16px 6px;
+        bottom: 40px;
+        padding: 0 16px 2px 10px;
     }
 
     .bottom-controls-layer {
@@ -1280,6 +1406,14 @@ $color-gold: var(--el-color-warning);
     .bottom-progress-layer {
         bottom: 34px;
         padding: 0;
+    }
+
+    .video-buffer-overlay {
+        .video-buffer-indicator {
+            font-size: 12px;
+            padding: 10px 14px;
+            gap: 10px;
+        }
     }
 
     .right-sidebar {

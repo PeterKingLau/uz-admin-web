@@ -22,7 +22,7 @@
                 </div>
 
                 <div class="comment-list-wrapper">
-                    <div v-for="(comment, index) in commentItems" :key="comment.id ?? index" class="comment-item">
+                    <div v-for="(comment, index) in renderedCommentItems" :key="getCommentId(comment) ?? index" class="comment-item">
                         <el-avatar :size="32" :src="getCommentAvatar(comment)" class="comment-avatar" />
                         <div class="comment-main">
                             <div class="comment-header">
@@ -39,15 +39,19 @@
                                     <span v-if="canDeleteComment(comment)" class="action-btn delete" @click.stop="emit('delete-comment', comment)">删除</span>
                                 </div>
 
-                                <div v-if="Number(comment.replyCount || 0) > 0" class="expand-reply-btn" @click="emit('toggle-replies', comment)">
+                                <div
+                                    v-if="Number(comment.replyCount || 0) > 0 || resolveReplyState(comment).list?.length > 0"
+                                    class="expand-reply-btn"
+                                    @click="handleToggleReplies(comment)"
+                                >
                                     <span class="line"></span>
-                                    <span>{{ resolveReplyState(comment).open ? '收起回复' : `展开 ${comment.replyCount} 条回复` }}</span>
+                                    <span>{{ resolveReplyToggleText(comment) }}</span>
                                     <Icon :icon="resolveReplyState(comment).open ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="icon-chevron" />
                                 </div>
                             </div>
 
                             <div v-if="resolveReplyState(comment).open" class="comment-replies">
-                                <div v-for="(reply, rIndex) in resolveReplyState(comment).list" :key="reply.id ?? rIndex" class="reply-item">
+                                <div v-for="(reply, rIndex) in getRenderedReplies(comment)" :key="getCommentId(reply) ?? rIndex" class="reply-item">
                                     <el-avatar :size="24" :src="getCommentAvatar(reply)" class="reply-avatar" />
                                     <div class="reply-main">
                                         <div class="reply-header">
@@ -70,9 +74,9 @@
                                     </div>
                                 </div>
 
-                                <div v-if="!resolveReplyState(comment).noMore" class="load-more-replies">
-                                    <span class="load-more-text" @click="emit('load-replies', comment)">
-                                        {{ resolveReplyState(comment).loading ? '正在加载...' : '查看更多回复' }}
+                                <div v-if="resolveLoadMoreReplyText(comment)" class="load-more-replies">
+                                    <span class="load-more-text" @click="handleLoadMoreReplies(comment)">
+                                        {{ resolveLoadMoreReplyText(comment) }}
                                     </span>
                                 </div>
                             </div>
@@ -81,6 +85,12 @@
                 </div>
 
                 <LoadingState v-if="commentLoading" class="comment-loading" theme="inverse" :min-height="200" />
+                <div
+                    v-if="activeTab === 'comments' && (hasMoreRenderedComments || !commentNoMore)"
+                    ref="commentLoadTriggerRef"
+                    class="scroll-load-trigger"
+                    aria-hidden="true"
+                ></div>
                 <div v-if="commentNoMore && commentItems.length > 0" class="comment-end">- 没有更多评论了 -</div>
             </template>
 
@@ -131,7 +141,7 @@
                     <div v-else-if="authorVideoPosts.length === 0" class="collection-empty">暂无作品</div>
                     <div v-else class="author-works-grid">
                         <button
-                            v-for="item in authorVideoPosts"
+                            v-for="item in renderedAuthorVideoPosts"
                             :key="getPostId(item) ?? item.id"
                             type="button"
                             class="author-work-card"
@@ -157,6 +167,12 @@
                         </button>
                     </div>
                     <LoadingState v-if="authorWorksLoading && authorVideoPosts.length > 0" class="comment-loading" theme="inverse" :min-height="120" />
+                    <div
+                        v-if="activeTab === 'authorWorks' && (hasMoreRenderedAuthorWorks || !authorWorksNoMore)"
+                        ref="worksLoadTriggerRef"
+                        class="scroll-load-trigger"
+                        aria-hidden="true"
+                    ></div>
                     <div v-if="authorWorksNoMore && authorVideoPosts.length > 0" class="comment-end">- 没有更多作品了 -</div>
                 </div>
             </template>
@@ -229,7 +245,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsContentPersonProfileComponentsVideoModuleComponentsVideoCommentsPanel' })
-import { computed, ref, type PropType } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type PropType } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
 import {
     formatCommentTime,
@@ -295,6 +311,21 @@ const emit = defineEmits([
 
 const commentBodyRef = ref<HTMLElement | null>(null)
 const commentInputRef = ref<{ focus?: () => void } | null>(null)
+const commentLoadTriggerRef = ref<HTMLElement | null>(null)
+const worksLoadTriggerRef = ref<HTMLElement | null>(null)
+
+const COMMENT_RENDER_CHUNK = 16
+const REPLY_INITIAL_COUNT = 2
+const REPLY_RENDER_STEP = 3
+const WORKS_RENDER_CHUNK = 15
+const SCROLL_LOAD_GAP = 80
+
+const renderedCommentCount = ref(COMMENT_RENDER_CHUNK)
+const renderedAuthorWorkCount = ref(WORKS_RENDER_CHUNK)
+const renderedReplyCountMap = ref<Record<string, number>>({})
+
+let commentLoadObserver: IntersectionObserver | null = null
+let worksLoadObserver: IntersectionObserver | null = null
 
 const visibleModel = computed({
     get: () => props.visible,
@@ -306,30 +337,237 @@ const activeTabModel = computed({
     set: value => emit('update:activeTab', value)
 })
 
-const handleBodyScroll = () => {
-    const element = commentBodyRef.value
-    if (!element) return
-    if (
-        props.activeTab === 'comments' &&
-        !props.commentLoading &&
-        !props.commentNoMore &&
-        element.scrollTop + element.clientHeight >= element.scrollHeight - 60
-    ) {
+const getCommentId = (item: Record<string, any> | null | undefined) => item?.id ?? item?.commentId ?? null
+const getCommentKey = (item: Record<string, any> | null | undefined) => String(getCommentId(item) ?? '')
+
+const renderedCommentItems = computed(() => props.commentItems.slice(0, renderedCommentCount.value))
+const renderedAuthorVideoPosts = computed(() => props.authorVideoPosts.slice(0, renderedAuthorWorkCount.value))
+const hasMoreRenderedComments = computed(() => renderedCommentItems.value.length < props.commentItems.length)
+const hasMoreRenderedAuthorWorks = computed(() => renderedAuthorVideoPosts.value.length < props.authorVideoPosts.length)
+
+const resetCommentRenderState = () => {
+    renderedCommentCount.value = COMMENT_RENDER_CHUNK
+    renderedReplyCountMap.value = {}
+}
+
+const resetAuthorWorksRenderState = () => {
+    renderedAuthorWorkCount.value = WORKS_RENDER_CHUNK
+}
+
+const increaseRenderedComments = () => {
+    if (!hasMoreRenderedComments.value) return false
+    renderedCommentCount.value = Math.min(props.commentItems.length, renderedCommentCount.value + COMMENT_RENDER_CHUNK)
+    return true
+}
+
+const increaseRenderedAuthorWorks = () => {
+    if (!hasMoreRenderedAuthorWorks.value) return false
+    renderedAuthorWorkCount.value = Math.min(props.authorVideoPosts.length, renderedAuthorWorkCount.value + WORKS_RENDER_CHUNK)
+    return true
+}
+
+const getReplyList = (comment: Record<string, any>) => {
+    const state = props.resolveReplyState(comment)
+    return Array.isArray(state?.list) ? state.list : []
+}
+
+const ensureReplyRenderCount = (comment: Record<string, any>) => {
+    const key = getCommentKey(comment)
+    if (!key) return REPLY_INITIAL_COUNT
+    if (!renderedReplyCountMap.value[key]) {
+        renderedReplyCountMap.value[key] = REPLY_INITIAL_COUNT
+    }
+    return renderedReplyCountMap.value[key]
+}
+
+const getRenderedReplies = (comment: Record<string, any>) => {
+    return getReplyList(comment).slice(0, ensureReplyRenderCount(comment))
+}
+
+const hasMoreRenderedReplies = (comment: Record<string, any>) => {
+    return getRenderedReplies(comment).length < getReplyList(comment).length
+}
+
+const resolveReplyToggleText = (comment: Record<string, any>) => {
+    const state = props.resolveReplyState(comment)
+    const loadedCount = getReplyList(comment).length
+    const totalCount = Math.max(0, Number(comment?.replyCount ?? loadedCount))
+    const displayCount = Math.max(totalCount, loadedCount)
+    if (state?.open) return '收起回复'
+    return `展开 ${displayCount} 条回复`
+}
+
+const resolveLoadMoreReplyText = (comment: Record<string, any>) => {
+    const state = props.resolveReplyState(comment)
+    if (!state?.open) return ''
+    if (state.loading) return '正在加载...'
+
+    if (hasMoreRenderedReplies(comment)) {
+        const total = getReplyList(comment).length
+        const rendered = getRenderedReplies(comment).length
+        return `展开 ${Math.max(0, total - rendered)} 条回复`
+    }
+
+    if (!state.noMore) return '查看更多回复'
+    return ''
+}
+
+const handleToggleReplies = (comment: Record<string, any>) => {
+    const key = getCommentKey(comment)
+    if (key) {
+        renderedReplyCountMap.value[key] = REPLY_INITIAL_COUNT
+    }
+    emit('toggle-replies', comment)
+}
+
+const handleLoadMoreReplies = (comment: Record<string, any>) => {
+    const state = props.resolveReplyState(comment)
+
+    if (hasMoreRenderedReplies(comment)) {
+        const key = getCommentKey(comment)
+        if (!key) return
+        renderedReplyCountMap.value[key] = ensureReplyRenderCount(comment) + REPLY_RENDER_STEP
+        return
+    }
+
+    if (!state?.loading && !state?.noMore) {
+        emit('load-replies', comment)
+    }
+}
+
+const tryLoadMoreComments = () => {
+    if (props.activeTab !== 'comments') return
+    if (increaseRenderedComments()) return
+    if (!props.commentLoading && !props.commentNoMore) {
         emit('load-more-comments')
     }
-    if (
-        props.activeTab === 'authorWorks' &&
-        !props.authorWorksLoading &&
-        !props.authorWorksNoMore &&
-        element.scrollTop + element.clientHeight >= element.scrollHeight - 80
-    ) {
+}
+
+const tryLoadMoreAuthorWorks = () => {
+    if (props.activeTab !== 'authorWorks') return
+    if (increaseRenderedAuthorWorks()) return
+    if (!props.authorWorksLoading && !props.authorWorksNoMore) {
         emit('load-more-author-works')
     }
 }
 
+const handleBodyScroll = () => {
+    const element = commentBodyRef.value
+    if (!element) return
+    if (element.scrollTop + element.clientHeight >= element.scrollHeight - SCROLL_LOAD_GAP) {
+        if (props.activeTab === 'comments') {
+            tryLoadMoreComments()
+        } else if (props.activeTab === 'authorWorks') {
+            tryLoadMoreAuthorWorks()
+        }
+    }
+}
+
+const disconnectLoadObservers = () => {
+    commentLoadObserver?.disconnect()
+    worksLoadObserver?.disconnect()
+    commentLoadObserver = null
+    worksLoadObserver = null
+}
+
+const handleCommentLoadIntersect: IntersectionObserverCallback = entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return
+    tryLoadMoreComments()
+}
+
+const handleWorksLoadIntersect: IntersectionObserverCallback = entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return
+    tryLoadMoreAuthorWorks()
+}
+
+const setupLoadObservers = async () => {
+    disconnectLoadObservers()
+    if (!props.visible || typeof IntersectionObserver === 'undefined') return
+    await nextTick()
+    const root = commentBodyRef.value
+    if (!root) return
+
+    if (props.activeTab === 'comments' && commentLoadTriggerRef.value) {
+        commentLoadObserver = new IntersectionObserver(handleCommentLoadIntersect, {
+            root,
+            rootMargin: '0px 0px 120px 0px',
+            threshold: 0.01
+        })
+        commentLoadObserver.observe(commentLoadTriggerRef.value)
+    }
+
+    if (props.activeTab === 'authorWorks' && worksLoadTriggerRef.value) {
+        worksLoadObserver = new IntersectionObserver(handleWorksLoadIntersect, {
+            root,
+            rootMargin: '0px 0px 120px 0px',
+            threshold: 0.01
+        })
+        worksLoadObserver.observe(worksLoadTriggerRef.value)
+    }
+}
+
+watch(
+    () => [props.visible, props.activeTab],
+    async ([visible]) => {
+        if (!visible) {
+            disconnectLoadObservers()
+            return
+        }
+        await setupLoadObservers()
+    },
+    { immediate: true }
+)
+
+watch(
+    () => props.commentItems,
+    (next, prev) => {
+        const nextList = Array.isArray(next) ? next : []
+        const prevList = Array.isArray(prev) ? prev : []
+        const nextFirst = getCommentId(nextList[0])
+        const prevFirst = getCommentId(prevList[0])
+        if (nextFirst !== prevFirst || nextList.length < prevList.length) {
+            resetCommentRenderState()
+        }
+    },
+    { deep: false }
+)
+
+watch(
+    () => props.authorVideoPosts.length,
+    (next, prev) => {
+        if (next < prev) {
+            resetAuthorWorksRenderState()
+        }
+    }
+)
+
+watch(
+    () => [
+        props.activeTab,
+        props.commentItems.length,
+        props.commentLoading,
+        props.commentNoMore,
+        props.authorVideoPosts.length,
+        props.authorWorksLoading,
+        props.authorWorksNoMore
+    ],
+    async () => {
+        if (!props.visible) return
+        await setupLoadObservers()
+    }
+)
+
 const focusInput = () => {
     commentInputRef.value?.focus?.()
 }
+
+onMounted(() => {
+    setupLoadObservers()
+})
+
+onBeforeUnmount(() => {
+    disconnectLoadObservers()
+})
 
 defineExpose({ focusInput })
 </script>
@@ -480,12 +718,14 @@ $color-accent: var(--vm-color-accent);
 .comment-list-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
 }
 
 .comment-item {
     display: flex;
     gap: 12px;
+    content-visibility: auto;
+    contain-intrinsic-size: 132px;
 
     .comment-avatar {
         flex-shrink: 0;
@@ -501,25 +741,25 @@ $color-accent: var(--vm-color-accent);
         display: flex;
         justify-content: space-between;
         align-items: baseline;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 
     .comment-name {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
         color: var(--vm-white-85);
     }
 
     .comment-time {
-        font-size: 11px;
+        font-size: 12px;
         color: $color-text-muted;
     }
 
     .comment-content {
-        font-size: 14px;
-        line-height: 1.5;
+        font-size: 15px;
+        line-height: 1.55;
         color: $color-text-primary;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         white-space: pre-wrap;
         cursor: pointer;
     }
@@ -527,16 +767,17 @@ $color-accent: var(--vm-color-accent);
 
 .comment-footer {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
 
     .footer-actions {
         display: flex;
-        gap: 16px;
+        gap: 14px;
     }
 
     .action-btn {
-        font-size: 12px;
+        font-size: 13px;
         color: $color-text-secondary;
         cursor: pointer;
         font-weight: 500;
@@ -576,17 +817,20 @@ $color-accent: var(--vm-color-accent);
 }
 
 .comment-replies {
-    margin-top: 12px;
-    padding: 12px;
-    background: $color-bg-soft;
-    border-radius: 12px;
+    margin-top: 8px;
+    padding: 2px 0 0 6px;
+    background: transparent;
+    border-radius: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
 
     .reply-item {
         display: flex;
-        gap: 10px;
+        gap: 8px;
+        align-items: flex-start;
+        content-visibility: auto;
+        contain-intrinsic-size: 86px;
     }
 
     .reply-avatar {
@@ -595,10 +839,15 @@ $color-accent: var(--vm-color-accent);
 
     .reply-main {
         flex: 1;
+        min-width: 0;
+        background: $color-bg-soft;
+        border: 1px solid var(--vm-white-6);
+        border-radius: 10px;
+        padding: 8px 10px;
     }
 
     .reply-header {
-        font-size: 12px;
+        font-size: 13px;
         margin-bottom: 4px;
     }
 
@@ -624,17 +873,18 @@ $color-accent: var(--vm-color-accent);
     }
 
     .reply-content {
-        font-size: 13px;
+        font-size: 14px;
         color: $color-text-primary;
         margin-bottom: 6px;
-        line-height: 1.4;
+        line-height: 1.5;
         cursor: pointer;
+        word-break: break-word;
     }
 
     .reply-footer {
         display: flex;
-        gap: 12px;
-        font-size: 11px;
+        gap: 10px;
+        font-size: 12px;
         color: $color-text-muted;
 
         .action-btn {
@@ -652,7 +902,7 @@ $color-accent: var(--vm-color-accent);
 }
 
 .load-more-replies {
-    padding-top: 4px;
+    padding: 2px 0 0 32px;
     font-size: 12px;
     color: $color-accent;
     cursor: pointer;
@@ -661,6 +911,13 @@ $color-accent: var(--vm-color-accent);
     &:hover {
         text-decoration: underline;
     }
+}
+
+.scroll-load-trigger {
+    width: 100%;
+    height: 1px;
+    margin-top: 2px;
+    pointer-events: none;
 }
 
 .comment-panel-footer {
@@ -855,6 +1112,8 @@ $color-accent: var(--vm-color-accent);
     background: transparent;
     text-align: left;
     cursor: pointer;
+    content-visibility: auto;
+    contain-intrinsic-size: 250px;
 
     &.active .author-work-cover {
         box-shadow: 0 0 0 2px var(--vm-color-accent);
@@ -1094,3 +1353,4 @@ $color-accent: var(--vm-color-accent);
     }
 }
 </style>
+

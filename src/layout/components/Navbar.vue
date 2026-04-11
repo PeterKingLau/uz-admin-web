@@ -111,7 +111,7 @@ function toggleTheme() {
     overflow: hidden;
     position: relative;
     background: var(--el-bg-color);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--el-color-black) 8%, transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -255,7 +255,7 @@ function toggleTheme() {
     border-radius: 12px !important;
     padding: 8px !important;
     min-width: 160px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--el-color-black) 8%, transparent) !important;
     border: 1px solid var(--el-border-color-lighter) !important;
 
     .el-dropdown-menu__item {

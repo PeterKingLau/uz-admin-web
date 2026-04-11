@@ -21,7 +21,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
 import { toggleFollowUser } from '@/api/content/userFollow'
 import useUserStore from '@/store/modules/user'
-import { getImgUrl } from '@/utils/img'
+import { resolveCollectionVideoUrl } from '@/features/content/personProfile/videoModule/helpers'
 import VideoModule from '@/views/content/personProfile/components/VideoModule/index.vue'
 
 const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
@@ -84,49 +84,7 @@ const handleClose = () => {
 
 const getPostId = post => post?.postId ?? post?.id ?? null
 
-const parseMediaRaw = raw => {
-    if (!raw) return []
-    if (Array.isArray(raw)) return raw
-    if (typeof raw === 'string') {
-        const trimmed = raw.trim()
-        if (!trimmed) return []
-        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-            try {
-                const parsed = JSON.parse(trimmed)
-                return Array.isArray(parsed) ? parsed : [parsed]
-            } catch {
-                return trimmed
-                    .split(',')
-                    .map(item => item.trim())
-                    .filter(Boolean)
-            }
-        }
-        return trimmed
-            .split(',')
-            .map(item => item.trim())
-            .filter(Boolean)
-    }
-    if (typeof raw === 'object') return [raw]
-    return []
-}
-
-const resolveMediaUrl = url => (url ? getImgUrl(url) : '')
-const isVideoUrl = url => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
-
-const resolveVideoSrc = post => {
-    if (!post) return ''
-    const direct = post.videoUrl || post.video || post.url || post.src || ''
-    if (direct) return resolveMediaUrl(direct)
-    const list = [...parseMediaRaw(post.mediaUrls), ...parseMediaRaw(post.mediaList), ...parseMediaRaw(post.files), ...parseMediaRaw(post.resources)]
-    const normalized = list
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.url || item?.src || item?.path || item?.fileUrl || ''
-        })
-        .filter(Boolean)
-    const candidate = normalized.find(isVideoUrl) || normalized[0] || ''
-    return resolveMediaUrl(candidate)
-}
+const resolveVideoSrc = post => resolveCollectionVideoUrl(post || {})
 
 const getPostTargetUserId = post =>
     post?.targetUserId ??
@@ -296,7 +254,10 @@ const handleSelectCollectionPost = post => {
     const currentId = getPostId(currentPost.value)
     if (!nextId || (currentId != null && String(nextId) === String(currentId))) return
     const nextSrc = resolveVideoSrc(post)
-    if (!nextSrc) return
+    if (!nextSrc) {
+        proxy?.$modal?.msgWarning?.('该作品暂无可播放视频')
+        return
+    }
     currentPost.value = { ...(post || {}) }
     currentVideoSrc.value = nextSrc
 }

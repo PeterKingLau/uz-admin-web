@@ -17,11 +17,11 @@
     }
 
     &::-webkit-scrollbar-thumb {
-        background: var(--el-border-color-darker, #99a9bf);
+        background: var(--el-border-color-darker);
         border-radius: 20px;
 
         &:hover {
-            background: var(--el-text-color-secondary, #7f8c8d);
+            background: var(--el-text-color-secondary);
         }
     }
 }

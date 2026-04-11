@@ -1,5 +1,5 @@
 <template>
-    <div class="video-card" @click="openVideo">
+    <div class="video-card" :class="{ disabled: !hasValidSource }" @click="openVideo">
         <el-image :src="poster" fit="cover" class="video-cover">
             <template #error>
                 <div class="video-error-placeholder">
@@ -8,28 +8,58 @@
             </template>
         </el-image>
 
-        <div class="play-overlay">
-            <div class="play-button">
-                <Icon icon="mdi:play" class="icon" />
+        <div class="video-mask">
+            <div class="play-pill">
+                <Icon icon="mdi:play" class="icon-play" />
+                <span>预览</span>
             </div>
         </div>
 
-        <div class="video-badge"><Icon icon="mdi:video" class="mr-1" /> {{ badgeText }}</div>
+        <div class="video-badge">
+            <Icon icon="mdi:video-outline" class="badge-icon" />
+            <span>{{ badgeText }}</span>
+        </div>
 
         <el-dialog
             v-model="videoVisible"
-            width="900px"
+            :width="dialogWidth"
             append-to-body
             destroy-on-close
             align-center
             class="video-asset-preview-dialog"
-            @close="handleVideoClose"
+            @closed="handleVideoClose"
         >
             <template #header>
-                <div class="dialog-title">{{ dialogTitle }}</div>
+                <div class="dialog-header">
+                    <div class="header-main">
+                        <div class="header-icon">
+                            <Icon icon="mdi:play-box-outline" />
+                        </div>
+                        <div class="header-text">
+                            <div class="dialog-title">{{ dialogTitle }}</div>
+                            <div class="dialog-subtitle">
+                                <el-tag size="small" effect="plain">{{ sourceTypeLabel }}</el-tag>
+                                <span class="source-name" :title="resolvedSrcUrl">{{ sourceName }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <el-button text type="primary" class="restart-btn" @click="restartVideo">
+                        <Icon icon="mdi:replay" class="btn-icon" />
+                        重播
+                    </el-button>
+                </div>
             </template>
-            <div class="video-player-wrapper">
-                <video v-if="videoVisible && src" ref="playerRef" class="video-js preview-player" playsinline />
+
+            <div class="video-player-shell">
+                <div class="video-player-wrapper">
+                    <AsyncVideoPlayer v-if="videoVisible && hasValidSource" ref="videoPlayerRef" :src="resolvedSrcUrl" />
+                </div>
+                <div class="video-player-footer">
+                    <div class="footer-item muted">
+                        <Icon icon="mdi:information-outline" />
+                        <span>支持 0.5x~2x 倍速播放</span>
+                    </div>
+                </div>
             </div>
         </el-dialog>
     </div>
@@ -37,7 +67,10 @@
 
 <script setup>
 defineOptions({ name: 'ComponentsVideoAssetPreview' })
-import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
+import { getImgUrl } from '@/utils/img'
+
+const AsyncVideoPlayer = defineAsyncComponent(() => import('./VideoPlayer.vue'))
 
 const props = defineProps({
     src: { type: String, default: '' },
@@ -47,19 +80,10 @@ const props = defineProps({
 })
 
 const videoVisible = ref(false)
-const playerRef = ref(null)
-let player = null
-let videoJsLoader = null
-let languageReady = false
-
-const playerOptions = {
-    controls: true,
-    autoplay: true,
-    muted: false,
-    loop: false,
-    preload: 'auto',
-    playbackRates: [0.5, 1, 1.25, 1.5, 2]
-}
+const videoPlayerRef = ref(null)
+const dialogWidth = 'min(980px, calc(100vw - 32px))'
+const resolvedSrcUrl = computed(() => getImgUrl(String(props.src || '').trim()))
+const hasValidSource = computed(() => Boolean(resolvedSrcUrl.value))
 
 function guessMime(url) {
     const value = String(url || '').toLowerCase()
@@ -70,99 +94,64 @@ function guessMime(url) {
     return 'video/mp4'
 }
 
-function buildSources(url) {
-    const value = String(url || '').trim()
-    if (!value) return []
-    return [{ src: value, type: guessMime(value) }]
-}
+const sourceTypeLabel = computed(() => {
+    const type = guessMime(resolvedSrcUrl.value)
+    if (type === 'application/x-mpegURL') return 'HLS 流'
+    if (type === 'application/dash+xml') return 'DASH 流'
+    if (type === 'video/webm') return 'WebM'
+    if (type === 'video/ogg') return 'OGG'
+    return 'MP4'
+})
+
+const sourceName = computed(() => {
+    const value = resolvedSrcUrl.value
+    if (!value) return '未设置视频地址'
+    const fallback = value.split('?')[0].split('/').filter(Boolean).pop() || value
+    try {
+        const parsed = new URL(value, window.location.origin)
+        const name = parsed.pathname.split('/').filter(Boolean).pop()
+        return decodeURIComponent(name || fallback)
+    } catch {
+        return fallback
+    }
+})
 
 function openVideo() {
-    if (!props.src) return
+    if (!hasValidSource.value) return
     videoVisible.value = true
 }
 
-async function loadVideoJs() {
-    if (!videoJsLoader) {
-        videoJsLoader = Promise.all([import('video.js'), import('video.js/dist/video-js.css')]).then(
-            ([videoJsModule]) => videoJsModule.default || videoJsModule
-        )
-    }
-    const videojsLib = await videoJsLoader
-
-    if (!languageReady) {
-        const langModule = await import('video.js/dist/lang/zh-CN.json')
-        const langData = langModule.default || langModule
-        videojsLib.addLanguage?.('zh-CN', langData)
-        languageReady = true
-    }
-
-    return videojsLib
+function handleVideoClose() {
+    videoPlayerRef.value?.dispose?.()
+    videoPlayerRef.value = null
 }
 
-async function initPlayer() {
-    if (!videoVisible.value || !props.src) return
-    await nextTick()
-    const el = playerRef.value
-    if (!el) return
-    const videojsLib = await loadVideoJs()
-    if (!videoVisible.value || !el) return
-
-    if (!player) {
-        player = videojsLib(el, {
-            ...playerOptions,
-            language: 'zh-CN',
-            sources: buildSources(props.src)
-        })
-    } else {
-        player.src(buildSources(props.src))
-    }
-    player.play?.()
+function restartVideo() {
+    if (!videoVisible.value) return
+    videoPlayerRef.value?.restart?.()
 }
-
-async function stopPlayer() {
-    if (!player) return
-    player.pause?.()
-    player.dispose?.()
-    player = null
-}
-
-async function handleVideoClose() {
-    await stopPlayer()
-}
-
-watch(
-    () => [videoVisible.value, props.src],
-    () => {
-        if (videoVisible.value) initPlayer()
-        else stopPlayer()
-    }
-)
-
-onBeforeUnmount(() => {
-    stopPlayer()
-})
 </script>
 
 <style lang="scss" scoped>
 .video-card {
     position: relative;
     width: 140px;
-    height: 80px;
-    border-radius: 8px;
+    height: 84px;
+    border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
     border: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)), var(--el-color-black);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    background: var(--el-fill-color-blank);
+    box-shadow: var(--app-shadow-medium);
     transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease,
-        border-color 0.25s ease;
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease;
 
     .video-cover {
         width: 100%;
         height: 100%;
-        opacity: 0.9;
+        opacity: 0.95;
         transition:
             transform 0.3s,
             opacity 0.3s;
@@ -179,30 +168,32 @@ onBeforeUnmount(() => {
         font-size: 24px;
     }
 
-    .play-overlay {
+    .video-mask {
         position: absolute;
         inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.2);
-        transition: background 0.3s;
+        background: linear-gradient(180deg, var(--app-overlay-mask-weak), color-mix(in srgb, var(--el-color-black) 45%, transparent));
+        transition: background 0.3s ease;
 
-        .play-button {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
+        .play-pill {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--app-on-dark-color);
+            border: var(--app-overlay-border-soft);
+            background: var(--app-overlay-mask-medium);
+            backdrop-filter: blur(4px);
+            transition: all 0.25s ease;
 
-            .icon {
-                color: var(--el-color-primary);
-                font-size: 20px;
-                margin-left: 2px;
+            .icon-play {
+                font-size: 14px;
+                transform: translateX(1px);
             }
         }
     }
@@ -211,102 +202,148 @@ onBeforeUnmount(() => {
         position: absolute;
         top: 6px;
         right: 6px;
-        background: rgba(0, 0, 0, 0.6);
-        color: var(--el-color-white);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--app-overlay-mask-strong);
+        color: var(--app-on-dark-color);
         font-size: 10px;
         padding: 2px 6px;
         border-radius: 4px;
         backdrop-filter: blur(4px);
-        display: flex;
-        align-items: center;
+
+        .badge-icon {
+            font-size: 12px;
+        }
     }
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+        transform: translateY(-1px);
+        box-shadow: var(--app-shadow-strong);
         border-color: var(--el-color-primary-light-5);
 
         .video-cover {
-            transform: scale(1.05);
+            transform: scale(1.04);
             opacity: 1;
         }
 
-        .play-overlay {
-            background: rgba(0, 0, 0, 0.1);
+        .video-mask {
+            background: linear-gradient(
+                180deg,
+                color-mix(in srgb, var(--el-color-black) 12%, transparent),
+                color-mix(in srgb, var(--el-color-black) 54%, transparent)
+            );
 
-            .play-button {
-                transform: scale(1.1);
-                background: var(--el-color-white);
+            .play-pill {
+                transform: translateY(-1px);
+                border: var(--app-overlay-border-strong);
+                background: color-mix(in srgb, var(--el-color-black) 50%, transparent);
             }
         }
     }
+
+    &.disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
 }
 
-.video-player-wrapper {
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 45%), var(--el-color-black);
-    border-radius: 16px;
-    overflow: hidden;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    aspect-ratio: 16/9;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.preview-player {
-    width: 100%;
-    height: 100%;
-    max-height: 70vh;
+.video-player-shell {
+    padding: 0;
 }
 </style>
 
 <style lang="scss">
 .video-asset-preview-dialog {
-    .dialog-title {
-        position: relative;
+    .dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 32px;
+    }
+
+    .header-main {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .header-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
         display: inline-flex;
         align-items: center;
-        padding-left: 12px;
-        font-size: 16px;
+        justify-content: center;
+        font-size: 18px;
+        flex: none;
+    }
+
+    .header-text {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .dialog-title {
+        font-size: 15px;
         font-weight: 600;
         color: var(--el-text-color-primary);
+        line-height: 1.25;
+    }
 
-        &::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            width: 4px;
-            height: 18px;
-            border-radius: 999px;
-            background: var(--el-color-primary);
-            transform: translateY(-50%);
-        }
+    .dialog-subtitle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .source-name {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .restart-btn {
+        flex: none;
+        margin-right: 2px;
+    }
+
+    .btn-icon {
+        margin-right: 4px;
     }
 
     .el-dialog {
-        border-radius: 18px;
+        border-radius: 14px;
         overflow: hidden;
         background: var(--el-bg-color-overlay);
-        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+        box-shadow: var(--app-shadow-dialog);
     }
 
     .el-dialog__body {
-        padding: 20px;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0)), var(--el-bg-color-overlay);
+        padding: 16px 18px 18px;
+        background: var(--el-bg-color-overlay);
     }
 
     .el-dialog__header {
         margin-right: 0;
-        padding: 20px 20px 16px;
+        padding: 14px 56px 12px 18px;
         background-color: var(--el-bg-color-overlay);
         border-bottom: 1px solid var(--el-border-color-lighter);
     }
 
     .el-dialog__headerbtn {
-        top: 18px;
-        right: 18px;
+        top: 12px;
+        right: 12px;
         width: 32px;
         height: 32px;
         border-radius: 50%;
@@ -321,12 +358,61 @@ onBeforeUnmount(() => {
         font-size: 18px;
         color: var(--el-text-color-secondary);
     }
+
+    .video-player-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        border-radius: 12px;
+        border: 1px solid var(--el-border-color-lighter);
+        background: var(--el-color-black);
+        aspect-ratio: 16/9;
+    }
+
+    .preview-player {
+        width: 100%;
+        height: 100%;
+        max-height: calc(100vh - 250px);
+    }
+
+    .video-player-footer {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--el-border-color-lighter);
+        background: var(--el-fill-color-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .footer-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--el-text-color-regular);
+        font-size: 12px;
+        min-width: 0;
+
+        svg {
+            font-size: 14px;
+            flex: none;
+        }
+
+        &.muted {
+            color: var(--el-text-color-secondary);
+        }
+    }
 }
 
 @media (max-width: 768px) {
     .video-card {
-        width: 120px;
-        height: 72px;
+        width: 128px;
+        height: 76px;
     }
 
     .video-asset-preview-dialog {
@@ -335,12 +421,44 @@ onBeforeUnmount(() => {
             margin: 0 auto;
         }
 
+        .dialog-header {
+            align-items: flex-start;
+        }
+
+        .header-main {
+            width: 100%;
+        }
+
+        .header-text {
+            width: 100%;
+        }
+
+        .dialog-subtitle {
+            width: 100%;
+        }
+
+        .restart-btn {
+            padding-right: 0;
+        }
+
+        .source-name {
+            max-width: 100%;
+        }
+
         .el-dialog__body {
             padding: 12px;
         }
 
+        .el-dialog__header {
+            padding-right: 52px;
+        }
+
         .video-player-wrapper {
             border-radius: 12px;
+        }
+
+        .video-player-footer {
+            padding: 8px 10px;
         }
     }
 }

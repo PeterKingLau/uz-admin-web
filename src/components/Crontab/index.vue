@@ -226,15 +226,15 @@ onMounted(() => {
     margin: 20px auto 10px;
     padding: 20px 15px 15px;
     border-radius: 8px;
-    border: 1px solid #dcdfe6;
-    background: #fff;
+    border: 1px solid var(--el-border-color);
+    background: var(--el-bg-color);
 
     .title {
         position: absolute;
         top: -22px;
         left: 50%;
         padding: 0 10px;
-        background: #fff;
+        background: var(--el-bg-color);
         transform: translateX(-50%);
         font-size: 14px;
         font-weight: 600;
@@ -253,15 +253,15 @@ onMounted(() => {
 
         .label {
             font-size: 12px;
-            color: #666;
+            color: var(--el-text-color-secondary);
             margin-bottom: 4px;
         }
 
         .value {
             padding: 6px 8px;
-            border: 1px solid #e8e8e8;
+            border: 1px solid var(--el-border-color-lighter);
             border-radius: 4px;
-            background: #fafafa;
+            background: var(--el-fill-color-light);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -275,7 +275,7 @@ onMounted(() => {
 
         .value--long {
             font-weight: 600;
-            color: #333;
+            color: var(--el-text-color-primary);
         }
     }
 }

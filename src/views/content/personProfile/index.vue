@@ -7,7 +7,12 @@
             </div>
             <div class="user-info-wrapper">
                 <div class="avatar-container">
-                    <el-avatar :size="100" :src="userInfo.avatar" class="avatar-img" />
+                    <el-avatar
+                        :size="100"
+                        :src="userInfo.avatar"
+                        :class="['avatar-img', { 'is-previewable': canPreviewAvatar }]"
+                        @click="handleAvatarPreview"
+                    />
                 </div>
                 <div class="info-content">
                     <div class="name-row">
@@ -128,13 +133,17 @@
             :is-follow-action-loading="isFollowActionLoading"
             :toggle-follow="toggleFollow"
             @tab-click="handleFollowTabClick"
+            @select-user="handleSelectFollowUser"
         />
+
+        <el-image-viewer v-if="avatarPreviewVisible" :url-list="avatarPreviewList" @close="closeAvatarPreview" />
     </div>
 </template>
 
 <script setup>
 defineOptions({ name: 'ViewsContentPersonProfile' })
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
+import { ElImageViewer } from 'element-plus'
 import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
@@ -146,6 +155,7 @@ import useUserStore from '@/store/modules/user'
 import { useFollowStatsStore } from '@/store/modules/followStats'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
+import { resolveCollectionVideoUrl } from '@/features/content/personProfile/videoModule/helpers'
 import {
     appendPreviewComment,
     formatRelativeTime,
@@ -162,6 +172,7 @@ import ContentModule from './components/ContentModule/index.vue'
 import PostPreviewModal from './components/Modal/PostPreviewModal.vue'
 import FollowDialog from './components/Dialog/FollowDialog.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
+import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -189,6 +200,7 @@ const followStats = ref({
     followers: 0,
     mutualCount: 0
 })
+const avatarPreviewVisible = ref(false)
 
 const followStatsLoading = computed(() => followStatsStore.isLoading(queryParams.targetUserId))
 const hasFollowStatsCache = computed(() => followStatsStore.getCachedStats(queryParams.targetUserId) !== null)
@@ -222,6 +234,7 @@ const followRequestId = ref(0)
 const followActionLoading = reactive({})
 let followObserver = null
 let cleanupTimer = null
+let hasActivatedOnce = false
 
 const queryParams = reactive({
     pageNum: 1,
@@ -241,6 +254,16 @@ const resolvePostType = value => {
     return allowedPostTypeSet.has(normalized) ? normalized : fallback
 }
 const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
+const isCanceledRequest = error => {
+    const code = String(error?.code ?? '')
+    const name = String(error?.name ?? '')
+    const message = String(error?.message ?? '').toLowerCase()
+    return code === 'ERR_CANCELED' || name === 'CanceledError' || message === 'canceled' || error?.__CANCEL__ === true
+}
+const logIfNotCanceled = error => {
+    if (isCanceledRequest(error)) return
+    console.error(error)
+}
 
 const clampStats = (following, followers, mutualCount) => {
     const followingCount = Math.max(0, Number(following) || 0)
@@ -254,9 +277,20 @@ const normalizeSexValue = value => {
     return String(value)
 }
 
+const resolveAvatarUrl = value => {
+    const text = String(value ?? '').trim()
+    if (!text) return ''
+    return getImgUrl(text)
+}
+
+const resolvedUserAvatar = computed(() => {
+    const profile = profileInfo.value || {}
+    return resolveAvatarUrl(profile.avatar) || resolveAvatarUrl(userStore.avatar)
+})
+
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
-    const avatar = profile.avatar ? getImgUrl(profile.avatar) : userStore.avatar || ''
+    const avatar = resolvedUserAvatar.value || defaultAvatar
     const stats = clampStats(followStats.value.following, followStats.value.followers, followStats.value.mutualCount)
     return {
         ...profile,
@@ -269,6 +303,18 @@ const userInfo = computed(() => {
         likedCount: profile.likedCount ?? 0
     }
 })
+
+const avatarPreviewList = computed(() => (resolvedUserAvatar.value ? [resolvedUserAvatar.value] : []))
+const canPreviewAvatar = computed(() => avatarPreviewList.value.length > 0)
+
+const handleAvatarPreview = () => {
+    if (!canPreviewAvatar.value) return
+    avatarPreviewVisible.value = true
+}
+
+const closeAvatarPreview = () => {
+    avatarPreviewVisible.value = false
+}
 
 const normalizeFollowTab = value => (followTabSet.has(value) ? value : 'following')
 
@@ -494,8 +540,7 @@ const getCover = item => {
 }
 
 const getVideoUrl = item => {
-    const mediaList = getMediaList(item)
-    return mediaList[1] || mediaList[0] || ''
+    return resolveCollectionVideoUrl(item || {})
 }
 
 const getMediaList = item => {
@@ -534,8 +579,9 @@ const previewComments = computed(() => {
 const resolveAvatar = avatar => getImgUrl(avatar || '')
 const getCommentName = comment => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || '用户'
 const canDeleteComment = comment => {
-    const commentUserId = getCommentUserId(comment)
     if (userStore.id == null) return false
+    const commentUserId = getCommentUserId(comment)
+    if (commentUserId == null) return false
     return String(userStore.id) === String(commentUserId)
 }
 const isDeleteCommentLoading = comment => {
@@ -775,7 +821,7 @@ const getList = async () => {
             total.value = nextTotal
         }
     } catch (error) {
-        console.error(error)
+        logIfNotCanceled(error)
         noMore.value = true
     } finally {
         loading.value = false
@@ -815,7 +861,7 @@ const loadInitialTabTotals = async () => {
         likeTotal.value = resolveTotalFromListResponse(likeResponse, likeTotal.value)
         bookmarkTotal.value = resolveTotalFromListResponse(bookmarkResponse, bookmarkTotal.value)
     } catch (error) {
-        console.error(error)
+        logIfNotCanceled(error)
     }
 }
 
@@ -1003,12 +1049,11 @@ const getProfile = async () => {
             sex: normalizeSexValue(profile.sex ?? profile.gender ?? responseData.sex ?? responseData.gender)
         }
         const resolvedUserId = profile.userId ?? profile.id ?? responseData.userId ?? responseData.id ?? null
-        if (resolvedUserId != null && resolvedUserId !== '' && queryParams.targetUserId !== resolvedUserId) {
+        if (resolvedUserId != null && resolvedUserId !== '' && String(queryParams.targetUserId) !== String(resolvedUserId)) {
             queryParams.targetUserId = resolvedUserId
-            loadInitialTabTotals()
         }
     } catch (error) {
-        console.error(error)
+        logIfNotCanceled(error)
     }
 }
 
@@ -1038,7 +1083,7 @@ const getFollowStats = async () => {
 
         syncMutualCountFromListIfNeeded()
     } catch (error) {
-        console.error(error)
+        logIfNotCanceled(error)
     } finally {
         followStatsStore.setLoading(userId, false)
     }
@@ -1066,6 +1111,17 @@ const handleWorksFilterChange = value => {
 
 const handleCollectionChanged = () => getCollectionList(true)
 
+const buildCurrentUserPayload = () => {
+    const currentUserId = userStore.id ?? userStore.userId ?? null
+    return {
+        id: currentUserId,
+        userId: currentUserId,
+        nickName: userStore.nickName || userStore.name || '',
+        userName: userStore.name || userStore.nickName || '',
+        avatar: userStore.avatar || ''
+    }
+}
+
 const handlePreview = item => {
     if (!item) return
     if (item.postType === POST_TYPE.VIDEO) {
@@ -1078,7 +1134,7 @@ const handlePreview = item => {
             id: postId,
             src,
             post: normalized,
-            userInfo: userInfo.value,
+            userInfo: buildCurrentUserPayload(),
             from: route.fullPath
         })
         router.push({ name: 'VideoPlayer', params: { id: postId }, query: { from: route.fullPath } })
@@ -1309,6 +1365,16 @@ const openFollowDialog = type => {
     getFollowList()
 }
 
+const handleSelectFollowUser = item => {
+    const targetUserId = getFollowTargetId(item)
+    if (targetUserId == null || targetUserId === '') return
+    const targetUserIdText = String(targetUserId)
+    const selfUserId = queryParams.targetUserId ?? userStore.id
+    followDialogVisible.value = false
+    if (selfUserId != null && String(selfUserId) === targetUserIdText) return
+    router.push({ path: '/content/userProfile', query: { userId: targetUserIdText } })
+}
+
 onMounted(() => {
     syncSelfTargetUserId()
     getProfile()
@@ -1322,6 +1388,10 @@ onMounted(() => {
 })
 
 onActivated(() => {
+    if (!hasActivatedOnce) {
+        hasActivatedOnce = true
+        return
+    }
     syncSelfTargetUserId()
     getProfile()
     getFollowStats()
@@ -1360,4 +1430,8 @@ onBeforeUnmount(() => {
 
 @include profile.profile-header;
 @include profile.profile-skeleton;
+
+:deep(.avatar-container .avatar-img.is-previewable) {
+    cursor: zoom-in;
+}
 </style>

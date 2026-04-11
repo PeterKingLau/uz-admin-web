@@ -1,15 +1,15 @@
 /**
- * 通用样式布局处理
+ * 闁氨鏁ら弽宄扮础鐢啫鐪径鍕倞
  * Copyright (c) 2025 gaobang
  * Updated by Gemini: Fixed layout issues and Sass warnings
  */
 
+@use 'sass:color';
+
 /* ==========================================================================
-   1. 基础变量与工具类 (Utilities)
+   1. Utilities
    ========================================================================== */
-// 定义间距尺寸
 $spacing-sizes: 5, 8, 10, 15, 20;
-// 定义方向映射 (Key 必须带引号以避免 Sass 警告)
 $spacing-directions: (
     't': top,
     'r': right,
@@ -17,7 +17,6 @@ $spacing-directions: (
     'l': left
 );
 
-// 循环生成 margin/padding 类
 @each $size in $spacing-sizes {
     @each $dir-key, $dir-value in $spacing-directions {
         .m#{$dir-key}#{$size} {
@@ -28,13 +27,12 @@ $spacing-directions: (
         }
     }
 }
-
 .mb8 {
     margin-bottom: 8px;
 }
 
 /* ==========================================================================
-   2. 排版与文本 (Typography)
+   2. 閹烘帞澧楁稉搴㈡瀮閺?(Typography)
    ========================================================================== */
 h1,
 h2,
@@ -76,11 +74,10 @@ h6,
     color: var(--el-text-color-placeholder);
 }
 .text-navy {
-    color: #1ab394;
-} // 保留特定业务色
-
+    color: var(--el-color-success);
+} // 娣囨繄鏆€閻楃懓鐣炬稉姘閼?
 /* ==========================================================================
-   3. Element Plus 组件覆写 (Global Overrides)
+   3. Element Plus 缂佸嫪娆㈢憰鍡楀晸 (Global Overrides)
    ========================================================================== */
 
 /* Form Label */
@@ -158,7 +155,7 @@ h6,
 }
 
 /* ==========================================================================
-   4. 抽屉样式 (Modern Drawer)
+   4. 閹惰棄鐪介弽宄扮础 (Modern Drawer)
    ========================================================================== */
 .modern-drawer {
     .el-drawer__header {
@@ -243,7 +240,7 @@ h6,
 }
 
 
-/* 图片上传组件样式 (同样放在全局) */
+/* 閸ュ墽澧栨稉濠佺炊缂佸嫪娆㈤弽宄扮础 (閸氬本鐗遍弨鎯ф躬閸忋劌鐪? */
 .mini-upload {
     .el-upload--picture-card {
         width: 80px;
@@ -271,7 +268,7 @@ h6,
     }
 }
 
-/* 权限树容器 */
+/* 閺夊啴妾洪弽鎴濐啇閸?*/
 .permission-container {
     width: 100%;
     display: flex;
@@ -302,7 +299,7 @@ h6,
 }
 
 /* ==========================================================================
-   6. 其他组件 (Misc)
+   6. 閸忔湹绮紒鍕 (Misc)
    ========================================================================== */
 .search-form .el-form-item {
     margin-bottom: 16px;
@@ -370,27 +367,27 @@ h6,
     background: var(--el-bg-color);
 }
 
-/* 按钮颜色变量 (使用 Map 修复 Sass 警告) */
+/* 閹稿鎸虫０婊嗗閸欐﹢鍣?(娴ｈ法鏁?Map 娣囶喖顦?Sass 鐠€锕€鎲? */
 $cyan-color: #20b2aa;
-$cyan-hover: mix(#fff, $cyan-color, 15%);
+$cyan-hover: color.mix(#fff, $cyan-color, $weight: 15%);
 
 .el-button--cyan {
     background-color: $cyan-color;
     border-color: $cyan-color;
-    color: #ffffff;
+    color: var(--el-color-white);
 
     &:hover,
     &:focus {
         background: $cyan-hover;
         border-color: $cyan-hover;
-        color: #ffffff;
+        color: var(--el-color-white);
     }
 
     &:active,
     &.is-active {
-        background: mix(#000, $cyan-color, 10%);
-        border-color: mix(#000, $cyan-color, 10%);
-        color: #ffffff;
+        background: color.mix(#000, $cyan-color, $weight: 10%);
+        border-color: color.mix(#000, $cyan-color, $weight: 10%);
+        color: var(--el-color-white);
     }
 }
 
@@ -405,7 +402,7 @@ $cyan-hover: mix(#fff, $cyan-color, 15%);
     float: right !important;
 }
 
-/* 移动端适配 */
+/* 缁夎濮╃粩顖炩偓鍌炲帳 */
 @media (max-width: 768px) {
     .pagination-container .el-pagination {
         > .el-pagination__jump,
@@ -420,7 +417,7 @@ $cyan-hover: mix(#fff, $cyan-color, 15%);
 
 .sortable-ghost {
     opacity: 0.8;
-    color: #fff !important;
+    color: var(--el-color-white) !important;
     background: var(--el-color-success) !important;
 }
 

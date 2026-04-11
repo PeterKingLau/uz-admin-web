@@ -47,7 +47,12 @@
 
                 <div v-else key="content" class="user-info-wrapper">
                     <div class="avatar-container">
-                        <el-avatar :size="100" :src="stableUserInfo.avatar" class="avatar-img" />
+                        <el-avatar
+                            :size="100"
+                            :src="stableUserInfo.avatar"
+                            :class="['avatar-img', { 'is-previewable': canPreviewAvatar }]"
+                            @click="handleAvatarPreview"
+                        />
                     </div>
 
                     <div class="info-content">
@@ -169,13 +174,17 @@
             :is-follow-action-loading="isFollowActionLoading"
             :toggle-follow="toggleFollow"
             @tab-click="handleFollowTabClick"
+            @select-user="handleSelectFollowUser"
         />
+
+        <el-image-viewer v-if="avatarPreviewVisible" :url-list="avatarPreviewList" @close="closeAvatarPreview" />
     </div>
 </template>
 
 <script setup>
 defineOptions({ name: 'ViewsContentUserProfile' })
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
+import { ElImageViewer } from 'element-plus'
 import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
@@ -190,6 +199,7 @@ import { buildTextCoverDataUrl } from '@/utils/textCover'
 import { useUserProfileStore } from '@/store/modules/userProfile'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
+import { resolveCollectionVideoUrl } from '@/features/content/personProfile/videoModule/helpers'
 import {
     appendPreviewComment,
     formatRelativeTime,
@@ -207,6 +217,7 @@ import ContentModule from '@/views/content/personProfile/components/ContentModul
 import PostPreviewModal from '@/views/content/personProfile/components/Modal/PostPreviewModal.vue'
 import FollowDialog from '@/views/content/personProfile/components/Dialog/FollowDialog.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
+import defaultAvatar from '@/assets/images/default-avatar.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -236,6 +247,7 @@ const followStats = ref({
     followers: 0,
     mutualCount: 0
 })
+const avatarPreviewVisible = ref(false)
 
 const previewVisible = ref(false)
 const previewPost = ref(null)
@@ -275,6 +287,7 @@ const followRequestId = ref(0)
 const followActionLoading = reactive({})
 let followObserver = null
 let cleanupTimer = null
+let hasActivatedOnce = false
 
 const queryParams = reactive({
     pageNum: 1,
@@ -328,6 +341,22 @@ const normalizeSexValue = value => {
     return String(value)
 }
 
+const resolveAvatarSrc = value => {
+    const text = String(value ?? '').trim()
+    if (!text) return ''
+    return getImgUrl(text)
+}
+
+const resolveDisplayAvatar = profile => {
+    const profileAvatar = resolveAvatarSrc(profile?.avatar)
+    if (profileAvatar) return profileAvatar
+    if (isSelfProfile.value) {
+        const selfAvatar = resolveAvatarSrc(userStore.avatar) || String(userStore.avatar || '').trim()
+        if (selfAvatar) return selfAvatar
+    }
+    return defaultAvatar
+}
+
 const hasProfileCache = computed(() => {
     const targetUserId = resolveTargetUserId()
     return userProfileStore.getCachedProfile(targetUserId) !== null
@@ -345,7 +374,7 @@ const profileLoading = computed(() => {
 
 const userInfo = computed(() => {
     const profile = profileInfo.value || {}
-    const avatar = profile.avatar != null && String(profile.avatar).trim() ? getImgUrl(profile.avatar) : isSelfProfile.value ? userStore.avatar || '' : ''
+    const avatar = resolveDisplayAvatar(profile)
     const stats = clampStats(followStats.value.following, followStats.value.followers, followStats.value.mutualCount)
     return {
         ...profile,
@@ -359,11 +388,27 @@ const userInfo = computed(() => {
     }
 })
 
+const avatarPreviewList = computed(() => {
+    const avatar = String(stableUserInfo.value.avatar || '').trim()
+    if (!avatar || avatar === defaultAvatar) return []
+    return [avatar]
+})
+const canPreviewAvatar = computed(() => avatarPreviewList.value.length > 0)
+
+const handleAvatarPreview = () => {
+    if (!canPreviewAvatar.value) return
+    avatarPreviewVisible.value = true
+}
+
+const closeAvatarPreview = () => {
+    avatarPreviewVisible.value = false
+}
+
 const HEADER_MIN_SKELETON_MS = 240
 const headerUiLoading = ref(true)
 const stableUserInfo = ref({
     bgImage: '',
-    avatar: '',
+    avatar: defaultAvatar,
     nickName: '未知用户',
     signature: '',
     following: 0,
@@ -424,7 +469,7 @@ watch(
             const profile = cached.profile || {}
             syncStableUserInfo({
                 ...profile,
-                avatar: profile.avatar != null && String(profile.avatar).trim() ? getImgUrl(profile.avatar) : isSelfProfile.value ? userStore.avatar || '' : '',
+                avatar: resolveDisplayAvatar(profile),
                 nickName: profile.nickName || (isSelfProfile.value ? userStore.nickName : '') || '未知用户',
                 following: stats.following,
                 followers: stats.followers,
@@ -440,7 +485,7 @@ watch(
         } else {
             syncStableUserInfo({
                 bgImage: '',
-                avatar: '',
+                avatar: defaultAvatar,
                 nickName: '未知用户',
                 signature: '',
                 following: 0,
@@ -696,8 +741,7 @@ const getCover = item => {
 }
 
 const getVideoUrl = item => {
-    const mediaList = getMediaList(item)
-    return mediaList[1] || mediaList[0] || ''
+    return resolveCollectionVideoUrl(item || {})
 }
 
 const getTextCover = item => {
@@ -744,8 +788,9 @@ const resolveAvatar = avatar => getImgUrl(avatar || '')
 const getCommentName = comment => comment?.nickName || comment?.userName || comment?.username || comment?.authorName || '用户'
 
 const canDeleteComment = comment => {
-    const commentUserId = getCommentUserId(comment)
     if (userStore.id == null) return false
+    const commentUserId = getCommentUserId(comment)
+    if (commentUserId == null) return false
     return String(userStore.id) === String(commentUserId)
 }
 
@@ -1418,6 +1463,17 @@ const handleWorksFilterChange = value => {
 
 const handleCollectionChanged = () => getCollectionList(true)
 
+const buildCurrentUserPayload = () => {
+    const currentUserId = userStore.id ?? userStore.userId ?? null
+    return {
+        id: currentUserId,
+        userId: currentUserId,
+        nickName: userStore.nickName || userStore.name || '',
+        userName: userStore.name || userStore.nickName || '',
+        avatar: userStore.avatar || ''
+    }
+}
+
 const handlePreview = item => {
     if (!item) return
     if (item.postType === POST_TYPE.VIDEO) {
@@ -1430,7 +1486,7 @@ const handlePreview = item => {
             id: postId,
             src,
             post: normalized,
-            userInfo: userInfo.value,
+            userInfo: buildCurrentUserPayload(),
             from: route.fullPath
         })
         router.push({ name: 'VideoPlayer', params: { id: postId }, query: { from: route.fullPath } })
@@ -1711,6 +1767,19 @@ const openFollowDialog = type => {
     getFollowList()
 }
 
+const handleSelectFollowUser = item => {
+    const targetUserId = getFollowTargetId(item)
+    if (targetUserId == null || targetUserId === '') return
+    const targetUserIdText = String(targetUserId)
+    followDialogVisible.value = false
+    if (selfUserId.value != null && String(selfUserId.value) === targetUserIdText) {
+        redirectToPersonProfile()
+        return
+    }
+    if (routeUserId.value != null && String(routeUserId.value) === targetUserIdText) return
+    router.push({ path: '/content/userProfile', query: { userId: targetUserIdText } })
+}
+
 const resetProfileLists = () => {
     postList.value = []
     noMore.value = false
@@ -1754,6 +1823,7 @@ const redirectToPersonProfile = () => {
 
 const refreshProfileView = async () => {
     const targetUserId = routeUserId.value
+    closeAvatarPreview()
     if (!targetUserId) {
         if (redirectToPersonProfile()) return
     }
@@ -1791,12 +1861,17 @@ onMounted(() => {
 })
 
 onActivated(() => {
+    if (!hasActivatedOnce) {
+        hasActivatedOnce = true
+        return
+    }
     refreshProfileView()
 })
 
 onBeforeUnmount(() => {
     followObserver?.disconnect()
     followObserver = null
+    closeAvatarPreview()
     isBodyScrollLocked.value = false
 
     if (cleanupTimer !== null) {
@@ -1815,6 +1890,8 @@ onBeforeUnmount(() => {
 
 @include profile.profile-header(true);
 @include profile.profile-skeleton;
+
+:deep(.avatar-container .avatar-img.is-previewable) {
+    cursor: zoom-in;
+}
 </style>
-
-

@@ -107,8 +107,30 @@ export const parseMediaRaw = (raw: unknown): any[] => {
     return []
 }
 
+const resolveMediaItemUrl = (item: unknown) => {
+    if (typeof item === 'string') return String(item).trim()
+    return String((item as AnyRecord)?.url || (item as AnyRecord)?.src || (item as AnyRecord)?.path || (item as AnyRecord)?.fileUrl || '').trim()
+}
+
+const resolveMediaPairByContract = (post: AnyRecord) => {
+    const mediaFields = [post?.mediaUrls, post?.mediaUrl, post?.mediaList, post?.files, post?.resources, post?.videos]
+    for (const raw of mediaFields) {
+        const urls = parseMediaRaw(raw)
+            .map(item => resolveMediaItemUrl(item))
+            .filter(Boolean)
+        if (urls.length >= 2) {
+            return {
+                cover: urls[0],
+                video: urls[1]
+            }
+        }
+    }
+    return null
+}
+
 export const resolveMediaList = (post: AnyRecord) => [
     ...parseMediaRaw(post?.mediaUrls),
+    ...parseMediaRaw(post?.mediaUrl),
     ...parseMediaRaw(post?.mediaList),
     ...parseMediaRaw(post?.files),
     ...parseMediaRaw(post?.resources),
@@ -118,24 +140,83 @@ export const resolveMediaList = (post: AnyRecord) => [
 export const resolveMediaUrl = (url: unknown) => (url ? getImgUrl(String(url)) : '')
 
 export const isVideoUrl = (url: unknown) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(String(url || ''))
+const IMAGE_URL_RE = /\.(jpg|jpeg|png|gif|bmp|webp|avif|svg)(\?|#|$)/i
+const VIDEO_TYPE_HINT_FIELDS = ['mediaType', 'fileType', 'type', 'resourceType', 'mimeType', 'contentType', 'bizType', 'fileCategory'] as const
+
+const isImageUrl = (url: unknown) => IMAGE_URL_RE.test(String(url || ''))
+
+const isVideoTypeHint = (value: unknown) => {
+    if (value == null) return false
+    if (typeof value === 'number') return value === Number(POST_TYPE.VIDEO) || value === 3
+    const text = String(value).trim().toLowerCase()
+    if (!text) return false
+    if (text.includes('video')) return true
+    return ['3', 'mp4', 'mov', 'm3u8', 'webm', 'ogg', 'ogv', 'avi', 'wmv', 'flv'].includes(text)
+}
+
+const hasVideoTypeHint = (item: AnyRecord) =>
+    VIDEO_TYPE_HINT_FIELDS.some(field => {
+        const value = item?.[field]
+        return isVideoTypeHint(value)
+    })
 
 export const resolveCollectionVideoUrl = (post: AnyRecord) => {
-    const direct = post?.videoUrl || post?.video || post?.url || post?.src || ''
-    if (direct) return resolveMediaUrl(direct)
-    const list = resolveMediaList(post)
-    const normalized = list
-        .map(item => {
-            if (typeof item === 'string') return item
-            return item?.url || item?.src || item?.path || item?.fileUrl || ''
-        })
-        .filter(Boolean)
-    const candidate = normalized.find(isVideoUrl) || normalized[0] || ''
-    return resolveMediaUrl(candidate)
+    const isVideoPost = String(post?.postType ?? '') === String(POST_TYPE.VIDEO)
+    const mediaPair = resolveMediaPairByContract(post)
+    if (mediaPair?.video) {
+        const normalizedByContract = resolveMediaUrl(mediaPair.video)
+        if (normalizedByContract) return normalizedByContract
+    }
+
+    const directStrongCandidates = [post?.videoUrl, post?.video, post?.playUrl, post?.playbackUrl, post?.videoSrc]
+    for (const candidate of directStrongCandidates) {
+        const normalized = resolveMediaUrl(candidate)
+        if (!normalized) continue
+        if (isVideoUrl(normalized) || (isVideoPost && !isImageUrl(normalized))) return normalized
+    }
+
+    const directWeakCandidates = [post?.url, post?.src]
+    for (const candidate of directWeakCandidates) {
+        const normalized = resolveMediaUrl(candidate)
+        if (!normalized) continue
+        if (isVideoUrl(normalized) || (isVideoPost && !isImageUrl(normalized))) return normalized
+    }
+
+    const mediaList = resolveMediaList(post)
+    const entries = mediaList
+        .map((item, index) => ({
+            index,
+            raw: typeof item === 'object' && item ? (item as AnyRecord) : null,
+            url: resolveMediaItemUrl(item)
+        }))
+        .filter(item => Boolean(item.url))
+
+    if (!entries.length) return ''
+
+    const hinted = entries.find(item => item.raw && hasVideoTypeHint(item.raw))
+    if (hinted) return resolveMediaUrl(hinted.url)
+
+    const byExt = entries.find(item => isVideoUrl(item.url))
+    if (byExt) return resolveMediaUrl(byExt.url)
+
+    if (!isVideoPost) return ''
+
+    if (entries.length > 1 && isImageUrl(entries[0].url)) {
+        const nextNonImage = entries.slice(1).find(item => !isImageUrl(item.url))
+        if (nextNonImage) return resolveMediaUrl(nextNonImage.url)
+    }
+
+    const tailNonImage = [...entries].reverse().find(item => !isImageUrl(item.url))
+    if (tailNonImage) return resolveMediaUrl(tailNonImage.url)
+
+    return resolveMediaUrl(entries[entries.length - 1].url)
 }
 
 export const resolveCollectionCover = (post: AnyRecord) => {
     const cover = post?.cover || post?.coverUrl || post?.thumbnail || post?.poster || post?.image || post?.coverImage || ''
     if (cover) return resolveMediaUrl(cover)
+    const mediaPair = resolveMediaPairByContract(post)
+    if (mediaPair?.cover) return resolveMediaUrl(mediaPair.cover)
     const list = resolveMediaList(post)
     const candidate = list
         .map(item => {

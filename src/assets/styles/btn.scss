@@ -1,53 +1,53 @@
-@import './variables.module.scss';
+@use './variables.module.scss' as *;
 
 // ===============================================
-// 1. Element Plus 按钮覆盖与扩展
+// 1. Element Plus 鎸夐挳瑕嗙洊涓庢墿灞?
 // ===============================================
 
-// 修正表格中的小按钮样式
+// 淇琛ㄦ牸涓殑灏忔寜閽牱寮?
 .fixed-width .el-button--small {
     padding-left: 0;
     padding-right: 0;
     width: inherit;
 }
 
-// 顶部右侧按钮
+// 椤堕儴鍙充晶鎸夐挳
 .top-right-btn {
     margin-left: auto;
 }
 
-// 自定义青色按钮 (仿旧版 Element UI 风格)
+// 鑷畾涔夐潚鑹叉寜閽?(浠挎棫鐗?Element UI 椋庢牸)
 .el-button--cyan {
     background-color: $color-cyan;
     border-color: $color-cyan;
-    color: #ffffff;
+    color: var(--el-color-white);
 
     &:focus,
     &:hover {
         background: $color-cyan-hover;
         border-color: $color-cyan-hover;
-        color: #ffffff;
+        color: var(--el-color-white);
     }
 
     &.is-active,
     &:active {
         background: $color-cyan;
         border-color: $color-cyan;
-        color: #ffffff;
+        color: var(--el-color-white);
     }
 
-    // 禁用状态
+    // 绂佺敤鐘舵€?
     &.is-disabled {
-        background-color: #a0cfff; // 简化的禁用色，可视情况调整
-        border-color: #a0cfff;
+        background-color: var(--el-color-primary-light-5);
+        border-color: var(--el-color-primary-light-5);
     }
 }
 
 // ===============================================
-// 2. 特效按钮 (.pan-btn) 核心逻辑
+// 2. 鐗规晥鎸夐挳 (.pan-btn) 鏍稿績閫昏緫
 // ===============================================
 
-// 定义颜色映射 Map (键名: 颜色变量)
+// 瀹氫箟棰滆壊鏄犲皠 Map (閿悕: 棰滆壊鍙橀噺)
 $pan-btn-colors: (
     'blue': $blue,
     'light-blue': $light-blue,
@@ -58,13 +58,13 @@ $pan-btn-colors: (
     'yellow': $yellow
 );
 
-// 混合宏：生成颜色行为
+// 娣峰悎瀹忥細鐢熸垚棰滆壊琛屼负
 @mixin colorBtn($color) {
     background: $color;
 
     &:hover {
         color: $color;
-        // 悬停时背景变白，通过伪元素实现边框动画
+        // 鎮仠鏃惰儗鏅彉鐧斤紝閫氳繃浼厓绱犲疄鐜拌竟妗嗗姩鐢?
         &:before,
         &:after {
             background: $color;
@@ -72,10 +72,10 @@ $pan-btn-colors: (
     }
 }
 
-// .pan-btn 基础外形
+// .pan-btn 鍩虹澶栧舰
 .pan-btn {
     font-size: 14px;
-    color: #fff;
+    color: var(--el-color-white);
     padding: 14px 36px;
     border-radius: 8px;
     border: none;
@@ -83,10 +83,10 @@ $pan-btn-colors: (
     transition: 600ms ease all;
     position: relative;
     display: inline-block;
-    cursor: pointer; // 补充手型
+    cursor: pointer; // 琛ュ厖鎵嬪瀷
 
     &:hover {
-        background: #fff;
+        background: var(--el-color-white);
 
         &:before,
         &:after {
@@ -95,7 +95,7 @@ $pan-btn-colors: (
         }
     }
 
-    // 动画线条 (上/右)
+    // 鍔ㄧ敾绾挎潯 (涓?鍙?
     &:before,
     &:after {
         content: '';
@@ -107,7 +107,7 @@ $pan-btn-colors: (
         transition: 400ms ease all;
     }
 
-    // 动画线条 (下/左)
+    // 鍔ㄧ敾绾挎潯 (涓?宸?
     &::after {
         right: inherit;
         top: inherit;
@@ -116,7 +116,7 @@ $pan-btn-colors: (
     }
 }
 
-// 循环生成所有颜色类: .blue-btn, .red-btn ...
+// 寰幆鐢熸垚鎵€鏈夐鑹茬被: .blue-btn, .red-btn ...
 @each $key, $color in $pan-btn-colors {
     .#{$key}-btn {
         @include colorBtn($color);
@@ -124,7 +124,7 @@ $pan-btn-colors: (
 }
 
 // ===============================================
-// 3. 其他自定义按钮
+// 3. 鍏朵粬鑷畾涔夋寜閽?
 // ===============================================
 
 .custom-button {
@@ -132,9 +132,9 @@ $pan-btn-colors: (
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
-    background: #fff;
+    background: var(--el-color-white);
     color: var(--el-color-primary);
-    border: 1px solid #dcdfe6;
+    border: 1px solid var(--el-border-color);
     text-align: center;
     box-sizing: border-box;
     outline: 0;
@@ -151,14 +151,14 @@ $pan-btn-colors: (
 }
 
 // ===============================================
-// 4. 暗黑模式适配 (Dark Mode)
+// 4. 鏆楅粦妯″紡閫傞厤 (Dark Mode)
 // ===============================================
 html.dark {
-    // 针对 pan-btn 的特殊处理
-    // 因为 pan-btn hover 时背景是白色(#fff)，在暗黑模式下会非常亮
-    // 这里我们稍微降低亮度，或者改为深灰
+    // 閽堝 pan-btn 鐨勭壒娈婂鐞?
+    // 鍥犱负 pan-btn hover 鏃惰儗鏅槸鐧借壊(#fff)锛屽湪鏆楅粦妯″紡涓嬩細闈炲父浜?
+    // 杩欓噷鎴戜滑绋嶅井闄嶄綆浜害锛屾垨鑰呮敼涓烘繁鐏?
     .pan-btn:hover {
-        background: #e5eaf3; // 稍微柔和一点的白
+        background: var(--el-fill-color-light);
     }
 
     .custom-button {

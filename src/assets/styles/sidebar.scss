@@ -1,8 +1,8 @@
-@import './variables.module.scss';
-@import './mixin.scss';
+@use './variables.module.scss' as *;
+@use './mixin.scss' as *;
 
 :root {
-    --menu-hover-bg: #f5f7fa;
+    --menu-hover-bg: var(--el-fill-color-light);
     --menu-active-bg: var(--el-color-primary-light-9);
     --menu-active-text: var(--el-color-primary);
     --sidebar-width: 220px;
@@ -10,8 +10,8 @@
 }
 
 html.dark {
-    --menu-hover-bg: #1f1f1f;
-    --menu-active-bg: #1f1f1f;
+    --menu-hover-bg: var(--el-fill-color-dark);
+    --menu-active-bg: var(--el-fill-color-dark);
     --menu-active-text: var(--el-color-primary);
 }
 
@@ -232,17 +232,17 @@ html.dark {
 
 html.dark {
     #app .sidebar-container {
-        border-right: 1px solid #363637;
+        border-right: 1px solid var(--el-border-color);
         box-shadow: none;
     }
 
     .el-menu--popup {
-        background-color: #141414 !important;
+        background-color: var(--el-bg-color-overlay) !important;
 
         .el-menu-item,
         .el-sub-menu__title {
             background-color: transparent !important;
-            color: #e5eaf3 !important;
+            color: var(--el-text-color-primary) !important;
 
             &:hover {
                 background-color: var(--menu-hover-bg) !important;

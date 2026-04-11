@@ -26,7 +26,7 @@
 
                         <video
                             ref="playerRef"
-                            :src="src"
+                            :src="playbackSrc"
                             :poster="videoPosterUrl || undefined"
                             class="video-element"
                             draggable="false"
@@ -165,8 +165,18 @@
                         <transition name="video-buffer-fade">
                             <div v-if="showVideoBuffering && !isAudioMode" class="video-buffer-overlay" aria-live="polite">
                                 <div class="video-buffer-indicator">
-                                    <Icon icon="mdi:loading" class="buffer-icon" />
-                                    <span>{{ hasRenderedFirstFrame ? '正在缓冲...' : '正在加载视频...' }}</span>
+                                    <div class="buffer-icon-wrapper" aria-hidden="true">
+                                        <Icon icon="mdi:loading" class="buffer-icon" />
+                                        <span class="buffer-ring"></span>
+                                    </div>
+                                    <div class="buffer-content">
+                                        <span class="buffer-text">{{ hasRenderedFirstFrame ? '正在缓冲...' : '视频加载中...' }}</span>
+                                        <span class="buffer-dots" aria-hidden="true">
+                                            <i></i>
+                                            <i></i>
+                                            <i></i>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </transition>
@@ -174,6 +184,15 @@
                         <div v-if="showPauseOverlay && isPlayerUiReady" class="pause-overlay" @click.stop="togglePlay">
                             <Icon icon="mdi:play" class="pause-overlay-icon" />
                         </div>
+
+                        <transition name="video-volume-fade">
+                            <div v-if="volumeIndicatorVisible && !isAudioMode" class="video-volume-overlay" aria-live="polite" aria-atomic="true">
+                                <div class="video-volume-indicator">
+                                    <Icon :icon="volumeIndicatorIcon" class="video-volume-icon" />
+                                    <span class="video-volume-value">{{ volumeIndicatorPercent }}%</span>
+                                </div>
+                            </div>
+                        </transition>
 
                         <div class="top-bar" :class="{ 'hide-controls': !controlsVisible && isPlaying }">
                             <div class="close-btn" @click.stop="handleClose">
@@ -289,14 +308,6 @@
 
                                         <div class="icon-btn" :class="{ disabled: !pipSupported }" title="画中画" @click="togglePiP">
                                             <Icon :icon="pipIcon" />
-                                        </div>
-
-                                        <div
-                                            class="icon-btn"
-                                            :class="{ active: isAudioMode, loading: audioModeBusy, rotating: isAudioMode }"
-                                            @click="handleToggleAudioMode"
-                                        >
-                                            <Icon :icon="isAudioMode ? 'mdi:music-circle' : 'mdi:music-note-outline'" />
                                         </div>
 
                                         <div class="icon-btn" title="全屏" @click="toggleFullscreen">
@@ -457,10 +468,27 @@ const visible = computed({
 })
 
 const postData = computed(() => props.post || {})
-const userInfoRef = computed(() => props.userInfo || {})
 const authorInfoRef = computed(() => props.authorInfo || {})
 const srcRef = computed(() => props.src || '')
 const videoPosterUrl = computed(() => resolveVideoPoster(postData.value))
+
+const currentUserInfoRef = computed(() => {
+    const propUserInfo = props.userInfo || {}
+    const propUserId = propUserInfo?.id ?? propUserInfo?.userId ?? null
+    const storeUserId = userStore.id ?? userStore.userId ?? null
+
+    if (storeUserId == null) return propUserInfo
+    if (propUserId != null && String(propUserId) === String(storeUserId)) return propUserInfo
+
+    return {
+        ...propUserInfo,
+        id: userStore.id ?? userStore.userId ?? null,
+        userId: userStore.id ?? userStore.userId ?? null,
+        nickName: userStore.nickName || userStore.name || propUserInfo.nickName || propUserInfo.userName || '',
+        userName: userStore.name || userStore.nickName || propUserInfo.userName || propUserInfo.nickName || '',
+        avatar: userStore.avatar || propUserInfo.avatar || ''
+    }
+})
 
 const isLiked = computed(() =>
     resolveActiveFlag(postData.value?.like ?? postData.value?.isLiked ?? postData.value?.liked ?? postData.value?.likeStatus ?? postData.value?.isLike)
@@ -480,7 +508,7 @@ const isFollowing = computed(() =>
             postData.value?.following
     )
 )
-const currentUserId = computed(() => props.userInfo?.id ?? props.userInfo?.userId ?? userStore.id ?? userStore.userId ?? null)
+const currentUserId = computed(() => currentUserInfoRef.value?.id ?? currentUserInfoRef.value?.userId ?? null)
 const authorUserId = computed(
     () => postData.value?.userId ?? postData.value?.authorId ?? postData.value?.createBy ?? postData.value?.user?.id ?? postData.value?.author?.id ?? null
 )
@@ -509,6 +537,7 @@ const {
     videoFitClass,
     usePortraitGlass,
     playerShellStyle,
+    playbackSrc,
     videoCoverOverlayVisible,
     showVideoBuffering,
     showPauseOverlay,
@@ -531,6 +560,9 @@ const {
     muted,
     volumePanelVisible,
     volumePercent,
+    volumeIndicatorVisible,
+    volumeIndicatorIcon,
+    volumeIndicatorPercent,
     rates,
     playbackRate,
     pipSupported,
@@ -645,7 +677,7 @@ const {
 } = useVideoCommentsPanel({
     visible,
     postData,
-    userInfo: userInfoRef,
+    userInfo: currentUserInfoRef,
     authorInfo: authorInfoRef,
     authorUserId,
     authorName: panelAuthorName,

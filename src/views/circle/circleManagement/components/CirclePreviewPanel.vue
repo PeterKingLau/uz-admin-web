@@ -51,7 +51,7 @@
                     <div class="content-body circle-content-body">
                         <div class="circle-title-row">
                             <h1 class="post-title circle-title">{{ props.name || '圈子名称' }}</h1>
-                            <el-tag size="small" effect="dark" class="circle-state-tag">新圈子</el-tag>
+                            <el-tag size="small" effect="plain" class="circle-state-tag">新圈子</el-tag>
                         </div>
 
                         <div class="circle-meta-row">
@@ -175,22 +175,36 @@ onBeforeUnmount(() => {
 .circle-preview-wrapper {
     padding-left: 20px;
     border-left: 1px dashed var(--el-border-color);
+    --preview-primary: var(--el-color-primary);
+    --nav-bg: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
+    --nav-border: color-mix(in srgb, var(--el-border-color) 72%, transparent);
+    --surface-muted: color-mix(in srgb, var(--el-fill-color-light) 82%, var(--el-bg-color));
+    --surface-subtle: color-mix(in srgb, var(--el-fill-color-light) 62%, var(--el-bg-color));
+    --surface-card: var(--el-bg-color-overlay);
+    --text-primary: var(--el-text-color-primary);
+    --text-regular: var(--el-text-color-regular);
+    --text-secondary: var(--el-text-color-secondary);
+    --text-placeholder: var(--el-text-color-placeholder);
+    --primary-soft: color-mix(in srgb, var(--el-color-primary-light-9) 78%, var(--el-bg-color-overlay));
 }
 
 .circle-scroll-area {
-    background: radial-gradient(circle at top, color-mix(in srgb, var(--el-color-primary-light-9) 62%, transparent), transparent 42%), var(--surface-muted);
+    background:
+        radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--el-color-primary-light-9) 52%, transparent), transparent 44%),
+        linear-gradient(180deg, color-mix(in srgb, var(--el-fill-color-light) 40%, transparent), transparent 22%), var(--surface-muted);
 }
 
 .circle-cover-card {
     position: relative;
     margin: 16px 16px 0;
-    height: 220px;
+    height: 214px;
     border-radius: 24px;
     overflow: hidden;
     background: var(--surface-subtle);
+    border: 1px solid color-mix(in srgb, var(--el-border-color) 66%, transparent);
     box-shadow:
-        0 18px 36px -22px color-mix(in srgb, var(--el-color-black) 28%, transparent),
-        inset 0 0 0 1px color-mix(in srgb, var(--el-color-white) 16%, transparent);
+        0 12px 24px -18px color-mix(in srgb, var(--el-color-black) 20%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--el-color-white) 22%, transparent);
 }
 
 .circle-cover-image {
@@ -206,23 +220,27 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     font-size: 48px;
-    color: var(--text-placeholder);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary-light-9) 80%, var(--surface-subtle)), var(--surface-card));
+    color: color-mix(in srgb, var(--text-placeholder) 84%, var(--el-color-primary));
+    background:
+        radial-gradient(circle at 22% 24%, color-mix(in srgb, var(--el-color-primary-light-8) 46%, transparent), transparent 46%),
+        linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary-light-9) 72%, var(--surface-subtle)), var(--surface-card));
 }
 
 .circle-cover-overlay {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(to top, color-mix(in srgb, var(--el-color-black) 32%, transparent), transparent 55%),
-        linear-gradient(to bottom, color-mix(in srgb, var(--el-color-white) 8%, transparent), transparent 24%);
+        linear-gradient(to top, color-mix(in srgb, var(--el-color-black) 26%, transparent), transparent 58%),
+        linear-gradient(to bottom, color-mix(in srgb, var(--el-color-white) 12%, transparent), transparent 26%);
 }
 
 .circle-content-body {
-    margin: -28px 16px 8px;
+    margin: -24px 16px 10px;
     border-radius: 28px 28px 20px 20px;
     position: relative;
-    box-shadow: 0 16px 30px -24px color-mix(in srgb, var(--el-color-black) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--el-border-color) 58%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-bg-color-overlay) 96%, var(--el-color-white)), var(--surface-card));
+    box-shadow: 0 14px 28px -22px color-mix(in srgb, var(--el-color-black) 20%, transparent);
 }
 
 .circle-title-row {
@@ -241,6 +259,10 @@ onBeforeUnmount(() => {
     border-radius: 999px;
     padding: 0 10px;
     flex-shrink: 0;
+    font-weight: 600;
+    --el-tag-border-color: color-mix(in srgb, var(--preview-primary) 35%, var(--el-border-color));
+    --el-tag-bg-color: color-mix(in srgb, var(--preview-primary) 12%, transparent);
+    --el-tag-text-color: var(--preview-primary);
 }
 
 .circle-meta-row {
@@ -251,7 +273,8 @@ onBeforeUnmount(() => {
 }
 
 .circle-meta-card {
-    background: var(--surface-subtle);
+    background: color-mix(in srgb, var(--surface-subtle) 88%, var(--surface-card));
+    border: 1px solid color-mix(in srgb, var(--el-border-color) 64%, transparent);
     border-radius: 16px;
     padding: 12px 14px;
     display: flex;
@@ -288,7 +311,8 @@ onBeforeUnmount(() => {
     margin: 0 16px 16px;
     min-height: auto;
     border-radius: 24px;
-    box-shadow: 0 16px 30px -24px color-mix(in srgb, var(--el-color-black) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--el-border-color) 56%, transparent);
+    box-shadow: 0 14px 28px -24px color-mix(in srgb, var(--el-color-black) 20%, transparent);
 }
 
 .circle-highlight-list {
@@ -302,6 +326,9 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--surface-subtle) 72%, transparent);
 }
 
 .highlight-icon {
@@ -326,6 +353,7 @@ onBeforeUnmount(() => {
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 4px;
+    letter-spacing: 0.15px;
 }
 
 .highlight-desc {
@@ -338,7 +366,8 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 40px;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--preview-primary), color-mix(in srgb, var(--preview-primary) 72%, #7cafff));
+    border: 1px solid color-mix(in srgb, var(--preview-primary) 34%, transparent);
+    background: linear-gradient(135deg, var(--preview-primary), color-mix(in srgb, var(--preview-primary) 76%, var(--el-color-white)));
     color: var(--el-color-white);
     display: flex;
     align-items: center;
@@ -346,6 +375,19 @@ onBeforeUnmount(() => {
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.2px;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        filter 0.2s ease;
+
+    &:hover {
+        filter: saturate(1.05);
+        box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--preview-primary) 58%, transparent);
+    }
+
+    &:active {
+        transform: translateY(1px);
+    }
 }
 
 @media screen and (max-width: 1200px) {

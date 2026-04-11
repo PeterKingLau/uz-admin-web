@@ -34,7 +34,7 @@
             </div>
 
             <div class="follow-list" ref="followListRef">
-                <div v-for="item in followList" :key="item.id || item.userId" class="follow-user-row">
+                <div v-for="item in followList" :key="item.id || item.userId" class="follow-user-row" @click="handleSelectUser(item)">
                     <div class="left-section">
                         <el-avatar :size="48" :src="resolveAvatarSrc(item.avatar)" class="row-avatar">
                             <Icon icon="mdi:account-outline" class="avatar-placeholder-icon" />
@@ -101,7 +101,7 @@ const props = defineProps({
     toggleFollow: { type: Function, default: () => {} }
 })
 
-const emit = defineEmits(['update:modelValue', 'update:activeTab', 'tab-click'])
+const emit = defineEmits(['update:modelValue', 'update:activeTab', 'tab-click', 'select-user'])
 
 const { followStats, followList, followLoading, followNoMore, isFollowActionLoading, toggleFollow } = toRefs(props)
 
@@ -119,6 +119,12 @@ const followListRef = ref(null)
 const followTriggerRef = ref(null)
 
 const handleTabClick = tab => emit('tab-click', tab)
+const getTargetUserId = item => item?.userId ?? item?.id ?? null
+const handleSelectUser = item => {
+    const targetUserId = getTargetUserId(item)
+    if (targetUserId == null || targetUserId === '') return
+    emit('select-user', item)
+}
 
 const normalizeRelationType = item => (item?.relationType || 'NONE').toString().toUpperCase()
 
@@ -310,7 +316,7 @@ defineExpose({
     align-items: center;
     padding: 14px 20px;
     transition: background-color 0.2s;
-    cursor: default;
+    cursor: pointer;
     position: relative;
 
     &::after {

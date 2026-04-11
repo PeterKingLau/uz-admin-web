@@ -268,10 +268,10 @@ service.interceptors.request.use(
 
         handleGetParams(config)
 
-        if (config.data instanceof FormData) {
+        const isFormDataPayload = config.data instanceof FormData
+        if (isFormDataPayload) {
             headers.delete('Content-Type')
             headers.delete('content-type')
-            return config
         }
 
         if (!checkRepeatSubmit(config)) {
@@ -364,7 +364,6 @@ service.interceptors.response.use(
     },
     error => {
         if (axios.isCancel(error)) {
-            console.log('Request canceled:', error.message)
             return Promise.reject(error)
         }
 
@@ -446,6 +445,7 @@ export function download(url: string, params: Record<string, any>, filename: str
             }
         })
         .catch(err => {
+            if (axios.isCancel(err)) return
             console.error('Download error:', err)
             ElMessage.error('下载文件出现错误，请联系管理员')
         })

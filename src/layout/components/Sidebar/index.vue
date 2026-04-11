@@ -42,10 +42,10 @@ const showLogo = computed(() => settingsStore.sidebarLogo)
 const sideTheme = computed(() => settingsStore.sideTheme)
 const theme = computed(() => settingsStore.theme)
 const isCollapse = computed(() => !appStore.sidebar.opened)
-const LIGHT_MENU_BG = '#fafbfc'
-const LIGHT_MENU_TEXT = '#475569'
-const DARK_MENU_BG = '#0a0a0a'
-const DARK_MENU_TEXT = '#b4bcc8'
+const LIGHT_MENU_BG = 'var(--el-fill-color-blank)'
+const LIGHT_MENU_TEXT = 'var(--el-text-color-regular)'
+const DARK_MENU_BG = 'var(--el-bg-color-overlay)'
+const DARK_MENU_TEXT = 'var(--el-text-color-regular)'
 
 const menuColors = computed(() => {
     if (settingsStore.isDark) {
@@ -214,7 +214,7 @@ $transition-duration: 0.3s;
         }
 
         &:hover {
-            background-color: rgba(0, 0, 0, 0.04) !important;
+            background-color: color-mix(in srgb, var(--el-color-black) 4%, transparent) !important;
             color: var(--el-text-color-primary) !important;
             transform: translateX(4px);
         }
@@ -232,7 +232,7 @@ $transition-duration: 0.3s;
 
     @media (prefers-color-scheme: dark) {
         :deep(.el-sub-menu .el-menu-item:hover) {
-            background-color: rgba(255, 255, 255, 0.08) !important;
+            background-color: color-mix(in srgb, var(--el-color-white) 8%, transparent) !important;
         }
     }
 

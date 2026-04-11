@@ -37,7 +37,10 @@
                         </div>
                     </div>
 
-                    <div class="file-preview-area" :class="{ 'is-video': publishPostType === POST_TYPE.VIDEO, 'is-single-image': publishPreviewList.length === 1 }">
+                    <div
+                        class="file-preview-area"
+                        :class="{ 'is-video': publishPostType === POST_TYPE.VIDEO, 'is-single-image': publishPreviewList.length === 1 }"
+                    >
                         <div
                             v-for="(url, index) in publishPreviewList"
                             :key="`${url}-${index}`"
@@ -537,9 +540,7 @@ const submitPublish = async () => {
     padding: 14px;
     border-radius: 16px;
     border: 1px solid var(--el-border-color-lighter);
-    background:
-        linear-gradient(180deg, color-mix(in srgb, var(--el-fill-color-light) 72%, transparent) 0%, transparent 100%),
-        var(--el-bg-color);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-fill-color-light) 72%, transparent) 0%, transparent 100%), var(--el-bg-color);
 }
 
 .media-preview-head {

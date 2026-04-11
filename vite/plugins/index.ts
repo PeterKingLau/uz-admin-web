@@ -12,7 +12,10 @@ export default function createVitePlugins(env: ViteEnv, isBuild = false): Plugin
         vue(),
         autoImport({
             imports: ['vue', 'vue-router', 'pinia'],
-            dts: false
+            include: [/\.[jt]s$/, /\.vue$/],
+            exclude: [/[/\\]node_modules[/\\]/, /[/\\]dist[/\\]/, /[/\\]public[/\\]/],
+            dts: false,
+            vueTemplate: false
         }),
         ...createCompression(env, isBuild)
     ]

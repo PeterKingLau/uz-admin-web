@@ -196,7 +196,7 @@ const videoSrc = computed(() => {
 
         &:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--app-shadow-soft);
             border-color: var(--el-color-primary-light-5);
 
             .hover-overlay {
@@ -229,9 +229,9 @@ const videoSrc = computed(() => {
         .more-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--app-overlay-mask-strong);
             backdrop-filter: blur(2px);
-            color: #fff;
+            color: var(--app-on-dark-color);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -243,15 +243,15 @@ const videoSrc = computed(() => {
         .hover-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.1);
+            background: color-mix(in srgb, var(--el-color-black) 10%, transparent);
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             transition: opacity 0.2s;
-            color: #fff;
+            color: var(--app-on-dark-color);
             font-size: 20px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-black) 30%, transparent);
         }
     }
 }
@@ -274,8 +274,8 @@ const videoSrc = computed(() => {
     transform: translateX(-50%);
     padding: 6px 16px;
     border-radius: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
+    background: var(--app-overlay-mask-heavy);
+    color: var(--app-on-dark-color);
     font-size: 14px;
     font-weight: 500;
     pointer-events: none;

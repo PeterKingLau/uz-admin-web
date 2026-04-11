@@ -1,41 +1,45 @@
 <template>
     <el-dialog v-model="visible" width="720px" append-to-body destroy-on-close :show-close="false" class="modern-comment-dialog">
-        <div class="dialog-container">
-            <div class="dialog-header">
-                <div class="header-title">
-                    <span class="title-text">全部评论</span>
-                    <span class="count-badge" v-if="commentCount > 0">{{ commentCount }}</span>
+        <div class="comments-dialog">
+            <div class="comments-header">
+                <div class="comments-header-title">
+                    <span class="comments-title-text">全部评论</span>
+                    <span class="comments-count-badge" v-if="commentCount > 0">{{ commentCount }}</span>
                 </div>
-                <div class="header-actions">
-                    <button type="button" class="close-btn" @click="visible = false">
+                <div class="comments-header-actions">
+                    <button type="button" class="comments-close-btn" @click="visible = false">
                         <el-icon><Close /></el-icon>
                     </button>
                 </div>
             </div>
 
-            <div class="dialog-content">
-                <LoadingState v-if="loading" class="state-container" :min-height="220" />
-                <div v-else-if="!comments.length" class="state-container">暂无评论，来发表第一条吧</div>
-                <div v-else class="comment-list-wrapper">
-                    <div class="comment-list">
-                        <div v-for="item in comments" :key="resolveCommentId(item)" class="comment-card">
-                            <div class="avatar-column">
+            <div class="comments-content">
+                <LoadingState v-if="loading" class="comments-state" :min-height="220" />
+                <div v-else-if="!comments.length" class="comments-state comments-empty-state">
+                    <Icon icon="mdi:comment-outline" class="comments-empty-icon" />
+                    <p class="comments-empty-title">暂无评论</p>
+                    <p class="comments-empty-desc">来发表第一条吧</p>
+                </div>
+                <div v-else class="comments-list-wrapper">
+                    <div class="comments-list">
+                        <div v-for="item in comments" :key="resolveCommentId(item)" class="comments-card">
+                            <div class="comments-avatar-column">
                                 <el-avatar :size="40" :src="resolveCommentAvatar(item)">
                                     {{ resolveCommentUser(item)?.charAt(0) }}
                                 </el-avatar>
                             </div>
-                            <div class="content-column">
-                                <div class="card-header">
-                                    <span class="username">{{ resolveCommentUser(item) }}</span>
-                                    <span class="time">{{ formatTimeSafe(resolveCommentTime(item)) }}</span>
+                            <div class="comments-content-column">
+                                <div class="comments-card-header">
+                                    <span class="comments-username">{{ resolveCommentUser(item) }}</span>
+                                    <span class="comments-time">{{ formatTimeSafe(resolveCommentTime(item)) }}</span>
                                 </div>
-                                <div class="card-body">{{ resolveCommentText(item) || '-' }}</div>
-                                <div class="card-actions">
-                                    <button type="button" class="action-btn" @click="emit('reply-comment', item)">回复</button>
+                                <div class="comments-card-body">{{ resolveCommentText(item) || '-' }}</div>
+                                <div class="comments-card-actions">
+                                    <button type="button" class="comments-action-btn" @click="emit('reply-comment', item)">回复</button>
                                     <button
                                         v-if="canDeleteComment(item)"
                                         type="button"
-                                        class="action-btn danger"
+                                        class="comments-action-btn is-danger"
                                         :disabled="isDeleteCommentLoading(item)"
                                         @click="emit('delete-comment', item)"
                                     >
@@ -44,35 +48,37 @@
                                     <button
                                         v-if="getCommentReplyCount(item) > 0"
                                         type="button"
-                                        class="action-btn primary"
+                                        class="comments-action-btn is-primary"
                                         @click="emit('toggle-replies', item)"
                                     >
                                         {{ stateOf(item).open ? '收起回复' : `展开 ${getCommentReplyCount(item)} 条回复` }}
                                     </button>
                                 </div>
 
-                                <div v-if="stateOf(item).open" class="comment-replies">
-                                    <LoadingState v-if="stateOf(item).loading" class="reply-status" size="small" />
+                                <div v-if="stateOf(item).open" class="comments-replies">
+                                    <LoadingState v-if="stateOf(item).loading" class="comments-reply-status" size="small" />
                                     <div v-else>
-                                        <div v-for="reply in stateOf(item).list" :key="resolveCommentId(reply)" class="reply-item">
+                                        <div v-for="reply in stateOf(item).list" :key="resolveCommentId(reply)" class="comments-reply-item">
                                             <el-avatar :size="28" :src="resolveCommentAvatar(reply)">
                                                 {{ resolveCommentUser(reply)?.charAt(0) }}
                                             </el-avatar>
-                                            <div class="reply-body">
-                                                <div class="reply-head">
-                                                    <span class="reply-user">{{ resolveCommentUser(reply) }}</span>
-                                                    <span class="reply-time">{{ formatTimeSafe(resolveCommentTime(reply)) }}</span>
+                                            <div class="comments-reply-body">
+                                                <div class="comments-reply-head">
+                                                    <span class="comments-reply-user">{{ resolveCommentUser(reply) }}</span>
+                                                    <span class="comments-reply-time">{{ formatTimeSafe(resolveCommentTime(reply)) }}</span>
                                                 </div>
-                                                <div class="reply-text">
-                                                    <span v-if="resolveReplyUserName(reply)" class="reply-to">回复 @{{ resolveReplyUserName(reply) }}：</span>
+                                                <div class="comments-reply-text">
+                                                    <span v-if="resolveReplyUserName(reply)" class="comments-reply-to"
+                                                        >回复 @{{ resolveReplyUserName(reply) }}：</span
+                                                    >
                                                     {{ resolveCommentText(reply) || '-' }}
                                                 </div>
-                                                <div class="reply-actions">
-                                                    <button type="button" class="action-btn" @click="emit('reply-reply', reply, item)">回复</button>
+                                                <div class="comments-reply-actions">
+                                                    <button type="button" class="comments-action-btn" @click="emit('reply-reply', reply, item)">回复</button>
                                                     <button
                                                         v-if="canDeleteComment(reply)"
                                                         type="button"
-                                                        class="action-btn danger"
+                                                        class="comments-action-btn is-danger"
                                                         :disabled="isDeleteCommentLoading(reply)"
                                                         @click="emit('delete-comment', reply, item)"
                                                     >
@@ -82,10 +88,10 @@
                                             </div>
                                         </div>
 
-                                        <div v-if="!stateOf(item).noMore" class="reply-more">
+                                        <div v-if="!stateOf(item).noMore" class="comments-reply-more">
                                             <button
                                                 type="button"
-                                                class="action-btn primary"
+                                                class="comments-action-btn is-primary"
                                                 :disabled="stateOf(item).loading"
                                                 @click="emit('load-replies', item)"
                                             >
@@ -100,30 +106,38 @@
                 </div>
             </div>
 
-            <div class="dialog-footer">
-                <div v-if="replyingToName" class="replying-tip">
+            <div class="comments-footer">
+                <div v-if="replyingToName" class="comments-replying-tip">
                     <span>正在回复 @{{ replyingToName }}</span>
-                    <button type="button" class="action-btn" @click="emit('cancel-reply')">取消</button>
+                    <button type="button" class="comments-action-btn" @click="emit('cancel-reply')">取消</button>
                 </div>
-                <div class="input-area" :class="{ 'is-focused': isInputFocused }">
-                    <el-avatar :size="32" :src="resolvedUserAvatar" class="current-user-avatar">
+                <div class="comments-input-area" :class="{ 'is-focused': isInputFocused }">
+                    <el-avatar :size="32" :src="resolvedUserAvatar" class="comments-current-user-avatar">
                         {{ resolvedUserName?.charAt(0) }}
                     </el-avatar>
-                    <div class="input-wrapper">
+                    <div class="comments-input-wrapper">
                         <el-input
                             ref="commentInputRef"
                             v-model="commentDraft"
                             type="textarea"
                             :autosize="{ minRows: 1, maxRows: 4 }"
                             :placeholder="commentPlaceholder || '写下你的想法...'"
-                            class="modern-textarea"
+                            class="comments-textarea"
                             resize="none"
                             @focus="isInputFocused = true"
                             @blur="isInputFocused = false"
                             @keydown.enter.exact.prevent="submitComment"
                         />
-                        <div class="action-bar">
-                            <el-button type="primary" round size="small" :disabled="!canSubmit" :loading="submitting" class="submit-btn" @click="submitComment">
+                        <div class="comments-action-bar">
+                            <el-button
+                                type="primary"
+                                round
+                                size="small"
+                                :disabled="!canSubmit"
+                                :loading="submitting"
+                                class="comments-submit-btn"
+                                @click="submitComment"
+                            >
                                 发送
                             </el-button>
                         </div>
@@ -270,65 +284,55 @@ defineExpose({ focusInput })
 </script>
 
 <style scoped lang="scss">
-:deep(.el-dialog.modern-comment-dialog) {
-    border-radius: 18px;
-    overflow: hidden;
-
-    .el-dialog__header {
-        display: none;
-    }
-
-    .el-dialog__body {
-        padding: 0;
-    }
-}
-
-.dialog-container {
+.comments-dialog {
     display: flex;
     flex-direction: column;
-    height: 75vh;
-    max-height: 820px;
-    background: var(--el-bg-color-overlay);
+    height: clamp(460px, 72vh, 760px);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--el-fill-color-light) 28%, transparent), transparent 18%), var(--el-bg-color-overlay);
 }
 
-.dialog-header {
-    height: 52px;
-    padding: 0 16px;
+.comments-header {
+    height: 58px;
+    padding: 0 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--el-border-color-extra-light);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, var(--el-fill-color-light));
 }
 
-.header-title {
+.comments-header-title {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.title-text {
-    font-size: 16px;
+.comments-title-text {
+    font-size: 17px;
     font-weight: 700;
     color: var(--el-text-color-primary);
+    letter-spacing: 0.2px;
 }
 
-.count-badge {
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
-    background: var(--el-fill-color-dark);
-    color: var(--el-text-color-primary);
+.comments-count-badge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 11px;
+    border: 1px solid color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary-light-9) 80%, var(--el-bg-color-overlay));
+    color: var(--el-color-primary);
     font-size: 12px;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
-.close-btn {
-    width: 30px;
-    height: 30px;
-    border: none;
+.comments-close-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid transparent;
     border-radius: 999px;
     cursor: pointer;
     background: transparent;
@@ -338,37 +342,72 @@ defineExpose({ focusInput })
     justify-content: center;
 }
 
-.close-btn:hover {
-    background: var(--el-fill-color-light);
+.comments-close-btn:hover {
+    background: color-mix(in srgb, var(--el-fill-color-light) 90%, var(--el-bg-color-overlay));
+    border-color: var(--el-border-color-lighter);
     color: var(--el-text-color-primary);
 }
 
-.dialog-content {
+.comments-content {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 16px;
+    padding: 14px 18px 16px;
+    background: color-mix(in srgb, var(--el-fill-color-lighter) 52%, transparent);
 }
 
-.state-container {
-    min-height: 220px;
+.comments-state {
+    min-height: 260px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--el-text-color-secondary);
 }
 
-.comment-list {
+.comments-empty-state {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+
+    .comments-empty-icon {
+        font-size: 34px;
+        color: color-mix(in srgb, var(--el-text-color-placeholder) 76%, var(--el-color-primary-light-5));
+    }
+
+    .comments-empty-title {
+        margin: 0;
+        color: var(--el-text-color-primary);
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .comments-empty-desc {
+        margin: 0;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+    }
+}
+
+.comments-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
-.comment-card {
+.comments-card {
     display: flex;
     gap: 10px;
+    border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 78%, transparent);
+    background: var(--el-bg-color-overlay);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 6px 14px -12px color-mix(in srgb, var(--el-color-black) 20%, transparent);
 }
 
-.content-column {
+.comments-avatar-column {
+    padding-top: 1px;
+}
+
+.comments-content-column {
     min-width: 0;
     flex: 1;
     display: flex;
@@ -376,24 +415,27 @@ defineExpose({ focusInput })
     gap: 4px;
 }
 
-.card-header {
+.comments-card-header {
     display: flex;
     align-items: center;
     gap: 8px;
+    justify-content: space-between;
 }
 
-.username {
+.comments-username {
     font-size: 13px;
     font-weight: 600;
     color: var(--el-text-color-primary);
 }
 
-.time {
+.comments-time {
     font-size: 12px;
     color: var(--el-text-color-secondary);
+    margin-left: auto;
+    white-space: nowrap;
 }
 
-.card-body {
+.comments-card-body {
     font-size: 14px;
     color: var(--el-text-color-regular);
     line-height: 1.5;
@@ -401,37 +443,53 @@ defineExpose({ focusInput })
     word-break: break-word;
 }
 
-.card-actions,
-.reply-actions {
+.comments-card-actions,
+.comments-reply-actions {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
-.action-btn {
-    border: none;
-    background: transparent;
+.comments-action-btn {
+    border: 1px solid transparent;
+    background: color-mix(in srgb, var(--el-fill-color-light) 72%, transparent);
     color: var(--el-text-color-secondary);
     font-size: 12px;
     cursor: pointer;
-    padding: 0;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 999px;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
 }
 
-.action-btn.primary {
+.comments-action-btn.is-primary {
     color: var(--el-color-primary);
+    border-color: color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary-light-9) 72%, var(--el-bg-color-overlay));
 }
 
-.action-btn.danger {
+.comments-action-btn.is-danger {
     color: var(--el-color-danger);
+    border-color: color-mix(in srgb, var(--el-color-danger) 24%, transparent);
+    background: color-mix(in srgb, var(--el-color-danger-light-9) 70%, var(--el-bg-color-overlay));
 }
 
-.action-btn:disabled {
+.comments-action-btn:hover:not(:disabled) {
+    border-color: var(--el-border-color);
+    color: var(--el-text-color-primary);
+}
+
+.comments-action-btn:disabled {
     cursor: not-allowed;
     opacity: 0.7;
 }
 
-.comment-replies {
-    margin-top: 6px;
+.comments-replies {
+    margin-top: 8px;
     padding-left: 10px;
     border-left: 2px solid var(--el-border-color-lighter);
     display: flex;
@@ -439,12 +497,15 @@ defineExpose({ focusInput })
     gap: 10px;
 }
 
-.reply-item {
+.comments-reply-item {
     display: flex;
     gap: 8px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--el-fill-color-light) 66%, transparent);
+    padding: 8px;
 }
 
-.reply-body {
+.comments-reply-body {
     min-width: 0;
     flex: 1;
     display: flex;
@@ -452,49 +513,50 @@ defineExpose({ focusInput })
     gap: 3px;
 }
 
-.reply-head {
+.comments-reply-head {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.reply-user {
+.comments-reply-user {
     font-size: 12px;
     font-weight: 600;
     color: var(--el-text-color-primary);
 }
 
-.reply-time {
+.comments-reply-time {
     font-size: 11px;
     color: var(--el-text-color-secondary);
 }
 
-.reply-text {
+.comments-reply-text {
     font-size: 13px;
     color: var(--el-text-color-regular);
     line-height: 1.45;
     word-break: break-word;
 }
 
-.reply-to {
+.comments-reply-to {
     color: var(--el-color-primary);
 }
 
-.reply-status,
-.reply-more {
+.comments-reply-status,
+.comments-reply-more {
     font-size: 12px;
     color: var(--el-text-color-secondary);
 }
 
-.dialog-footer {
-    border-top: 1px solid var(--el-border-color-extra-light);
-    padding: 12px 16px;
+.comments-footer {
+    border-top: 1px solid var(--el-border-color-lighter);
+    padding: 12px 16px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, var(--el-fill-color-light));
 }
 
-.replying-tip {
+.comments-replying-tip {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
@@ -502,25 +564,27 @@ defineExpose({ focusInput })
     color: var(--el-color-primary);
 }
 
-.input-area {
+.comments-input-area {
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    background: var(--el-fill-color-lighter);
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-lighter);
     border-radius: 14px;
     padding: 10px;
 }
 
-.input-area.is-focused {
+.comments-input-area.is-focused {
     background: var(--el-bg-color);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    border-color: color-mix(in srgb, var(--el-color-primary) 34%, var(--el-border-color-lighter));
+    box-shadow: 0 8px 18px -14px color-mix(in srgb, var(--el-color-primary) 38%, transparent);
 }
 
-.current-user-avatar {
+.comments-current-user-avatar {
     flex-shrink: 0;
 }
 
-.input-wrapper {
+.comments-input-wrapper {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -528,7 +592,7 @@ defineExpose({ focusInput })
     gap: 8px;
 }
 
-:deep(.modern-textarea .el-textarea__inner) {
+:deep(.comments-textarea .el-textarea__inner) {
     box-shadow: none !important;
     background: transparent !important;
     border: none !important;
@@ -536,12 +600,45 @@ defineExpose({ focusInput })
     min-height: 26px !important;
 }
 
-.action-bar {
+.comments-action-bar {
     display: flex;
     justify-content: flex-end;
 }
 
-.submit-btn {
-    min-width: 72px;
+.comments-submit-btn {
+    min-width: 78px;
+}
+
+@media (max-width: 768px) {
+    .comments-dialog {
+        height: min(76vh, 680px);
+    }
+
+    .comments-content {
+        padding: 12px 12px 14px;
+    }
+
+    .comments-footer {
+        padding: 10px 12px 12px;
+    }
+}
+</style>
+
+<style lang="scss">
+.el-dialog.modern-comment-dialog {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 24px 52px -28px color-mix(in srgb, var(--el-color-black) 34%, transparent);
+
+    .el-dialog__header {
+        display: none !important;
+        padding: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .el-dialog__body {
+        padding: 0 !important;
+    }
 }
 </style>

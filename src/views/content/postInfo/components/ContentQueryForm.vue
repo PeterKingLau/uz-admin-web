@@ -381,7 +381,7 @@ defineExpose({ reset })
         bottom: 0;
         height: 3px;
         border-radius: 999px;
-        background: linear-gradient(90deg, #ff335f 0%, var(--el-color-primary) 100%);
+        background: var(--el-color-primary);
         opacity: 0;
         transform: scaleX(0.5);
         transition:
@@ -395,7 +395,7 @@ defineExpose({ reset })
     }
 
     :deep(.query-tag-button.el-button.is-active) {
-        color: var(--el-text-color-primary);
+        color: var(--el-color-primary);
         font-weight: 600;
     }
 

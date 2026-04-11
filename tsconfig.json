@@ -11,10 +11,9 @@
         "isolatedModules": true,
         "esModuleInterop": true,
         "lib": ["ESNext", "DOM"],
-        "baseUrl": "./",
         "paths": {
-            "@/*": ["src/*"],
-            "~/*": ["/*"]
+            "@/*": ["./src/*"],
+            "~/*": ["./*"]
         },
         "skipLibCheck": true
     },

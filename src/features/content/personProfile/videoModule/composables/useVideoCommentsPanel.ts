@@ -5,6 +5,7 @@ import { listPostByApp } from '@/api/content/post'
 import { selectFollowNum } from '@/api/content/userFollow'
 import { getUserInfoById } from '@/api/system/user'
 import { getImgUrl } from '@/utils/img'
+import { getCommentUserId as resolveCommentUserId } from '@/utils/content/common'
 import {
     getCommentName,
     getPostId,
@@ -80,10 +81,9 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
     const authorVideoPosts = ref<AnyRecord[]>([])
 
     const getCommentId = (comment: AnyRecord) => comment?.id ?? comment?.commentId ?? null
-    const getCommentUserId = (comment: AnyRecord) => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
     const canDeleteComment = (comment: AnyRecord) => {
         const userId = currentUserId.value
-        const commentUserId = getCommentUserId(comment)
+        const commentUserId = resolveCommentUserId(comment)
         if (userId == null || commentUserId == null) return false
         return String(userId) === String(commentUserId)
     }

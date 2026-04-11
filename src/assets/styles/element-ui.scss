@@ -1,4 +1,4 @@
-@import './variables.module.scss';
+@use './variables.module.scss' as *;
 
 .el-dialog {
     transform: none;
@@ -196,7 +196,7 @@
 
 .sortable-ghost {
     opacity: 0.8;
-    color: #fff !important;
+    color: var(--el-color-white) !important;
     background: var(--el-color-primary) !important;
 }
 
