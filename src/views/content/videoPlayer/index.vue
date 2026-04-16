@@ -22,9 +22,8 @@ import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/po
 import { toggleFollowUser } from '@/api/content/userFollow'
 import useUserStore from '@/store/modules/user'
 import { resolveCollectionVideoUrl } from '@/features/content/personProfile/videoModule/helpers'
+import { VIDEO_PLAYER_CACHE_KEY } from '@/utils/content/videoPlayer'
 import VideoModule from '@/views/content/personProfile/components/VideoModule/index.vue'
-
-const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
 const route = useRoute()
 const router = useRouter()

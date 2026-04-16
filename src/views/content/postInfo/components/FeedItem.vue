@@ -13,7 +13,7 @@
                     <span>{{ typeText }}</span>
                 </div>
 
-                <div class="admin-toolbar">
+                <div v-if="isAdmin" class="admin-toolbar">
                     <el-tooltip content="编辑标签" placement="bottom" :show-after="500">
                         <div class="tool-btn" @click="emit('edit-tag', post)">
                             <Icon icon="mdi:tag-outline" />
@@ -135,6 +135,7 @@ const props = defineProps<{
     post: any
     checked?: boolean
     batchMode?: boolean
+    isAdmin?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -153,6 +154,7 @@ const emit = defineEmits<{
 const post = computed(() => props.post || {})
 const currentPostId = computed(() => props.post?.id ?? props.post?.postId ?? '')
 const isBatchMode = computed(() => Boolean(props.batchMode))
+const isAdmin = computed(() => props.isAdmin === true)
 const hoverVideoRef = ref<HTMLVideoElement | null>(null)
 const shouldRenderHoverVideo = ref(false)
 const isVideoHoverActive = ref(false)

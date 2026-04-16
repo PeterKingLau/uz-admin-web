@@ -1,184 +1,232 @@
 ﻿<template>
-    <div class="audit-dashboard" v-loading="loading">
-        <el-row :gutter="20" class="card-row">
-            <el-col :span="6" v-for="card in statCards" :key="card.key">
-                <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
-                    <div class="stat-card-inner">
-                        <div class="stat-content">
-                            <div class="stat-title">{{ card.title }}</div>
-                            <div class="stat-value">
-                                <span class="number">{{ formatCardValue(stats[card.key], card) }}</span>
+    <div class="audit-dashboard" v-loading="loading && !showSkeleton">
+        <template v-if="showSkeleton">
+            <el-row :gutter="20" class="card-row">
+                <el-col v-for="n in 4" :key="`skeleton-stat-${n}`" :xs="24" :sm="12" :md="6" :lg="6">
+                    <el-card shadow="never" class="stat-card">
+                        <div class="stat-card-inner skeleton-card-inner">
+                            <div class="skeleton-lines">
+                                <div class="skeleton-block skeleton-block--title"></div>
+                                <div class="skeleton-block skeleton-block--value"></div>
                             </div>
+                            <div class="skeleton-block skeleton-block--icon"></div>
                         </div>
-                        <div class="stat-icon" :style="getCardIconStyle(card)">
-                            <Icon :icon="card.icon" width="32" height="32" />
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
+                    </el-card>
+                </el-col>
+            </el-row>
 
-        <el-row :gutter="20" class="card-row">
-            <el-col :span="6" v-for="card in extraCards" :key="card.key">
-                <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
-                    <div class="stat-card-inner">
-                        <div class="stat-content">
-                            <div class="stat-title">{{ card.title }}</div>
-                            <div class="stat-value">
-                                <span class="number">{{ formatCardValue(extraStats[card.key], card) }}</span>
-                            </div>
-                        </div>
-                        <div class="stat-icon" :style="getCardIconStyle(card)">
-                            <Icon :icon="card.icon" width="32" height="32" />
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
+            <el-row :gutter="20" class="charts-row">
+                <el-col :xs="24" :sm="24" :md="16" :lg="16">
+                    <el-card shadow="never" class="chart-card skeleton-chart-card">
+                        <div class="skeleton-block skeleton-block--header"></div>
+                        <div class="skeleton-block skeleton-block--chart"></div>
+                    </el-card>
+                </el-col>
+                <el-col :xs="24" :sm="24" :md="8" :lg="8">
+                    <el-card shadow="never" class="chart-card skeleton-chart-card">
+                        <div class="skeleton-block skeleton-block--header"></div>
+                        <div class="skeleton-block skeleton-block--chart"></div>
+                    </el-card>
+                </el-col>
+            </el-row>
 
-        <el-row :gutter="20" class="card-row">
-            <el-col :span="6" v-for="card in insightCards" :key="card.key">
-                <el-card shadow="hover" class="stat-card stat-card--insight" :body-style="{ padding: '0px' }">
-                    <div class="stat-card-inner">
-                        <div class="stat-content">
-                            <div class="stat-title">{{ card.title }}</div>
-                            <div class="stat-value">
-                                <span class="number">{{ formatCardValue(extraStats[card.key], card) }}</span>
-                            </div>
-                            <div v-if="card.desc" class="stat-desc">{{ card.desc }}</div>
-                        </div>
-                        <div class="stat-icon" :style="getCardIconStyle(card)">
-                            <Icon :icon="card.icon" width="32" height="32" />
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
+            <el-row :gutter="20" class="bottom-row">
+                <el-col :xs="24" :sm="24" :md="14" :lg="14" class="bottom-col">
+                    <el-card shadow="never" class="table-card skeleton-table-card">
+                        <div class="skeleton-block skeleton-block--header"></div>
+                        <div v-for="n in 6" :key="`skeleton-trend-${n}`" class="skeleton-block skeleton-block--row"></div>
+                    </el-card>
+                </el-col>
+                <el-col :xs="24" :sm="24" :md="10" :lg="10" class="bottom-col">
+                    <el-card shadow="never" class="table-card skeleton-table-card">
+                        <div class="skeleton-block skeleton-block--header"></div>
+                        <div v-for="n in 6" :key="`skeleton-latest-${n}`" class="skeleton-block skeleton-block--row"></div>
+                    </el-card>
+                </el-col>
+            </el-row>
+        </template>
 
-        <el-row :gutter="20" class="card-row">
-            <el-col :span="6" v-for="card in contentCards" :key="card.key">
-                <el-card shadow="hover" class="stat-card stat-card--content" :body-style="{ padding: '0px' }">
-                    <div class="stat-card-inner">
-                        <div class="stat-content">
-                            <div class="stat-title">{{ card.title }}</div>
-                            <div class="stat-value">
-                                <span class="number">{{ formatCardValue(contentStats[card.key], card) }}</span>
-                            </div>
-                            <div v-if="card.desc" class="stat-desc">{{ card.desc }}</div>
-                        </div>
-                        <div class="stat-icon" :style="getCardIconStyle(card)">
-                            <Icon :icon="card.icon" width="32" height="32" />
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
-
-        <el-row :gutter="20" class="charts-row">
-            <el-col :span="16">
-                <el-card shadow="never" class="chart-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span class="header-title">近 7 天审核趋势</span>
-                            <el-tag size="small" effect="plain">{{ isAdmin ? '全局数据' : '个人数据' }}</el-tag>
-                        </div>
-                    </template>
-                    <div ref="trendChartRef" class="chart-container"></div>
-                </el-card>
-            </el-col>
-
-            <el-col :span="8">
-                <el-card shadow="never" class="chart-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span class="header-title">{{ isAdmin ? '审核状态占比' : '我的审核状态占比' }}</span>
-                        </div>
-                    </template>
-                    <div ref="statusPieRef" class="chart-container"></div>
-                </el-card>
-            </el-col>
-        </el-row>
-
-        <el-row :gutter="20" class="charts-row">
-            <el-col :span="24">
-                <el-card shadow="never" class="chart-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span class="header-title">{{ isAdmin ? '测评题型分布' : '提审来源分布' }}</span>
-                        </div>
-                    </template>
-                    <div ref="assessmentPieRef" class="chart-container chart-container--compact"></div>
-                </el-card>
-            </el-col>
-        </el-row>
-
-        <el-row :gutter="20" class="bottom-row">
-            <el-col :span="14" class="bottom-col">
-                <el-card shadow="never" class="table-card table-card--trend">
-                    <template #header>
-                        <div class="card-header">
-                            <span class="header-title">{{ isAdmin ? '趋势明细数据' : '我的趋势明细' }}</span>
-                        </div>
-                    </template>
-                    <el-table :data="trend" class="trend-table" style="width: 100%" size="small" stripe>
-                        <el-table-column prop="date" label="日期" min-width="100" />
-                        <el-table-column prop="total" label="总数" width="80" align="center" />
-                        <el-table-column prop="pending" label="待审" width="80" align="center">
-                            <template #default="{ row }">
-                                <span class="text-warning">{{ row.pending }}</span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="approved" label="通过" width="80" align="center">
-                            <template #default="{ row }">
-                                <span class="text-success">{{ row.approved }}</span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="rejected" label="驳回" width="80" align="center">
-                            <template #default="{ row }">
-                                <span class="text-danger">{{ row.rejected }}</span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="通过率" min-width="140">
-                            <template #default="{ row }">
-                                <el-progress :percentage="row.approvedRate" :stroke-width="8" :color="customColors" />
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                </el-card>
-            </el-col>
-
-            <el-col :span="10" class="bottom-col">
-                <el-card shadow="never" class="table-card table-card--latest">
-                    <template #header>
-                        <div class="card-header">
-                            <span class="header-title">{{ isAdmin ? '最新审核动态' : '我的最新提审' }}</span>
-                        </div>
-                    </template>
-                    <el-table :data="latest" class="latest-table" style="width: 100%" size="small" :show-header="false">
-                        <el-table-column min-width="200">
-                            <template #default="{ row }">
-                                <div class="latest-item">
-                                    <div class="latest-title text-ellipsis">{{ row.title }}</div>
-                                    <div class="latest-meta">
-                                        <el-tag size="small" effect="plain" :type="row.sourceType">
-                                            {{ row.sourceLabel }}
-                                        </el-tag>
-                                        <span>{{ row.auditTime }}</span>
-                                    </div>
+        <template v-else>
+            <el-row :gutter="20" class="card-row">
+                <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in statCards" :key="card.key">
+                    <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
+                        <div class="stat-card-inner">
+                            <div class="stat-content">
+                                <div class="stat-title">{{ card.title }}</div>
+                                <div class="stat-value">
+                                    <span class="number">{{ formatCardValue(stats[card.key], card) }}</span>
                                 </div>
-                            </template>
-                        </el-table-column>
-                        <el-table-column width="100" align="right">
-                            <template #default="{ row }">
-                                <el-tag size="small" class="latest-status-tag" :type="getStatusType(row.originStatus)" effect="light" round>
-                                    {{ row.auditStatus }}
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                </el-card>
-            </el-col>
-        </el-row>
+                            </div>
+                            <div class="stat-icon" :style="getCardIconStyle(card)">
+                                <Icon :icon="card.icon" width="32" height="32" />
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="card-row">
+                <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in extraCards" :key="card.key">
+                    <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
+                        <div class="stat-card-inner">
+                            <div class="stat-content">
+                                <div class="stat-title">{{ card.title }}</div>
+                                <div class="stat-value">
+                                    <span class="number">{{ formatCardValue(extraStats[card.key], card) }}</span>
+                                </div>
+                            </div>
+                            <div class="stat-icon" :style="getCardIconStyle(card)">
+                                <Icon :icon="card.icon" width="32" height="32" />
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="card-row">
+                <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in insightCards" :key="card.key">
+                    <el-card shadow="hover" class="stat-card stat-card--insight" :body-style="{ padding: '0px' }">
+                        <div class="stat-card-inner">
+                            <div class="stat-content">
+                                <div class="stat-title">{{ card.title }}</div>
+                                <div class="stat-value">
+                                    <span class="number">{{ formatCardValue(extraStats[card.key], card) }}</span>
+                                </div>
+                                <div v-if="card.desc" class="stat-desc">{{ card.desc }}</div>
+                            </div>
+                            <div class="stat-icon" :style="getCardIconStyle(card)">
+                                <Icon :icon="card.icon" width="32" height="32" />
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="card-row">
+                <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in contentCards" :key="card.key">
+                    <el-card shadow="hover" class="stat-card stat-card--content" :body-style="{ padding: '0px' }">
+                        <div class="stat-card-inner">
+                            <div class="stat-content">
+                                <div class="stat-title">{{ card.title }}</div>
+                                <div class="stat-value">
+                                    <span class="number">{{ formatCardValue(contentStats[card.key], card) }}</span>
+                                </div>
+                                <div v-if="card.desc" class="stat-desc">{{ card.desc }}</div>
+                            </div>
+                            <div class="stat-icon" :style="getCardIconStyle(card)">
+                                <Icon :icon="card.icon" width="32" height="32" />
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="charts-row">
+                <el-col :xs="24" :sm="24" :md="16" :lg="16">
+                    <el-card shadow="never" class="chart-card">
+                        <template #header>
+                            <div class="card-header">
+                                <span class="header-title">近 7 天审核趋势</span>
+                                <el-tag size="small" effect="plain">{{ isAdmin ? '全局数据' : '个人数据' }}</el-tag>
+                            </div>
+                        </template>
+                        <div ref="trendChartRef" class="chart-container"></div>
+                    </el-card>
+                </el-col>
+
+                <el-col :xs="24" :sm="24" :md="8" :lg="8">
+                    <el-card shadow="never" class="chart-card">
+                        <template #header>
+                            <div class="card-header">
+                                <span class="header-title">{{ isAdmin ? '审核状态占比' : '我的审核状态占比' }}</span>
+                            </div>
+                        </template>
+                        <div ref="statusPieRef" class="chart-container"></div>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="charts-row">
+                <el-col :span="24">
+                    <el-card shadow="never" class="chart-card">
+                        <template #header>
+                            <div class="card-header">
+                                <span class="header-title">{{ isAdmin ? '测评题型分布' : '提审来源分布' }}</span>
+                            </div>
+                        </template>
+                        <div ref="assessmentPieRef" class="chart-container chart-container--compact"></div>
+                    </el-card>
+                </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="bottom-row">
+                <el-col :xs="24" :sm="24" :md="14" :lg="14" class="bottom-col">
+                    <el-card shadow="never" class="table-card table-card--trend">
+                        <template #header>
+                            <div class="card-header">
+                                <span class="header-title">{{ isAdmin ? '趋势明细数据' : '我的趋势明细' }}</span>
+                            </div>
+                        </template>
+                        <el-table :data="trend" class="trend-table" style="width: 100%" size="small" stripe>
+                            <el-table-column prop="date" label="日期" min-width="100" />
+                            <el-table-column prop="total" label="总数" width="80" align="center" />
+                            <el-table-column prop="pending" label="待审" width="80" align="center">
+                                <template #default="{ row }">
+                                    <span class="text-warning">{{ row.pending }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="approved" label="通过" width="80" align="center">
+                                <template #default="{ row }">
+                                    <span class="text-success">{{ row.approved }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="rejected" label="驳回" width="80" align="center">
+                                <template #default="{ row }">
+                                    <span class="text-danger">{{ row.rejected }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="通过率" min-width="140">
+                                <template #default="{ row }">
+                                    <el-progress :percentage="row.approvedRate" :stroke-width="8" :color="customColors" />
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </el-col>
+
+                <el-col :xs="24" :sm="24" :md="10" :lg="10" class="bottom-col">
+                    <el-card shadow="never" class="table-card table-card--latest">
+                        <template #header>
+                            <div class="card-header">
+                                <span class="header-title">{{ isAdmin ? '最新审核动态' : '我的最新提审' }}</span>
+                            </div>
+                        </template>
+                        <el-table :data="latest" class="latest-table" style="width: 100%" size="small" :show-header="false">
+                            <el-table-column min-width="200">
+                                <template #default="{ row }">
+                                    <div class="latest-item">
+                                        <div class="latest-title text-ellipsis">{{ row.title }}</div>
+                                        <div class="latest-meta">
+                                            <el-tag size="small" effect="plain" :type="row.sourceType">
+                                                {{ row.sourceLabel }}
+                                            </el-tag>
+                                            <span>{{ row.auditTime }}</span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </el-table-column>
+                            <el-table-column width="100" align="right">
+                                <template #default="{ row }">
+                                    <el-tag size="small" class="latest-status-tag" :type="getStatusType(row.originStatus)" effect="light" round>
+                                        {{ row.auditStatus }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </el-col>
+            </el-row>
+        </template>
     </div>
 </template>
 
@@ -197,6 +245,8 @@ const userStore = useUserStore()
 const isDark = computed(() => settingsStore.isDark)
 const isAdmin = computed(() => userStore.roles.includes('admin'))
 const loading = ref(false)
+const hasLoadedOnce = ref(false)
+const showSkeleton = computed(() => loading.value && !hasLoadedOnce.value)
 
 const contentList = ref([])
 
@@ -834,13 +884,13 @@ async function loadData() {
         }
         calcTrend(merged)
         calcLatest(merged)
-
-        await nextTick()
-        await initCharts()
     } catch (e) {
         console.error(e)
     } finally {
         loading.value = false
+        hasLoadedOnce.value = true
+        await nextTick()
+        await initCharts()
     }
 }
 
@@ -955,6 +1005,72 @@ onBeforeUnmount(() => {
     padding: 4px 10px 10px;
     background-color: var(--el-bg-color-page);
     min-height: 100vh;
+
+    .skeleton-card-inner {
+        min-height: 104px;
+    }
+
+    .skeleton-lines {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: calc(100% - 88px);
+    }
+
+    .skeleton-block {
+        border-radius: 10px;
+        background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color-lighter) 37%, var(--el-fill-color-light) 63%);
+        background-size: 400% 100%;
+        animation: dashboard-skeleton-shimmer 1.4s ease infinite;
+    }
+
+    .skeleton-block--title {
+        width: 96px;
+        height: 14px;
+    }
+
+    .skeleton-block--value {
+        width: 70%;
+        height: 28px;
+    }
+
+    .skeleton-block--icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        flex-shrink: 0;
+    }
+
+    .skeleton-chart-card,
+    .skeleton-table-card {
+        :deep(.el-card__body) {
+            padding: 16px 20px 18px;
+        }
+    }
+
+    .skeleton-block--header {
+        width: 180px;
+        height: 18px;
+        margin-bottom: 14px;
+    }
+
+    .skeleton-block--chart {
+        width: 100%;
+        height: 260px;
+        border-radius: 12px;
+    }
+
+    .skeleton-block--row {
+        width: 100%;
+        height: 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+
+    .skeleton-block--row:last-child {
+        margin-bottom: 0;
+    }
+
     .card-row {
         margin-bottom: 20px;
     }
@@ -1188,6 +1304,72 @@ onBeforeUnmount(() => {
             gap: 10px;
             flex-wrap: wrap;
             line-height: 1.2;
+        }
+    }
+}
+
+@keyframes dashboard-skeleton-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .audit-dashboard {
+        padding: 8px 6px 10px;
+
+        .card-row,
+        .charts-row,
+        .bottom-row {
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            margin-bottom: 12px;
+
+            .stat-card-inner {
+                padding: 16px;
+            }
+        }
+
+        .chart-container {
+            height: 260px;
+        }
+
+        .chart-container--compact {
+            height: 220px;
+        }
+
+        .bottom-col {
+            display: block;
+        }
+
+        .table-card {
+            margin-bottom: 12px;
+
+            :deep(.el-card__header) {
+                padding: 14px 14px 12px;
+            }
+
+            :deep(.el-card__body) {
+                padding: 8px 12px 12px;
+                overflow-x: auto;
+            }
+        }
+
+        .trend-table {
+            :deep(.el-table) {
+                min-width: 640px;
+            }
+        }
+
+        .latest-table {
+            :deep(.el-table) {
+                min-width: 420px;
+            }
         }
     }
 }

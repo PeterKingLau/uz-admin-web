@@ -4,6 +4,7 @@
             v-show="visible"
             class="video-immersive-container"
             :class="{ 'page-mode': !props.useTeleport, 'is-audio-mode': isAudioMode }"
+            :style="containerStyle"
             @click="handleClose"
             @mousemove="onMouseMove"
             @mouseleave="onMouseLeave"
@@ -194,7 +195,7 @@
                             </div>
                         </transition>
 
-                        <div class="top-bar" :class="{ 'hide-controls': !controlsVisible && isPlaying }">
+                        <div class="top-bar" :class="{ 'hide-controls': !controlsVisible && isPlaying && !commentPanelVisible }">
                             <div class="close-btn" @click.stop="handleClose">
                                 <Icon icon="ep:close" />
                             </div>
@@ -335,7 +336,7 @@
                                 <span class="count">{{ formatCount(postData.likeCount) }}</span>
                             </div>
 
-                            <div class="sidebar-item" :class="{ active: commentPanelVisible }" @click.stop="toggleCommentPanel">
+                            <div class="sidebar-item" :class="{ active: commentPanelVisible }" @click.stop="handleCommentEntry">
                                 <el-tooltip content="评论" placement="left">
                                     <div class="icon-wrapper">
                                         <Icon icon="mdi:comment-processing" />
@@ -428,7 +429,7 @@
 <script setup>
 defineOptions({ name: 'ViewsContentPersonProfileComponentsVideoModule' })
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getImgUrl } from '@/utils/img'
 import useUserStore from '@/store/modules/user'
 import {
@@ -459,6 +460,7 @@ const emit = defineEmits(['update:modelValue', 'close', 'action', 'select-collec
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const router = useRouter()
+const route = useRoute()
 
 const teleportWrapper = computed(() => (props.useTeleport ? 'teleport' : 'div'))
 const teleportAttrs = computed(() => (props.useTeleport ? { to: 'body' } : {}))
@@ -712,6 +714,10 @@ const authorAvatar = computed(() => {
 })
 
 const contentParts = computed(() => buildContentParts(postData.value?.content || ''))
+const currentPostId = computed(() => {
+    const post = postData.value || {}
+    return post.postId ?? post.id ?? null
+})
 const detailContent = computed(() => String(postData.value?.content ?? '').trim())
 const detailTags = computed(() => {
     const raw = postData.value
@@ -790,6 +796,28 @@ const audioStatusText = computed(() => {
 const audioCardStyle = computed(() => ({
     transform: `translate3d(${audioDragOffsetX.value}px, ${audioDragOffsetY.value}px, 0)`
 }))
+const isMobileViewport = ref(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
+const viewportHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 0)
+const keyboardOffset = ref(0)
+const containerStyle = computed(() => ({
+    '--vm-vh': `${Math.max(0, Math.round(viewportHeight.value || 0))}px`,
+    '--vm-keyboard-offset': `${Math.max(0, Math.round(keyboardOffset.value || 0))}px`
+}))
+
+const syncViewportMetrics = () => {
+    if (typeof window === 'undefined') return
+    isMobileViewport.value = window.innerWidth <= 768
+    const vv = window.visualViewport
+    if (!vv) {
+        viewportHeight.value = window.innerHeight
+        keyboardOffset.value = 0
+        return
+    }
+    const visibleHeight = Math.round(vv.height || window.innerHeight)
+    const topOffset = Math.round(vv.offsetTop || 0)
+    viewportHeight.value = visibleHeight
+    keyboardOffset.value = Math.max(0, window.innerHeight - visibleHeight - topOffset)
+}
 
 const getAudioViewportPadding = () => (window.innerWidth <= 768 ? 12 : 20)
 const resetAudioCardPosition = () => {
@@ -855,6 +883,33 @@ const handleClose = () => {
     emit('close')
 }
 
+const MODAL_QUERY_ID_KEY = 'modal_id'
+
+const syncModalRouteQuery = open => {
+    if (!props.useTeleport) return
+    const postId = currentPostId.value
+    const currentQuery = route.query || {}
+    const nextQuery = { ...currentQuery }
+
+    if (open) {
+        if (postId == null || postId === '') return
+        const normalizedId = String(postId)
+        if (String(currentQuery[MODAL_QUERY_ID_KEY] ?? '') === normalizedId) {
+            return
+        }
+        nextQuery[MODAL_QUERY_ID_KEY] = normalizedId
+    } else {
+        if (!(MODAL_QUERY_ID_KEY in nextQuery)) return
+        delete nextQuery[MODAL_QUERY_ID_KEY]
+    }
+
+    router.replace({
+        path: route.path,
+        query: nextQuery,
+        hash: route.hash
+    })
+}
+
 const resolvePersonProfileTarget = () => {
     const routes = router.getRoutes()
     const routeByComponent = routes.find(route => {
@@ -913,6 +968,14 @@ const handleToggleLike = () => {
 
 const handleToggleCollect = () => {
     emitAction('collect', { active: !isCollected.value })
+}
+
+const handleCommentEntry = () => {
+    if (isMobileViewport.value) {
+        proxy?.$modal?.msgWarning?.('H5端暂不支持评论，请前往网页端或 App 端查看')
+        return
+    }
+    toggleCommentPanel()
 }
 
 const seekRelative = delta => {
@@ -981,15 +1044,33 @@ watch(
     }
 )
 
+watch(
+    () => [visible.value, props.useTeleport, currentPostId.value],
+    ([nextVisible, useTeleport]) => {
+        if (!useTeleport) return
+        syncModalRouteQuery(nextVisible)
+    },
+    { immediate: true }
+)
+
 defineExpose({ seekTo })
 
 onMounted(() => {
+    syncViewportMetrics()
     window.addEventListener('resize', syncAudioCardPosition)
+    window.addEventListener('resize', syncViewportMetrics)
+    window.addEventListener('orientationchange', syncViewportMetrics)
+    window.visualViewport?.addEventListener('resize', syncViewportMetrics)
+    window.visualViewport?.addEventListener('scroll', syncViewportMetrics)
 })
 
 onBeforeUnmount(() => {
     removeAudioDragListeners()
     window.removeEventListener('resize', syncAudioCardPosition)
+    window.removeEventListener('resize', syncViewportMetrics)
+    window.removeEventListener('orientationchange', syncViewportMetrics)
+    window.visualViewport?.removeEventListener('resize', syncViewportMetrics)
+    window.visualViewport?.removeEventListener('scroll', syncViewportMetrics)
     if (followCheckTimer) clearTimeout(followCheckTimer)
     if (followRequestResetTimer) clearTimeout(followRequestResetTimer)
 })

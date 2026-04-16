@@ -1339,17 +1339,34 @@ $color-accent: var(--vm-color-accent);
 @media (max-width: 768px) {
     .comment-panel {
         position: absolute;
-        bottom: 0;
+        bottom: var(--vm-keyboard-offset, 0px);
         left: 0;
         width: 100% !important;
-        height: 75%;
+        height: min(75%, calc(var(--vm-vh, 100vh) - var(--vm-keyboard-offset, 0px) - 56px));
+        max-height: calc(var(--vm-vh, 100vh) - var(--vm-keyboard-offset, 0px) - 12px);
         border-radius: 16px 16px 0 0;
         transform: translateY(100%);
         opacity: 1;
+        transition:
+            transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+            bottom 0.2s ease,
+            height 0.2s ease;
 
         &.open {
             transform: translateY(0);
         }
+    }
+
+    .comment-panel-header {
+        padding: 0 14px;
+    }
+
+    .comment-panel-body {
+        padding: 12px 14px;
+    }
+
+    .comment-panel-footer {
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
     }
 }
 </style>

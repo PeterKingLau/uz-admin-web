@@ -9,6 +9,7 @@ $color-gold: var(--el-color-warning);
 
     position: fixed;
     inset: 0;
+    height: var(--vm-vh, 100vh);
     background: $color-bg;
     z-index: 9999;
     display: flex;

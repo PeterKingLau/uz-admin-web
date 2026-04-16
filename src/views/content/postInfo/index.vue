@@ -46,6 +46,7 @@
                     :finished="finished"
                     :selected-ids="Array.from(selectedIds)"
                     :batch-mode="batchMode"
+                    :is-admin="isAdminUser"
                     @select="handleSelect"
                     @load-more="loadMore"
                     @delete="handleSingleDelete"
@@ -304,6 +305,7 @@ let windowScrollBound = false
 let refreshRetryTimer: ReturnType<typeof setTimeout> | null = null
 
 const selectedCount = computed(() => selectedIds.value.size)
+const isAdminUser = computed(() => (userStore as any).admin === true)
 
 const commentPlaceholder = computed(() => (replyTarget.value ? `回复 @${replyTarget.value.replyUserName}` : '说点什么...'))
 
@@ -602,6 +604,7 @@ async function loadTags() {
 }
 
 function handleEditTag(post: any) {
+    if (!isAdminUser.value) return
     editTagPost.value = post
     editTagIds.value = resolveTagIds(post)
     if (!tagOptions.value.length) loadTags()
@@ -639,6 +642,7 @@ async function submitEditTag() {
 }
 
 function handlePin(post: any) {
+    if (!isAdminUser.value) return
     pinPost.value = post
     pinDays.value = 7
     pinVisible.value = true
@@ -675,6 +679,7 @@ async function submitPin() {
 }
 
 async function handleUnpin(post: any) {
+    if (!isAdminUser.value) return
     const postId = post?.id
     if (!postId) {
         ;(proxy as any)?.$modal?.msgError?.('未找到帖子ID')
@@ -880,6 +885,7 @@ async function handleBatchDelete() {
 }
 
 async function handleSingleDelete(id: string | number) {
+    if (!isAdminUser.value) return
     if (!id) return
     await handleDeleteConfirm([id])
 }

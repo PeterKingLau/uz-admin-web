@@ -1,7 +1,9 @@
 import { defineConfig, loadEnv } from 'vite'
 import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
-import createVitePlugins from './vite/plugins/index.ts'
+import createVitePlugins from './vite/plugins'
+import { createObfuscatorPlugin } from './vite/plugins/obfuscator'
+import { manualChunks } from './vite/chunk-rules'
 import zipPack from 'vite-plugin-zip-pack'
 import { visualizer } from 'rollup-plugin-visualizer'
 
@@ -27,6 +29,7 @@ interface ViteRuntimeEnv {
     VITE_GENERATE_SOURCEMAP?: string
     VITE_ENABLE_OBFUSCATION?: string
     VITE_USE_TERSER?: string
+    VITE_OBSCURE_BUNDLE_NAMES?: string
 }
 
 function resolveProxyTarget(env: ViteRuntimeEnv): string {
@@ -41,102 +44,6 @@ function resolveProxyTarget(env: ViteRuntimeEnv): string {
     return proxyTargets.wireless
 }
 
-function manualChunks(id: string): string | undefined {
-    if (!id.includes('node_modules')) return undefined
-    const normalizedId = id.replace(/\\/g, '/')
-
-    if (
-        normalizedId.includes('/vue/') ||
-        normalizedId.includes('/vue-router/') ||
-        normalizedId.includes('/pinia/') ||
-        normalizedId.includes('/element-plus/') ||
-        normalizedId.includes('/@element-plus/icons-vue/') ||
-        normalizedId.includes('/@popperjs/') ||
-        normalizedId.includes('/@floating-ui/') ||
-        normalizedId.includes('/async-validator/') ||
-        normalizedId.includes('/@ctrl/tinycolor/') ||
-        normalizedId.includes('/normalize-wheel-es/') ||
-        normalizedId.includes('/memoize-one/')
-    ) {
-        return 'vendor-framework'
-    }
-    if (normalizedId.includes('/echarts/') || normalizedId.includes('/zrender/')) return 'vendor-echarts'
-    if (
-        normalizedId.includes('/video.js/') ||
-        normalizedId.includes('/@videojs/') ||
-        normalizedId.includes('/videojs-vtt.js/') ||
-        normalizedId.includes('/m3u8-parser/') ||
-        normalizedId.includes('/url-toolkit/') ||
-        normalizedId.includes('/mpd-parser/') ||
-        normalizedId.includes('/@xmldom/') ||
-        normalizedId.includes('/mux.js/')
-    ) {
-        return 'vendor-videojs'
-    }
-    if (normalizedId.includes('/vue-cropper/')) return 'vendor-cropper'
-    if (normalizedId.includes('/splitpanes/')) return 'vendor-layout'
-    if (normalizedId.includes('/sortablejs/') || normalizedId.includes('/vue-draggable-plus/')) return 'vendor-dnd'
-    if (normalizedId.includes('/clipboard/') || normalizedId.includes('/js-beautify/')) return 'vendor-builder'
-    if (normalizedId.includes('/js-cookie/')) return 'vendor-auth'
-    if (normalizedId.includes('/vue3-next-qrcode/') || normalizedId.includes('/js-binary-schema-parser/') || normalizedId.includes('/qrcode/')) {
-        return 'vendor-qrcode'
-    }
-    if (
-        normalizedId.includes('/codemirror/') ||
-        normalizedId.includes('/@codemirror/') ||
-        normalizedId.includes('/@lezer/') ||
-        normalizedId.includes('/@marijn/') ||
-        normalizedId.includes('/style-mod/') ||
-        normalizedId.includes('/w3c-keyname/') ||
-        normalizedId.includes('/crelt/')
-    ) {
-        return 'vendor-markdown-codemirror'
-    }
-    if (
-        normalizedId.includes('/mermaid/') ||
-        normalizedId.includes('/katex/') ||
-        normalizedId.includes('/highlight.js/') ||
-        normalizedId.includes('/medium-zoom/') ||
-        normalizedId.includes('/jszip/')
-    ) {
-        return 'vendor-markdown-plugins'
-    }
-    if (
-        normalizedId.includes('/md-editor-v3/') ||
-        normalizedId.includes('/markdown-it/') ||
-        normalizedId.includes('/markdown-it-image-figures/') ||
-        normalizedId.includes('/markdown-it-sub/') ||
-        normalizedId.includes('/markdown-it-sup/') ||
-        normalizedId.includes('/linkify-it/') ||
-        normalizedId.includes('/mdurl/') ||
-        normalizedId.includes('/uc.micro/') ||
-        normalizedId.includes('/xss/')
-    ) {
-        return 'vendor-markdown'
-    }
-    if (normalizedId.includes('/prettier/')) return 'vendor-prettier'
-    if (normalizedId.includes('/dayjs/')) return 'vendor-date'
-    if (normalizedId.includes('/fuse.js/') || normalizedId.includes('/pinyin-match/')) return 'vendor-search'
-    if (
-        normalizedId.includes('/lodash/') ||
-        normalizedId.includes('/lodash-es/') ||
-        normalizedId.includes('/lodash-unified/') ||
-        normalizedId.includes('/lodash.clonedeep/') ||
-        normalizedId.includes('/lodash.isequal/') ||
-        normalizedId.includes('/lodash.merge/') ||
-        normalizedId.includes('/lodash.truncate/')
-    ) {
-        return 'vendor-lodash'
-    }
-    if (normalizedId.includes('/@iconify-json/mdi/')) return 'vendor-iconify-mdi'
-    if (normalizedId.includes('/@iconify-json/ep/')) return 'vendor-iconify-ep'
-    if (normalizedId.includes('/@iconify-json/material-symbols/') || normalizedId.includes('/@iconify-json/simple-icons/')) return 'vendor-iconify-extra'
-    if (normalizedId.includes('/@iconify/')) return 'vendor-iconify-core'
-    if (normalizedId.includes('/axios/') || normalizedId.includes('/nprogress/') || normalizedId.includes('/file-saver/')) return 'vendor-network'
-    if (normalizedId.includes('/@vueuse/core/') || normalizedId.includes('/@zeronejs/utils/')) return 'vendor-utils'
-    return 'vendor-misc'
-}
-
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv
     const isBuild = command === 'build'
@@ -144,6 +51,7 @@ export default defineConfig(({ mode, command }) => {
     const proxyTarget = resolveProxyTarget(env)
     const useTerserMinify = isProdBuild && env.VITE_USE_TERSER === 'true'
     const enableObfuscation = useTerserMinify && env.VITE_ENABLE_OBFUSCATION !== 'false'
+    const obscureBundleNames = isProdBuild && env.VITE_OBSCURE_BUNDLE_NAMES !== 'false'
     const shouldDropConsole = isProdBuild && env.VITE_DROP_CONSOLE !== 'false'
     const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProdBuild)
     const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
@@ -153,6 +61,7 @@ export default defineConfig(({ mode, command }) => {
         base: '/',
         plugins: [
             ...createVitePlugins(env, isBuild),
+            isProdBuild && createObfuscatorPlugin(enableObfuscation),
             shouldGenerateZip && zipPack({ outDir: 'dist', outFileName: 'dist.zip' }),
             shouldAnalyzeBuild &&
                 visualizer({
@@ -213,9 +122,9 @@ export default defineConfig(({ mode, command }) => {
             rolldownOptions: {
                 output: {
                     manualChunks,
-                    chunkFileNames: 'static/js/[name]-[hash].js',
-                    entryFileNames: 'static/js/[name]-[hash].js',
-                    assetFileNames: 'static/[ext]/[name]-[hash].[ext]'
+                    chunkFileNames: obscureBundleNames ? 'static/js/[hash].js' : 'static/js/[name]-[hash].js',
+                    entryFileNames: obscureBundleNames ? 'static/js/[hash].js' : 'static/js/[name]-[hash].js',
+                    assetFileNames: obscureBundleNames ? 'static/[ext]/[hash].[ext]' : 'static/[ext]/[name]-[hash].[ext]'
                 }
             },
             esbuild: {

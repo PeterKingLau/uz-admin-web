@@ -239,33 +239,32 @@
 
                 <el-form-item v-if="!isBatchVideoMode" prop="tagStr" class="custom-labeled-item">
                     <div class="field-heading">添加话题标签</div>
-                    <el-select
+                    <el-cascader
+                        ref="normalTagCascaderRef"
                         v-model="selectedTagIdsModel"
-                        multiple
+                        :options="normalTagCascaderOptions"
+                        :props="normalTagCascaderProps"
                         filterable
-                        :filter-method="handleNormalTagFilter"
-                        :reserve-keyword="false"
+                        :filter-method="handleNormalTagCascaderFilter"
                         placeholder="请选择话题标签 (必选)"
                         style="width: 100%"
                         clearable
+                        :show-all-levels="false"
                         :loading="props.interestLoading"
-                        class="custom-select"
+                        class="custom-cascader normal-tag-cascader"
                         popper-class="custom-select-popper custom-select-popper--normal"
-                        @visible-change="handleNormalTagVisibleChange"
+                        @change="handleNormalTagCascaderChange"
+                        @visible-change="handleNormalTagCascaderVisibleChange"
                     >
                         <template #prefix>
                             <Icon icon="mdi:pound" />
                         </template>
-                        <template v-for="cate in filteredNormalInterestTree" :key="cate.id">
-                            <el-option-group v-if="cate.children?.length" :label="cate.name">
-                                <el-option v-for="child in cate.children" :key="child.id" :label="child.name" :value="child.id">
-                                    <span class="option-tag-pill" :style="resolveOptionTagStyle(child, 'normal')">
-                                        {{ child.name }}
-                                    </span>
-                                </el-option>
-                            </el-option-group>
+                        <template #default="{ data }">
+                            <span class="option-tag-pill" :style="resolveOptionTagStyle(data, 'normal')">
+                                {{ data?.name }}
+                            </span>
                         </template>
-                    </el-select>
+                    </el-cascader>
                 </el-form-item>
 
                 <div class="form-footer">
@@ -348,6 +347,8 @@ const typeOptions: TypeOption[] = [
 
 const { proxy } = getCurrentInstance() || {}
 const formRef = ref<FormInstance>()
+const normalTagCascaderRef = ref<any>()
+const normalTagCascaderVisible = ref(false)
 const imageUploadRef = shallowRef<any>()
 const videoUploadRef = shallowRef<any>()
 const imageUploading = ref(false)
@@ -357,7 +358,6 @@ const videoCoverSourceUrl = ref('')
 const selectedCoverFile = ref<File | null>(null)
 const selectedCoverPreviewUrl = ref('')
 const capturingCover = ref(false)
-const normalTagKeyword = ref('')
 const batchTagKeywordMap = ref<Record<number, string>>({})
 let videoCoverObjectUrl = ''
 let selectedCoverPreviewObjectUrl = ''
@@ -374,7 +374,11 @@ const videoUrlsModel = computed({
 
 const selectedTagIdsModel = computed({
     get: () => (Array.isArray(props.selectedTagIds) ? props.selectedTagIds : []),
-    set: value => emit('update:selectedTagIds', Array.isArray(value) ? value : [])
+    set: value => {
+        const raw = Array.isArray(value) ? value : []
+        const next = raw.filter(id => normalLeafIdSet.value.has(String(id)))
+        emit('update:selectedTagIds', next)
+    }
 })
 
 const videoBatchContentsModel = computed({
@@ -422,7 +426,39 @@ const videoBatchItems = computed(() =>
 )
 
 const isUploading = computed(() => imageUploading.value || videoUploading.value)
-const filteredNormalInterestTree = computed(() => filterInterestTree(normalTagKeyword.value))
+const normalInterestCategories = computed(() => {
+    const source = Array.isArray(props.interestTree) ? props.interestTree : []
+    return source.filter(group => Array.isArray(group?.children) && group.children.length)
+})
+const normalTagCascaderOptions = computed(() =>
+    normalInterestCategories.value.map(group => ({
+        ...group,
+        children: (Array.isArray(group?.children) ? group.children : []).map((child: any) => ({ ...child }))
+    }))
+)
+const normalTagCascaderProps = {
+    multiple: true,
+    emitPath: false,
+    checkStrictly: true,
+    checkOnClickNode: false,
+    checkOnClickLeaf: true,
+    disabled: (_data: any, node: any) => !node?.isLeaf,
+    value: 'id',
+    label: 'name',
+    children: 'children'
+} as const
+const normalLeafIdSet = computed(() => {
+    const set = new Set<string>()
+    normalInterestCategories.value.forEach(group => {
+        const children = Array.isArray(group?.children) ? group.children : []
+        children.forEach((child: any) => {
+            if (child?.id !== undefined && child?.id !== null) {
+                set.add(String(child.id))
+            }
+        })
+    })
+    return set
+})
 
 function parseVideoUrlList(value: unknown): string[] {
     const text = String(value || '').trim()
@@ -473,8 +509,54 @@ function filterInterestTree(keyword: unknown): any[] {
         .filter(Boolean)
 }
 
-function handleNormalTagFilter(value: string): void {
-    normalTagKeyword.value = String(value || '')
+function handleNormalTagCascaderFilter(node: any, keyword: string): boolean {
+    const rawKeyword = String(keyword || '').trim()
+    if (!rawKeyword) return true
+    const current = node?.data?.name ?? ''
+    const parent = node?.parent?.data?.name ?? ''
+    const fullPath = [parent, current].filter(Boolean).join(' ')
+    return matchInterestKeyword(current, rawKeyword) || matchInterestKeyword(parent, rawKeyword) || matchInterestKeyword(fullPath, rawKeyword)
+}
+
+function clearNormalTagCascaderKeyword(): void {
+    const cascader = normalTagCascaderRef.value as any
+    if (!cascader) return
+
+    const panelRef = cascader?.cascaderPanelRef || cascader?.panel
+    if (typeof panelRef?.clearFilter === 'function') panelRef.clearFilter()
+    if (typeof panelRef?.filter === 'function') panelRef.filter('')
+
+    const searchInput = cascader?.$el?.querySelector?.('.el-cascader__search-input') as HTMLInputElement | null
+    if (searchInput) {
+        searchInput.value = ''
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }))
+        searchInput.dispatchEvent(new Event('change', { bubbles: true }))
+        return
+    }
+
+    const fallbackInput = cascader?.$el?.querySelector?.('.el-input__inner') as HTMLInputElement | null
+    if (!fallbackInput) return
+    fallbackInput.value = ''
+    fallbackInput.dispatchEvent(new Event('input', { bubbles: true }))
+    fallbackInput.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function handleNormalTagCascaderChange(value?: Array<number | string>): void {
+    const raw = Array.isArray(value) ? value : selectedTagIdsModel.value
+    const next = raw.filter(id => normalLeafIdSet.value.has(String(id)))
+    if (next.length !== selectedTagIdsModel.value.length || next.some((id, index) => String(id) !== String(selectedTagIdsModel.value[index]))) {
+        selectedTagIdsModel.value = next
+    }
+    requestAnimationFrame(() => clearNormalTagCascaderKeyword())
+}
+
+function handleNormalTagCascaderVisibleChange(visible: boolean): void {
+    normalTagCascaderVisible.value = visible
+    if (!visible) {
+        clearNormalTagCascaderKeyword()
+        return
+    }
+    nextTick(() => clearNormalTagCascaderKeyword())
 }
 
 function handleBatchTagFilter(index: number, value: string): void {
@@ -496,10 +578,6 @@ function resolveBatchTagVisibleChange(index: number): (visible: boolean) => void
     return (visible: boolean) => {
         if (!visible) handleBatchTagFilter(index, '')
     }
-}
-
-function handleNormalTagVisibleChange(visible: boolean): void {
-    if (!visible) handleNormalTagFilter('')
 }
 
 function resolveVideoNameFromUrl(url: string): string {
@@ -1375,6 +1453,73 @@ defineExpose({
     margin-top: 12px;
 }
 
+.custom-cascader {
+    :deep(.el-input__wrapper) {
+        border-radius: 12px;
+        padding: 8px 16px;
+        min-height: 44px;
+        align-items: center;
+        background-color: var(--el-fill-color-light);
+        box-shadow: none;
+        transition: all 0.2s;
+
+        &:hover {
+            background-color: var(--el-fill-color);
+        }
+
+        &.is-focus {
+            background-color: var(--el-bg-color-overlay);
+            box-shadow: 0 0 0 2px var(--el-color-primary);
+        }
+    }
+
+    :deep(.el-input__inner),
+    :deep(.el-cascader__search-input) {
+        height: 24px;
+        line-height: 24px;
+        margin: 0;
+        padding: 0;
+        vertical-align: middle;
+    }
+
+    :deep(.el-input__inner::placeholder),
+    :deep(.el-cascader__search-input::placeholder) {
+        line-height: 24px;
+    }
+
+    :deep(.el-cascader__tags) {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    :deep(.el-cascader__search-input) {
+        align-self: center;
+    }
+
+    :deep(.el-input__prefix) {
+        color: var(--el-text-color-placeholder);
+        font-size: 18px;
+    }
+
+    :deep(.el-tag) {
+        border-radius: 6px;
+        background-color: var(--el-bg-color-overlay);
+        border-color: var(--el-border-color-lighter);
+        color: var(--el-text-color-primary);
+        box-shadow: 0 1px 2px color-mix(in srgb, var(--el-color-black) 5%, transparent);
+    }
+
+    :deep(.el-tag .el-tag__close) {
+        color: var(--el-text-color-secondary);
+    }
+
+    :deep(.el-tag .el-tag__close:hover) {
+        color: var(--el-text-color-primary);
+        background-color: transparent;
+    }
+}
+
 .custom-select {
     :deep(.el-select__wrapper) {
         border-radius: 12px;
@@ -1486,7 +1631,7 @@ defineExpose({
             color: var(--tag-pill-text, var(--el-text-color-regular));
             border: 1px solid var(--tag-pill-border, transparent);
             font-size: 13px;
-            font-weight: 500;
+            font-weight: var(--tag-pill-font-weight, 400);
             line-height: 1.2;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -1511,6 +1656,7 @@ defineExpose({
                 color: var(--tag-pill-text-selected, var(--el-color-white));
                 border-color: var(--tag-pill-border-selected, var(--el-color-primary));
                 box-shadow: 0 3px 10px rgba(var(--el-color-primary-rgb), 0.22);
+                font-weight: var(--tag-pill-font-weight-selected, 700);
             }
 
             &::after {
@@ -1545,6 +1691,17 @@ defineExpose({
             }
         }
     }
+}
+
+:global(.custom-select-popper--normal .el-cascader-panel .el-cascader-node.is-expandable .el-cascader-node__prefix),
+:global(.custom-select-popper--normal .el-cascader-panel .el-cascader-node.is-expandable .el-checkbox),
+:global(.custom-select-popper--normal .el-cascader-panel .el-cascader-node.is-expandable .el-checkbox__input) {
+    display: none !important;
+}
+
+:global(.custom-select-popper--normal .el-cascader-panel .el-cascader-node.is-expandable .el-cascader-node__label) {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
 }
 
 .post-form :deep(.el-form-item.is-error .custom-select .el-select__wrapper),
@@ -1648,6 +1805,22 @@ defineExpose({
     .custom-select :deep(.el-select__wrapper:hover),
     .custom-select :deep(.el-select__wrapper.is-focused) {
         background-color: var(--el-fill-color-darker);
+    }
+
+    .custom-cascader :deep(.el-input__wrapper) {
+        background-color: var(--el-fill-color-dark);
+        box-shadow: none;
+    }
+
+    .custom-cascader :deep(.el-input__wrapper:hover),
+    .custom-cascader :deep(.el-input__wrapper.is-focus) {
+        background-color: var(--el-fill-color-darker);
+    }
+
+    .custom-cascader :deep(.el-tag) {
+        background: color-mix(in srgb, var(--el-color-primary) 18%, var(--el-fill-color-darker));
+        border-color: color-mix(in srgb, var(--el-color-primary) 56%, var(--el-border-color));
+        color: var(--el-color-primary-light-3);
     }
 
     .video-batch-tag-select :deep(.el-select__wrapper) {
@@ -1768,5 +1941,3 @@ defineExpose({
     }
 }
 </style>
-
-

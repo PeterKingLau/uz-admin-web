@@ -36,6 +36,7 @@
             :post="item"
             :checked="isSelected(item.id)"
             :batch-mode="batchMode"
+            :is-admin="isAdmin"
             @select="val => handleSelect(item.id, val)"
             @delete="emit('delete', $event)"
             @preview="emit('preview', $event)"
@@ -71,7 +72,10 @@ const props = defineProps<{
     finished: boolean
     selectedIds?: Array<string | number>
     batchMode?: boolean
+    isAdmin?: boolean
 }>()
+
+const isAdmin = computed(() => props.isAdmin === true)
 
 const emit = defineEmits<{
     (e: 'load-more', payload?: { source: 'auto' | 'manual' }): void

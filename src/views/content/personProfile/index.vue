@@ -156,6 +156,7 @@ import { useFollowStatsStore } from '@/store/modules/followStats'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
 import { resolveCollectionVideoUrl } from '@/features/content/personProfile/videoModule/helpers'
+import { openVideoPlayerPreview } from '@/utils/content/videoPlayer'
 import {
     appendPreviewComment,
     formatRelativeTime,
@@ -179,7 +180,6 @@ const router = useRouter()
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const followStatsStore = useFollowStatsStore()
-const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
 const activeTab = ref('works')
 const loading = ref(false)
@@ -1111,35 +1111,20 @@ const handleWorksFilterChange = value => {
 
 const handleCollectionChanged = () => getCollectionList(true)
 
-const buildCurrentUserPayload = () => {
-    const currentUserId = userStore.id ?? userStore.userId ?? null
-    return {
-        id: currentUserId,
-        userId: currentUserId,
-        nickName: userStore.nickName || userStore.name || '',
-        userName: userStore.name || userStore.nickName || '',
-        avatar: userStore.avatar || ''
-    }
-}
-
 const handlePreview = item => {
     if (!item) return
-    if (item.postType === POST_TYPE.VIDEO) {
-        const src = getVideoUrl(item)
-        const postId = item?.postId ?? item?.id
-        if (!src || postId == null) return
-        const normalized = normalizePostFlags(item)
-        const cacheKey = `${VIDEO_PLAYER_CACHE_KEY}:${postId}`
-        proxy?.$cache?.session?.setJSON?.(cacheKey, {
-            id: postId,
-            src,
-            post: normalized,
-            userInfo: buildCurrentUserPayload(),
-            from: route.fullPath
+    if (
+        openVideoPlayerPreview({
+            item,
+            getVideoUrl,
+            normalizePostFlags,
+            userStore,
+            cacheSession: proxy?.$cache?.session,
+            router,
+            route
         })
-        router.push({ name: 'VideoPlayer', params: { id: postId }, query: { from: route.fullPath } })
+    )
         return
-    }
 
     previewPost.value = normalizePostFlags(item)
     commentDraft.value = ''

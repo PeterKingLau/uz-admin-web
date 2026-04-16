@@ -19,6 +19,7 @@ interface UserState {
     name: string
     nickName: string
     avatar: string
+    admin: boolean
     roles: string[]
     permissions: string[]
     profileLoadedAt: number
@@ -86,6 +87,7 @@ const useUserStore = defineStore('user', {
         name: '',
         nickName: '',
         avatar: defAva,
+        admin: false,
         roles: [],
         permissions: [],
         profileLoadedAt: 0
@@ -97,6 +99,7 @@ const useUserStore = defineStore('user', {
             this.name = ''
             this.nickName = ''
             this.avatar = defAva
+            this.admin = false
             this.roles = []
             this.permissions = []
             this.profileLoadedAt = 0
@@ -108,6 +111,8 @@ const useUserStore = defineStore('user', {
             this.name = snapshot.name
             this.nickName = snapshot.nickName
             this.avatar = snapshot.avatar
+            const roleAdmin = Array.isArray(user?.roles) ? user.roles.some((role: any) => role?.admin === true) : false
+            this.admin = Boolean((user?.admin === true || user?.isAdmin === true || roleAdmin) ?? false)
 
             if (auth) {
                 if (Array.isArray(auth.roles) && auth.roles.length > 0) {
@@ -129,7 +134,8 @@ const useUserStore = defineStore('user', {
                     userId: user.userId ?? user.id ?? this.id,
                     userName: user.userName ?? user.username ?? user.name ?? this.name,
                     nickName: user.nickName ?? user.nickname ?? this.nickName ?? this.name,
-                    avatar: user.avatar ?? this.avatar
+                    avatar: user.avatar ?? this.avatar,
+                    admin: user.admin ?? user.isAdmin ?? this.admin
                 },
                 {
                     roles: this.roles,

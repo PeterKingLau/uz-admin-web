@@ -1,10 +1,13 @@
 export type OptionTagVariant = 'normal' | 'batch' | 'query'
 
-type TagLike = {
-    id?: number | string
-    name?: string
-    label?: string
-} | null | undefined
+type TagLike =
+    | {
+          id?: number | string
+          name?: string
+          label?: string
+      }
+    | null
+    | undefined
 
 const styleCache = new Map<string, Record<string, string>>()
 
@@ -14,6 +17,10 @@ function hashSeed(value: string): number {
         hash = (hash * 131 + value.charCodeAt(index)) >>> 0
     }
     return hash
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value))
 }
 
 function getVariantConfig(variant: OptionTagVariant) {
@@ -56,30 +63,48 @@ export function resolveOptionTagStyle(tag: TagLike, variant: OptionTagVariant = 
     if (cached) return cached
 
     const seed = hashSeed(cacheKey)
-    const hue = seed % 360
+    const seedA = seed & 0xff
+    const seedB = (seed >>> 8) & 0xff
+    const seedC = (seed >>> 16) & 0xff
+    const seedD = (seed >>> 24) & 0xff
+    const hueBase = seed % 360
+    const hueShift = Math.round(((seedA / 255) * 2 - 1) * 14)
+    const hue = (hueBase + hueShift + 360) % 360
     const { saturation, lightness, borderLightness, textLightness, borderStyle, borderRadius } = getVariantConfig(variant)
-    const hoverLightness = Math.max(80, lightness - 5)
-    const selectedLightness = Math.max(74, lightness - 12)
+    const saturationVar = Math.round(((seedB / 255) * 2 - 1) * 12)
+    const lightnessVar = Math.round(((seedC / 255) * 2 - 1) * 8)
+    const borderVar = Math.round(((seedD / 255) * 2 - 1) * 10)
+    const sat = clamp(saturation + saturationVar, 64, 96)
+    const baseLight = clamp(lightness + lightnessVar, 84, 96)
+    const borderBaseLight = clamp(borderLightness + borderVar, 56, 88)
+    const textBaseLight = clamp(textLightness - Math.round(lightnessVar / 2), 18, 36)
+    const hoverLightness = clamp(baseLight - (4 + (seedA % 3)), 76, 94)
+    const selectedLightness = clamp(baseLight - (10 + (seedB % 4)), 68, 90)
+    const bgAlpha = (0.82 + (seedC % 10) * 0.01).toFixed(2)
+    const hoverAlpha = (0.9 + (seedD % 8) * 0.01).toFixed(2)
+    const selectedAlpha = (0.94 + (seedA % 5) * 0.01).toFixed(2)
 
-    const background = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.88)`
-    const border = `hsla(${hue}, ${Math.min(92, saturation + 8)}%, ${borderLightness}%, 0.98)`
-    const text = `hsl(${hue}, ${Math.min(96, saturation + 12)}%, ${textLightness}%)`
-    const hoverBackground = `hsla(${hue}, ${Math.min(94, saturation + 10)}%, ${hoverLightness}%, 0.95)`
-    const hoverBorder = `hsla(${hue}, ${Math.min(96, saturation + 14)}%, ${Math.max(58, borderLightness - 10)}%, 1)`
-    const selectedBackground = `hsla(${hue}, ${Math.min(98, saturation + 18)}%, ${selectedLightness}%, 0.98)`
-    const selectedBorder = `hsla(${hue}, ${Math.min(99, saturation + 24)}%, ${Math.max(46, borderLightness - 20)}%, 1)`
-    const selectedText = `hsl(${hue}, ${Math.min(99, saturation + 20)}%, ${Math.max(18, textLightness - 11)}%)`
+    const background = `hsla(${hue}, ${sat}%, ${baseLight}%, ${bgAlpha})`
+    const border = `hsla(${hue}, ${clamp(sat + 8, 66, 98)}%, ${borderBaseLight}%, 0.98)`
+    const text = `hsl(${hue}, ${clamp(sat + 12, 68, 99)}%, ${textBaseLight}%)`
+    const hoverBackground = `hsla(${hue}, ${clamp(sat + 10, 70, 99)}%, ${hoverLightness}%, ${hoverAlpha})`
+    const hoverBorder = `hsla(${hue}, ${clamp(sat + 14, 74, 99)}%, ${clamp(borderBaseLight - 10, 44, 84)}%, 1)`
+    const selectedBackground = `hsla(${hue}, ${clamp(sat + 18, 78, 99)}%, ${selectedLightness}%, ${selectedAlpha})`
+    const selectedBorder = `hsla(${hue}, ${clamp(sat + 24, 80, 99)}%, ${clamp(borderBaseLight - 20, 36, 76)}%, 1)`
+    const selectedText = `hsl(${hue}, ${clamp(sat + 20, 78, 99)}%, ${clamp(textBaseLight - 11, 12, 28)}%)`
 
     const style = {
         '--tag-pill-bg': background,
         '--tag-pill-border': border,
         '--tag-pill-text': text,
+        '--tag-pill-font-weight': '400',
         '--tag-pill-bg-hover': hoverBackground,
         '--tag-pill-border-hover': hoverBorder,
         '--tag-pill-bg-selected': selectedBackground,
         '--tag-pill-border-selected': selectedBorder,
         '--tag-pill-text-selected': selectedText,
-        '--tag-pill-shadow': `0 1px 2px hsla(${hue}, 64%, 32%, 0.16)`,
+        '--tag-pill-font-weight-selected': '700',
+        '--tag-pill-shadow': `0 1px 2px hsla(${hue}, ${clamp(sat - 8, 50, 90)}%, 32%, 0.16)`,
         backgroundColor: background,
         borderColor: border,
         color: text,
