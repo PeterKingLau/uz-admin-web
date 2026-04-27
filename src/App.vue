@@ -6,6 +6,7 @@
 defineOptions({ name: 'App' })
 import { nextTick, onBeforeUnmount, onMounted } from 'vue'
 import useSettingsStore from '@/store/modules/settings'
+import { clearAllPageScrollLocks } from '@/utils/scrollLock'
 import useUserStore from '@/store/modules/user'
 import { handleThemeStyle } from '@/utils/theme'
 
@@ -21,6 +22,7 @@ function handleVisibilityChange() {
 }
 
 onMounted(() => {
+    clearAllPageScrollLocks()
     nextTick(() => {
         handleThemeStyle(useSettingsStore().theme)
     })
@@ -30,6 +32,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+    clearAllPageScrollLocks()
     window.removeEventListener('focus', syncCurrentUserProfile)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
 })

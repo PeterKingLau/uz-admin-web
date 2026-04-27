@@ -144,7 +144,6 @@
 defineOptions({ name: 'ViewsContentPersonProfile' })
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
 import { ElImageViewer } from 'element-plus'
-import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
@@ -174,6 +173,8 @@ import PostPreviewModal from './components/Modal/PostPreviewModal.vue'
 import FollowDialog from './components/Dialog/FollowDialog.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
+import { resolvePersonalRoute } from '@/utils/routeAccess'
+import { usePageScrollLock } from '@/utils/scrollLock'
 
 const route = useRoute()
 const router = useRouter()
@@ -253,7 +254,7 @@ const resolvePostType = value => {
     const normalized = String(value)
     return allowedPostTypeSet.has(normalized) ? normalized : fallback
 }
-const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
+const pageScrollLock = usePageScrollLock()
 const isCanceledRequest = error => {
     const code = String(error?.code ?? '')
     const name = String(error?.name ?? '')
@@ -454,7 +455,7 @@ watch(
 )
 
 watch(previewVisible, visible => {
-    isBodyScrollLocked.value = visible
+    pageScrollLock.setLocked(Boolean(visible))
 })
 
 const handleFollowTabClick = tab => {
@@ -966,7 +967,7 @@ const handleDeleteComment = async (comment, parent) => {
             type: 'warning',
             confirmButtonText: '删除',
             cancelButtonText: '取消',
-            lockScroll: false
+            lockScroll: true
         })
     } catch {
         return
@@ -1331,7 +1332,9 @@ const handlePreviewFollow = async () => {
 }
 
 const goToProfile = () => {
-    router.push({ name: 'Profile' })
+    const target = resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'profile')
+    if (!target) return
+    router.push(target)
 }
 
 const syncSelfTargetUserId = () => {
@@ -1401,7 +1404,7 @@ watch(
 onBeforeUnmount(() => {
     followObserver?.disconnect()
     followObserver = null
-    isBodyScrollLocked.value = false
+    pageScrollLock.setLocked(false)
 
     if (cleanupTimer !== null) {
         clearInterval(cleanupTimer)

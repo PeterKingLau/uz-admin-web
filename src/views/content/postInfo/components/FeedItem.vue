@@ -38,12 +38,12 @@
                 </div>
             </div>
 
-            <div v-if="isTextPost" class="text-cover" :style="textCoverStyle">
-                <div class="text-content-inner" :class="textCoverSizeClass">
-                    <span class="quote quote-start">“</span>
+            <div v-if="isTextPost" class="text-cover">
+                <Icon icon="mdi:format-quote-open" class="text-cover-quote" />
+                <div class="text-wrap">
                     <span class="text-value">{{ textCoverText }}</span>
-                    <span class="quote quote-end">”</span>
                 </div>
+                <i class="text-cover-accent" aria-hidden="true"></i>
             </div>
 
             <el-image v-else-if="coverUrl" :src="coverUrl" fit="cover" class="media-image" loading="lazy">
@@ -128,7 +128,6 @@
 defineOptions({ name: 'ViewsContentPostInfoComponentsFeedItem' })
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
-import { resolveTextCoverPalette } from '@/utils/textCover'
 import { parseMediaRaw, parseMediaUrls, resolveMediaUrl as resolveCommonMediaUrl } from '@/utils/content/common'
 
 const props = defineProps<{
@@ -167,14 +166,6 @@ const postType = computed(() => String(props.post?.postType ?? ''))
 const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
 const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
-const textCoverCharCount = computed(() => Array.from(textCoverText.value).length)
-const textCoverSizeClass = computed(() => {
-    const count = textCoverCharCount.value
-    if (count <= 8) return 'size-xl'
-    if (count <= 20) return 'size-lg'
-    if (count <= 40) return 'size-md'
-    return 'size-sm'
-})
 
 const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
     [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },
@@ -244,15 +235,6 @@ const videoPreviewSrc = computed(() => {
 const activeHoverVideoSrc = computed(() => (shouldRenderHoverVideo.value ? videoPreviewSrc.value : ''))
 const canHoverPlayPreview = computed(() => isVideoPost.value && Boolean(videoPreviewSrc.value) && !isBatchMode.value)
 const canPreview = computed(() => isTextPost.value || Boolean(coverUrl.value || mediaFiles.value.length || videoPreviewSrc.value))
-
-const textCoverStyle = computed(() => {
-    if (!isTextPost.value) return {}
-    const palette = resolveTextCoverPalette(String(currentPostId.value || textCoverText.value))
-    return {
-        '--card-accent': palette.accent,
-        '--card-bg-gradient': `linear-gradient(135deg, ${palette.bg}, ${palette.accent}40)`
-    } as Record<string, string>
-})
 
 const handleMediaClick = () => {
     stopHoverPreview()
@@ -340,14 +322,18 @@ onBeforeUnmount(() => {
     border-radius: 18px;
     box-shadow: 0 4px 16px color-mix(in srgb, var(--el-color-black) 4%, transparent);
     border: 1px solid var(--el-border-color-lighter);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition:
+        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
     overflow: hidden;
     height: 100%;
 
     &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 28px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+        transform: none;
+        box-shadow: 0 6px 20px color-mix(in srgb, var(--el-color-black) 7%, transparent);
         border-color: var(--el-border-color);
+        background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-fill-color-light));
     }
 
     &.checked {
@@ -412,11 +398,11 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 100%;
     display: block;
-    transition: transform 0.3s ease;
+    transition: transform 0.24s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 .card-media-wrapper:hover .media-image {
-    transform: scale(1.03);
+    transform: scale(1.012);
 }
 
 .media-video {
@@ -496,90 +482,89 @@ onBeforeUnmount(() => {
 }
 
 .text-cover {
+    --admin-text-cover-color: color-mix(in srgb, var(--el-text-color-primary) 88%, #2c3e50);
+    --admin-text-cover-muted: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
+    --admin-text-cover-accent: color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
+
     width: 100%;
     height: 100%;
-    padding: 0;
-    background: var(--card-bg-gradient);
-    color: var(--el-color-white);
-    display: block;
+    padding: 28px 24px;
+    background:
+        radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--el-color-white) 82%, transparent), transparent 30%),
+        radial-gradient(circle at 82% 78%, color-mix(in srgb, var(--el-fill-color-darker) 36%, transparent), transparent 34%),
+        linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-light) 100%);
+    color: var(--admin-text-cover-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
-    text-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-black) 10%, transparent);
     overflow: hidden;
+    isolation: isolate;
+}
 
-    .text-content-inner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 86%;
-        padding: 7% 9%;
-        text-align: center;
-        position: relative;
+.text-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(160deg, color-mix(in srgb, var(--el-color-white) 24%, transparent) 0%, transparent 46%),
+        radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--el-color-white) 28%, transparent), transparent 40%);
+}
 
-        .text-value {
-            font-size: clamp(15px, 5.2%, 22px);
-            line-height: 1.52;
-            font-weight: 600;
-            text-align: center;
-            display: -webkit-box;
-            -webkit-line-clamp: 6;
-            line-clamp: 6;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            word-break: break-word;
-        }
+.text-cover .text-wrap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    width: 100%;
+    max-width: 184px;
+    min-height: 42%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
 
-        .quote {
-            position: absolute;
-            font-size: clamp(32px, 11%, 56px);
-            line-height: 1;
-            opacity: 0.62;
-            font-family: serif;
-            pointer-events: none;
-        }
+.text-cover .text-value {
+    width: 100%;
+    font-size: 18px;
+    line-height: 1.65;
+    font-weight: 600;
+    text-align: center;
+    color: var(--admin-text-cover-color);
+    text-shadow: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
 
-        .quote-start {
-            top: 0;
-            left: 0;
-            transform: translate(-20%, -10%);
-        }
+.text-cover .text-cover-quote {
+    position: absolute;
+    left: 50%;
+    top: 44%;
+    z-index: 0;
+    color: var(--admin-text-cover-muted);
+    font-size: 112px;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
 
-        .quote-end {
-            right: 0;
-            bottom: 0;
-            transform: translate(20%, 10%);
-        }
-
-        &.size-xl {
-            .text-value {
-                font-size: clamp(28px, 9.8%, 44px);
-                line-height: 1.28;
-                font-weight: 700;
-            }
-        }
-
-        &.size-lg {
-            .text-value {
-                font-size: clamp(22px, 8%, 34px);
-                line-height: 1.34;
-                font-weight: 680;
-            }
-        }
-
-        &.size-md {
-            .text-value {
-                font-size: clamp(17px, 6.2%, 26px);
-                line-height: 1.42;
-            }
-        }
-
-        &.size-sm {
-            .text-value {
-                font-size: clamp(14px, 4.8%, 18px);
-                line-height: 1.55;
-            }
-        }
-    }
+.text-cover .text-cover-accent {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    z-index: 1;
+    width: 34px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--admin-text-cover-accent);
+    transform: translateX(-50%);
 }
 
 .play-overlay {
@@ -629,12 +614,15 @@ onBeforeUnmount(() => {
         cursor: pointer;
         box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 12%, transparent);
         font-size: 14px;
-        transition: all 0.2s;
+        transition:
+            background-color var(--app-motion-fast),
+            color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast);
 
         &:hover {
             background: var(--el-color-white);
             color: var(--el-color-primary);
-            transform: scale(1.04);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
         }
 
         &.active {
@@ -669,7 +657,10 @@ onBeforeUnmount(() => {
         color: var(--el-color-white);
         font-size: 16px;
         box-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-black) 20%, transparent);
-        transition: all 0.2s;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            color var(--app-motion-fast);
 
         &.active {
             background: var(--el-color-primary);
@@ -752,7 +743,10 @@ onBeforeUnmount(() => {
         background: transparent;
         color: var(--el-text-color-secondary);
         cursor: pointer;
-        transition: all 0.2s;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            color var(--app-motion-fast);
         font-size: 13px;
 
         &:hover {

@@ -373,7 +373,7 @@ export function useVideoCommentsPanel(options: UseVideoCommentsPanelOptions) {
                 type: 'warning',
                 confirmButtonText: '删除',
                 cancelButtonText: '取消',
-                lockScroll: false
+                lockScroll: true
             })
         } catch {
             return

@@ -1,4 +1,5 @@
 ﻿import request from '@/utils/request'
+import type { AxiosRequestConfig } from 'axios'
 import { buildVideoCoverFile, normalizeMediaUrls, normalizeStoragePath } from '@/utils/content/postMedia'
 import { getPostUploadCredentials, uploadFilesToOss, uploadFilesToOssSettled } from '@/utils/content/ossUpload'
 import type { OssCredentialType, OssUploadSettledResult, UploadCredentialParams } from '@/utils/content/ossUpload'
@@ -12,6 +13,7 @@ import type {
     ListPostByAppParams,
     ListPostByBookMarkParams,
     ListPostByLikeParams,
+    RecommendFeedParams,
     PinPostManuallyParams,
     RepostPostPayload,
     UnpinPostManuallyParams,
@@ -28,16 +30,21 @@ export type {
     ListPostByAppParams,
     ListPostByBookMarkParams,
     ListPostByLikeParams,
+    RecommendFeedParams,
     PinPostManuallyParams,
     RepostPostPayload,
     UnpinPostManuallyParams,
     UpdatePostTagPayload
 } from './post.types'
-
+import { getDeviceIdHeader } from '@/utils/deviceId'
 const POST_CREATE_URL = '/content/postInfo/create'
 const REQUEST_TIMEOUT = 300000
 const VIDEO_POST_TYPE = '3'
 const IMAGE_POST_TYPE = '2'
+type RequestControlConfig = Pick<AxiosRequestConfig, 'headers' | 'signal'> & {
+    silentError?: boolean
+    skipPending?: boolean
+}
 
 const toStringOrEmpty = (value: unknown): string => {
     if (value === null || value === undefined) return ''
@@ -111,12 +118,13 @@ export function updatePostTag(data: UpdatePostTagPayload) {
     })
 }
 
-export function listPostByApp(params: ListPostByAppParams): Promise<any> {
+export function listPostByApp(params: ListPostByAppParams, config: RequestControlConfig = {}): Promise<any> {
     return request({
+        ...config,
         url: '/content/postInfo/app/v1/listByApp',
         method: 'get',
         params
-    }) as unknown as Promise<any>
+    } as any) as unknown as Promise<any>
 }
 
 export function listPostByLike(params: ListPostByLikeParams): Promise<any> {
@@ -133,6 +141,20 @@ export function listPostByBookMark(params: ListPostByBookMarkParams): Promise<an
         method: 'get',
         params
     }) as unknown as Promise<any>
+}
+
+export function listRecommendFeed(params: RecommendFeedParams, config: RequestControlConfig = {}): Promise<any> {
+    const { headers, ...requestConfig } = config
+    return request({
+        ...requestConfig,
+        url: '/content/postInfo/app/v1/feed/recommend',
+        method: 'get',
+        params,
+        headers: {
+            ...getDeviceIdHeader(),
+            ...(headers || {})
+        }
+    } as any) as unknown as Promise<any>
 }
 
 export function likePost(data: LikePostPayload): Promise<any> {

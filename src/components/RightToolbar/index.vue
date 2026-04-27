@@ -155,7 +155,11 @@ function handleCheckAllChange(val) {
         border: 1px solid var(--el-border-color-lighter);
         background-color: var(--el-bg-color);
         color: var(--el-text-color-regular);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -164,12 +168,10 @@ function handleCheckAllChange(val) {
             color: var(--el-color-primary);
             border-color: var(--el-color-primary-light-5);
             background-color: var(--el-color-primary-light-9);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+            box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.08);
         }
 
         &:active {
-            transform: translateY(0);
             box-shadow: none;
         }
 

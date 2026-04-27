@@ -5,6 +5,7 @@ export interface SelectFollowNumParams {
 }
 
 export interface FollowListParams {
+    targetUserId?: UserId
     lastId?: UserId
     size?: number | string
 }

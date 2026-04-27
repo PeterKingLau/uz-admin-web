@@ -674,7 +674,10 @@ function togglePassword() {
     border-radius: 12px;
     padding: 0 16px;
     height: 48px;
-    transition: all 0.3s ease;
+    transition:
+        background-color var(--app-motion-normal),
+        border-color var(--app-motion-normal),
+        box-shadow var(--app-motion-normal);
 
     &:hover {
         background-color: color-mix(in srgb, var(--login-white) 90%, transparent);
@@ -740,7 +743,11 @@ function togglePassword() {
         background: color-mix(in srgb, var(--login-primary) 10%, transparent);
         border: 1px solid transparent;
         color: var(--login-primary);
-        transition: all 0.3s;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast);
 
         &:hover:not(.is-disabled) {
             background: var(--login-primary);
@@ -827,17 +834,19 @@ function togglePassword() {
     background: var(--login-primary);
     border: none;
     box-shadow: 0 8px 16px color-mix(in srgb, var(--login-primary) 30%, transparent);
-    transition: all 0.3s;
+    transition:
+        background-color var(--app-motion-fast),
+        box-shadow var(--app-motion-fast),
+        opacity var(--app-motion-fast);
     letter-spacing: 1px;
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 20px color-mix(in srgb, var(--login-primary) 40%, transparent);
+        opacity: 0.94;
+        box-shadow: 0 8px 18px color-mix(in srgb, var(--login-primary) 32%, transparent);
         background: var(--login-primary-soft);
     }
 
     &:active {
-        transform: translateY(0);
         box-shadow: 0 4px 10px color-mix(in srgb, var(--login-primary) 20%, transparent);
     }
 }

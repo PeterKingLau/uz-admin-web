@@ -185,7 +185,6 @@
 defineOptions({ name: 'ViewsContentUserProfile' })
 import { ref, reactive, onMounted, onActivated, onBeforeUnmount, nextTick, computed, watch, getCurrentInstance } from 'vue'
 import { ElImageViewer } from 'element-plus'
-import { useScrollLock } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
 import { deleteComment, listCommentReplies, listTopComments } from '@/api/content/postComment'
@@ -219,6 +218,8 @@ import PostPreviewModal from '@/views/content/personProfile/components/Modal/Pos
 import FollowDialog from '@/views/content/personProfile/components/Dialog/FollowDialog.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
+import { resolvePersonalRoute } from '@/utils/routeAccess'
+import { usePageScrollLock } from '@/utils/scrollLock'
 
 const route = useRoute()
 const router = useRouter()
@@ -327,7 +328,7 @@ const resolvePostType = value => {
     return allowedPostTypeSet.has(normalized) ? normalized : fallback
 }
 
-const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
+const pageScrollLock = usePageScrollLock()
 
 const clampStats = (following, followers, mutualCount) => {
     const followingCount = Math.max(0, Number(following) || 0)
@@ -657,7 +658,7 @@ watch(
 )
 
 watch(previewVisible, visible => {
-    isBodyScrollLocked.value = visible
+    pageScrollLock.setLocked(Boolean(visible))
 })
 
 const handleFollowTabClick = tab => {
@@ -1244,7 +1245,7 @@ const handleDeleteComment = async (comment, parent) => {
             type: 'warning',
             confirmButtonText: '删除',
             cancelButtonText: '取消',
-            lockScroll: false
+            lockScroll: true
         })
     } catch {
         return
@@ -1720,7 +1721,7 @@ const handleProfileFollow = async () => {
                 type: 'warning',
                 confirmButtonText: '取消关注',
                 cancelButtonText: '保留关注',
-                lockScroll: false
+                lockScroll: true
             })
         } catch {
             return
@@ -1741,7 +1742,9 @@ const handleProfileFollow = async () => {
 }
 
 const goToProfile = () => {
-    router.push({ name: 'Profile' })
+    const target = resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'profile')
+    if (!target) return
+    router.push(target)
 }
 
 const openFollowDialog = type => {
@@ -1857,7 +1860,7 @@ onBeforeUnmount(() => {
     followObserver?.disconnect()
     followObserver = null
     closeAvatarPreview()
-    isBodyScrollLocked.value = false
+    pageScrollLock.setLocked(false)
 
     if (cleanupTimer !== null) {
         clearInterval(cleanupTimer)

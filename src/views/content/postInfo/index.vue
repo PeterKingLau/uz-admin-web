@@ -63,7 +63,7 @@
                 <el-empty v-else description="暂无内容" :image-size="100" />
             </div>
 
-            <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" :lock-scroll="false" @closed="resetEditTag" class="modern-dialog">
+            <el-dialog v-model="editTagVisible" title="编辑标签" width="520px" @closed="resetEditTag" class="modern-dialog">
                 <el-form label-position="top">
                     <el-form-item label="话题标签" required>
                         <el-select
@@ -164,7 +164,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'ContentList' })
 import { ref, reactive, computed, onMounted, onActivated, onDeactivated, onBeforeUnmount, getCurrentInstance, nextTick, watch } from 'vue'
-import { useScrollLock } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import ContentQueryForm from './components/ContentQueryForm.vue'
 import FeedList from './components/FeedList.vue'
@@ -203,6 +202,7 @@ import {
     toLocalDateTime
 } from '@/utils/content/common'
 import { CONTENT_LIST_REFRESH_EVENT, getContentListRefreshMark } from '@/utils/content/refreshSignal'
+import { usePageScrollLock } from '@/utils/scrollLock'
 
 const { proxy } = getCurrentInstance() || {}
 const router = useRouter()
@@ -296,7 +296,7 @@ const qrcodeDescription = ref('')
 const qrcodeFileName = ref('')
 
 const postTypeOptions = useEnumOptions('POST_TYPE')
-const isBodyScrollLocked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
+const pageScrollLock = usePageScrollLock()
 const hasUserScrolledAfterQuery = ref(false)
 const skipFirstActivatedRefresh = ref(true)
 const lastHandledRefreshMark = ref(0)
@@ -894,7 +894,7 @@ async function handleDeleteConfirm(ids: Array<string | number>) {
     const isBatch = ids.length > 1
     try {
         await (proxy as any)?.$modal?.confirm(isBatch ? `确认删除选中的 ${ids.length} 条帖子？` : '确认删除该条内容吗？删除后不可恢复。', '提示', {
-            lockScroll: false
+            lockScroll: true
         })
     } catch {
         return
@@ -1134,7 +1134,7 @@ async function handleDeleteComment(comment: any, parent?: any) {
             type: 'warning',
             confirmButtonText: '删除',
             cancelButtonText: '取消',
-            lockScroll: false
+            lockScroll: true
         })
     } catch {
         return
@@ -1480,7 +1480,7 @@ onDeactivated(() => {
 })
 
 watch([previewVisible, videoPreviewVisible], ([previewOpen, videoOpen]) => {
-    isBodyScrollLocked.value = previewOpen || videoOpen
+    pageScrollLock.setLocked(Boolean(previewOpen || videoOpen))
 })
 
 onBeforeUnmount(() => {
@@ -1488,7 +1488,7 @@ onBeforeUnmount(() => {
     clearRefreshRetryTimer()
     window.removeEventListener(CONTENT_LIST_REFRESH_EVENT, handleContentListRefresh as EventListener)
     unbindWindowScroll()
-    isBodyScrollLocked.value = false
+    pageScrollLock.setLocked(false)
     ;[...videoPreloadCache.keys()].forEach(disposePreloadedVideo)
 })
 

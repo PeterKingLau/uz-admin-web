@@ -136,7 +136,9 @@ $transition-duration: 0.3s;
         align-items: center;
         font-weight: 600;
         color: v-bind(menuTextColor);
-        transition: all 0.2s ease-in-out;
+        transition:
+            background-color var(--app-motion-fast),
+            color var(--app-motion-fast);
 
         .svg-icon,
         .nav-icon {
@@ -166,7 +168,6 @@ $transition-duration: 0.3s;
             .svg-icon,
             .nav-icon {
                 color: var(--el-color-primary);
-                transform: scale(1.1);
             }
         }
 
@@ -203,7 +204,10 @@ $transition-duration: 0.3s;
         font-weight: 400;
         color: v-bind(menuTextColor);
         opacity: 0.9;
-        transition: all 0.2s;
+        transition:
+            background-color var(--app-motion-fast),
+            color var(--app-motion-fast),
+            opacity var(--app-motion-fast);
 
         padding-left: 48px !important;
 
@@ -216,7 +220,6 @@ $transition-duration: 0.3s;
         &:hover {
             background-color: color-mix(in srgb, var(--el-color-black) 4%, transparent) !important;
             color: var(--el-text-color-primary) !important;
-            transform: translateX(4px);
         }
 
         &.is-active {

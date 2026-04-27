@@ -555,11 +555,15 @@ onMounted(() => {
         border: 1px solid var(--el-border-color-light);
         border-radius: 16px;
         padding: 24px;
-        transition: all 0.3s;
+        transition:
+            border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+            box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+            background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
 
         &:hover {
             border-color: var(--el-color-primary-light-5);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+            background: color-mix(in srgb, var(--el-fill-color-blank) 96%, var(--el-fill-color-light));
 
             .rep-delete-btn {
                 opacity: 1;

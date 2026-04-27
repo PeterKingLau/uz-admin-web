@@ -672,7 +672,9 @@ onMounted(() => {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    transition: all 0.3s;
+    transition:
+        background-color var(--app-motion-fast),
+        border-color var(--app-motion-fast);
 
     .tip-icon {
         color: var(--el-color-primary);
@@ -712,13 +714,15 @@ onMounted(() => {
         background-color: var(--el-fill-color-blank);
         border: 1px solid var(--el-border-color-light);
         border-radius: 6px;
-        transition: all 0.3s;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast);
 
         &:hover {
             background-color: var(--el-fill-color-light);
             border-color: var(--el-color-primary-light-5);
-            transform: translateY(-2px);
-            box-shadow: var(--el-box-shadow-light);
+            box-shadow: var(--app-hover-shadow-card);
         }
 
         .file-info {
@@ -793,7 +797,9 @@ onMounted(() => {
 
 .list-fade-enter-active,
 .list-fade-leave-active {
-    transition: all 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+    transition:
+        opacity var(--app-motion-image),
+        transform var(--app-motion-image);
 }
 .list-fade-enter-from,
 .list-fade-leave-to {

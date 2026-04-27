@@ -111,7 +111,9 @@ const handleDownload = async () => {
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+        background-color var(--app-motion-fast),
+        box-shadow var(--app-motion-fast);
     z-index: 10;
 
     .close-icon {
@@ -122,7 +124,7 @@ const handleDownload = async () => {
 
     &:hover {
         background: var(--el-fill-color-light);
-        transform: scale(1.1);
+        box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.08);
 
         .close-icon {
             color: var(--el-text-color-primary);
@@ -199,15 +201,17 @@ const handleDownload = async () => {
     gap: 8px;
     box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.25);
     border: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+        background-color var(--app-motion-fast),
+        box-shadow var(--app-motion-fast),
+        opacity var(--app-motion-fast);
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.35);
+        opacity: 0.94;
+        box-shadow: 0 6px 18px rgba(var(--el-color-primary-rgb), 0.28);
     }
 
     &:active {
-        transform: translateY(0);
         box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.2);
     }
 

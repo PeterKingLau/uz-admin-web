@@ -1,13 +1,13 @@
 <template>
     <div :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }">
-        <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
+        <div v-if="showSidebar && device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
 
-        <sidebar v-if="!sidebar.hide" class="sidebar-container" />
+        <sidebar v-if="showSidebar" class="sidebar-container" />
 
-        <div :class="{ hasTagsView: needTagsView, sidebarHide: sidebar.hide }" class="main-container">
+        <div :class="{ hasTagsView: showTagsView, sidebarHide: !showSidebar }" class="main-container">
             <div :class="{ 'fixed-header': fixedHeader }">
                 <navbar @setLayout="setLayout" />
-                <tags-view v-if="needTagsView" />
+                <tags-view v-if="showTagsView" />
             </div>
 
             <app-main :style="contentStyle" />
@@ -25,27 +25,33 @@ import Sidebar from './components/Sidebar/index.vue'
 import { AppMain, Navbar, Settings, TagsView } from './components'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
+import useUserStore from '@/store/modules/user'
 
 const appStore = useAppStore()
 const settingsStore = useSettingsStore()
+const userStore = useUserStore()
 const theme = computed(() => settingsStore.theme)
 const sidebar = computed(() => appStore.sidebar)
 const device = computed(() => appStore.device)
 const needTagsView = computed(() => settingsStore.tagsView)
 const fixedHeader = computed(() => settingsStore.fixedHeader)
+const isCommonClient = computed(() => userStore.isCommonClient === true)
+const showSidebar = computed(() => !sidebar.value.hide && !isCommonClient.value)
+const showTagsView = computed(() => needTagsView.value && !isCommonClient.value)
 
 const classObj = computed(() => ({
-    hideSidebar: !sidebar.value.opened,
-    openSidebar: sidebar.value.opened,
+    hideSidebar: !showSidebar.value || !sidebar.value.opened,
+    openSidebar: showSidebar.value && sidebar.value.opened,
     withoutAnimation: sidebar.value.withoutAnimation,
-    mobile: device.value === 'mobile'
+    mobile: device.value === 'mobile',
+    clientMode: isCommonClient.value
 }))
 
 const { width } = useWindowSize()
 const WIDTH = 992
 
 const contentStyle = computed(() => {
-    const height = fixedHeader.value ? (needTagsView.value ? '84px' : '50px') : '0px'
+    const height = fixedHeader.value ? (showTagsView.value ? '84px' : '50px') : '0px'
     const style = {
         '--app-header-height': height
     }
@@ -60,7 +66,7 @@ const contentStyle = computed(() => {
 watch(
     () => device.value,
     () => {
-        if (device.value === 'mobile' && sidebar.value.opened) {
+        if (showSidebar.value && device.value === 'mobile' && sidebar.value.opened) {
             appStore.closeSideBar({ withoutAnimation: false })
         }
     }

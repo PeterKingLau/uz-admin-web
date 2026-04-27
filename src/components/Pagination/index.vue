@@ -106,7 +106,7 @@ function handleCurrentChange(val) {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    transition: all 0.3s;
+    transition: opacity var(--app-motion-normal);
 
     &.hidden {
         display: none;
@@ -141,7 +141,10 @@ function handleCurrentChange(val) {
             line-height: 32px;
             font-weight: 500;
             color: var(--el-text-color-regular);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition:
+                background-color var(--app-motion-fast),
+                border-color var(--app-motion-fast),
+                color var(--app-motion-fast);
             border: 1px solid transparent;
             margin: 0 !important;
 
@@ -165,7 +168,6 @@ function handleCurrentChange(val) {
 
             &:hover {
                 color: var(--el-color-white);
-                transform: translateY(-1px);
             }
         }
 
@@ -176,7 +178,7 @@ function handleCurrentChange(val) {
             background-color: var(--el-fill-color-blank);
             height: 32px;
             min-height: 32px;
-            transition: all 0.2s;
+            transition: box-shadow var(--app-motion-fast);
 
             &:hover {
                 box-shadow: 0 0 0 1px var(--el-border-color) inset;

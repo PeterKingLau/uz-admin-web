@@ -1,13 +1,16 @@
 <template>
     <div class="navbar">
-        <div class="left-menu">
-            <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-            <breadcrumb v-if="!settingsStore.topNav" id="breadcrumb-container" class="breadcrumb-container" />
-            <top-nav v-if="settingsStore.topNav" id="topmenu-container" class="topmenu-container" />
+        <div class="left-menu" :class="{ 'is-client': isClientMode }">
+            <template v-if="!isClientMode">
+                <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
+                <breadcrumb v-if="!settingsStore.topNav" id="breadcrumb-container" class="breadcrumb-container" />
+                <top-nav v-if="settingsStore.topNav" id="topmenu-container" class="topmenu-container" />
+            </template>
+            <div v-else class="client-title">{{ currentClientTitle }}</div>
         </div>
 
         <div class="right-menu">
-            <template v-if="appStore.device !== 'mobile'">
+            <template v-if="appStore.device !== 'mobile' && !isClientMode">
                 <header-search id="header-search" class="right-menu-item hover-effect" />
 
                 <screenfull id="screenfull" class="right-menu-item hover-effect" />
@@ -28,23 +31,33 @@
 
             <el-dropdown @command="handleCommand" class="right-menu-item hover-effect avatar-container" trigger="click" popper-class="navbar-dropdown">
                 <div class="avatar-wrapper">
-                    <img :src="userStore.avatar" class="user-avatar" />
-                    <span class="user-nickname">{{ userStore.nickName }}</span>
+                    <img :src="displayAvatar" class="user-avatar" @error="handleAvatarError" />
+                    <span class="user-nickname">{{ displayName }}</span>
                     <Icon icon="ep:caret-bottom" class="action-icon el-icon--right" />
                 </div>
                 <template #dropdown>
                     <el-dropdown-menu>
-                        <router-link to="/user/profile" class="dropdown-link">
-                            <el-dropdown-item> <Icon icon="ep:user" class="dropdown-icon" />个人中心 </el-dropdown-item>
-                        </router-link>
+                        <el-dropdown-item v-if="canEnterClient" command="goClient">
+                            <Icon icon="mdi:cellphone-link" class="dropdown-icon" />
+                            进入客户端
+                        </el-dropdown-item>
+                        <el-dropdown-item v-if="profileRoute" command="profile">
+                            <Icon icon="ep:user" class="dropdown-icon" />
+                            {{ profileMenuLabel }}
+                        </el-dropdown-item>
+                        <el-dropdown-item v-if="passwordRoute" command="password">
+                            <Icon icon="ep:lock" class="dropdown-icon" />
+                            修改密码
+                        </el-dropdown-item>
                         <el-dropdown-item divided command="logout" class="logout-item">
-                            <Icon icon="ep:switch-button" class="dropdown-icon" />退出登录
+                            <Icon icon="ep:switch-button" class="dropdown-icon" />
+                            退出登录
                         </el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
 
-            <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="settingsStore.showSettings">
+            <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="settingsStore.showSettings && !isClientMode">
                 <Icon icon="mdi:dots-vertical" class="action-icon" />
             </div>
         </div>
@@ -53,7 +66,8 @@
 
 <script setup>
 defineOptions({ name: 'LayoutComponentsNavbar' })
-import { getCurrentInstance } from 'vue'
+import { computed, getCurrentInstance, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'
 import Hamburger from '@/components/Hamburger'
@@ -63,14 +77,45 @@ import HeaderSearch from '@/components/HeaderSearch'
 import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
+import defaultAvatar from '@/assets/images/profile.jpg'
+import { getClientBaseUrl, getClientHomeRoute, resolvePersonalRoute } from '@/utils/routeAccess'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
+const route = useRoute()
+const router = useRouter()
 const { proxy } = getCurrentInstance() || {}
+const avatarLoadFailed = ref(false)
+const isClientMode = computed(() => userStore.isCommonClient === true)
+const canEnterClient = computed(() => !isClientMode.value && userStore.canAccessClientEntry)
+const currentClientTitle = computed(() => String(route.meta?.title || '推荐'))
+const displayName = computed(() => String(userStore.nickName || userStore.name || '用户'))
+const displayAvatar = computed(() => (avatarLoadFailed.value ? defaultAvatar : String(userStore.avatar || defaultAvatar)))
+const profileRoute = computed(() => resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'profile'))
+const passwordRoute = computed(() => resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'password'))
+const profileMenuLabel = computed(() => (isClientMode.value ? '个人主页' : '个人中心'))
 
 function toggleSideBar() {
     appStore.toggleSideBar()
+}
+
+function handleAvatarError() {
+    avatarLoadFailed.value = true
+}
+
+function navigateTo(target) {
+    if (!target) return
+    router.push(target)
+}
+
+function goClient() {
+    const clientBaseUrl = getClientBaseUrl()
+    if (clientBaseUrl) {
+        window.location.href = clientBaseUrl
+        return
+    }
+    router.push(getClientHomeRoute())
 }
 
 function handleCommand(command) {
@@ -81,12 +126,21 @@ function handleCommand(command) {
         case 'logout':
             logout()
             break
+        case 'goClient':
+            goClient()
+            break
+        case 'profile':
+            navigateTo(profileRoute.value)
+            break
+        case 'password':
+            navigateTo(passwordRoute.value)
+            break
     }
 }
 
 function logout() {
     proxy?.$modal
-        ?.confirm?.('确定注销并退出系统吗？')
+        ?.confirm?.('确认注销并退出系统吗？')
         .then(() => {
             userStore.logOut().then(() => {
                 location.href = '/index'
@@ -94,6 +148,13 @@ function logout() {
         })
         .catch(() => {})
 }
+
+watch(
+    () => userStore.avatar,
+    () => {
+        avatarLoadFailed.value = false
+    }
+)
 
 const emits = defineEmits(['setLayout'])
 function setLayout() {
@@ -123,6 +184,18 @@ function toggleTheme() {
         align-items: center;
         height: 100%;
 
+        &.is-client {
+            padding-left: 16px;
+        }
+
+        .client-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: var(--el-text-color-primary);
+            line-height: 1;
+        }
+
         .hamburger-container {
             height: 100%;
             cursor: pointer;
@@ -139,6 +212,9 @@ function toggleTheme() {
 
         .breadcrumb-container {
             margin-left: 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
         }
     }
 
@@ -163,7 +239,9 @@ function toggleTheme() {
             color: var(--el-text-color-regular);
             cursor: pointer;
             border-radius: 8px;
-            transition: all 0.3s;
+            transition:
+                background-color var(--app-motion-fast),
+                color var(--app-motion-fast);
 
             .action-icon {
                 font-size: 18px;
@@ -218,7 +296,8 @@ function toggleTheme() {
                     object-fit: cover;
                     border: 1px solid var(--el-border-color-lighter);
                     display: block;
-                    transition: transform 0.3s;
+                    transition: border-color var(--app-motion-fast);
+                    background: var(--el-fill-color-light);
                 }
 
                 .user-nickname {
@@ -238,7 +317,7 @@ function toggleTheme() {
 
             &:hover {
                 .user-avatar {
-                    transform: scale(1.05);
+                    border-color: var(--el-color-primary-light-5);
                 }
             }
         }
@@ -263,7 +342,9 @@ function toggleTheme() {
         padding: 10px 16px;
         font-size: 14px;
         color: var(--el-text-color-regular);
-        transition: all 0.2s;
+        transition:
+            background-color var(--app-motion-fast),
+            color var(--app-motion-fast);
         display: flex;
         align-items: center;
         gap: 10px;
@@ -303,12 +384,6 @@ function toggleTheme() {
         &::before {
             display: none;
         }
-    }
-
-    .dropdown-link {
-        text-decoration: none;
-        display: block;
-        margin-bottom: 2px;
     }
 }
 </style>

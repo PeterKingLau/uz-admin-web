@@ -1,5 +1,5 @@
 <template>
-    <el-drawer v-model="showSettings" :with-header="false" :lock-scroll="false" direction="rtl" size="300px">
+    <el-drawer v-model="showSettings" :with-header="false" direction="rtl" size="300px">
         <h3 class="drawer-title">主题风格设置</h3>
 
         <div class="setting-drawer-theme-list">

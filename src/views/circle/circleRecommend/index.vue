@@ -376,19 +376,22 @@ onMounted(() => {
     border: 1px solid var(--el-border-color-lighter);
     padding: 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     gap: 12px;
 
     &:hover {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        background: color-mix(in srgb, var(--el-bg-color) 94%, var(--el-fill-color-light));
 
         .joined-arrow {
             color: var(--el-color-primary);
-            transform: translateX(4px);
+            transform: translateX(1px);
         }
     }
 
@@ -435,7 +438,9 @@ onMounted(() => {
     .joined-arrow {
         color: var(--el-text-color-placeholder);
         font-size: 18px;
-        transition: all 0.2s;
+        transition:
+            color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+            transform 0.22s cubic-bezier(0.2, 0, 0.2, 1);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -484,19 +489,23 @@ onMounted(() => {
     border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition:
+        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
     border: 1px solid transparent;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
 
     &:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-        border-color: var(--el-border-color-lighter);
+        transform: none;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        border-color: var(--el-border-color);
+        background: color-mix(in srgb, var(--el-bg-color) 95%, var(--el-fill-color-light));
 
         .cover-img {
-            transform: scale(1.05);
+            transform: scale(1.015);
         }
     }
 }
@@ -510,7 +519,7 @@ onMounted(() => {
     .cover-img {
         width: 100%;
         height: 100%;
-        transition: transform 0.5s ease;
+        transition: transform 0.28s cubic-bezier(0.2, 0, 0.2, 1);
     }
 
     .cover-placeholder {
@@ -693,7 +702,9 @@ onMounted(() => {
         padding: 12px 32px;
         font-size: 14px;
         color: var(--el-text-color-secondary);
-        transition: all 0.3s;
+        transition:
+            background-color var(--app-motion-fast),
+            color var(--app-motion-fast);
 
         .btn-inner {
             display: flex;
@@ -704,7 +715,6 @@ onMounted(() => {
         &:hover {
             color: var(--el-color-primary);
             background: var(--el-color-primary-light-9);
-            transform: translateY(-2px);
         }
     }
 

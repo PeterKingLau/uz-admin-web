@@ -127,7 +127,7 @@ function getUser() {
 }
 
 onMounted(() => {
-    const activeTab = route.params && route.params.activeTab
+    const activeTab = route.query?.activeTab || (route.params && route.params.activeTab)
     if (activeTab) {
         selectedTab.value = activeTab
     }

@@ -32,7 +32,7 @@ interface ViteRuntimeEnv {
     VITE_OBSCURE_BUNDLE_NAMES?: string
 }
 
-function resolveProxyTarget(env: ViteRuntimeEnv): string {
+function resolveProxyTarget(env: ViteRuntimeEnv, mode: string): string {
     const targetFromEnv = env.VITE_PROXY_TARGET?.trim()
     if (targetFromEnv) return targetFromEnv
 
@@ -41,14 +41,28 @@ function resolveProxyTarget(env: ViteRuntimeEnv): string {
         return proxyTargets[proxyMode]
     }
 
-    return proxyTargets.wireless
+    return mode === 'development' ? proxyTargets.production : proxyTargets.wireless
+}
+
+function resolveProxyRewrite(env: ViteRuntimeEnv, mode: string) {
+    const targetFromEnv = env.VITE_PROXY_TARGET?.trim()
+    const proxyMode = env.VITE_PROXY_MODE as ProxyMode | undefined
+    const useProductionGateway = proxyMode === 'production' || (!targetFromEnv && mode === 'development') || targetFromEnv === proxyTargets.production
+
+    return (path: string) => {
+        if (useProductionGateway) {
+            return path.replace(/^\/api/, '/prod')
+        }
+        return path.replace(/^\/api/, '')
+    }
 }
 
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv
     const isBuild = command === 'build'
     const isProdBuild = isBuild && mode === 'production'
-    const proxyTarget = resolveProxyTarget(env)
+    const proxyTarget = resolveProxyTarget(env, mode)
+    const proxyRewrite = resolveProxyRewrite(env, mode)
     const useTerserMinify = isProdBuild && env.VITE_USE_TERSER === 'true'
     const enableObfuscation = useTerserMinify && env.VITE_ENABLE_OBFUSCATION !== 'false'
     const obscureBundleNames = isProdBuild && env.VITE_OBSCURE_BUNDLE_NAMES !== 'false'
@@ -89,8 +103,16 @@ export default defineConfig(({ mode, command }) => {
             extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
         },
 
+        define: {
+            __VUE_PROD_DEVTOOLS__: false,
+            __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false
+        },
+
         build: {
             target: 'esnext',
+            modulePreload: {
+                polyfill: false
+            },
             sourcemap: shouldGenerateSourceMap,
             outDir: 'dist',
             assetsDir: 'assets',
@@ -141,7 +163,7 @@ export default defineConfig(({ mode, command }) => {
                 '/api': {
                     target: proxyTarget,
                     changeOrigin: true,
-                    rewrite: p => p.replace(/^\/api/, '')
+                    rewrite: proxyRewrite
                 },
                 '^/v3/api-docs/(.*)': {
                     target: proxyTarget,

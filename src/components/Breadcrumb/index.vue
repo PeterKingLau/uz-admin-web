@@ -81,10 +81,29 @@ getBreadcrumb()
 
 <style lang="scss" scoped>
 .app-breadcrumb.el-breadcrumb {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     font-size: 14px;
-    line-height: 50px;
+    line-height: 1;
     margin-left: 8px;
+    min-width: 0;
+    vertical-align: middle;
+
+    :deep(.el-breadcrumb__item),
+    :deep(.el-breadcrumb__inner),
+    :deep(.el-breadcrumb__separator) {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+    }
+
+    :deep(.el-breadcrumb__inner) {
+        white-space: nowrap;
+    }
+
+    :deep(.el-breadcrumb__item:last-child .el-breadcrumb__separator) {
+        display: none;
+    }
 
     .no-redirect {
         color: var(--el-text-color-placeholder);
@@ -120,5 +139,28 @@ getBreadcrumb()
 
 .breadcrumb-leave-active {
     position: absolute;
+}
+
+@media screen and (max-width: 768px) {
+    .app-breadcrumb.el-breadcrumb {
+        margin-left: 0;
+        font-size: 13px;
+    }
+
+    .breadcrumb-enter-active,
+    .breadcrumb-leave-active,
+    .breadcrumb-move {
+        transition: none;
+    }
+
+    .breadcrumb-enter-from,
+    .breadcrumb-leave-active {
+        opacity: 1;
+        transform: none;
+    }
+
+    .breadcrumb-leave-active {
+        position: static;
+    }
 }
 </style>

@@ -6,6 +6,7 @@ import ParentView from '@/components/ParentView/index.vue'
 import InnerLink from '@/layout/components/InnerLink/index.vue'
 import { defineStore } from 'pinia'
 import { RouteRecordRaw } from 'vue-router'
+import useUserStore from '@/store/modules/user'
 
 // 匹配views里面所有的.vue文件
 const modules = import.meta.glob('./../../views/**/*.vue')
@@ -40,6 +41,14 @@ const usePermissionStore = defineStore('permission', {
         },
         generateRoutes() {
             return new Promise<any[]>(resolve => {
+                if (useUserStore().isCommonClient) {
+                    this.setRoutes([])
+                    this.setSidebarRouters(constantRoutes)
+                    this.setDefaultRoutes([])
+                    this.setTopbarRoutes([])
+                    resolve([])
+                    return
+                }
                 // 向后端请求路由数据
                 getRouters().then(res => {
                     const sdata = JSON.parse(JSON.stringify(res.data))

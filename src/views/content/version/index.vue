@@ -493,10 +493,13 @@ onMounted(() => {
         border: none;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         background: var(--el-bg-color);
-        transition: box-shadow 0.3s ease;
+        transition:
+            box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+            background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
 
         &:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+            background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-fill-color-light));
         }
 
         :deep(.el-card__header) {

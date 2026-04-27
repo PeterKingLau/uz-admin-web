@@ -191,12 +191,14 @@ const videoSrc = computed(() => {
         overflow: hidden;
         cursor: zoom-in;
         border: 1px solid var(--el-border-color-lighter);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+            border-color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast),
+            background-color var(--app-motion-fast);
         background-color: var(--el-fill-color-light);
 
         &:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--app-shadow-soft);
+            box-shadow: var(--app-hover-shadow-card);
             border-color: var(--el-color-primary-light-5);
 
             .hover-overlay {
@@ -208,7 +210,9 @@ const videoSrc = computed(() => {
             width: 100%;
             height: 100%;
             display: block;
-            transition: transform 0.3s;
+            transition:
+                filter var(--app-motion-image),
+                opacity var(--app-motion-image);
         }
 
         .image-placeholder,

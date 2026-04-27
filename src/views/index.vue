@@ -1079,12 +1079,16 @@ onBeforeUnmount(() => {
         border: none;
         border-radius: 12px;
         overflow: hidden;
-        transition: all 0.3s;
+        transition:
+            border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+            box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+            background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
         background: var(--el-bg-color-overlay);
 
         &:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--el-box-shadow-light);
+            transform: none;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+            background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, var(--el-fill-color-light));
         }
 
         .stat-card-inner {

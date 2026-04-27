@@ -73,10 +73,15 @@
     .tool-btn {
         border-radius: 8px;
         font-weight: 500;
-        transition: all 0.2s;
+        transition:
+            background-color 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease,
+            box-shadow 0.18s ease,
+            opacity 0.18s ease;
 
         &:hover {
-            transform: translateY(-1px);
+            opacity: 0.94;
         }
 
         &.is-disabled,

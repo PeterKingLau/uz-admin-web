@@ -6,8 +6,8 @@ import Layout from '@/layout/index.vue'
  * Note: 路由配置项
  *
  * hidden: true                     // 当设置 true 的时候该路由不会再侧边栏出现 如401，login等页面，或者如一些编辑页面/edit/1
- * alwaysShow: true                 // 当你一个路由下面的 children 声明的路由大于1个时，自动会变成嵌套的模式--如组件页面
- *                                  // 只有一个时，会将那个子路由当做根路由显示在侧边栏--如引导页面
+ * alwaysShow: true                 // 当你一个路由下面的 children 声明的路由大于1个时，自动会变成嵌套的模式
+ *                                  // 只有一个时，会将那一个子路由当做根路由显示在侧边栏
  *                                  // 若你想不管路由下面的 children 声明的个数都显示你的根路由
  *                                  // 你可以设置 alwaysShow: true，这样它就会忽略之前定义的规则，一直显示根路由
  * redirect: noRedirect             // 当设置 noRedirect 的时候该路由在面包屑导航中不可被点击
@@ -16,7 +16,7 @@ import Layout from '@/layout/index.vue'
  * roles: ['admin', 'common']       // 访问路由的角色权限
  * permissions: ['a:a:a', 'b:b:b']  // 访问路由的菜单权限
  * meta : {
-    noCache: true                   // 如果设置为true，则不会被 <keep-alive> 缓存(默认 false)
+    noCache: true                   // 如果设置为true，则不会被<keep-alive>缓存(默认 false)
     title: 'title'                  // 设置该路由在侧边栏和面包屑中展示的名字
     icon: 'svg-name'                // 设置该路由的图标，对应路径src/assets/icons/svg
     breadcrumb: false               // 如果设置为false，则不会在breadcrumb面包屑中显示
@@ -30,6 +30,8 @@ declare module 'vue-router' {
         icon?: string
         elSvgIcon?: string
         permissions?: string[]
+        platform?: 'public' | 'client' | 'admin'
+        requiresAuth?: boolean
     }
     interface _RouteRecordBase {
         hidden?: boolean
@@ -50,26 +52,28 @@ export const constantRoutes: RouteRecordRaw[] = [
         children: [
             {
                 path: '/redirect/:path(.*)',
-                component: () => import('@/views/redirect/index.vue')
+                component: () => import('@/views/redirect/index.vue'),
+                meta: { platform: 'public' }
             }
         ]
     },
     {
         path: '/login',
         component: () => import('@/views/login.vue'),
-        hidden: true
+        hidden: true,
+        meta: { platform: 'public' }
     },
     {
         path: '/h5/user-agreement',
         component: () => import('@/views/h5/agreement/index.vue'),
         hidden: true,
-        meta: { title: '用户协议' }
+        meta: { title: '用户协议', platform: 'public' }
     },
     {
         path: '/h5/privacy-policy',
         component: () => import('@/views/h5/privacy/index.vue'),
         hidden: true,
-        meta: { title: '隐私政策' }
+        meta: { title: '隐私政策', platform: 'public' }
     },
     // {
     //     path: '/register',
@@ -79,12 +83,14 @@ export const constantRoutes: RouteRecordRaw[] = [
     {
         path: '/:pathMatch(.*)*',
         component: () => import('@/views/error/404.vue'),
-        hidden: true
+        hidden: true,
+        meta: { platform: 'public' }
     },
     {
         path: '/401',
         component: () => import('@/views/error/401.vue'),
-        hidden: true
+        hidden: true,
+        meta: { platform: 'public' }
     },
     {
         path: '/configuration/tag-data',
@@ -95,7 +101,7 @@ export const constantRoutes: RouteRecordRaw[] = [
                 path: 'index/:id(\\d+)',
                 component: () => import('@/views/configuration/tag/data.vue'),
                 name: 'TagData',
-                meta: { title: '标签数据', activeMenu: '/configuration/tag' }
+                meta: { title: '标签数据', activeMenu: '/configuration/tag', platform: 'admin' }
             }
         ]
     },
@@ -108,9 +114,37 @@ export const constantRoutes: RouteRecordRaw[] = [
                 path: '/index',
                 component: () => import('@/views/index.vue'),
                 name: 'Index',
-                meta: { title: '首页', icon: 'mdi:chart-line', affix: true }
+                meta: { title: '首页', icon: 'mdi:chart-line', affix: true, platform: 'admin' }
             }
         ]
+    },
+    {
+        path: '/discover',
+        hidden: true,
+        component: () => import('@/views/client/home/index.vue'),
+        name: 'ClientDiscover',
+        meta: { title: '职场吧', platform: 'client' }
+    },
+    {
+        path: '/publish',
+        hidden: true,
+        component: () => import('@/views/client/publish/index.vue'),
+        name: 'ClientPublish',
+        meta: { title: '职场吧', platform: 'client' }
+    },
+    {
+        path: '/profile',
+        hidden: true,
+        component: () => import('@/views/client/profile/index.vue'),
+        name: 'ClientProfile',
+        meta: { title: '个人主页', platform: 'client', requiresAuth: true }
+    },
+    {
+        path: '/profile/:userId',
+        hidden: true,
+        component: () => import('@/views/client/profile/index.vue'),
+        name: 'ClientUserProfile',
+        meta: { title: '个人主页', platform: 'client', requiresAuth: true }
     },
     {
         path: '/user',
@@ -122,7 +156,7 @@ export const constantRoutes: RouteRecordRaw[] = [
                 path: 'profile',
                 component: () => import('@/views/system/user/profile/index.vue'),
                 name: 'Profile',
-                meta: { title: '个人中心', icon: 'ep:user' }
+                meta: { title: '个人中心', icon: 'ep:user', platform: 'admin' }
             }
         ]
     },
@@ -135,7 +169,7 @@ export const constantRoutes: RouteRecordRaw[] = [
                 path: '',
                 component: () => import('@/views/content/userProfile/index.vue'),
                 name: 'UserProfileView',
-                meta: { title: '个人主页' }
+                meta: { title: '个人主页', platform: 'client' }
             }
         ]
     },
@@ -144,7 +178,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/content/videoPlayer/index.vue'),
         name: 'VideoPlayer',
         hidden: true,
-        meta: { title: '视频播放器' }
+        meta: { title: '视频播放器', platform: 'client' }
     },
     {
         path: '/circle-manage/circle-data',
@@ -155,7 +189,7 @@ export const constantRoutes: RouteRecordRaw[] = [
                 path: 'index/:id(\\d+)',
                 component: () => import('@/views/circle/circleRecommend/detail.vue'),
                 name: 'CircleDetail',
-                meta: { title: '圈子详情' }
+                meta: { title: '圈子详情', platform: 'client' }
             }
         ]
     }
@@ -173,7 +207,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
                 path: 'role/:userId(\\d+)',
                 component: () => import('@/views/system/user/authRole.vue'),
                 name: 'AuthRole',
-                meta: { title: '分配角色', activeMenu: '/system/user' }
+                meta: { title: '分配角色', activeMenu: '/system/user', platform: 'admin' }
             }
         ]
     },
@@ -187,7 +221,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
                 path: 'user/:roleId(\\d+)',
                 component: () => import('@/views/system/role/authUser.vue'),
                 name: 'AuthUser',
-                meta: { title: '分配用户', activeMenu: '/system/role' }
+                meta: { title: '分配用户', activeMenu: '/system/role', platform: 'admin' }
             }
         ]
     },
@@ -201,7 +235,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
                 path: 'index/:dictId(\\d+)',
                 component: () => import('@/views/system/dict/data.vue'),
                 name: 'Data',
-                meta: { title: '字典数据', activeMenu: '/system/dict' }
+                meta: { title: '字典数据', activeMenu: '/system/dict', platform: 'admin' }
             }
         ]
     },
@@ -215,7 +249,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
                 path: 'index/:jobId(\\d+)',
                 component: () => import('@/views/monitor/job/log.vue'),
                 name: 'JobLog',
-                meta: { title: '调度日志', activeMenu: '/monitor/job' }
+                meta: { title: '调度日志', activeMenu: '/monitor/job', platform: 'admin' }
             }
         ]
     },
@@ -229,7 +263,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
                 path: 'index/:tableId(\\d+)',
                 component: () => import('@/views/tool/gen/editTable.vue'),
                 name: 'GenEdit',
-                meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
+                meta: { title: '修改生成配置', activeMenu: '/tool/gen', platform: 'admin' }
             }
         ]
     }

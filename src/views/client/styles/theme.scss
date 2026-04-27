@@ -1,0 +1,145 @@
+.discover-page,
+.client-profile-page,
+.client-publish-page,
+.client-profile-edit-dialog,
+.client-profile-follow-dialog {
+    --el-color-primary: #e0aa11;
+    --el-color-primary-light-3: #ebc14d;
+    --el-color-primary-light-5: #f1cf73;
+    --el-color-primary-light-7: #f6dda0;
+    --el-color-primary-light-8: #f8e7bb;
+    --el-color-primary-light-9: #fcf4df;
+    --el-color-primary-dark-2: #b8870d;
+    --el-color-primary-rgb: 224, 170, 17;
+
+    --primary-color: #f4b400;
+    --primary-gradient: linear-gradient(135deg, #ffd44d 0%, #f4b400 100%);
+    --bg-color: #f2f3f5;
+    --text-main: #1d2129;
+    --text-regular: #4e5969;
+    --text-minor: #86909c;
+    --border-color: #e5e6eb;
+
+    --client-surface: #ffffff;
+    --client-surface-soft: #fafafa;
+    --client-surface-muted: #f7f8fa;
+    --client-surface-hover: #eef0f3;
+    --client-card-hover: #fcfcfd;
+    --client-fill: #f2f3f5;
+    --client-fill-hover: #e5e6eb;
+    --client-border-soft: #f0f1f4;
+    --client-border-strong: #c9cdd4;
+    --client-empty-text: #9ca1aa;
+    --client-empty-icon: #a8adb7;
+    --client-empty-gradient: linear-gradient(180deg, #f6f7f9 0%, #eef1f5 100%);
+    --client-text-cover-bg:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.86), transparent 30%),
+        radial-gradient(circle at 82% 78%, rgba(213, 221, 226, 0.58), transparent 34%),
+        linear-gradient(135deg, #f8f9fa 0%, #e4e7eb 100%);
+    --client-text-cover-texture:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, transparent 46%),
+        radial-gradient(circle at 50% 52%, rgba(255, 255, 255, 0.32), transparent 40%);
+    --client-text-cover-color: #2c3e50;
+    --client-text-cover-muted: rgba(44, 62, 80, 0.055);
+    --client-text-cover-accent: rgba(44, 62, 80, 0.14);
+    --client-cover-gradient:
+        radial-gradient(circle at 18% 20%, rgba(255, 212, 77, 0.92), transparent 30%),
+        linear-gradient(135deg, #f4b400 0%, #7d8ea8 55%, #1d2129 100%);
+    --client-cover-tint: linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.38) 100%);
+    --client-media-mask: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.08) 100%);
+    --client-overlay: rgba(0, 0, 0, 0.42);
+    --client-on-overlay: #ffffff;
+    --client-text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --client-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.02);
+    --client-shadow-avatar: 0 8px 24px rgba(15, 23, 42, 0.14);
+    --client-focus-ring: 0 0 0 4px rgba(244, 180, 0, 0.12);
+    --client-focus-ring-soft: 0 0 0 4px rgba(244, 180, 0, 0.08);
+    --client-field-focus-ring: 0 0 0 3px rgba(224, 170, 17, 0.1);
+    --client-active-bg: rgba(244, 180, 0, 0.1);
+    --client-active-text: #e6a200;
+    --client-primary-muted: #fff7e8;
+    --client-primary-soft: #fff9e8;
+    --client-primary-text: #b8870d;
+    --client-primary-contrast: #4f3a00;
+    --client-danger: #f53f3f;
+    --client-danger-bg: #fff5f5;
+    --client-danger-soft: #fff4f2;
+    --client-danger-text: #e65a4f;
+    --client-disabled: #c9cdd4;
+    --client-video-bg: #000000;
+    --client-submit-gradient: linear-gradient(135deg, #ffe082 0%, #f6c453 100%);
+}
+
+html.dark {
+    .discover-page,
+    .client-profile-page,
+    .client-publish-page,
+    .client-profile-edit-dialog,
+    .client-profile-follow-dialog {
+        --el-color-primary: #d8a51a;
+        --el-color-primary-light-3: #d9b24b;
+        --el-color-primary-light-5: #8d7126;
+        --el-color-primary-light-7: #5f4c1d;
+        --el-color-primary-light-8: #463916;
+        --el-color-primary-light-9: #2b2413;
+        --el-color-primary-dark-2: #f0c04f;
+        --el-color-primary-rgb: 216, 165, 26;
+
+        --primary-color: #d8a51a;
+        --primary-gradient: linear-gradient(135deg, #f0c04f 0%, #c89110 100%);
+        --bg-color: #101216;
+        --text-main: #f4f6fa;
+        --text-regular: #c3c8d2;
+        --text-minor: #8f96a3;
+        --border-color: #2a3038;
+
+        --client-surface: #181c22;
+        --client-surface-soft: #1d222a;
+        --client-surface-muted: #202630;
+        --client-surface-hover: #2a3038;
+        --client-card-hover: #1d222a;
+        --client-fill: #202630;
+        --client-fill-hover: #2a3038;
+        --client-border-soft: #252b34;
+        --client-border-strong: #3b4451;
+        --client-empty-text: #8f96a3;
+        --client-empty-icon: #767e8c;
+        --client-empty-gradient: linear-gradient(180deg, #202630 0%, #181c22 100%);
+        --client-text-cover-bg:
+            radial-gradient(circle at 18% 18%, rgba(128, 136, 148, 0.18), transparent 30%),
+            radial-gradient(circle at 82% 78%, rgba(70, 80, 92, 0.42), transparent 34%),
+            linear-gradient(135deg, #242a31 0%, #181d24 100%);
+        --client-text-cover-texture:
+            linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, transparent 46%),
+            radial-gradient(circle at 50% 52%, rgba(255, 255, 255, 0.05), transparent 40%);
+        --client-text-cover-color: #e8edf3;
+        --client-text-cover-muted: rgba(232, 237, 243, 0.06);
+        --client-text-cover-accent: rgba(232, 237, 243, 0.16);
+        --client-cover-gradient:
+            radial-gradient(circle at 18% 20%, rgba(216, 165, 26, 0.64), transparent 30%),
+            linear-gradient(135deg, #8a6812 0%, #303a48 58%, #11151c 100%);
+        --client-cover-tint: linear-gradient(180deg, rgba(10, 12, 16, 0.08) 0%, rgba(10, 12, 16, 0.56) 100%);
+        --client-media-mask: linear-gradient(180deg, rgba(10, 12, 16, 0) 0%, rgba(10, 12, 16, 0.26) 100%);
+        --client-overlay: rgba(0, 0, 0, 0.58);
+        --client-on-overlay: #ffffff;
+        --client-text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        --client-shadow-soft: none;
+        --client-shadow-avatar: 0 8px 24px rgba(0, 0, 0, 0.38);
+        --client-focus-ring: 0 0 0 4px rgba(216, 165, 26, 0.22);
+        --client-focus-ring-soft: 0 0 0 4px rgba(216, 165, 26, 0.16);
+        --client-field-focus-ring: 0 0 0 3px rgba(216, 165, 26, 0.18);
+        --client-active-bg: rgba(216, 165, 26, 0.16);
+        --client-active-text: #f0c04f;
+        --client-primary-muted: #2d2514;
+        --client-primary-soft: #352b14;
+        --client-primary-text: #f0c04f;
+        --client-primary-contrast: #251b00;
+        --client-danger: #ff7875;
+        --client-danger-bg: #3a1d1d;
+        --client-danger-soft: #351b1b;
+        --client-danger-text: #ff8f89;
+        --client-disabled: #5b6370;
+        --client-video-bg: #000000;
+        --client-submit-gradient: linear-gradient(135deg, #e7b94e 0%, #b88312 100%);
+    }
+}

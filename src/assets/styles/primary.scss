@@ -361,6 +361,21 @@ h6,
     }
 }
 
+.el-card {
+    transition:
+        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.el-card.is-hover-shadow:hover,
+.main-card:hover,
+.card-box > .el-card:hover {
+    transform: none;
+    border-color: var(--el-border-color);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
 .card-box {
     margin-bottom: 16px;
     border-radius: 4px;

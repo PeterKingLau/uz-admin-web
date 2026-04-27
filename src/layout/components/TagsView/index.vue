@@ -337,7 +337,11 @@ function handleScroll() {
         background: var(--el-fill-color-blank);
         color: var(--el-text-color-regular);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            color var(--app-motion-fast),
+            opacity var(--app-motion-fast);
 
         &:hover:not(.disabled) {
             color: var(--el-color-primary);
@@ -369,7 +373,10 @@ function handleScroll() {
             padding: 0 12px;
             font-size: 13px;
             border-radius: 15px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition:
+                background-color var(--app-motion-fast),
+                border-color var(--app-motion-fast),
+                color var(--app-motion-fast);
 
             &:hover {
                 color: var(--el-color-primary);
@@ -392,7 +399,7 @@ function handleScroll() {
                     border-radius: 50%;
                     position: relative;
                     margin-right: 6px;
-                    transition: all 0.3s;
+                    transition: background-color var(--app-motion-fast);
                 }
             }
 
@@ -409,11 +416,13 @@ function handleScroll() {
                 width: 16px;
                 height: 16px;
                 border-radius: 50%;
-                transition: all 0.3s;
+                transition:
+                    background-color var(--app-motion-fast),
+                    color var(--app-motion-fast);
 
                 .el-icon-close {
                     font-size: 12px;
-                    transition: all 0.3s;
+                    transition: color var(--app-motion-fast);
                 }
 
                 &:hover {
@@ -421,7 +430,7 @@ function handleScroll() {
                     color: #fff;
 
                     .el-icon-close {
-                        transform: scale(1.1);
+                        color: #fff;
                     }
                 }
             }
@@ -454,7 +463,9 @@ function handleScroll() {
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
+            transition:
+                background-color var(--app-motion-fast),
+                color var(--app-motion-fast);
 
             .menu-icon {
                 font-size: 15px;

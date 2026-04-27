@@ -461,7 +461,7 @@ const handleDeleteComment = async (comment: any, parent?: any) => {
             type: 'warning',
             confirmButtonText: '删除',
             cancelButtonText: '取消',
-            lockScroll: false
+            lockScroll: true
         })
     } catch {
         return

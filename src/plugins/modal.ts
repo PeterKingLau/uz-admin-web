@@ -264,7 +264,7 @@ function createBoxOptions(extra: AnyObj = {}) {
     return {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        lockScroll: false,
+        lockScroll: true,
         closeOnClickModal: false,
         closeOnPressEscape: true,
         customClass: normalizeCustomClass(extra.customClass),

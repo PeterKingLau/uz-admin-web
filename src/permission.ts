@@ -7,6 +7,7 @@ import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { getClientHomeRoute, isClientRoutePath } from '@/utils/routeAccess'
 
 NProgress.configure({
     showSpinner: false,
@@ -16,6 +17,20 @@ NProgress.configure({
 })
 
 const whiteList = ['/login', '/register', '/h5/user-agreement', '/h5/privacy-policy']
+const isIndexPath = (path: string) => path === '/' || path === '/index'
+
+const handleClientRouteIsolation = (to: any, next: any) => {
+    const metaPlatform = String(to.meta?.platform || '').trim().toLowerCase()
+    if (isIndexPath(to.path)) {
+        next({ path: '/discover', replace: true })
+        return true
+    }
+    if (metaPlatform === 'admin' || !isClientRoutePath(to.path)) {
+        next({ path: '/discover', replace: true })
+        return true
+    }
+    return false
+}
 
 router.beforeEach((to, _from, next) => {
     NProgress.start()
@@ -39,7 +54,11 @@ router.beforeEach((to, _from, next) => {
                                         router.addRoute(route)
                                     }
                                 })
-                                next({ ...to, replace: true })
+                                const userStore = useUserStore()
+                                if (userStore.isCommonClient && handleClientRouteIsolation(to, next)) {
+                                    return
+                                }
+                                next({ path: to.fullPath, replace: true })
                             })
                     })
                     .catch(err => {
@@ -51,6 +70,10 @@ router.beforeEach((to, _from, next) => {
                             })
                     })
             } else {
+                const userStore = useUserStore()
+                if (userStore.isCommonClient && handleClientRouteIsolation(to, next)) {
+                    return
+                }
                 next()
             }
         }

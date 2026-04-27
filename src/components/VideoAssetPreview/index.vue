@@ -144,17 +144,17 @@ function restartVideo() {
     background: var(--el-fill-color-blank);
     box-shadow: var(--app-shadow-medium);
     transition:
-        transform 0.22s ease,
-        box-shadow 0.22s ease,
-        border-color 0.22s ease;
+        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
 
     .video-cover {
         width: 100%;
         height: 100%;
         opacity: 0.95;
         transition:
-            transform 0.3s,
-            opacity 0.3s;
+            transform 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+            opacity 0.24s cubic-bezier(0.2, 0, 0.2, 1);
     }
 
     .video-error-placeholder {
@@ -189,7 +189,9 @@ function restartVideo() {
             border: var(--app-overlay-border-soft);
             background: var(--app-overlay-mask-medium);
             backdrop-filter: blur(4px);
-            transition: all 0.25s ease;
+            transition:
+                background-color var(--app-motion-image),
+                opacity var(--app-motion-image);
 
             .icon-play {
                 font-size: 14px;
@@ -218,12 +220,13 @@ function restartVideo() {
     }
 
     &:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--app-shadow-strong);
+        transform: none;
+        box-shadow: var(--app-hover-shadow-card);
         border-color: var(--el-color-primary-light-5);
+        background: color-mix(in srgb, var(--el-fill-color-blank) 96%, var(--el-fill-color-light));
 
         .video-cover {
-            transform: scale(1.04);
+            filter: brightness(0.96);
             opacity: 1;
         }
 
@@ -235,7 +238,6 @@ function restartVideo() {
             );
 
             .play-pill {
-                transform: translateY(-1px);
                 border: var(--app-overlay-border-strong);
                 background: color-mix(in srgb, var(--el-color-black) 50%, transparent);
             }
@@ -347,7 +349,7 @@ function restartVideo() {
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        transition: all 0.2s ease;
+        transition: background-color var(--app-motion-fast);
 
         &:hover {
             background: var(--el-fill-color-light);

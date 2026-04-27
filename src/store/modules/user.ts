@@ -6,6 +6,8 @@ import { getUserProfile } from '@/api/system/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { isHttp } from '@/utils/validate'
 import { getImgUrl } from '@/utils/img'
+import { bindDeviceToUser } from '@/utils/deviceId'
+import { hasClientEntryPermission, isCommonClientIdentity, normalizeRoleKeys, resolvePersonalRoute } from '@/utils/routeAccess'
 import defAva from '@/assets/images/profile.jpg'
 
 export enum LoginType {
@@ -92,6 +94,26 @@ const useUserStore = defineStore('user', {
         permissions: [],
         profileLoadedAt: 0
     }),
+    getters: {
+        roleKeys(state): string[] {
+            return normalizeRoleKeys(state.roles || [])
+        },
+        isCommonClient(state): boolean {
+            return isCommonClientIdentity({
+                roles: state.roles,
+                admin: state.admin
+            })
+        },
+        canAccessAdminRoutes(): boolean {
+            return !this.isCommonClient
+        },
+        canAccessClientEntry(state): boolean {
+            return hasClientEntryPermission({
+                roles: state.roles,
+                admin: state.admin
+            })
+        }
+    },
 
     actions: {
         resetUserSnapshot() {
@@ -125,6 +147,7 @@ const useUserStore = defineStore('user', {
             }
 
             this.profileLoadedAt = Date.now()
+            bindDeviceToUser(this.id)
         },
 
         patchUserSnapshot(user: Record<string, any> | null | undefined) {
@@ -188,10 +211,15 @@ const useUserStore = defineStore('user', {
                                 type: 'warning'
                             })
                                 .then(() => {
-                                    router.push({
-                                        name: 'Profile',
-                                        params: { activeTab: 'resetPwd' }
-                                    })
+                                    const target = resolvePersonalRoute(
+                                        {
+                                            id: this.id,
+                                            roles: this.roles,
+                                            admin: this.admin
+                                        },
+                                        'password'
+                                    )
+                                    if (target) router.push(target)
                                 })
                                 .catch(() => {})
                         }
@@ -203,10 +231,15 @@ const useUserStore = defineStore('user', {
                                 type: 'warning'
                             })
                                 .then(() => {
-                                    router.push({
-                                        name: 'Profile',
-                                        params: { activeTab: 'resetPwd' }
-                                    })
+                                    const target = resolvePersonalRoute(
+                                        {
+                                            id: this.id,
+                                            roles: this.roles,
+                                            admin: this.admin
+                                        },
+                                        'password'
+                                    )
+                                    if (target) router.push(target)
                                 })
                                 .catch(() => {})
                         }

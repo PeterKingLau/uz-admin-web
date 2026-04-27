@@ -532,14 +532,18 @@ onBeforeUnmount(() => {
     padding: 24px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--el-border-color-lighter);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition:
+        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1);
+        transform: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
         border-color: var(--el-border-color);
+        background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-fill-color-light));
     }
 }
 
@@ -654,12 +658,12 @@ onBeforeUnmount(() => {
         .grid-img {
             width: 100%;
             height: 100%;
-            transition: transform 0.5s ease;
+            transition: transform 0.26s cubic-bezier(0.2, 0, 0.2, 1);
             object-fit: cover;
         }
 
         &:hover .grid-img {
-            transform: scale(1.05);
+            transform: scale(1.015);
         }
 
         .more-overlay {

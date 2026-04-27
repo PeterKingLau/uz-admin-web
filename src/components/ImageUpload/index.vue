@@ -830,14 +830,16 @@ onBeforeUnmount(() => {
             border-radius: var(--radius);
             background: var(--glass-bg);
             backdrop-filter: blur(3px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition:
+                border-color var(--app-motion-fast),
+                box-shadow var(--app-motion-fast),
+                background-color var(--app-motion-fast);
             position: relative;
             overflow: hidden;
             display: block;
 
             &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 18px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+                box-shadow: var(--app-hover-shadow-card);
                 border-color: color-mix(in srgb, var(--el-color-primary) 36%, var(--el-border-color));
             }
 
@@ -867,13 +869,14 @@ onBeforeUnmount(() => {
                 gap: 8px;
                 opacity: 0;
                 pointer-events: none;
-                transition: all 0.3s ease;
+                transition:
+                    opacity var(--app-motion-image),
+                    background-color var(--app-motion-image);
 
                 span {
                     cursor: pointer;
                     color: #fff;
                     font-size: 18px;
-                    transition: all 0.2s;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -881,11 +884,13 @@ onBeforeUnmount(() => {
                     height: 34px;
                     border-radius: 50%;
                     background: color-mix(in srgb, var(--el-color-white) 18%, transparent);
+                    transition:
+                        background-color var(--app-motion-fast),
+                        box-shadow var(--app-motion-fast);
 
                     &:hover {
                         background: var(--el-color-primary);
-                        transform: scale(1.06);
-                        box-shadow: 0 4px 10px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+                        box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
                     }
 
                     &.el-upload-list__item-delete:hover {
@@ -919,7 +924,10 @@ onBeforeUnmount(() => {
         border: 2px dashed color-mix(in srgb, var(--el-border-color) 64%, transparent);
         border-radius: var(--radius);
         background: var(--glass-bg);
-        transition: all 0.3s ease;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast);
         position: relative;
         overflow: hidden;
         margin-bottom: var(--grid-gap);
@@ -931,7 +939,6 @@ onBeforeUnmount(() => {
 
             .upload-trigger-content {
                 .icon-box {
-                    transform: scale(1.1) rotate(5deg);
                     color: var(--el-color-primary);
                 }
                 .main-text {
@@ -944,7 +951,9 @@ onBeforeUnmount(() => {
     :deep(.el-list-enter-active),
     :deep(.el-list-leave-active),
     :deep(.el-list-move) {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition:
+            opacity var(--app-motion-image),
+            transform var(--app-motion-image) !important;
     }
 
     :deep(.el-list-leave-active) {
@@ -1031,7 +1040,10 @@ onBeforeUnmount(() => {
         font-size: 12px;
         color: var(--text-secondary);
         backdrop-filter: blur(2px);
-        transition: all 0.3s;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            color var(--app-motion-fast);
 
         &:hover {
             background: color-mix(in srgb, var(--el-color-primary-light-9) 45%, var(--el-color-white));
@@ -1064,7 +1076,10 @@ onBeforeUnmount(() => {
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 10px;
     background: color-mix(in srgb, var(--el-bg-color) 90%, var(--el-color-white));
-    transition: all 0.2s ease;
+    transition:
+        border-color var(--app-motion-fast),
+        box-shadow var(--app-motion-fast),
+        background-color var(--app-motion-fast);
 
     &:hover {
         border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--el-border-color-lighter));
@@ -1150,7 +1165,9 @@ onBeforeUnmount(() => {
     color: var(--el-text-color-secondary);
     background: var(--el-fill-color-light);
     cursor: grab;
-    transition: all 0.2s ease;
+    transition:
+        background-color var(--app-motion-fast),
+        color var(--app-motion-fast);
 
     &:hover {
         color: #fff;
@@ -1168,7 +1185,9 @@ onBeforeUnmount(() => {
 
 .list-fade-enter-active,
 .list-fade-leave-active {
-    transition: all 0.25s ease;
+    transition:
+        opacity var(--app-motion-image),
+        transform var(--app-motion-image);
 }
 
 .list-fade-enter-from,
@@ -1214,13 +1233,15 @@ onBeforeUnmount(() => {
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: #fff;
         backdrop-filter: blur(8px);
-        transition: all 0.3s;
+        transition:
+            background-color var(--app-motion-fast),
+            border-color var(--app-motion-fast),
+            box-shadow var(--app-motion-fast);
 
         &:hover {
             background: var(--el-color-primary);
             border-color: var(--el-color-primary);
-            box-shadow: 0 0 15px var(--el-color-primary);
-            transform: scale(1.1);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
         }
 
         .el-icon {

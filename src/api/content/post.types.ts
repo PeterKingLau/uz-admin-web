@@ -53,12 +53,23 @@ export interface RepostPostPayload {
 }
 
 export interface ListPostByAppParams {
+    tagId?: number | string
     postType?: string
     lastId?: number | string
     lastCreateTime?: string
     limit?: number
     content?: string
     targetUserId?: number | string
+    circleId?: number | string
+    isQuestion?: number | string
+    isCircle?: number | string
+}
+
+export interface RecommendFeedParams {
+    lastId?: number | string
+    lastCreateTime?: string
+    limit?: number
+    isQuestion?: number | string
     circleId?: number | string
     isCircle?: number | string
 }

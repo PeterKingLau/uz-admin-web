@@ -3,6 +3,7 @@
 @use './tokens.scss' as *;
 @use './mixin.scss' as *;
 @use './transition.scss' as *;
+@use '../../views/client/styles/theme.scss';
 
 @tailwind base;
 @tailwind components;
@@ -20,6 +21,13 @@
 
     --app-bg: #ffffff;
     --app-text: #303133;
+    --app-hover-bg-soft: rgba(15, 23, 42, 0.03);
+    --app-hover-border-soft: rgba(15, 23, 42, 0.08);
+    --app-hover-shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --app-hover-shadow-card: 0 6px 18px rgba(15, 23, 42, 0.06);
+    --app-motion-fast: 0.18s ease;
+    --app-motion-normal: 0.22s ease;
+    --app-motion-image: 0.25s ease;
 }
 
 html,
@@ -57,6 +65,15 @@ body.el-popup-parent--hidden {
 
 html:has(body.el-popup-parent--hidden) {
     scrollbar-gutter: auto;
+}
+
+html.app-scroll-locked,
+body.app-scroll-locked {
+    overflow: hidden !important;
+}
+
+.discover-page.app-scroll-root-locked {
+    overflow: hidden !important;
 }
 
 *,
@@ -183,12 +200,14 @@ aside {
             border-radius: 8px;
             font-weight: 500;
             transition:
-                transform 0.2s ease,
                 opacity 0.2s ease,
+                background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease,
                 box-shadow 0.2s ease;
 
             &:hover {
-                transform: translateY(-1px);
+                opacity: 0.94;
             }
 
             &.is-disabled,
@@ -215,12 +234,14 @@ aside {
         border-radius: 8px;
         font-weight: 500;
         transition:
-            transform 0.2s ease,
             opacity 0.2s ease,
+            background-color 0.2s ease,
+            border-color 0.2s ease,
+            color 0.2s ease,
             box-shadow 0.2s ease;
 
         &:hover {
-            transform: translateY(-1px);
+            opacity: 0.94;
         }
 
         &.is-disabled,

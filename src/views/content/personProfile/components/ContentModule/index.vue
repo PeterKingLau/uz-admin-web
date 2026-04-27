@@ -190,7 +190,11 @@
                                 </div>
 
                                 <div v-else class="text-container">
-                                    <img :src="getTextCover(item)" alt="text cover" loading="lazy" />
+                                    <Icon icon="mdi:format-quote-open" class="text-cover-quote" />
+                                    <div class="text-wrap">
+                                        <span>{{ getTextContent(item) }}</span>
+                                    </div>
+                                    <i class="text-cover-accent" aria-hidden="true"></i>
                                 </div>
 
                                 <div class="bottom-gradient">
@@ -287,7 +291,11 @@
                                 <div class="thumb-play"><Icon icon="mdi:play" /></div>
                             </div>
                             <div v-else class="thumb-text">
-                                <img :src="getTextCover(item)" alt="text cover" loading="lazy" />
+                                <Icon icon="mdi:format-quote-open" class="text-cover-quote" />
+                                <div class="text-wrap">
+                                    <span>{{ getTextContent(item) }}</span>
+                                </div>
+                                <i class="text-cover-accent" aria-hidden="true"></i>
                             </div>
                         </div>
                         <div v-if="!readOnly" class="select-check"><Icon icon="mdi:check-circle" /></div>
@@ -506,8 +514,9 @@ const resolvePostId = (item: any) => {
     return Number.isFinite(num) ? num : null
 }
 const resolvePostKey = (item: any) => resolvePostId(item) ?? JSON.stringify(item)
+const getTextContent = (item: any) => toTrimmed(item?.content) || '暂无文字'
 const getTextCover = (item: any) => {
-    const content = String(item?.content ?? '').trim()
+    const content = getTextContent(item)
     const seed = String(resolvePostId(item) ?? '')
     return buildTextCoverDataUrl(content, seed || content || 'text')
 }
@@ -1385,15 +1394,17 @@ watch(
     }
 
     &:hover .cover-box {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        transform: none;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        border-color: var(--el-border-color);
+        background-color: color-mix(in srgb, var(--el-fill-color-light) 92%, var(--el-bg-color));
 
         img {
-            transform: scale(1.05);
+            transform: scale(1.015);
         }
         .play-indicator {
-            transform: translate(-50%, -50%) scale(1.1);
-            background: rgba(0, 0, 0, 0.5);
+            transform: translate(-50%, -50%) scale(1);
+            background: rgba(0, 0, 0, 0.38);
         }
     }
 
@@ -1404,7 +1415,10 @@ watch(
         border-radius: 8px;
         overflow: hidden;
         background-color: var(--el-fill-color-light);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        transition:
+            border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+            box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+            background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
         border: 1px solid var(--el-border-color-extra-light);
 
         img,
@@ -1415,7 +1429,7 @@ watch(
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
+            transition: transform 0.26s cubic-bezier(0.2, 0, 0.2, 1);
         }
 
         .video-container {
@@ -1438,20 +1452,87 @@ watch(
             border-radius: 50%;
             background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(2px);
-            transition: all 0.3s;
+            transition:
+                background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+                transform 0.24s cubic-bezier(0.2, 0, 0.2, 1);
         }
 
         .text-container {
+            --admin-text-cover-color: color-mix(in srgb, var(--el-text-color-primary) 88%, #2c3e50);
+            --admin-text-cover-muted: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
+            --admin-text-cover-accent: color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
+
             position: absolute;
             inset: 0;
-            background: var(--el-bg-color-page);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 24px;
+            background:
+                radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--el-color-white) 82%, transparent), transparent 30%),
+                radial-gradient(circle at 82% 78%, color-mix(in srgb, var(--el-fill-color-darker) 36%, transparent), transparent 34%),
+                linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-light) 100%);
             overflow: hidden;
+            isolation: isolate;
 
-            img {
+            &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                background:
+                    linear-gradient(160deg, color-mix(in srgb, var(--el-color-white) 24%, transparent) 0%, transparent 46%),
+                    radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--el-color-white) 28%, transparent), transparent 40%);
+            }
+
+            .text-wrap {
+                position: relative;
+                z-index: 1;
                 width: 100%;
-                height: 100%;
-                display: block;
-                object-fit: cover;
+                max-width: 148px;
+                min-height: 42%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .text-wrap span {
+                width: 100%;
+                font-size: 18px;
+                line-height: 1.65;
+                font-weight: 600;
+                color: var(--admin-text-cover-color);
+                display: -webkit-box;
+                -webkit-line-clamp: 5;
+                line-clamp: 5;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                word-break: break-word;
+            }
+
+            .text-cover-quote {
+                position: absolute;
+                left: 50%;
+                top: 44%;
+                z-index: 0;
+                transform: translate(-50%, -50%);
+                color: var(--admin-text-cover-muted);
+                font-size: 112px;
+                pointer-events: none;
+            }
+
+            .text-cover-accent {
+                position: absolute;
+                left: 50%;
+                bottom: 20px;
+                z-index: 1;
+                width: 34px;
+                height: 4px;
+                transform: translateX(-50%);
+                border-radius: 999px;
+                background: var(--admin-text-cover-accent);
             }
         }
 
@@ -1520,7 +1601,10 @@ watch(
     border-radius: 12px;
     padding: 16px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition:
+        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
 
     &.bulk-selected {
         border-color: var(--el-color-primary);
@@ -1529,10 +1613,11 @@ watch(
 
     &:hover {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, var(--el-fill-color-light));
 
         .cover-visual img {
-            transform: scale(1.04);
+            transform: scale(1.015);
         }
 
         .more-btn {
@@ -1980,11 +2065,16 @@ watch(
     background: var(--el-fill-color);
     border: 1px solid var(--el-border-color-lighter);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
 
     &:hover {
         border-color: var(--el-border-color);
-        transform: translateY(-2px);
+        transform: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        background: color-mix(in srgb, var(--el-fill-color) 94%, var(--el-bg-color));
     }
 
     &.selected {
@@ -2039,17 +2129,81 @@ watch(
         }
 
         .thumb-text {
+            --admin-text-cover-color: color-mix(in srgb, var(--el-text-color-primary) 88%, #2c3e50);
+            --admin-text-cover-muted: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
+            --admin-text-cover-accent: color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
+
             position: relative;
             width: 100%;
             height: 100%;
-            background: var(--el-bg-color-page);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 12px;
+            background:
+                radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--el-color-white) 82%, transparent), transparent 30%),
+                radial-gradient(circle at 82% 78%, color-mix(in srgb, var(--el-fill-color-darker) 36%, transparent), transparent 34%),
+                linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-light) 100%);
             overflow: hidden;
+            isolation: isolate;
 
-            img {
+            &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                background:
+                    linear-gradient(160deg, color-mix(in srgb, var(--el-color-white) 24%, transparent) 0%, transparent 46%),
+                    radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--el-color-white) 28%, transparent), transparent 40%);
+            }
+
+            .text-wrap {
+                position: relative;
+                z-index: 1;
                 width: 100%;
-                height: 100%;
-                display: block;
-                object-fit: cover;
+                min-height: 42%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .text-wrap span {
+                width: 100%;
+                font-size: 12px;
+                line-height: 1.5;
+                font-weight: 600;
+                color: var(--admin-text-cover-color);
+                display: -webkit-box;
+                -webkit-line-clamp: 4;
+                line-clamp: 4;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                word-break: break-word;
+            }
+
+            .text-cover-quote {
+                position: absolute;
+                left: 50%;
+                top: 44%;
+                z-index: 0;
+                transform: translate(-50%, -50%);
+                color: var(--admin-text-cover-muted);
+                font-size: 58px;
+                pointer-events: none;
+            }
+
+            .text-cover-accent {
+                position: absolute;
+                left: 50%;
+                bottom: 10px;
+                z-index: 1;
+                width: 22px;
+                height: 3px;
+                transform: translateX(-50%);
+                border-radius: 999px;
+                background: var(--admin-text-cover-accent);
             }
         }
     }
