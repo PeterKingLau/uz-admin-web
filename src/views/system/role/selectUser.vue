@@ -1,5 +1,5 @@
 <template>
-    <!-- 授权用户 -->
+    
     <el-dialog title="选择用户" v-model="visible" width="800px" top="5vh" append-to-body>
         <el-form :model="queryParams" ref="queryRef" :inline="true">
             <el-form-item label="用户名称" prop="userName">
@@ -68,24 +68,24 @@ const queryParams = reactive({
     phonenumber: undefined
 })
 
-// 显示弹框
+
 function show() {
     queryParams.roleId = props.roleId
     getList()
     visible.value = true
 }
 
-/**选择行 */
+
 function clickRow(row) {
     proxy.$refs['refTable'].toggleRowSelection(row)
 }
 
-// 多选框选中数据
+
 function handleSelectionChange(selection) {
     userIds.value = selection.map(item => item.userId)
 }
 
-// 查询表数据
+
 function getList() {
     unallocatedUserList(queryParams).then(res => {
         userList.value = res.rows
@@ -93,20 +93,20 @@ function getList() {
     })
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
 const emit = defineEmits(['ok'])
-/** 选择授权用户操作 */
+
 function handleSelectUser() {
     const roleId = queryParams.roleId
     const uIds = userIds.value.join(',')

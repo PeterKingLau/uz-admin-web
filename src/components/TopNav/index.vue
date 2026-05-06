@@ -97,7 +97,7 @@ const activeMenu = computed(() => {
 
 function setVisibleNumber() {
     const width = document.body.getBoundingClientRect().width / 3
-    visibleNumber.value = parseInt(width / 110) // 稍微调整宽度系数
+    visibleNumber.value = parseInt(width / 110) 
 }
 
 function handleSelect(key, keyPath) {

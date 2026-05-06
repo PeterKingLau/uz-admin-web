@@ -402,7 +402,7 @@ watch(
         const nextAutoDescription = nextList.length > 1 ? '' : resolveVideoAutoDescription(nextList)
         videoAutoDescription.value = nextAutoDescription
 
-        // 单视频模式下自动把视频名写入正文（仅正文展示，不影响上传文件参数）
+        
         if (nextList.length <= 1) {
             syncSingleVideoContentDisplay(nextAutoDescription, previousAutoDescription)
         } else {

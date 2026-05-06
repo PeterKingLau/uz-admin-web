@@ -7,7 +7,7 @@
     margin: 0 auto;
     border-radius: 8px;
     box-shadow: var(--el-box-shadow);
-    background-color: var(--el-bg-color-overlay); // 使用变量适配暗黑模式
+    background-color: var(--el-bg-color-overlay); 
 
     &:not(.is-fullscreen) {
         margin-top: 6vh !important;
@@ -121,7 +121,7 @@
 
     .el-drawer__body {
         padding: 0;
-        background-color: var(--el-bg-color); // 确保与主题一致
+        background-color: var(--el-bg-color); 
         overflow: hidden;
         display: flex;
         flex-direction: column;

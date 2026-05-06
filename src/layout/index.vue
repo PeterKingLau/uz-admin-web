@@ -85,7 +85,7 @@ function handleClickOutside() {
     appStore.closeSideBar({ withoutAnimation: false })
 }
 
-// 改为 shallowRef
+
 const settingRef = shallowRef(null)
 
 function setLayout() {

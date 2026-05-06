@@ -357,7 +357,7 @@ const cleanupVideoPreviewArtifacts = () => {
             video.removeAttribute('src')
             video.load()
         } catch {
-            // noop
+            
         }
     })
 }
@@ -470,9 +470,9 @@ defineExpose({ focusInput })
     }
 }
 
-/* ========================================================
-   预览弹窗进入/离开动画
-======================================================== */
+
+
+
 .preview-fade-enter-active,
 .preview-fade-leave-active {
     transition:
@@ -500,7 +500,7 @@ defineExpose({ focusInput })
     transform: scale(0.96) translateY(20px);
 }
 
-/* 列表项轻量进入动画 */
+
 @keyframes itemFadeIn {
     0% {
         opacity: 0;

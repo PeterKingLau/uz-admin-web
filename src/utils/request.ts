@@ -200,9 +200,7 @@ const estimatePayloadSize = (payload: string): number => {
     if (typeof Blob !== 'undefined') {
         try {
             return new Blob([payload]).size
-        } catch {
-            // noop
-        }
+        } catch {}
     }
     return payload.length
 }
@@ -283,7 +281,7 @@ service.interceptors.request.use(
             addPendingRequest(config)
         }
 
-        // Strip internal meta flags to avoid leaking custom headers in cross-origin requests.
+        
         headers.delete('isToken')
         headers.delete('repeatSubmit')
         headers.delete('skipPending')

@@ -21,7 +21,7 @@
                 </el-select>
             </el-form-item>
             <el-form-item label="操作时间" style="width: 308px">
-                <el-date-picker
+                <AppDatePicker
                     v-model="dateRange"
                     value-format="YYYY-MM-DD HH:mm:ss"
                     type="daterange"
@@ -29,15 +29,15 @@
                     start-placeholder="开始日期"
                     end-placeholder="结束日期"
                     :default-time="[new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]"
-                ></el-date-picker>
+                ></AppDatePicker>
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="handleQuery">
-                    <el-icon><Icon icon="ep:search" /></el-icon>
+                    <Icon icon="ep:search" />
                     搜索
                 </el-button>
                 <el-button @click="resetQuery">
-                    <el-icon><Icon icon="ep:refresh" /></el-icon>
+                    <Icon icon="ep:refresh" />
                     重置
                 </el-button>
             </el-form-item>
@@ -46,19 +46,19 @@
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
                 <el-button type="danger" plain :disabled="multiple" @click="handleDelete" v-hasPermi="['monitor:operlog:remove']">
-                    <el-icon><Icon icon="ep:delete" /></el-icon>
+                    <Icon icon="ep:delete" />
                     删除
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="danger" plain @click="handleClean" v-hasPermi="['monitor:operlog:remove']">
-                    <el-icon><Icon icon="ep:delete" /></el-icon>
+                    <Icon icon="ep:delete" />
                     清空
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="warning" plain @click="handleExport" v-hasPermi="['monitor:operlog:export']">
-                    <el-icon><Icon icon="ep:download" /></el-icon>
+                    <Icon icon="ep:download" />
                     导出
                 </el-button>
             </el-col>
@@ -117,7 +117,7 @@
             <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button link type="primary" @click="handleView(scope.row, scope.index)" v-hasPermi="['monitor:operlog:query']">
-                        <el-icon><Icon icon="ep:view" /></el-icon>
+                        <Icon icon="ep:view" />
                         详细
                     </el-button>
                 </template>
@@ -126,7 +126,7 @@
 
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
-        <!-- 操作日志详细 -->
+        
         <el-dialog title="操作日志详细" v-model="open" width="800px" append-to-body>
             <el-form :model="form" label-width="100px">
                 <el-row>
@@ -208,7 +208,7 @@ const data = reactive({
 
 const { queryParams, form } = toRefs(data)
 
-/** 查询登录日志 */
+
 function getList() {
     loading.value = true
     list(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
@@ -218,18 +218,18 @@ function getList() {
     })
 }
 
-/** 操作日志类型字典翻译 */
+
 function typeFormat(row, column) {
     return selectDictLabel(sys_oper_type.value, row.businessType)
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     dateRange.value = []
     proxy.resetForm('queryRef')
@@ -237,26 +237,26 @@ function resetQuery() {
     proxy.$refs['operlogRef'].sort(defaultSort.value.prop, defaultSort.value.order)
 }
 
-/** 多选框选中数据 */
+
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.operId)
     multiple.value = !selection.length
 }
 
-/** 排序触发事件 */
+
 function handleSortChange(column, prop, order) {
     queryParams.value.orderByColumn = column.prop
     queryParams.value.isAsc = column.order
     getList()
 }
 
-/** 详细按钮操作 */
+
 function handleView(row) {
     open.value = true
     form.value = row
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
     const operIds = row.operId || ids.value
     proxy.$modal
@@ -271,7 +271,7 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 清空按钮操作 */
+
 function handleClean() {
     proxy.$modal
         .confirm('是否确认清空所有操作日志数据项?')
@@ -285,7 +285,7 @@ function handleClean() {
         .catch(() => {})
 }
 
-/** 导出按钮操作 */
+
 function handleExport() {
     proxy.download(
         'monitor/operlog/export',

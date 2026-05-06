@@ -474,7 +474,7 @@ const resolveQRCodeText = (post: any) => {
     if (type !== POST_TYPE.VIDEO) return ''
     const postId = getPreviewPostId(post)
     if (!postId) return ''
-    return `gbzcb://video?id=${postId}`
+    return `gbzcb://post/${postId}`
 }
 
 const resolveAvatar = (avatar: string) => resolveMediaUrl(avatar)

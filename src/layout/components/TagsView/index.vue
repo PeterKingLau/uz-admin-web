@@ -54,7 +54,7 @@
 
 <script setup>
 defineOptions({ name: 'LayoutComponentsTagsView' })
-import ScrollPane from './ScrollPane'
+import ScrollPane from './ScrollPane.vue'
 import { getNormalPath } from '@/utils/utils'
 import useTagsViewStore from '@/store/modules/tagsView'
 import useSettingsStore from '@/store/modules/settings'
@@ -319,22 +319,24 @@ function handleScroll() {
 .tags-view-container {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0;
     height: 44px;
     width: 100%;
-    background: var(--el-bg-color);
-    box-shadow: inset 0 -1px 0 var(--el-border-color-light);
+    padding: 6px 8px 0;
+    background: var(--el-fill-color-lighter);
+    box-shadow: inset 0 -1px 0 var(--el-border-color-lighter);
 
     .scroll-nav {
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
+        margin-bottom: 6px;
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid var(--el-border-color-lighter);
-        border-radius: 999px;
-        background: var(--el-fill-color-blank);
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
         color: var(--el-text-color-regular);
         cursor: pointer;
         transition:
@@ -345,8 +347,7 @@ function handleScroll() {
 
         &:hover:not(.disabled) {
             color: var(--el-color-primary);
-            border-color: var(--el-color-primary-light-5);
-            background: var(--el-color-primary-light-9);
+            background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
         }
 
         &.disabled,
@@ -359,80 +360,128 @@ function handleScroll() {
     .tags-view-wrapper {
         flex: 1;
         min-width: 0;
+        height: 38px;
 
         .tags-view-item {
             display: inline-flex;
             align-items: center;
             position: relative;
             cursor: pointer;
-            height: 30px;
-            line-height: 30px;
-            border: 1px solid var(--el-border-color-lighter);
+            height: 38px;
+            line-height: 38px;
+            min-width: 112px;
+            max-width: 210px;
+            border: 0;
             color: var(--el-text-color-regular);
-            background: var(--el-fill-color-blank);
-            padding: 0 12px;
+            background: transparent;
+            padding: 0 10px 0 14px;
             font-size: 13px;
-            border-radius: 15px;
+            border-radius: 10px 10px 0 0;
             transition:
                 background-color var(--app-motion-fast),
-                border-color var(--app-motion-fast),
                 color var(--app-motion-fast);
 
+            &::after {
+                content: '';
+                position: absolute;
+                right: -1px;
+                top: 9px;
+                width: 1px;
+                height: 20px;
+                background: var(--el-border-color);
+                opacity: 0.75;
+            }
+
             &:hover {
-                color: var(--el-color-primary);
-                background: var(--el-color-primary-light-9);
-                border-color: var(--el-color-primary-light-7);
+                color: var(--el-text-color-primary);
+                background: color-mix(in srgb, var(--el-bg-color) 72%, transparent);
+
+                &::after {
+                    opacity: 0;
+                }
             }
 
             &.active {
-                background-color: var(--el-color-primary-light-9);
-                color: var(--el-color-primary);
-                border-color: var(--el-color-primary-light-5);
-                font-weight: 500;
+                z-index: 2;
+                background-color: var(--el-bg-color);
+                color: var(--el-text-color-primary);
+                font-weight: 600;
+                box-shadow:
+                    0 -1px 0 var(--el-border-color-lighter),
+                    1px 0 0 var(--el-border-color-lighter),
+                    -1px 0 0 var(--el-border-color-lighter);
 
                 &::before {
-                    content: '';
-                    background: var(--el-color-primary);
-                    display: inline-block;
-                    width: 6px;
-                    height: 6px;
-                    border-radius: 50%;
-                    position: relative;
-                    margin-right: 6px;
-                    transition: background-color var(--app-motion-fast);
+                    content: none;
+                }
+
+                &::after {
+                    opacity: 0;
                 }
             }
 
             .tag-icon {
                 margin-right: 6px;
                 font-size: 14px;
+                flex-shrink: 0;
+            }
+
+            .tag-title {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .close-icon-wrapper {
-                margin-left: 6px;
+                margin-left: auto;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
                 width: 16px;
                 height: 16px;
                 border-radius: 50%;
+                flex-shrink: 0;
+                color: var(--el-text-color-secondary);
+                opacity: 0.72;
+                line-height: 1;
                 transition:
                     background-color var(--app-motion-fast),
-                    color var(--app-motion-fast);
+                    color var(--app-motion-fast),
+                    opacity var(--app-motion-fast);
 
                 .el-icon-close {
-                    font-size: 12px;
+                    display: block;
+                    width: 10px;
+                    height: 10px;
+                    font-size: 10px;
+                    stroke-width: 2.4;
+                    background: transparent !important;
                     transition: color var(--app-motion-fast);
+
+                    &:hover {
+                        background: transparent !important;
+                    }
                 }
 
                 &:hover {
-                    background-color: var(--el-color-danger);
-                    color: #fff;
+                    opacity: 1;
+                    background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
+                    color: var(--el-text-color-primary);
 
                     .el-icon-close {
-                        color: #fff;
+                        background: transparent !important;
+                        color: var(--el-text-color-primary);
                     }
                 }
+            }
+
+            &:not(:hover):not(.active) .close-icon-wrapper {
+                opacity: 0;
+            }
+
+            &.active .close-icon-wrapper {
+                opacity: 0.82;
             }
         }
     }
@@ -497,40 +546,40 @@ function handleScroll() {
 }
 
 :global(html.dark) .tags-view-container {
-    background: var(--el-bg-color);
+    background: var(--el-fill-color-darker);
     box-shadow: inset 0 -1px 0 var(--el-border-color-darker);
 
     .scroll-nav {
-        background: var(--el-fill-color-dark);
-        border-color: var(--el-border-color-darker);
+        background: transparent;
 
         &:hover:not(.disabled) {
-            background: var(--el-fill-color-darker);
-            border-color: var(--el-color-primary-dark-2);
+            background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
         }
     }
 
     .tags-view-wrapper .tags-view-item {
-        background: var(--el-fill-color-dark);
-        border-color: var(--el-border-color-darker);
+        background: transparent;
+
+        &::after {
+            background: var(--el-border-color-darker);
+        }
 
         &:hover {
-            background: var(--el-fill-color-darker);
-            border-color: var(--el-color-primary-dark-2);
+            background: color-mix(in srgb, var(--el-bg-color-overlay) 62%, transparent);
         }
 
         &.active {
-            background-color: var(--el-color-primary-dark-2);
-            color: var(--el-color-primary-light-3);
-            border-color: var(--el-color-primary);
-
-            &::before {
-                background: var(--el-color-primary-light-3);
-            }
+            background-color: var(--el-bg-color);
+            color: var(--el-text-color-primary);
+            box-shadow:
+                0 -1px 0 var(--el-border-color-darker),
+                1px 0 0 var(--el-border-color-darker),
+                -1px 0 0 var(--el-border-color-darker);
         }
 
         .close-icon-wrapper:hover {
-            background-color: var(--el-color-danger);
+            background-color: color-mix(in srgb, var(--el-color-white) 12%, transparent);
+            color: var(--el-text-color-primary);
         }
     }
 

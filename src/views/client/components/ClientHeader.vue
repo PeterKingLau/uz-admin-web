@@ -26,6 +26,11 @@
             <div class="header-actions">
                 <slot name="actions" />
 
+                <button v-if="adminRoute" type="button" class="admin-entry" @click="navigateTo(adminRoute)">
+                    <Icon icon="ep:monitor" />
+                    <span>进入管理端</span>
+                </button>
+
                 <el-dropdown
                     v-if="isLoggedIn"
                     class="user-dropdown"
@@ -49,10 +54,6 @@
                             <el-dropdown-item v-if="passwordRoute" command="password">
                                 <Icon icon="ep:lock" class="dropdown-icon" />
                                 修改密码
-                            </el-dropdown-item>
-                            <el-dropdown-item v-if="adminRoute" command="admin">
-                                <Icon icon="ep:monitor" class="dropdown-icon" />
-                                进入管理端
                             </el-dropdown-item>
                             <el-dropdown-item command="logout" class="logout-item">
                                 <Icon icon="ep:switch-button" class="dropdown-icon" />
@@ -144,9 +145,6 @@ const handleCommand = (command: string | number | object) => {
         case 'password':
             navigateTo(passwordRoute.value)
             break
-        case 'admin':
-            navigateTo(adminRoute.value)
-            break
         case 'logout':
             proxy?.$modal
                 ?.confirm?.('确认退出当前账号吗？')
@@ -189,21 +187,22 @@ onMounted(() => {
     top: 0;
     left: 0;
     width: 100%;
-    height: var(--header-height);
-    background-color: var(--client-surface);
+    height: var(--header-height, 64px);
+    background: var(--client-surface);
     border-bottom: 1px solid var(--border-color);
     z-index: 100;
     display: flex;
     justify-content: center;
+    transition: background-color 0.3s ease;
 }
 
 .header-inner {
     width: 100%;
-    max-width: var(--content-max-width);
+    max-width: var(--content-max-width, 1440px);
     height: 100%;
     padding: 0 24px;
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr) 240px;
+    grid-template-columns: 240px minmax(0, 1fr) minmax(340px, auto);
     align-items: center;
     gap: 24px;
 }
@@ -212,26 +211,27 @@ onMounted(() => {
     grid-column: 1;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
     width: fit-content;
     padding: 4px 8px 4px 0;
-    transition: opacity 0.2s;
+    transition: opacity 0.3s ease;
 }
 
 .brand:hover {
-    opacity: 0.85;
+    opacity: 0.9;
 }
 
 .brand-logo {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05));
 }
 
 .brand-name {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--text-main);
     letter-spacing: 0.5px;
 }
@@ -246,13 +246,13 @@ onMounted(() => {
 .search-bar {
     width: 100%;
     max-width: 480px;
-    height: 36px;
+    height: 40px;
     background-color: var(--bg-color);
-    border-radius: 18px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    padding: 0 16px;
-    gap: 10px;
+    padding: 0 18px;
+    gap: 12px;
     border: 1px solid transparent;
     transition:
         background-color var(--app-motion-normal),
@@ -280,35 +280,34 @@ onMounted(() => {
     -moz-appearance: none;
     padding: 0;
     margin: 0;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text-main);
+    font-weight: 500;
 }
 
 .search-submit {
     flex: 0 0 auto;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
+    border-radius: 6px;
     background: transparent;
     color: var(--text-minor);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition:
-        color var(--app-motion-fast),
-        background-color var(--app-motion-fast);
+    transition: all 0.2s ease;
 }
 
 .search-submit:hover {
     color: var(--primary-color);
-    background: var(--client-surface-muted);
+    transform: scale(1.1);
 }
 
 .search-icon {
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .search-bar input:focus,
@@ -320,29 +319,28 @@ onMounted(() => {
 
 .search-bar input::placeholder {
     color: var(--text-minor);
+    font-weight: 400;
 }
 
 .search-clear {
     flex: 0 0 auto;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
+    border-radius: 6px;
     background: transparent;
     color: var(--text-minor);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition:
-        color var(--app-motion-fast),
-        background-color var(--app-motion-fast);
+    transition: all 0.2s ease;
 }
 
 .search-clear:hover {
     color: var(--text-regular);
-    background: var(--client-surface-muted);
+    transform: scale(1.1);
 }
 
 .header-actions {
@@ -350,8 +348,41 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     min-width: 0;
+}
+
+.admin-entry {
+    height: 38px;
+    padding: 0 16px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.admin-entry:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+    background: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+
+.admin-entry:focus,
+.admin-entry:focus-visible {
+    outline: none;
+}
+
+.admin-entry :deep(svg) {
+    font-size: 16px;
 }
 
 .user-dropdown {
@@ -360,59 +391,62 @@ onMounted(() => {
 
 .user-entry {
     max-width: 100%;
-    height: 40px;
-    padding: 0 12px;
+    height: 42px;
+    padding: 0 14px 0 6px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: 8px;
     background: transparent;
     color: var(--text-main);
     cursor: pointer;
-    transition:
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .user-entry:hover {
-    background: var(--client-surface-muted);
-    border-color: var(--client-border-soft);
+    background: color-mix(in srgb, var(--text-main) 4%, transparent);
+    border-color: color-mix(in srgb, var(--text-main) 6%, transparent);
 }
 
 .user-entry:focus,
 .user-entry:focus-visible {
     outline: none;
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: var(--client-focus-ring-soft);
+    border-color: color-mix(in srgb, var(--primary-color) 40%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 10%, transparent);
 }
 
 .user-avatar {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     object-fit: cover;
     display: block;
     flex-shrink: 0;
-    border: 1px solid var(--client-border-soft);
+    border: 1px solid color-mix(in srgb, var(--text-main) 8%, transparent);
     background: var(--client-fill);
 }
 
 .user-name {
     min-width: 0;
-    max-width: 108px;
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .user-caret {
     font-size: 12px;
     color: var(--text-minor);
     flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.user-entry:hover .user-caret {
+    transform: translateY(2px);
+    color: var(--text-main);
 }
 
 @media screen and (max-width: 1024px) {
@@ -425,11 +459,24 @@ onMounted(() => {
     }
 }
 
+@media screen and (max-width: 1180px) {
+    .admin-entry span {
+        display: none;
+    }
+
+    .admin-entry {
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 8px;
+    }
+}
+
 @media screen and (max-width: 768px) {
     .header-inner {
-        padding: 0 12px;
+        padding: 0 16px;
         grid-template-columns: auto auto;
-        gap: 12px;
+        gap: 16px;
     }
 
     .header-actions {
@@ -452,34 +499,34 @@ onMounted(() => {
 
 <style lang="scss">
 .client-header-dropdown {
-    border-radius: 12px !important;
-    padding: 8px !important;
-    min-width: 148px;
-    border: 1px solid var(--border-color) !important;
-    box-shadow: var(--app-hover-shadow-soft) !important;
+    background: var(--client-surface) !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    min-width: 160px;
+    border: 1px solid color-mix(in srgb, var(--text-main) 6%, transparent) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08) !important;
 
     .el-dropdown-menu__item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        border-radius: 8px;
+        gap: 12px;
+        border-radius: 6px;
         font-size: 14px;
-        color: var(--text-regular);
+        font-weight: 500;
+        color: var(--text-main);
         line-height: 1;
-        padding: 10px 14px;
-        transition:
-            background-color var(--app-motion-fast),
-            color var(--app-motion-fast);
+        padding: 12px 16px;
+        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     .el-dropdown-menu__item:hover {
-        background: var(--client-surface-muted);
-        color: var(--primary-color);
+        background: color-mix(in srgb, var(--text-main) 4%, transparent);
+        transform: translateX(4px);
     }
 
     .el-dropdown-menu__item--divided {
-        margin-top: 0;
-        border-top: 0;
+        margin-top: 4px;
+        border-top: 1px solid color-mix(in srgb, var(--text-main) 6%, transparent);
     }
 
     .el-dropdown-menu__item--divided::before {
@@ -487,12 +534,21 @@ onMounted(() => {
     }
 
     .dropdown-icon {
-        font-size: 15px;
+        font-size: 16px;
         color: var(--text-minor);
+        transition: color 0.2s ease;
+    }
+
+    .el-dropdown-menu__item:hover .dropdown-icon {
+        color: var(--text-main);
+    }
+
+    .logout-item {
+        margin-top: 4px;
     }
 
     .logout-item:hover {
-        background: var(--client-danger-soft);
+        background: color-mix(in srgb, var(--client-danger-text) 10%, transparent);
         color: var(--client-danger-text);
     }
 

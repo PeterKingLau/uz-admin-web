@@ -1,4 +1,3 @@
-<!-- eslint-disable vue/no-mutating-props -->
 <template>
     <el-form ref="basicInfoForm" :model="info" :rules="rules" label-width="150px">
         <el-row>
@@ -46,7 +45,7 @@ defineExpose({
     basicInfoForm
 })
 
-// 表单校验
+
 const rules = ref({
     tableName: [{ required: true, message: '请输入表名称', trigger: 'blur' }],
     tableComment: [{ required: true, message: '请输入表描述', trigger: 'blur' }],

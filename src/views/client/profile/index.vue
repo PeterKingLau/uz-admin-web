@@ -304,7 +304,7 @@ const statItems = computed(() => [
 ])
 
 const tabItems = computed(() => [
-    { key: 'works', label: '作品', count: totalMap.value.works },
+    { key: 'works', label: '作品' },
     { key: 'likes', label: '喜欢', count: totalMap.value.likes },
     { key: 'bookmarks', label: '收藏', count: totalMap.value.bookmarks }
 ])
@@ -793,7 +793,7 @@ const loadTabTotals = async () => {
     const userId = resolveProfileUserId()
     if (!userId) return
 
-    const tabKeys: ProfileTabKey[] = ['works', 'likes', 'bookmarks']
+    const tabKeys: ProfileTabKey[] = ['likes', 'bookmarks']
     const results = await Promise.allSettled(tabKeys.map(tabKey => fetchTabList(tabKey, false)))
     const nextTotals = { ...totalMap.value }
 
@@ -824,10 +824,12 @@ const loadPosts = async (isLoadMore = false) => {
         const rows = ((res as any)?.rows || (res as any)?.data || res || []) as any[]
         const list = Array.isArray(rows) ? rows : []
         postList.value = isLoadMore ? postList.value.concat(list) : list
-        const nextTotal = extractListTotal(res)
-        totalMap.value = {
-            ...totalMap.value,
-            [tabKey]: nextTotal
+        if (tabKey !== 'works') {
+            const nextTotal = extractListTotal(res)
+            totalMap.value = {
+                ...totalMap.value,
+                [tabKey]: nextTotal
+            }
         }
         const last = list[list.length - 1]
         query.value.lastId = Number(last?.id ?? last?.postId ?? 0) || undefined
@@ -855,6 +857,7 @@ const resetAndLoadPosts = () => {
 }
 
 const loadMore = () => {
+    if (loading.value || loadingMore.value || noMore.value) return
     loadPosts(true)
 }
 
@@ -1055,10 +1058,11 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .client-profile-page {
-    --header-height: 60px;
-    --sidebar-width: 228px;
-    --layout-gap: 18px;
-    --content-max-width: 1560px;
+    --header-height: 64px;
+    --sidebar-width: 244px;
+    --layout-gap: 32px;
+    --content-max-width: 1760px;
+    --page-x: 32px;
 
     min-height: 100vh;
     background-color: var(--bg-color);
@@ -1075,7 +1079,7 @@ onMounted(() => {
 }
 
 .page-main {
-    padding-top: calc(var(--header-height) + var(--layout-gap));
+    padding-top: calc(var(--header-height) + 24px);
     padding-bottom: 44px;
     display: flex;
     justify-content: center;
@@ -1084,7 +1088,7 @@ onMounted(() => {
 .main-inner {
     width: 100%;
     max-width: var(--content-max-width);
-    padding: 0 18px;
+    padding: 0 var(--page-x);
     display: flex;
     align-items: flex-start;
     gap: var(--layout-gap);
@@ -1106,36 +1110,45 @@ onMounted(() => {
 
 .sidebar-sticky-container {
     position: fixed;
-    left: max(18px, calc((100vw - var(--content-max-width)) / 2 + 18px));
-    top: calc(var(--header-height) + var(--layout-gap));
+    left: max(var(--page-x), calc((100vw - var(--content-max-width)) / 2 + var(--page-x)));
+    top: calc(var(--header-height) + 24px);
     width: var(--sidebar-width);
-    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 24px);
+    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 32px);
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     gap: 16px;
     overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.sidebar-nav,
+.tips-card {
+    background: transparent;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
 }
 
 .sidebar-nav {
-    background: var(--client-surface);
-    border-radius: 12px;
-    padding: 10px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
+    gap: 14px;
+    min-height: 48px;
+    padding: 0 18px;
     border: none;
     background: transparent;
     border-radius: 8px;
     color: var(--text-regular);
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     text-align: left;
     transition:
@@ -1151,7 +1164,11 @@ onMounted(() => {
 .nav-item.active {
     background: var(--client-active-bg);
     color: var(--client-active-text);
-    font-weight: 600;
+    font-weight: 700;
+}
+
+.nav-item.active .nav-icon {
+    color: var(--client-active-text);
 }
 
 .nav-icon {
@@ -1159,15 +1176,11 @@ onMounted(() => {
 }
 
 .sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: none;
 }
 
 .tips-card {
-    background: var(--client-surface);
-    border-radius: 12px;
-    padding: 20px;
+    padding: 24px;
 }
 
 .tips-title {
@@ -1256,6 +1269,7 @@ button:focus-visible {
         flex: 1;
         flex-direction: row;
         justify-content: center;
+        padding: 0;
     }
 
     .nav-item {
@@ -1271,21 +1285,18 @@ button:focus-visible {
 
 @media screen and (max-width: 768px) {
     .client-profile-page {
-        --header-height: 54px;
-        --layout-gap: 12px;
+        --header-height: 56px;
+        --layout-gap: 16px;
+        --page-x: 16px;
     }
 
     .page-main {
-        padding-top: calc(var(--header-height) + var(--layout-gap));
+        padding-top: calc(var(--header-height) + 24px);
         padding-bottom: 28px;
     }
 
     .main-inner {
-        padding: 0 12px;
-    }
-
-    .sidebar-nav {
-        padding: 8px;
+        padding: 0 var(--page-x);
     }
 
     .nav-item {

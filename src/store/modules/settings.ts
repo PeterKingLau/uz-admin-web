@@ -29,22 +29,22 @@ const useSettingsStore = defineStore('settings', {
         isDark: isDark.value
     }),
     actions: {
-        // 修改布局设置
+        
         changeSetting(data: { key: any; value: any }) {
             const { key, value } = data
             if (this.hasOwnProperty(key)) {
                 Reflect.set(this, key, value)
             }
         },
-        // 设置网页标题
+        
         setTitle(title: string) {
             this.title = title
             useDynamicTitle()
         },
-        // 切换暗黑模式
+        
         toggleTheme() {
             this.isDark = !this.isDark
-            toggleDark() // 切换暗黑模式的逻辑
+            toggleDark() 
         }
     }
 })

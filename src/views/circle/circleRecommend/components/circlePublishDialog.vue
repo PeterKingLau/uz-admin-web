@@ -172,7 +172,7 @@ const parseMediaUrls = (value: string | string[]) => {
 
 const resolveMediaUrl = (url: string) => {
     if (!url) return ''
-    if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
+    if (/^(https?:)?\/\//i.test(url) || /^(blob|data|file):/i.test(url)) return url
     if (proxy?.$imgUrl) return proxy.$imgUrl(url)
     return getImgUrl(url)
 }

@@ -1,5 +1,5 @@
 <template>
-    <div class="app-container tag-manage">
+    <div class="app-container system-crud-page tag-manage">
         <el-form v-show="showSearch" ref="queryRef" :model="queryParams" :inline="true" class="search-form">
             <el-form-item label="标签名称" prop="name">
                 <el-input v-model="queryParams.name" placeholder="请输入标签名称" clearable style="width: 240px" @keyup.enter="handleQuery">
@@ -23,34 +23,36 @@
                 </el-select>
             </el-form-item>
 
-            <el-form-item>
-                <el-button type="primary" @click="handleQuery">
-                    <Icon icon="mdi:magnify" class="mr-1" />
+            <el-form-item class="form-actions">
+                <el-button type="primary" class="action-btn" @click="handleQuery">
+                    <Icon icon="mdi:magnify" class="btn-icon" />
                     搜索
                 </el-button>
-                <el-button @click="resetQuery">
-                    <Icon icon="mdi:refresh" class="mr-1" />
+                <el-button class="action-btn" @click="resetQuery">
+                    <Icon icon="mdi:refresh" class="btn-icon" />
                     重置
                 </el-button>
             </el-form-item>
         </el-form>
 
         <div class="table-wrapper">
-            <div class="table-header">
+            <div class="table-toolbar">
                 <div class="left-tools">
-                    <el-button type="primary" plain @click="handleAdd">
-                        <Icon icon="mdi:plus" class="mr-1" />
+                    <el-button type="primary" plain class="tool-btn" @click="handleAdd">
+                        <Icon icon="mdi:plus" class="btn-icon" />
                         新增
                     </el-button>
-                    <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleDelete()">
-                        <Icon icon="mdi:trash-can-outline" class="mr-1" />
+                    <el-button type="danger" plain class="tool-btn" :disabled="!selectedIds.length" @click="handleDelete()">
+                        <Icon icon="mdi:trash-can-outline" class="btn-icon" />
                         删除
                     </el-button>
                 </div>
-                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                <div class="right-tools">
+                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+                </div>
             </div>
 
-            <el-table v-loading="loading" :data="categoryList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange">
+            <el-table v-loading="loading" :data="categoryList" header-cell-class-name="table-header-cell" @selection-change="handleSelectionChange" class="modern-table">
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column label="标签编号" prop="id" align="center" width="80" />
                 <el-table-column label="标签名称" prop="name" align="left" :show-overflow-tooltip="true">
@@ -83,14 +85,16 @@
                 </el-table-column>
                 <el-table-column label="操作" align="center" width="160" fixed="right">
                     <template #default="{ row }">
-                        <el-button link type="primary" @click="handleEdit(row)">
-                            <Icon icon="mdi:pencil-outline" class="mr-1" />
-                            修改
-                        </el-button>
-                        <el-button link type="danger" @click="handleDelete(row)">
-                            <Icon icon="mdi:trash-can-outline" class="mr-1" />
-                            删除
-                        </el-button>
+                        <div class="text-action-group">
+                            <el-button link type="primary" class="op-text-btn" @click="handleEdit(row)">
+                                <Icon icon="mdi:pencil-outline" class="btn-icon" />
+                                修改
+                            </el-button>
+                            <el-button link type="danger" class="op-text-btn" @click="handleDelete(row)">
+                                <Icon icon="mdi:trash-can-outline" class="btn-icon" />
+                                删除
+                            </el-button>
+                        </div>
                     </template>
                 </el-table-column>
             </el-table>
@@ -351,27 +355,9 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/crud-page.scss' as *;
+
 .tag-manage {
-    .table-wrapper {
-        border-radius: 6px;
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            gap: 16px;
-            flex-wrap: wrap;
-
-            .left-tools {
-                display: flex;
-                gap: 12px;
-                align-items: center;
-                flex-wrap: wrap;
-            }
-        }
-    }
-
     .time-cell {
         color: var(--el-text-color-secondary);
         font-size: 13px;

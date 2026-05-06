@@ -21,6 +21,8 @@
 
         <ProfileEmpty v-else :text="emptyText" :icon="emptyIcon" />
 
+        <div v-if="items.length" ref="loadTriggerRef" class="scroll-trigger"></div>
+
         <div v-if="items.length" class="load-more">
             <button type="button" :disabled="loadingMore || noMore" @click="$emit('load-more')">
                 <span v-if="loadingMore">正在加载...</span>
@@ -32,10 +34,11 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientProfileComponentsProfileContentGrid' })
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ClientPostCard from '@/views/client/components/ClientPostCard.vue'
 import ProfileEmpty from './ProfileEmpty.vue'
 
-defineProps<{
+const props = defineProps<{
     items: Array<Record<string, any>>
     loading: boolean
     loadingMore: boolean
@@ -44,12 +47,62 @@ defineProps<{
     emptyIcon?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
     (e: 'preview', item: Record<string, any>): void
     (e: 'load-more'): void
 }>()
 
 const getPostKey = (item: Record<string, any>) => item?.id ?? item?.postId ?? `${item?.createTime || ''}-${item?.content || ''}`
+
+const loadTriggerRef = ref<HTMLElement | null>(null)
+const loadPending = ref(false)
+let loadObserver: IntersectionObserver | null = null
+
+const triggerLoadMore = () => {
+    if (loadPending.value || props.loading || props.loadingMore || props.noMore || !props.items.length) return
+    loadPending.value = true
+    emit('load-more')
+}
+
+const handleIntersect: IntersectionObserverCallback = entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return
+    triggerLoadMore()
+}
+
+const setupObserver = () => {
+    loadObserver?.disconnect()
+    if (!loadTriggerRef.value) return
+    loadObserver = new IntersectionObserver(handleIntersect, {
+        root: null,
+        rootMargin: '260px 0px',
+        threshold: 0.01
+    })
+    loadObserver.observe(loadTriggerRef.value)
+}
+
+onMounted(() => {
+    setupObserver()
+})
+
+onBeforeUnmount(() => {
+    loadObserver?.disconnect()
+})
+
+watch(
+    () => [props.items.length, props.noMore] as const,
+    () => {
+        nextTick(setupObserver)
+    }
+)
+
+watch(
+    () => [props.loading, props.loadingMore] as const,
+    ([loading, loadingMore]) => {
+        if (loading || loadingMore) return
+        loadPending.value = false
+        nextTick(setupObserver)
+    }
+)
 </script>
 
 <style scoped lang="scss">
@@ -99,6 +152,10 @@ const getPostKey = (item: Record<string, any>) => item?.id ?? item?.postId ?? `$
     padding: 18px 0 4px;
     display: flex;
     justify-content: center;
+}
+
+.scroll-trigger {
+    height: 1px;
 }
 
 .load-more button {

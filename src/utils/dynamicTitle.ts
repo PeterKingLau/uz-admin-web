@@ -2,9 +2,9 @@ import defaultSettings from '@/settings'
 import useSettingsStore from '@/store/modules/settings'
 import { isClientRoutePath } from '@/utils/routeAccess'
 
-/**
- * 动态修改标题
- */
+
+
+
 export function useDynamicTitle() {
     const settingsStore = useSettingsStore()
     const nextTitle = String(settingsStore.title || '').trim()

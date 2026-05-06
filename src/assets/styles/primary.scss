@@ -1,14 +1,14 @@
-/**
- * 闁氨鏁ら弽宄扮础鐢啫鐪径鍕倞
- * Copyright (c) 2025 gaobang
- * Updated by Gemini: Fixed layout issues and Sass warnings
- */
+
+
+
+
+
 
 @use 'sass:color';
 
-/* ==========================================================================
-   1. Utilities
-   ========================================================================== */
+
+
+
 $spacing-sizes: 5, 8, 10, 15, 20;
 $spacing-directions: (
     't': top,
@@ -31,9 +31,9 @@ $spacing-directions: (
     margin-bottom: 8px;
 }
 
-/* ==========================================================================
-   2. 閹烘帞澧楁稉搴㈡瀮閺?(Typography)
-   ========================================================================== */
+
+
+
 h1,
 h2,
 h3,
@@ -75,18 +75,18 @@ h6,
 }
 .text-navy {
     color: var(--el-color-success);
-} // 娣囨繄鏆€閻楃懓鐣炬稉姘閼?
-/* ==========================================================================
-   3. Element Plus 缂佸嫪娆㈢憰鍡楀晸 (Global Overrides)
-   ========================================================================== */
+} 
 
-/* Form Label */
+
+
+
+
 .el-form .el-form-item__label {
     font-weight: 600;
     color: var(--el-text-color-regular);
 }
 
-/* Dialog */
+
 .el-dialog:not(.is-fullscreen) {
     margin-top: 6vh !important;
     border-radius: 8px;
@@ -100,7 +100,7 @@ h6,
     padding: 10px 20px 20px;
 }
 
-/* Table */
+
 .el-table {
     --el-table-header-bg-color: var(--el-fill-color-light);
     --el-table-header-text-color: var(--el-text-color-primary);
@@ -138,7 +138,7 @@ h6,
     height: 50px;
 }
 
-/* Pagination */
+
 .pagination-container {
     display: flex;
     justify-content: flex-end;
@@ -154,9 +154,9 @@ h6,
     }
 }
 
-/* ==========================================================================
-   4. 閹惰棄鐪介弽宄扮础 (Modern Drawer)
-   ========================================================================== */
+
+
+
 .modern-drawer {
     .el-drawer__header {
         position: relative;
@@ -240,7 +240,7 @@ h6,
 }
 
 
-/* 閸ュ墽澧栨稉濠佺炊缂佸嫪娆㈤弽宄扮础 (閸氬本鐗遍弨鎯ф躬閸忋劌鐪? */
+
 .mini-upload {
     .el-upload--picture-card {
         width: 80px;
@@ -268,7 +268,7 @@ h6,
     }
 }
 
-/* 閺夊啴妾洪弽鎴濐啇閸?*/
+
 .permission-container {
     width: 100%;
     display: flex;
@@ -298,9 +298,9 @@ h6,
     }
 }
 
-/* ==========================================================================
-   6. 閸忔湹绮紒鍕 (Misc)
-   ========================================================================== */
+
+
+
 .search-form .el-form-item {
     margin-bottom: 16px;
     margin-right: 16px;
@@ -382,7 +382,7 @@ h6,
     background: var(--el-bg-color);
 }
 
-/* 閹稿鎸虫０婊嗗閸欐﹢鍣?(娴ｈ法鏁?Map 娣囶喖顦?Sass 鐠€锕€鎲? */
+
 $cyan-color: #20b2aa;
 $cyan-hover: color.mix(#fff, $cyan-color, $weight: 15%);
 
@@ -417,7 +417,7 @@ $cyan-hover: color.mix(#fff, $cyan-color, $weight: 15%);
     float: right !important;
 }
 
-/* 缁夎濮╃粩顖炩偓鍌炲帳 */
+
 @media (max-width: 768px) {
     .pagination-container .el-pagination {
         > .el-pagination__jump,
@@ -436,6 +436,3 @@ $cyan-hover: color.mix(#fff, $cyan-color, $weight: 15%);
     background: var(--el-color-success) !important;
 }
 
-.splitpanes.default-theme .splitpanes__pane {
-    background-color: var(--el-bg-color) !important;
-}

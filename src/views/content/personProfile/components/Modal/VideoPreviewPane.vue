@@ -210,9 +210,7 @@ const releaseMediaElement = () => {
         el.pause()
         el.removeAttribute('src')
         el.load()
-    } catch {
-        // noop
-    }
+    } catch {}
     resetPlayerState()
 }
 
@@ -222,9 +220,7 @@ const exitLocalFullscreen = async () => {
     if (!fullscreenElement || !paneRef.value?.contains(fullscreenElement)) return
     try {
         await document.exitFullscreen()
-    } catch {
-        // noop
-    }
+    } catch {}
     isFullscreen.value = false
 }
 

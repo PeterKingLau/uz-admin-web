@@ -4,7 +4,7 @@ const POST_UPLOAD_CREDENTIALS_URL = '/content/postInfo/upload/credentials'
 const CREDENTIAL_REQUEST_TIMEOUT = 300000
 const OSS_UPLOAD_TIMEOUT = 30 * 60 * 1000
 const DEFAULT_OSS_CREDENTIAL_TYPE = 'posts'
-const VALID_OSS_CREDENTIAL_TYPES = ['posts', 'collections', 'circles', 'templates'] as const
+const VALID_OSS_CREDENTIAL_TYPES = ['posts', 'collections', 'circles', 'templates', 'competitions', 'competition-works'] as const
 
 type UnknownRecord = Record<string, unknown>
 
@@ -265,6 +265,41 @@ const createUuidLikeId = (): string => {
     })
 }
 
+const normalizeTimestampSeconds = (value: unknown): number => {
+    const text = toStringOrUndefined(value)
+    if (!text) return 0
+
+    const numericValue = Number(text)
+    if (Number.isFinite(numericValue) && numericValue > 0) {
+        return numericValue > 100000000000 ? Math.floor(numericValue / 1000) : Math.floor(numericValue)
+    }
+
+    const parsedTime = Date.parse(text)
+    return Number.isFinite(parsedTime) ? Math.floor(parsedTime / 1000) : 0
+}
+
+const resolveCredentialExpireSeconds = (credential: UnknownRecord): number =>
+    normalizeTimestampSeconds(credential.expireTime ?? credential.expiration ?? credential.expires ?? credential.expireAt)
+
+const resolveOssHost = (credential: UnknownRecord): string => {
+    const explicitHost = firstString(credential.host, credential.uploadHost)
+    if (explicitHost) return ensureAbsoluteUrl(explicitHost).replace(/\/+$/, '')
+
+    const rawEndpoint = firstString(credential.endpoint)!
+    const bucketName = firstString(credential.bucketName)!
+    const normalizedEndpoint = ensureAbsoluteUrl(rawEndpoint).replace(/\/+$/, '')
+
+    try {
+        const url = new URL(normalizedEndpoint)
+        if (!url.hostname.startsWith(`${bucketName}.`)) {
+            url.hostname = `${bucketName}.${url.hostname}`
+        }
+        return url.toString().replace(/\/+$/, '')
+    } catch {
+        return `https://${bucketName}.${rawEndpoint.replace(/^\/+/, '').replace(/\/+$/, '')}`
+    }
+}
+
 const collectFormFields = (credential: UnknownRecord): Record<string, string> => {
     const fields: Record<string, string> = {}
     const nestedFields = [credential.formData, credential.fields, credential.formFields, credential.params]
@@ -504,16 +539,15 @@ const uploadByStsPut = async (credential: UnknownRecord, file: File, index: numb
     const accessKeyId = firstString(credential.accessKeyId)!
     const accessKeySecret = firstString(credential.accessKeySecret)!
     const securityToken = firstString(credential.securityToken)
-    const rawEndpoint = firstString(credential.endpoint)!
     const bucketName = firstString(credential.bucketName)!
 
     const objectKey = buildStsObjectKey(credential, file, index)
-    const host = rawEndpoint.startsWith('http') ? rawEndpoint : `https://${bucketName}.${rawEndpoint}`
+    const host = resolveOssHost(credential)
     const resourceUrl = `${host.replace(/\/+$/, '')}/${objectKey}`
 
     const contentType = file.type || 'application/octet-stream'
     const nowSeconds = Math.floor(Date.now() / 1000)
-    const credentialExpireTime = Number(credential.expireTime || 0)
+    const credentialExpireTime = resolveCredentialExpireSeconds(credential)
     const maxExpires = credentialExpireTime > 0 ? credentialExpireTime - 5 : nowSeconds + 3600
     const expiresSeconds = Math.min(nowSeconds + 3600, maxExpires)
     if (expiresSeconds <= nowSeconds) {
@@ -563,7 +597,6 @@ const buildStsPostFields = async (credential: UnknownRecord, file: File, index: 
     const accessKeyId = firstString(credential.accessKeyId)!
     const accessKeySecret = firstString(credential.accessKeySecret)!
     const securityToken = firstString(credential.securityToken)
-    const rawEndpoint = firstString(credential.endpoint)!
     const bucketName = firstString(credential.bucketName)!
 
     const objectKey = buildStsObjectKey(credential, file, index)
@@ -573,8 +606,13 @@ const buildStsPostFields = async (credential: UnknownRecord, file: File, index: 
     const normalizedPrefix = filePrefix.replace(/^\/+/, '')
     const keyStartsWith = `${normalizedDir}${normalizedPrefix}`
 
-    const expireTime = Number(credential.expireTime || 0)
-    const expiration = new Date((expireTime > 0 ? expireTime : Math.floor(Date.now() / 1000) + 3600) * 1000).toISOString()
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const expireTime = resolveCredentialExpireSeconds(credential)
+    const expirationSeconds = expireTime > 0 ? expireTime - 5 : nowSeconds + 3600
+    if (expirationSeconds <= nowSeconds) {
+        throw new Error('OSS upload credential expired, please retry')
+    }
+    const expiration = new Date(expirationSeconds * 1000).toISOString()
     const maxSize = Number(credential.maxFileSize || 0)
     const policy = {
         expiration,
@@ -587,7 +625,7 @@ const buildStsPostFields = async (credential: UnknownRecord, file: File, index: 
     const policyBase64 = toBase64(JSON.stringify(policy))
     const signature = await signHmacSha1Compat(accessKeySecret, policyBase64)
 
-    const host = rawEndpoint.startsWith('http') ? rawEndpoint : `https://${bucketName}.${rawEndpoint}`
+    const host = resolveOssHost(credential)
     const fields: Record<string, string> = {
         key: objectKey,
         policy: policyBase64,
@@ -634,7 +672,9 @@ const uploadSingleFile = async (file: File, credentialRaw: unknown, index: numbe
             return await uploadByPost(postHost, file, credential, index, fields)
         } catch (postError: any) {
             const postStatus = getErrorStatus(postError)
-            const shouldTryPut = postStatus === 403 || postStatus === 405 || postError?.message === 'Network Error' || postError?.code === 'ERR_NETWORK'
+
+
+            const shouldTryPut = postStatus === 405
             if (shouldTryPut) {
                 return uploadByStsPut(credential, file, index)
             }

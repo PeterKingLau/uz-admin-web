@@ -13,14 +13,14 @@
                 </el-select>
             </el-form-item>
             <el-form-item label="创建时间" style="width: 308px">
-                <el-date-picker
+                <AppDatePicker
                     v-model="dateRange"
                     value-format="YYYY-MM-DD"
                     type="daterange"
                     range-separator="-"
                     start-placeholder="开始日期"
                     end-placeholder="结束日期"
-                ></el-date-picker>
+                ></AppDatePicker>
             </el-form-item>
             <el-form-item class="form-actions">
                 <el-button type="primary" @click="handleQuery" class="action-btn">
@@ -108,7 +108,7 @@
             </div>
         </div>
 
-        <!-- 添加或修改参数配置对话框 -->
+        
         <el-dialog :title="title" v-model="open" width="500px" append-to-body class="modern-dialog">
             <el-form ref="dictRef" :model="form" :rules="rules" label-width="80px">
                 <el-form-item label="字典名称" prop="dictName">

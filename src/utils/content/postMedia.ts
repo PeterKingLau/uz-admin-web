@@ -26,7 +26,7 @@ export const normalizeMediaUrls = (mediaUrls?: string | string[]): string[] => {
                 return parsed.map(item => String(item || '').trim()).filter(Boolean)
             }
         } catch {
-            // keep fallback split behavior
+            
         }
     }
 
@@ -168,9 +168,7 @@ export const buildVideoCoverFile = async (source: { mediaUrl?: string; file?: Fi
         video.removeAttribute('src')
         try {
             video.load()
-        } catch {
-            // noop
-        }
+        } catch {}
         if (objectUrl) {
             URL.revokeObjectURL(objectUrl)
         }

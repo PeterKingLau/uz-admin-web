@@ -26,7 +26,6 @@ const manualChunkRules: ManualChunkRule[] = [
         includes: ['/video.js/', '/@videojs/', '/videojs-vtt.js/', '/m3u8-parser/', '/url-toolkit/', '/mpd-parser/', '/@xmldom/', '/mux.js/']
     },
     { name: 'vendor-cropper', includes: ['/vue-cropper/'] },
-    { name: 'vendor-layout', includes: ['/splitpanes/'] },
     { name: 'vendor-dnd', includes: ['/sortablejs/', '/vue-draggable-plus/'] },
     { name: 'vendor-builder', includes: ['/clipboard/', '/js-beautify/'] },
     { name: 'vendor-auth', includes: ['/js-cookie/'] },

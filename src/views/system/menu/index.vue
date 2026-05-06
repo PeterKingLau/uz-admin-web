@@ -719,7 +719,7 @@ onMounted(() => {
         color: var(--el-text-color-placeholder);
     }
 
-    /* 优化字体粗细 */
+    
     .menu-name {
         font-weight: 500;
         color: var(--el-text-color-primary);
@@ -768,14 +768,14 @@ onMounted(() => {
         font-size: 13px;
     }
 
-    /* 增加表格间距 */
+    
     :deep(.el-table__row) {
         td {
             padding: 16px 0;
         }
     }
 
-    /* 拖拽样式优化 */
+    
     :deep(.drag-row) {
         transition: background-color 0.2s;
     }
@@ -793,7 +793,7 @@ onMounted(() => {
         cursor: grabbing;
     }
 
-    /* 拖拽手柄样式：默认浅色，hover加深 */
+    
     .drag-handle-wrapper {
         display: flex;
         align-items: center;

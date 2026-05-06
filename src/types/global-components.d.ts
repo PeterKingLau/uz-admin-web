@@ -4,6 +4,7 @@ export {}
 
 declare module 'vue' {
     export interface GlobalComponents extends ElementPlusIconComponents {
+        AppDatePicker: typeof import('../components/AppDatePicker/index.vue')['default']
         DictTag: typeof import('../components/DictTag/index.vue')['default']
         Icon: typeof import('../components/Icon/index.vue')['default']
         Pagination: typeof import('../components/Pagination/index.vue')['default']

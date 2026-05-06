@@ -1,22 +1,22 @@
 @use './variables.module.scss' as *;
 
-// ===============================================
-// 1. Element Plus 鎸夐挳瑕嗙洊涓庢墿灞?
-// ===============================================
 
-// 淇琛ㄦ牸涓殑灏忔寜閽牱寮?
+
+
+
+
 .fixed-width .el-button--small {
     padding-left: 0;
     padding-right: 0;
     width: inherit;
 }
 
-// 椤堕儴鍙充晶鎸夐挳
+
 .top-right-btn {
     margin-left: auto;
 }
 
-// 鑷畾涔夐潚鑹叉寜閽?(浠挎棫鐗?Element UI 椋庢牸)
+
 .el-button--cyan {
     background-color: $color-cyan;
     border-color: $color-cyan;
@@ -36,18 +36,18 @@
         color: var(--el-color-white);
     }
 
-    // 绂佺敤鐘舵€?
+    
     &.is-disabled {
         background-color: var(--el-color-primary-light-5);
         border-color: var(--el-color-primary-light-5);
     }
 }
 
-// ===============================================
-// 2. 鐗规晥鎸夐挳 (.pan-btn) 鏍稿績閫昏緫
-// ===============================================
 
-// 瀹氫箟棰滆壊鏄犲皠 Map (閿悕: 棰滆壊鍙橀噺)
+
+
+
+
 $pan-btn-colors: (
     'blue': $blue,
     'light-blue': $light-blue,
@@ -58,13 +58,13 @@ $pan-btn-colors: (
     'yellow': $yellow
 );
 
-// 娣峰悎瀹忥細鐢熸垚棰滆壊琛屼负
+
 @mixin colorBtn($color) {
     background: $color;
 
     &:hover {
         color: $color;
-        // 鎮仠鏃惰儗鏅彉鐧斤紝閫氳繃浼厓绱犲疄鐜拌竟妗嗗姩鐢?
+        
         &:before,
         &:after {
             background: $color;
@@ -72,7 +72,7 @@ $pan-btn-colors: (
     }
 }
 
-// .pan-btn 鍩虹澶栧舰
+
 .pan-btn {
     font-size: 14px;
     color: var(--el-color-white);
@@ -83,7 +83,7 @@ $pan-btn-colors: (
     transition: 600ms ease all;
     position: relative;
     display: inline-block;
-    cursor: pointer; // 琛ュ厖鎵嬪瀷
+    cursor: pointer; 
 
     &:hover {
         background: var(--el-color-white);
@@ -95,7 +95,7 @@ $pan-btn-colors: (
         }
     }
 
-    // 鍔ㄧ敾绾挎潯 (涓?鍙?
+    
     &:before,
     &:after {
         content: '';
@@ -107,7 +107,7 @@ $pan-btn-colors: (
         transition: 400ms ease all;
     }
 
-    // 鍔ㄧ敾绾挎潯 (涓?宸?
+    
     &::after {
         right: inherit;
         top: inherit;
@@ -116,16 +116,16 @@ $pan-btn-colors: (
     }
 }
 
-// 寰幆鐢熸垚鎵€鏈夐鑹茬被: .blue-btn, .red-btn ...
+
 @each $key, $color in $pan-btn-colors {
     .#{$key}-btn {
         @include colorBtn($color);
     }
 }
 
-// ===============================================
-// 3. 鍏朵粬鑷畾涔夋寜閽?
-// ===============================================
+
+
+
 
 .custom-button {
     display: inline-block;
@@ -150,13 +150,13 @@ $pan-btn-colors: (
     }
 }
 
-// ===============================================
-// 4. 鏆楅粦妯″紡閫傞厤 (Dark Mode)
-// ===============================================
+
+
+
 html.dark {
-    // 閽堝 pan-btn 鐨勭壒娈婂鐞?
-    // 鍥犱负 pan-btn hover 鏃惰儗鏅槸鐧借壊(#fff)锛屽湪鏆楅粦妯″紡涓嬩細闈炲父浜?
-    // 杩欓噷鎴戜滑绋嶅井闄嶄綆浜害锛屾垨鑰呮敼涓烘繁鐏?
+    
+    
+    
     .pan-btn:hover {
         background: var(--el-fill-color-light);
     }

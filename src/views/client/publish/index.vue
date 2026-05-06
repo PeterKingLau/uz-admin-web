@@ -42,28 +42,37 @@
                 </aside>
 
                 <section class="content-area">
-                    <div class="content-card">
-                        <ClientPostEditorPanel
-                            ref="editorRef"
-                            :form="form"
-                            :rules="rules"
-                            v-model:image-urls="imageUrls"
-                            v-model:video-urls="videoUrls"
-                            v-model:video-batch-contents="videoBatchContents"
-                            v-model:video-batch-tag-ids="videoBatchTagIds"
-                            v-model:batch-preview-index="batchPreviewIndex"
-                            v-model:selected-tag-ids="selectedTagIds"
-                            :video-batch-error-indexes="videoBatchErrorIndexes"
-                            :video-batch-tag-error-indexes="videoBatchTagErrorIndexes"
-                            :interest-tree="interestTree"
-                            :interest-loading="interestLoading"
-                            :submitting="submitting"
-                            @video-cover-change="handleVideoCoverChange"
-                            @change-post-type="handleTypeChange"
-                            @content-input="handleContentInput"
-                            @submit="handleSubmit"
-                            @reset="handleReset"
-                        />
+                    <div class="publish-workspace">
+                        <div class="publish-status-bar" aria-label="发布检查">
+                            <div v-for="item in publishStatusItems" :key="item.label" class="publish-status-item">
+                                <span>{{ item.label }}</span>
+                                <strong :class="{ ready: item.ready }">{{ item.value }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="publish-editor-shell">
+                            <ClientPostEditorPanel
+                                ref="editorRef"
+                                :form="form"
+                                :rules="rules"
+                                v-model:image-urls="imageUrls"
+                                v-model:video-urls="videoUrls"
+                                v-model:video-batch-contents="videoBatchContents"
+                                v-model:video-batch-tag-ids="videoBatchTagIds"
+                                v-model:batch-preview-index="batchPreviewIndex"
+                                v-model:selected-tag-ids="selectedTagIds"
+                                :video-batch-error-indexes="videoBatchErrorIndexes"
+                                :video-batch-tag-error-indexes="videoBatchTagErrorIndexes"
+                                :interest-tree="interestTree"
+                                :interest-loading="interestLoading"
+                                :submitting="submitting"
+                                @video-cover-change="handleVideoCoverChange"
+                                @change-post-type="handleTypeChange"
+                                @content-input="handleContentInput"
+                                @submit="handleSubmit"
+                                @reset="handleReset"
+                            />
+                        </div>
                     </div>
                 </section>
             </div>
@@ -151,6 +160,37 @@ const currentMediaUrls = computed(() => {
     if (form.postType === POST_TYPE.IMAGE) return imageMediaUrls.value
     if (form.postType === POST_TYPE.VIDEO) return videoMediaUrls.value
     return []
+})
+const currentPostTypeText = computed(() => {
+    if (form.postType === POST_TYPE.IMAGE) return '图文内容'
+    if (form.postType === POST_TYPE.VIDEO) return isBatchVideoMode.value ? '批量视频' : '视频内容'
+    return '文字内容'
+})
+const contentLength = computed(() => String(form.content || '').trim().length)
+const batchContentDoneCount = computed(() => videoBatchContents.value.filter(item => String(item || '').trim()).length)
+const batchTopicDoneCount = computed(() => videoBatchTagIds.value.filter(ids => Array.isArray(ids) && ids.length > 0).length)
+const topicCount = computed(() => (isBatchVideoMode.value ? batchTopicDoneCount.value : selectedTagIds.value.length))
+const publishStatusItems = computed(() => {
+    const mediaCount = currentMediaUrls.value.length
+    const batchTotal = videoMediaUrls.value.length
+    const contentValue = isBatchVideoMode.value
+        ? `${batchContentDoneCount.value}/${batchTotal || 0}`
+        : contentLength.value
+          ? `${contentLength.value} 字`
+          : '未填写'
+    const mediaValue = form.postType === POST_TYPE.TEXT ? '无需素材' : mediaCount ? `${mediaCount} 个` : '未上传'
+    const topicValue = isBatchVideoMode.value ? `${batchTopicDoneCount.value}/${batchTotal || 0}` : topicCount.value ? `${topicCount.value} 个` : '未选择'
+
+    return [
+        { label: '类型', value: currentPostTypeText.value, ready: true },
+        {
+            label: '正文',
+            value: contentValue,
+            ready: isBatchVideoMode.value ? batchTotal > 0 && batchContentDoneCount.value === batchTotal : contentLength.value > 0
+        },
+        { label: '素材', value: mediaValue, ready: form.postType === POST_TYPE.TEXT || mediaCount > 0 },
+        { label: '话题', value: topicValue, ready: topicCount.value > 0 }
+    ]
 })
 
 const getBaseName = (name: string) => name.replace(/\.[^/.]+$/, '').trim()
@@ -591,10 +631,11 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .client-publish-page {
-    --header-height: 60px;
-    --sidebar-width: 280px;
-    --layout-gap: 20px;
-    --content-max-width: 1280px;
+    --header-height: 64px;
+    --sidebar-width: 244px;
+    --layout-gap: 32px;
+    --content-max-width: 1760px;
+    --page-x: 32px;
 
     min-height: 100vh;
     background-color: var(--bg-color);
@@ -611,7 +652,7 @@ onBeforeUnmount(() => {
 }
 
 .page-main {
-    padding-top: calc(var(--header-height) + var(--layout-gap));
+    padding-top: calc(var(--header-height) + 24px);
     padding-bottom: 40px;
     display: flex;
     justify-content: center;
@@ -620,7 +661,7 @@ onBeforeUnmount(() => {
 .main-inner {
     width: 100%;
     max-width: var(--content-max-width);
-    padding: 0 24px;
+    padding: 0 var(--page-x);
     display: flex;
     align-items: flex-start;
     gap: var(--layout-gap);
@@ -642,36 +683,45 @@ onBeforeUnmount(() => {
 
 .sidebar-sticky-container {
     position: fixed;
-    left: max(18px, calc((100vw - var(--content-max-width)) / 2 + 18px));
-    top: calc(var(--header-height) + var(--layout-gap));
+    left: max(var(--page-x), calc((100vw - var(--content-max-width)) / 2 + var(--page-x)));
+    top: calc(var(--header-height) + 24px);
     width: var(--sidebar-width);
-    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 24px);
+    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 32px);
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     gap: 16px;
     overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.sidebar-nav,
+.tips-card {
+    background: transparent;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
 }
 
 .sidebar-nav {
-    background: var(--client-surface);
-    border-radius: 12px;
-    padding: 12px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 14px;
+    min-height: 48px;
+    padding: 0 18px;
     border: none;
     background: transparent;
     border-radius: 8px;
     color: var(--text-regular);
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     text-align: left;
     transition:
@@ -687,7 +737,11 @@ onBeforeUnmount(() => {
 .nav-item.active {
     background: var(--client-active-bg);
     color: var(--client-active-text);
-    font-weight: 600;
+    font-weight: 700;
+}
+
+.nav-item.active .nav-icon {
+    color: var(--client-active-text);
 }
 
 .nav-icon {
@@ -695,15 +749,11 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: none;
 }
 
 .tips-card {
-    background: var(--client-surface);
-    border-radius: 12px;
-    padding: 20px;
+    padding: 24px;
 }
 
 .tips-title {
@@ -752,13 +802,56 @@ onBeforeUnmount(() => {
     min-width: 0;
 }
 
-.content-card {
-    background: var(--client-surface);
-    border-radius: 12px;
-    min-height: calc(100vh - var(--header-height) - var(--layout-gap) - 40px);
-    padding: 24px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--client-shadow-soft);
+.publish-workspace {
+    flex-direction: column;
+    display: flex;
+    gap: 18px;
+    max-width: 1120px;
+}
+
+.publish-status-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    border-bottom: 1px solid var(--client-border-soft);
+}
+
+.publish-status-item {
+    min-width: 0;
+    padding: 0 18px 16px;
+    border-left: 1px solid var(--client-border-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.publish-status-item:first-child {
+    padding-left: 0;
+    border-left: 0;
+}
+
+.publish-status-item span {
+    color: var(--text-minor);
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.publish-status-item strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-regular);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.publish-status-item strong.ready {
+    color: var(--client-active-text);
+}
+
+.publish-editor-shell {
+    min-height: calc(100vh - var(--header-height) - 110px);
 }
 
 @media screen and (max-width: 1024px) {
@@ -785,6 +878,7 @@ onBeforeUnmount(() => {
         flex: 1;
         flex-direction: row;
         justify-content: center;
+        padding: 0;
     }
 
     .nav-item {
@@ -796,23 +890,20 @@ onBeforeUnmount(() => {
         display: none;
     }
 
-    .content-card {
+    .publish-editor-shell {
         min-height: auto;
     }
 }
 
 @media screen and (max-width: 768px) {
     .client-publish-page {
-        --layout-gap: 12px;
-        --header-height: 54px;
+        --layout-gap: 16px;
+        --header-height: 56px;
+        --page-x: 16px;
     }
 
     .main-inner {
-        padding: 0 12px;
-    }
-
-    .sidebar-nav {
-        padding: 8px;
+        padding: 0 var(--page-x);
     }
 
     .nav-item {
@@ -820,9 +911,18 @@ onBeforeUnmount(() => {
         font-size: 15px;
     }
 
-    .content-card {
-        padding: 16px;
-        border-radius: 8px;
+    .publish-status-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 14px;
+    }
+
+    .publish-status-item {
+        padding: 0 12px 12px;
+    }
+
+    .publish-status-item:nth-child(odd) {
+        padding-left: 0;
+        border-left: 0;
     }
 }
 </style>

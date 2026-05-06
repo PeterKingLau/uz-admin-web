@@ -88,7 +88,7 @@
             </div>
         </div>
 
-        <!-- 添加或修改公告对话框 -->
+        
         <el-dialog :title="title" v-model="open" width="780px" append-to-body destroy-on-close class="modern-dialog">
             <el-form ref="noticeRef" :model="form" :rules="rules" label-width="80px">
                 <el-row>
@@ -165,7 +165,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询公告列表 */
+
 function getList() {
     loading.value = true
     listNotice(queryParams.value).then(response => {
@@ -175,13 +175,13 @@ function getList() {
     })
 }
 
-/** 取消按钮 */
+
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 表单重置 */
+
 function reset() {
     form.value = {
         noticeId: undefined,
@@ -193,33 +193,33 @@ function reset() {
     proxy.resetForm('noticeRef')
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-/** 多选框选中数据 */
+
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.noticeId)
     single.value = selection.length != 1
     multiple.value = !selection.length
 }
 
-/** 新增按钮操作 */
+
 function handleAdd() {
     reset()
     open.value = true
     title.value = '添加公告'
 }
 
-/**修改按钮操作 */
+
 function handleUpdate(row) {
     reset()
     const noticeId = row.noticeId || ids.value
@@ -230,7 +230,7 @@ function handleUpdate(row) {
     })
 }
 
-/** 提交按钮 */
+
 function submitForm() {
     proxy.$refs['noticeRef'].validate(valid => {
         if (valid) {
@@ -251,7 +251,7 @@ function submitForm() {
     })
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
     const noticeIds = row.noticeId || ids.value
     proxy.$modal

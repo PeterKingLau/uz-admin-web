@@ -185,6 +185,7 @@ let loadObserver: IntersectionObserver | null = null
 let resizeHandler: (() => void) | null = null
 let scrollHandler: (() => void) | null = null
 let recommendLoadTimer: ReturnType<typeof setTimeout> | null = null
+let recommendEmptyRetryTimer: ReturnType<typeof setTimeout> | null = null
 let lastRecommendLoadAt = 0
 let lastRecommendEmptyAt = 0
 let feedRequestId = 0
@@ -601,10 +602,37 @@ const clearRecommendLoadTimer = () => {
     recommendLoadTimer = null
 }
 
+const clearRecommendEmptyRetryTimer = () => {
+    if (!recommendEmptyRetryTimer) return
+    clearTimeout(recommendEmptyRetryTimer)
+    recommendEmptyRetryTimer = null
+}
+
+const resetRecommendCursor = () => {
+    query.value.lastId = undefined
+    query.value.lastCreateTime = undefined
+}
+
+const getRecommendEmptyCooldownRemaining = () => {
+    if (!lastRecommendEmptyAt) return 0
+    return Math.max(0, RECOMMEND_EMPTY_COOLDOWN_MS - (Date.now() - lastRecommendEmptyAt))
+}
+
+const scheduleRecommendEmptyRetry = (requestId: number) => {
+    clearRecommendEmptyRetryTimer()
+    const remaining = getRecommendEmptyCooldownRemaining()
+    if (!remaining) return
+    recommendEmptyRetryTimer = setTimeout(() => {
+        recommendEmptyRetryTimer = null
+        if (!isLatestFeedRequest(requestId) || !isRecommendMode.value || loading.value || loadingMore.value || finished.value) return
+        ensureLoadMoreIfNeeded()
+    }, remaining + 40)
+}
+
 const shouldTriggerLoadMoreByScroll = () => {
     const container = discoverPageRef.value
     if (!container || loading.value || loadingMore.value || finished.value) return false
-    if (isRecommendMode.value && lastRecommendEmptyAt && Date.now() - lastRecommendEmptyAt < RECOMMEND_EMPTY_COOLDOWN_MS) return false
+    if (isRecommendMode.value && getRecommendEmptyCooldownRemaining() > 0) return false
     return container.scrollTop + container.clientHeight >= container.scrollHeight - LOAD_MORE_SCROLL_THRESHOLD
 }
 
@@ -615,7 +643,10 @@ const triggerLoadMore = () => {
         return
     }
     if (loading.value || loadingMore.value) return
-    if (lastRecommendEmptyAt && Date.now() - lastRecommendEmptyAt < RECOMMEND_EMPTY_COOLDOWN_MS) return
+    if (getRecommendEmptyCooldownRemaining() > 0) {
+        scheduleRecommendEmptyRetry(getActiveFeedRequestId())
+        return
+    }
 
     const elapsed = Date.now() - lastRecommendLoadAt
     if (elapsed >= RECOMMEND_LOAD_THROTTLE_MS) {
@@ -729,6 +760,7 @@ const resetAndFetch = (keepVisible = true) => {
     query.value.lastId = undefined
     query.value.lastCreateTime = undefined
     clearRecommendLoadTimer()
+    clearRecommendEmptyRetryTimer()
     lastRecommendLoadAt = 0
     lastRecommendEmptyAt = 0
     resetTagFeedCursors()
@@ -811,10 +843,13 @@ const fetchRecommendFeedPage = async (isLoadMore: boolean, requestId: number, si
         if (!rows.length) {
             if (isLoadMore || posts.value.length) {
                 lastRecommendEmptyAt = Date.now()
+                resetRecommendCursor()
+                scheduleRecommendEmptyRetry(requestId)
             }
             break
         }
         lastRecommendEmptyAt = 0
+        clearRecommendEmptyRetryTimer()
         receivedRows = true
 
         const filtered = rows.filter(item => {
@@ -833,6 +868,11 @@ const fetchRecommendFeedPage = async (isLoadMore: boolean, requestId: number, si
     if (!isLatestFeedRequest(requestId)) return
     const pageRows = next.slice(0, limit)
     posts.value = isLoadMore ? posts.value.concat(pageRows) : pageRows
+    if (isLoadMore && !pageRows.length) {
+        lastRecommendEmptyAt = Date.now()
+        resetRecommendCursor()
+        scheduleRecommendEmptyRetry(requestId)
+    }
     finished.value = !isLoadMore && !receivedRows && pageRows.length === 0
 }
 
@@ -973,6 +1013,7 @@ onBeforeUnmount(() => {
     }
     unbindScrollListener()
     clearRecommendLoadTimer()
+    clearRecommendEmptyRetryTimer()
     if (loadObserver) {
         loadObserver.disconnect()
         loadObserver = null
@@ -984,13 +1025,14 @@ onBeforeUnmount(() => {
 
 <style lang="scss">
 .discover-page {
-    --header-height: 60px;
-    --sidebar-width: 228px;
-    --layout-gap: 18px;
-    --content-max-width: 1560px;
+    --header-height: 64px;
+    --sidebar-width: 244px;
+    --layout-gap: 32px;
+    --content-max-width: 1760px;
+    --page-x: 32px;
 
     height: 100svh;
-    background-color: var(--bg-color);
+    background-color: var(--client-surface);
     font-family:
         'PingFang SC',
         -apple-system,
@@ -1021,7 +1063,7 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .page-main {
-    padding-top: calc(var(--header-height) + var(--layout-gap));
+    padding-top: calc(var(--header-height) + 24px);
     padding-bottom: 40px;
     display: flex;
     justify-content: center;
@@ -1030,7 +1072,7 @@ onBeforeUnmount(() => {
 .main-inner {
     width: 100%;
     max-width: var(--content-max-width);
-    padding: 0 18px;
+    padding: 0 var(--page-x);
     display: flex;
     align-items: flex-start;
     gap: var(--layout-gap);
@@ -1043,50 +1085,53 @@ onBeforeUnmount(() => {
     padding: 0;
     margin-bottom: 0;
     border: 0;
-    border-left: 0;
-    border-radius: 0;
     line-height: normal;
-    font-size: inherit;
-    color: inherit;
 }
 
 .sidebar-sticky-container {
     position: fixed;
-    left: max(18px, calc((100vw - var(--content-max-width)) / 2 + 18px));
-    top: calc(var(--header-height) + var(--layout-gap));
+    left: max(var(--page-x), calc((100vw - var(--content-max-width)) / 2 + var(--page-x)));
+    top: calc(var(--header-height) + 24px);
     width: var(--sidebar-width);
-    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 24px);
+    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 32px);
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     gap: 16px;
     overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.sidebar-nav,
+.tips-card {
+    background: transparent;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
 }
 
 .sidebar-nav {
-    background: var(--client-surface);
-    border-radius: 12px;
-    padding: 10px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
+    gap: 14px;
+    min-height: 48px;
+    padding: 0 18px;
     border: none;
     background: transparent;
     border-radius: 8px;
     color: var(--text-regular);
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     text-align: left;
-    transition:
-        background-color var(--app-motion-fast),
-        color var(--app-motion-fast);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .nav-item:hover {
@@ -1097,7 +1142,12 @@ onBeforeUnmount(() => {
 .nav-item.active {
     background: var(--client-active-bg);
     color: var(--client-active-text);
-    font-weight: 600;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+.nav-item.active .nav-icon {
+    color: var(--client-active-text);
 }
 
 .nav-icon {
@@ -1105,19 +1155,15 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: none;
 }
 
 .tips-card {
-    background: var(--client-surface);
-    border-radius: 12px;
-    padding: 20px;
+    padding: 24px;
 }
 
 .tips-title {
-    margin: 0 0 16px 0;
+    margin: 0 0 20px 0;
     font-size: 15px;
     font-weight: 600;
     color: var(--text-main);
@@ -1129,7 +1175,7 @@ onBeforeUnmount(() => {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
 }
 
 .tips-list li {
@@ -1142,9 +1188,9 @@ onBeforeUnmount(() => {
 }
 
 .icon-wrapper {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     background: var(--bg-color);
     display: flex;
     align-items: center;
@@ -1153,36 +1199,29 @@ onBeforeUnmount(() => {
 }
 
 .icon-wrapper svg {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-minor);
 }
 
 .content-area {
     flex: 1;
     min-width: 0;
-    padding-top: 62px;
+    padding-top: 0;
 }
 
 .tab-panel {
-    position: fixed;
-    top: var(--header-height);
-    left: calc(max(18px, calc((100vw - var(--content-max-width)) / 2 + 18px)) + var(--sidebar-width) + var(--layout-gap));
-    right: max(18px, calc((100vw - var(--content-max-width)) / 2 + 18px));
-    z-index: 20;
-    background: color-mix(in srgb, var(--client-surface) 94%, transparent);
-    border-radius: 0;
-    padding: 0;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    z-index: 1;
+    background: var(--client-surface);
+    margin-bottom: 18px;
 }
 
 .tab-row {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 12px;
     overflow-x: auto;
-    padding: 16px 0 14px;
-    border-bottom: 1px solid var(--client-border-soft);
+    padding: 0;
     scrollbar-width: none;
 }
 
@@ -1195,29 +1234,14 @@ onBeforeUnmount(() => {
     flex: 0 0 auto;
     border: 0;
     background: transparent;
-    border-radius: 0;
-    padding: 4px 0;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: 8px;
     color: var(--text-regular);
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.tab-item::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -6px;
-    height: 3px;
-    border-radius: 999px;
-    background: var(--primary-color);
-    opacity: 0;
-    transform: scaleX(0.5);
-    transition:
-        opacity 0.2s ease,
-        transform 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .tab-item:hover {
@@ -1225,13 +1249,8 @@ onBeforeUnmount(() => {
 }
 
 .tab-item.active {
-    color: var(--primary-color);
+    color: var(--client-active-text);
     font-weight: 700;
-}
-
-.tab-item.active::after {
-    opacity: 1;
-    transform: scaleX(1);
 }
 
 button:focus,
@@ -1243,39 +1262,37 @@ button:focus-visible {
 .feed-wrap {
     flex: 1;
     min-height: 240px;
-    scroll-margin-top: calc(var(--header-height) + 58px);
+    scroll-margin-top: calc(var(--header-height) + 24px);
 }
 
 .masonry-grid {
     --masonry-columns: 5;
     display: grid;
     grid-template-columns: repeat(var(--masonry-columns), minmax(0, 1fr));
-    column-gap: 16px;
+    column-gap: 28px;
 }
 
 .masonry-column {
     display: flex;
     flex-direction: column;
-    row-gap: 16px;
+    row-gap: 26px;
 }
 
 .post-card {
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--client-border-soft);
     background: var(--client-surface);
     cursor: pointer;
-    box-shadow: var(--client-shadow-soft);
+    box-shadow: none;
     transition:
-        border-color var(--app-motion-normal),
-        box-shadow var(--app-motion-normal),
-        background-color var(--app-motion-normal);
+        transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 0.3s ease;
 }
 
 .post-card:hover {
     border-color: var(--app-hover-border-soft);
-    box-shadow: var(--app-hover-shadow-card);
-    background: var(--client-card-hover);
+    box-shadow: var(--client-shadow-soft);
 }
 
 .cover-wrap {
@@ -1283,17 +1300,16 @@ button:focus-visible {
     aspect-ratio: 3 / 4;
     background: var(--client-fill);
     overflow: hidden;
-    border-bottom: 1px solid var(--client-border-soft);
 }
 
 .cover-wrap::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--client-media-mask);
+    background: color-mix(in srgb, var(--text-main) 5%, transparent);
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--app-motion-normal);
+    transition: opacity 0.3s ease;
 }
 
 .post-card:hover .cover-wrap::after {
@@ -1304,8 +1320,6 @@ button:focus-visible {
     width: 100%;
     height: 100%;
     display: block;
-    min-height: 0;
-    max-height: none;
 }
 
 .cover-image :deep(img) {
@@ -1320,14 +1334,14 @@ button:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--client-empty-text);
-    background: var(--client-empty-gradient);
+    color: var(--text-minor);
+    background: var(--client-fill);
 }
 
 .text-cover {
     width: 100%;
     height: 100%;
-    padding: 18px;
+    padding: 24px;
     display: flex;
     align-items: center;
     background-size: cover;
@@ -1338,27 +1352,27 @@ button:focus-visible {
     font-size: 18px;
     font-weight: 700;
     line-height: 1.6;
-    color: var(--client-on-overlay);
-    text-shadow: var(--client-text-shadow);
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     display: -webkit-box;
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
 .video-badge {
     position: absolute;
-    right: 8px;
-    top: 8px;
-    width: 24px;
-    height: 24px;
+    right: 12px;
+    top: 12px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
-    color: var(--client-on-overlay);
-    background: var(--client-overlay);
+    border-radius: 8px;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .card-content {
@@ -1369,7 +1383,8 @@ button:focus-visible {
 .content-text {
     margin: 0;
     font-size: 15px;
-    line-height: 1.55;
+    line-height: 1.5;
+    font-weight: 500;
     color: var(--text-main);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -1379,11 +1394,11 @@ button:focus-visible {
 }
 
 .user-row {
-    margin-top: 14px;
+    margin-top: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
 }
 
 .user-core {
@@ -1399,7 +1414,7 @@ button:focus-visible {
     white-space: nowrap;
     font-size: 13px;
     color: var(--text-regular);
-    max-width: 120px;
+    max-width: 110px;
 }
 
 .meta {
@@ -1415,18 +1430,18 @@ button:focus-visible {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 34px;
-    padding: 12px 0 18px;
+    min-height: 40px;
+    padding: 24px 0 32px;
     color: var(--text-minor);
     font-size: 13px;
 }
 
 .load-more-status {
-    min-height: 18px;
-    line-height: 18px;
+    min-height: 20px;
+    line-height: 20px;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.18s ease;
+    transition: opacity 0.3s ease;
 }
 
 .load-more-status.visible {
@@ -1463,6 +1478,8 @@ button:focus-visible {
         flex: 1;
         flex-direction: row;
         justify-content: center;
+        border-radius: 0;
+        padding: 0;
     }
 
     .nav-item {
@@ -1471,51 +1488,46 @@ button:focus-visible {
         text-align: center;
     }
 
+    .nav-item:hover {
+        background: var(--bg-color);
+    }
+
     .sidebar-footer {
         display: none;
     }
 
     .content-area {
-        padding-top: 62px;
+        padding-top: 0;
     }
 
     .tab-panel {
-        left: 18px;
-        right: 18px;
+        margin-bottom: 16px;
     }
 }
 
 @media screen and (max-width: 768px) {
     .discover-page {
-        --layout-gap: 12px;
-        --header-height: 54px;
+        --layout-gap: 16px;
+        --header-height: 56px;
+        --page-x: 16px;
     }
 
     .main-inner {
-        padding: 0 12px;
-    }
-
-    .sidebar-nav {
-        padding: 8px;
-    }
-
-    .nav-item {
-        padding: 10px;
-        font-size: 15px;
+        padding: 0 var(--page-x);
     }
 
     .tab-panel {
-        left: 12px;
-        right: 12px;
+        left: 16px;
+        right: 16px;
         padding: 0;
     }
 
     .masonry-grid {
-        column-gap: 14px;
+        column-gap: 16px;
     }
 
     .masonry-column {
-        row-gap: 14px;
+        row-gap: 16px;
     }
 }
 </style>

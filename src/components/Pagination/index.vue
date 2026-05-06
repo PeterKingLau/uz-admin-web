@@ -102,7 +102,8 @@ function handleCurrentChange(val) {
 <style scoped lang="scss">
 .pagination-container {
     background: transparent;
-    padding: 16px 0;
+    margin-top: 0;
+    padding: 12px 0;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -113,38 +114,48 @@ function handleCurrentChange(val) {
     }
 
     .modern-pagination {
+        --pagination-item-size: 32px;
+
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
 
         :deep(.el-pagination__total) {
             font-size: 13px;
             color: var(--el-text-color-secondary);
             font-weight: 500;
-            margin-right: 8px;
+            margin-right: 4px;
         }
 
         :deep(.el-pagination__jump) {
             font-size: 13px;
             color: var(--el-text-color-regular);
             font-weight: 500;
-            margin-left: 8px;
+            margin-left: 4px;
+        }
+
+        :deep(.el-pager) {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0 2px;
         }
 
         :deep(button),
         :deep(.el-pager li) {
-            background-color: var(--el-fill-color-light) !important;
-            border-radius: 8px;
-            min-width: 32px;
-            height: 32px;
-            line-height: 32px;
+            background-color: transparent !important;
+            border-radius: 10px;
+            min-width: var(--pagination-item-size);
+            height: var(--pagination-item-size);
+            line-height: var(--pagination-item-size);
             font-weight: 500;
             color: var(--el-text-color-regular);
             transition:
                 background-color var(--app-motion-fast),
                 border-color var(--app-motion-fast),
-                color var(--app-motion-fast);
+                color var(--app-motion-fast),
+                box-shadow var(--app-motion-fast);
             border: 1px solid transparent;
             margin: 0 !important;
 
@@ -163,7 +174,8 @@ function handleCurrentChange(val) {
         :deep(.el-pager li.is-active) {
             background-color: var(--el-color-primary) !important;
             color: var(--el-color-white);
-            box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+            border-color: var(--el-color-primary);
+            box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.24);
             font-weight: 600;
 
             &:hover {
@@ -173,11 +185,11 @@ function handleCurrentChange(val) {
 
         :deep(.el-pagination__sizes .el-select__wrapper),
         :deep(.el-pagination__editor.el-input .el-input__wrapper) {
-            border-radius: 8px;
-            box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
+            border-radius: 10px;
+            box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
             background-color: var(--el-fill-color-blank);
-            height: 32px;
-            min-height: 32px;
+            height: var(--pagination-item-size);
+            min-height: var(--pagination-item-size);
             transition: box-shadow var(--app-motion-fast);
 
             &:hover {
@@ -192,12 +204,16 @@ function handleCurrentChange(val) {
         }
 
         :deep(.el-pagination__editor.el-input) {
-            width: 48px;
+            width: 52px;
             margin: 0 6px;
         }
 
         :deep(.el-select__wrapper) {
-            padding: 0 8px 0 12px;
+            padding: 0 10px 0 12px;
+        }
+
+        :deep(.el-select) {
+            width: 128px;
         }
     }
 
@@ -217,6 +233,11 @@ function handleCurrentChange(val) {
                 margin-right: 0;
             }
 
+            :deep(.el-pager) {
+                gap: 4px;
+                margin: 0;
+            }
+
             :deep(.el-pagination__total),
             :deep(.el-pagination__jump) {
                 display: none;
@@ -227,42 +248,47 @@ function handleCurrentChange(val) {
 
 :global(html.dark) .pagination-container {
     .modern-pagination {
+        :deep(.el-pagination__total),
+        :deep(.el-pagination__jump) {
+            color: var(--el-text-color-secondary);
+        }
+
         :deep(button),
         :deep(.el-pager li) {
-            background-color: var(--el-fill-color-dark) !important;
             color: var(--el-text-color-regular);
+            background-color: transparent !important;
 
             &:hover:not(.is-disabled) {
                 color: var(--el-color-primary-light-3);
-                background-color: var(--el-color-primary-dark-2) !important;
+                background-color: color-mix(in srgb, var(--el-color-primary) 16%, transparent) !important;
             }
 
             &.is-disabled {
                 background-color: transparent !important;
-                color: var(--el-text-color-placeholder);
+                color: color-mix(in srgb, var(--el-text-color-placeholder) 70%, transparent);
             }
         }
 
         :deep(.el-pager li.is-active) {
             background-color: var(--el-color-primary) !important;
             color: var(--el-color-white);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(64, 158, 255, 0.24);
+            border-color: var(--el-color-primary);
         }
 
         :deep(.el-pagination__sizes .el-select__wrapper),
         :deep(.el-pagination__editor.el-input .el-input__wrapper) {
-            background-color: var(--el-fill-color-dark);
-            box-shadow: 0 0 0 1px var(--el-border-color-darker) inset;
+            background-color: color-mix(in srgb, var(--el-bg-color-overlay) 86%, var(--el-fill-color-dark));
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-border-color-darker) 82%, transparent) inset;
 
             &:hover {
                 background-color: var(--el-fill-color-darker);
-                box-shadow: 0 0 0 1px var(--el-border-color-dark) inset;
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-border-color-dark) 88%, transparent) inset;
             }
 
             &.is-focus,
             &.is-focused {
-                background-color: var(--el-bg-color);
+                background-color: var(--el-bg-color-overlay);
                 box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
             }
         }

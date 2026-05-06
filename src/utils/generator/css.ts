@@ -1,12 +1,12 @@
-// 定义表单节点结构
+
 export interface FormItemNode {
     tag: string
     children?: FormItemNode[]
-    // props?: Record<string, any>
-    // model?: string
+    
+    
 }
 
-// makeUpCss 入参结构
+
 export interface MakeUpCssConf {
     fields: FormItemNode[]
 }

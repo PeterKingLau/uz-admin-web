@@ -11,7 +11,7 @@ export const resolveMediaUrl = (url: unknown, resolver?: (raw: string) => string
     const raw = toTrimmedString(url)
     if (!raw) return ''
     if (resolver) return resolver(raw)
-    if (/^https?:\/\//i.test(raw)) return raw
+    if (/^https?:\/\//i.test(raw) || raw.startsWith('//') || /^(blob|data|file):/i.test(raw)) return raw.startsWith('//') ? `${window.location.protocol}${raw}` : raw
     return getImgUrl(raw)
 }
 

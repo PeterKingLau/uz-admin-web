@@ -82,7 +82,7 @@ const queryParams = reactive({
     phonenumber: undefined
 })
 
-/** 查询授权用户列表 */
+
 function getList() {
     loading.value = true
     allocatedUserList(queryParams).then(response => {
@@ -92,36 +92,36 @@ function getList() {
     })
 }
 
-/** 返回按钮 */
+
 function handleClose() {
     const obj = { path: '/system/role' }
     proxy.$tab.closeOpenPage(obj)
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-/** 多选框选中数据 */
+
 function handleSelectionChange(selection) {
     userIds.value = selection.map(item => item.userId)
     multiple.value = !selection.length
 }
 
-/** 打开授权用户表弹窗 */
+
 function openSelectUser() {
     proxy.$refs['selectRef'].show()
 }
 
-/** 取消授权按钮操作 */
+
 function cancelAuthUser(row) {
     proxy.$modal
         .confirm('确认要取消该用户"' + row.userName + '"角色吗？')
@@ -135,7 +135,7 @@ function cancelAuthUser(row) {
         .catch(() => {})
 }
 
-/** 批量取消授权按钮操作 */
+
 function cancelAuthUserAll(row) {
     const roleId = queryParams.roleId
     const uIds = userIds.value.join(',')

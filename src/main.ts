@@ -5,31 +5,32 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
-import '@/assets/styles/index.scss' // global css
+import '@/assets/styles/index.scss' 
 
 import App from './App.vue'
 import store from './store'
 import router from './router'
-import directive from './directive' // directive
+import directive from './directive' 
 
-// 注册指令
-import plugins from './plugins' // plugins
+
+import plugins from './plugins' 
 import { download } from '@/utils/request'
 
-// svg图标
-// import 'virtual:svg-icons-register'
-// import SvgIcon from '@/components/SvgIcon/index.vue'
+
+
+
 import elementIcons from '@/components/SvgIcon/svgicon'
 
-import './permission' // permission control
+import './permission' 
 
 import { useDict } from '@/utils/dict'
 import { parseTime, resetForm, addDateRange, handleTree } from '@/utils/utils'
 
-// 分页组件
+
 import Pagination from '@/components/Pagination/index.vue'
 import RightToolbar from '@/components/RightToolbar/index.vue'
 import DictTag from '@/components/DictTag/index.vue'
+import AppDatePicker from '@/components/AppDatePicker/index.vue'
 
 import AppIcon from '@/components/Icon/index.vue'
 
@@ -103,6 +104,7 @@ app.config.globalProperties.addDateRange = addDateRange
 app.component('DictTag', DictTag)
 app.component('Pagination', Pagination)
 app.component('RightToolbar', RightToolbar)
+app.component('AppDatePicker', AppDatePicker)
 
 store.use(piniaPluginPersistedstate)
 
@@ -111,7 +113,7 @@ app.use(store)
 app.use(plugins)
 app.use(elementIcons)
 app.config.globalProperties.onVnodeBeforeMountRef_ = onVnodeBeforeMountRef_
-// app.component('svg-icon', SvgIcon)
+
 app.component('Icon', AppIcon)
 
 directive(app)

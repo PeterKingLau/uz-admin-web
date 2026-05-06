@@ -1,7 +1,7 @@
-/**
- * v-copyText 复制文本内容
- * Copyright (c) 2025 GaoBang
- */
+
+
+
+
 
 export default {
     beforeMount(el: any, { value, arg }: { value: any; arg: any }) {
@@ -27,13 +27,13 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
 
     element.value = input
 
-    // Prevent keyboard from showing on mobile
+    
     element.setAttribute('readonly', '')
 
     element.style.contain = 'strict'
     element.style.position = 'absolute'
     element.style.left = '-9999px'
-    element.style.fontSize = '12pt' // Prevent zooming on iOS
+    element.style.fontSize = '12pt' 
 
     const selection = document.getSelection()
     const originalRange = selection?.rangeCount && selection.rangeCount > 0 && selection.getRangeAt(0)
@@ -41,7 +41,7 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
     target.append(element)
     element.select()
 
-    // Explicit selection workaround for iOS
+    
     element.selectionStart = 0
     element.selectionEnd = input.length
 
@@ -57,7 +57,7 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
         selection.addRange(originalRange)
     }
 
-    // Get the focus back on the previously focused element, if any
+    
     if (previouslyFocusedElement) {
         ;(previouslyFocusedElement as any).focus()
     }

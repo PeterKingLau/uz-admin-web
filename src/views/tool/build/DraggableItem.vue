@@ -4,7 +4,7 @@
     :class="className"
     @click.stop="activeItem(element)"
   >
-    <!-- 普通表单项 -->
+    
     <el-form-item
       v-if="element.layout === 'colFormItem'"
       :label="element.label"
@@ -18,7 +18,7 @@
       />
     </el-form-item>
 
-    <!-- 行布局（里面还能拖子组件） -->
+    
     <el-row
       v-else
       :gutter="element.gutter"
@@ -53,24 +53,20 @@
       </VueDraggable>
     </el-row>
 
-    <!-- 右上角复制 / 删除按钮 -->
+    
     <span
       class="drawing-item-copy"
       title="复制"
       @click.stop="copyItem(element)"
     >
-      <el-icon>
-        <CopyDocument />
-      </el-icon>
+      <Icon icon="ep:copy-document" />
     </span>
     <span
       class="drawing-item-delete"
       title="删除"
       @click.stop="deleteItem(index)"
     >
-      <el-icon>
-        <Delete />
-      </el-icon>
+      <Icon icon="ep:delete" />
     </span>
   </el-col>
 </template>

@@ -783,7 +783,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 .client-editor-panel {
-    background: var(--client-surface);
+    background: transparent;
     border-radius: 0;
     min-height: 100%;
     width: 100%;
@@ -794,12 +794,14 @@ defineExpose({
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--client-border-soft);
 
     .header-text {
         h2 {
             margin: 0 0 4px 0;
-            font-size: 20px;
-            font-weight: 600;
+            font-size: 22px;
+            font-weight: 700;
             color: var(--text-main);
         }
         p {
@@ -838,7 +840,7 @@ defineExpose({
 .client-form {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 22px;
     width: 100%;
 
     :deep(.el-form-item) {
@@ -869,7 +871,7 @@ defineExpose({
 
 .type-selector {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
 }
 
@@ -879,10 +881,10 @@ defineExpose({
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 48px;
-    background: var(--client-fill);
-    border-radius: 8px;
-    border: 1px solid transparent;
+    height: 46px;
+    background: var(--client-surface-muted);
+    border-radius: 6px;
+    border: 1px solid var(--client-border-soft);
     cursor: pointer;
     position: relative;
     transition:
@@ -905,7 +907,7 @@ defineExpose({
     }
 
     &.active {
-        background: var(--client-primary-muted);
+        background: var(--client-primary-soft);
         border-color: var(--primary-color);
 
         .type-icon,
@@ -963,9 +965,9 @@ defineExpose({
 
 .upload-zone {
     width: 100%;
-    background: var(--client-surface);
+    background: var(--client-surface-muted);
     border: 1px dashed var(--client-border-strong);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 16px;
     transition: border-color 0.2s;
     box-sizing: border-box;
@@ -1243,7 +1245,9 @@ defineExpose({
 }
 
 .form-actions {
-    margin-top: 32px;
+    margin-top: 18px;
+    padding-top: 22px;
+    border-top: 1px solid var(--client-border-soft);
     display: flex;
     justify-content: flex-end;
     width: 100%;
@@ -1258,7 +1262,7 @@ defineExpose({
         border: none;
         height: 44px;
         padding: 0 32px;
-        border-radius: 22px;
+        border-radius: 6px;
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;

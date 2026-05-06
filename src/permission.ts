@@ -18,6 +18,14 @@ NProgress.configure({
 
 const whiteList = ['/login', '/register', '/h5/user-agreement', '/h5/privacy-policy']
 const isIndexPath = (path: string) => path === '/' || path === '/index'
+const CLIENT_ROUTE_SHELL_CLASS = 'client-route-shell'
+
+const syncClientRouteShell = (path: string) => {
+    if (typeof document === 'undefined') return
+    const isClientRoute = isClientRoutePath(path)
+    document.documentElement.classList.toggle(CLIENT_ROUTE_SHELL_CLASS, isClientRoute)
+    document.body?.classList.toggle(CLIENT_ROUTE_SHELL_CLASS, isClientRoute)
+}
 
 const handleClientRouteIsolation = (to: any, next: any) => {
     const metaPlatform = String(to.meta?.platform || '').trim().toLowerCase()
@@ -33,6 +41,7 @@ const handleClientRouteIsolation = (to: any, next: any) => {
 }
 
 router.beforeEach((to, _from, next) => {
+    syncClientRouteShell(to.path)
     NProgress.start()
     if (getToken()) {
         to.meta.title && useSettingsStore().setTitle(to.meta.title)

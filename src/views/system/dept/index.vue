@@ -81,7 +81,7 @@
             </el-table>
         </div>
 
-        <!-- 添加或修改部门对话框 -->
+        
         <el-dialog :title="title" v-model="open" width="600px" append-to-body class="modern-dialog">
             <el-form ref="deptRef" :model="form" :rules="rules" label-width="80px">
                 <el-row>
@@ -174,7 +174,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询部门列表 */
+
 function getList() {
     loading.value = true
     listDept(queryParams.value).then(response => {
@@ -183,13 +183,13 @@ function getList() {
     })
 }
 
-/** 取消按钮 */
+
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 表单重置 */
+
 function reset() {
     form.value = {
         deptId: undefined,
@@ -204,18 +204,18 @@ function reset() {
     proxy.resetForm('deptRef')
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-/** 新增按钮操作 */
+
 function handleAdd(row) {
     reset()
     listDept().then(response => {
@@ -228,7 +228,7 @@ function handleAdd(row) {
     title.value = '添加部门'
 }
 
-/** 展开/折叠操作 */
+
 function toggleExpandAll() {
     refreshTable.value = false
     isExpandAll.value = !isExpandAll.value
@@ -237,7 +237,7 @@ function toggleExpandAll() {
     })
 }
 
-/** 修改按钮操作 */
+
 function handleUpdate(row) {
     reset()
     listDeptExcludeChild(row.deptId).then(response => {
@@ -250,7 +250,7 @@ function handleUpdate(row) {
     })
 }
 
-/** 提交按钮 */
+
 function submitForm() {
     proxy.$refs['deptRef'].validate(valid => {
         if (valid) {
@@ -271,7 +271,7 @@ function submitForm() {
     })
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
     proxy.$modal
         .confirm('是否确认删除名称为"' + row.deptName + '"的数据项?')

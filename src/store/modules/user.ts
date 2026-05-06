@@ -293,7 +293,7 @@ const useUserStore = defineStore('user', {
             return new Promise(resolve => {
                 logout()
                     .catch(() => {
-                        // Token 已失效时，后端可能返回 401，本地状态仍需清理。
+                        
                     })
                     .finally(() => {
                         clearLocalAuth()

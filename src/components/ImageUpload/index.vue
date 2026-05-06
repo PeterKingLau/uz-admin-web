@@ -3,7 +3,16 @@
         <transition-group v-if="showSortAssistList" class="image-sort-assist-list" name="list-fade" tag="ul">
             <li v-for="(file, index) in fileList" :key="file.uid || `${file.rawUrl || file.url || file.name}-${index}`" class="image-sort-assist-item">
                 <div class="assist-item-main" :class="{ 'no-thumb': !props.showAssistThumbnail }">
-                    <img v-if="props.showAssistThumbnail" class="assist-item-thumb" :src="file.url" :alt="file.name" />
+                    <img
+                        v-if="props.showAssistThumbnail && !isImageLoadFailed(file)"
+                        class="assist-item-thumb"
+                        :src="file.url"
+                        :alt="file.name"
+                        @error="handleImageLoadError(file)"
+                    />
+                    <span v-else-if="props.showAssistThumbnail" class="assist-item-thumb image-fallback-thumb">
+                        <Icon icon="mdi:image-broken-variant" />
+                    </span>
                     <div class="assist-item-meta">
                         <span class="assist-item-order">
                             <span class="order-label">第</span>
@@ -50,7 +59,17 @@
                 :drag="uploadDrag"
             >
                 <template v-if="isPictureCardMode" #file="{ file }">
-                    <img class="el-upload-list__item-thumbnail" :src="file.url" :alt="file.name" />
+                    <img
+                        v-if="!isImageLoadFailed(file)"
+                        class="el-upload-list__item-thumbnail"
+                        :src="file.url"
+                        :alt="file.name"
+                        @error="handleImageLoadError(file)"
+                    />
+                    <span v-else class="el-upload-list__item-thumbnail image-fallback-card">
+                        <Icon icon="mdi:image-broken-variant" />
+                        <em>图片加载失败</em>
+                    </span>
                     <span v-if="!sortAssistMode" class="el-upload-list__item-actions">
                         <span v-if="props.previewable" class="el-upload-list__item-preview" @click.stop="handlePictureCardPreview(file)">
                             <Icon icon="mdi:eye-outline" />
@@ -202,9 +221,7 @@ function parseStructuredModelValue(val) {
     if (typeof val !== 'string') return val
     const trimmed = val.trim()
     if (!trimmed) return trimmed
-    const isJsonLike =
-        (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
-        (trimmed.startsWith('{') && trimmed.endsWith('}'))
+    const isJsonLike = (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))
     if (!isJsonLike) return val
     try {
         return JSON.parse(trimmed)
@@ -216,8 +233,7 @@ function parseStructuredModelValue(val) {
 function normalizeModelValueToList(val) {
     if (!val) return []
     const parsedValue = parseStructuredModelValue(val)
-    const list =
-        Array.isArray(parsedValue) ? parsedValue : typeof parsedValue === 'string' ? String(parsedValue).split(',') : [parsedValue]
+    const list = Array.isArray(parsedValue) ? parsedValue : typeof parsedValue === 'string' ? String(parsedValue).split(',') : [parsedValue]
     return list.map(item => createFileListItem(item))
 }
 
@@ -338,6 +354,9 @@ function resolveUploadErrorMessage(error, file, serverMessage = '') {
     if (error?.code === 'ECONNABORTED' || message.includes('timeout')) {
         return `${targetLabel}上传超时，请检查网络或压缩文件后重试`
     }
+    if (error?.code === 'ERR_NETWORK' || message.includes('network error')) {
+        return `${targetLabel}上传失败：OSS 直传网络错误，请检查 OSS 域名、跨域配置或上传凭证`
+    }
     return `${targetLabel}上传失败，请重试`
 }
 
@@ -409,6 +428,15 @@ function resolveImageDisplayName(file) {
     } catch {
         return filename
     }
+}
+
+function isImageLoadFailed(file) {
+    return Boolean(file?.imageLoadFailed)
+}
+
+function handleImageLoadError(file) {
+    if (!file) return
+    file.imageLoadFailed = true
 }
 
 function resolveQueueFiles() {
@@ -951,15 +979,11 @@ onBeforeUnmount(() => {
     :deep(.el-list-enter-active),
     :deep(.el-list-leave-active),
     :deep(.el-list-move) {
-        transition:
-            opacity var(--app-motion-image),
-            transform var(--app-motion-image) !important;
+        transition: opacity var(--app-motion-fast) !important;
     }
 
     :deep(.el-list-leave-active) {
-        position: absolute !important;
         opacity: 0;
-        transform: scale(0.8);
         pointer-events: none;
         z-index: 0;
     }
@@ -1106,6 +1130,15 @@ onBeforeUnmount(() => {
     border: 1px solid var(--el-border-color-lighter);
 }
 
+.image-fallback-thumb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-placeholder);
+    font-size: 18px;
+}
+
 .assist-item-meta {
     min-width: 0;
     display: flex;
@@ -1207,6 +1240,23 @@ onBeforeUnmount(() => {
     }
 }
 
+.image-fallback-card {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-placeholder);
+    font-size: 24px;
+
+    em {
+        font-style: normal;
+        font-size: 12px;
+        line-height: 1;
+    }
+}
+
 @media screen and (max-width: 768px) {
     .glass-upload-container {
         --item-size: 92px;
@@ -1255,5 +1305,3 @@ onBeforeUnmount(() => {
     }
 }
 </style>
-
-

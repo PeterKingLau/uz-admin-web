@@ -1,15 +1,12 @@
 <template>
     <div class="loading-state" :class="[sizeClass, themeClass]" :style="rootStyle">
-        <el-icon class="loading-icon is-loading">
-            <Loading />
-        </el-icon>
+        <Icon icon="ep:loading" class="loading-icon is-loading" />
         <span v-if="displayText" class="loading-text">{{ displayText }}</span>
     </div>
 </template>
 
 <script setup lang="ts">
 defineOptions({ name: 'ComponentsLoadingState' })
-import { Loading } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
 const props = withDefaults(
@@ -59,6 +56,20 @@ const rootStyle = computed(() => {
 .loading-icon {
     font-size: 24px;
     color: var(--el-color-primary);
+}
+
+.loading-icon.is-loading {
+    animation: loading-rotate 2s linear infinite;
+}
+
+@keyframes loading-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-state.is-small .loading-icon {

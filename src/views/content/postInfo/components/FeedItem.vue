@@ -267,7 +267,7 @@ const stopHoverPreview = () => {
         try {
             video.currentTime = 0
         } catch {
-            // Ignore seek failures for unready media.
+            
         }
     }
     isVideoHoverActive.value = false

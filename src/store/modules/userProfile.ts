@@ -1,18 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-/**
- * 关注数据统计接口
- */
+
+
+
 export interface FollowStats {
     following: number
     followers: number
     mutualCount: number
 }
 
-/**
- * 用户资料接口
- */
+
+
+
 export interface UserProfile {
     userId?: string | number
     id?: string | number
@@ -23,7 +23,7 @@ export interface UserProfile {
     signature?: string
     sex?: string
     gender?: string
-    // 关注状态相关字段
+    
     follow?: boolean
     isFollow?: boolean
     isFollowing?: boolean
@@ -40,13 +40,13 @@ export interface UserProfile {
     relationType?: string
     relation?: string
     followRelation?: string
-    // 其他字段
+    
     [key: string]: any
 }
 
-/**
- * 用户资料缓存项
- */
+
+
+
 interface UserProfileCacheItem {
     profile: UserProfile
     followStats: FollowStats
@@ -54,28 +54,28 @@ interface UserProfileCacheItem {
     userId: string | number
 }
 
-const CACHE_TTL = 5 * 60 * 1000 // 5分钟过期
+const CACHE_TTL = 5 * 60 * 1000 
 
 export const useUserProfileStore = defineStore(
     'userProfile',
     () => {
-        // 用户资料缓存 Map: userId -> CacheItem
+        
         const profileCache = ref<Map<string, UserProfileCacheItem>>(new Map())
 
-        // 加载状态 Map: userId -> boolean
+        
         const loadingMap = ref<Map<string, boolean>>(new Map())
 
-        /**
-         * 检查缓存是否有效
-         */
+        
+
+
         const isValidCache = (item: UserProfileCacheItem | undefined): boolean => {
             if (!item) return false
             return Date.now() - item.timestamp < CACHE_TTL
         }
 
-        /**
-         * 获取缓存的用户资料
-         */
+        
+
+
         const getCachedProfile = (userId: string | number | null | undefined): UserProfileCacheItem | null => {
             if (!userId) return null
 
@@ -84,7 +84,7 @@ export const useUserProfileStore = defineStore(
 
             if (!item) return null
 
-            // 检查是否过期
+            
             if (!isValidCache(item)) {
                 profileCache.value.delete(key)
                 return null
@@ -93,25 +93,25 @@ export const useUserProfileStore = defineStore(
             return item
         }
 
-        /**
-         * 获取缓存的关注数据
-         */
+        
+
+
         const getCachedFollowStats = (userId: string | number | null | undefined): FollowStats | null => {
             const cached = getCachedProfile(userId)
             return cached ? cached.followStats : null
         }
 
-        /**
-         * 获取缓存的用户信息
-         */
+        
+
+
         const getCachedUserInfo = (userId: string | number | null | undefined): UserProfile | null => {
             const cached = getCachedProfile(userId)
             return cached ? cached.profile : null
         }
 
-        /**
-         * 设置缓存数据
-         */
+        
+
+
         const setCachedProfile = (userId: string | number | null | undefined, profile: UserProfile, followStats?: FollowStats): void => {
             if (!userId) return
 
@@ -131,9 +131,9 @@ export const useUserProfileStore = defineStore(
             })
         }
 
-        /**
-         * 只更新关注数据
-         */
+        
+
+
         const updateFollowStats = (userId: string | number | null | undefined, followStats: FollowStats): void => {
             if (!userId) return
             const key = String(userId)
@@ -149,9 +149,9 @@ export const useUserProfileStore = defineStore(
             profileCache.value.set(key, nextItem)
         }
 
-        /**
-         * 更新关注状态
-         */
+        
+
+
         const updateFollowStatus = (userId: string | number | null | undefined, isFollowing: boolean): void => {
             if (!userId) return
             const key = String(userId)
@@ -182,28 +182,28 @@ export const useUserProfileStore = defineStore(
                 userId: key
             }
 
-            // 关键：重新 set（触发持久化插件感知变更）
+            
             profileCache.value.set(key, nextItem)
         }
 
-        /**
-         * 清除指定用户的缓存
-         */
+        
+
+
         const clearCache = (userId: string | number | null | undefined): void => {
             if (!userId) return
             profileCache.value.delete(String(userId))
         }
 
-        /**
-         * 清除所有缓存
-         */
+        
+
+
         const clearAllCache = (): void => {
             profileCache.value.clear()
         }
 
-        /**
-         * 清除过期缓存
-         */
+        
+
+
         const clearExpiredCache = (): void => {
             const now = Date.now()
             const keysToDelete: string[] = []
@@ -217,17 +217,17 @@ export const useUserProfileStore = defineStore(
             keysToDelete.forEach(key => profileCache.value.delete(key))
         }
 
-        /**
-         * 获取加载状态
-         */
+        
+
+
         const isLoading = (userId: string | number | null | undefined): boolean => {
             if (!userId) return false
             return loadingMap.value.get(String(userId)) ?? false
         }
 
-        /**
-         * 设置加载状态
-         */
+        
+
+
         const setLoading = (userId: string | number | null | undefined, loading: boolean): void => {
             if (!userId) return
             if (loading) {
@@ -237,9 +237,9 @@ export const useUserProfileStore = defineStore(
             }
         }
 
-        /**
-         * 获取缓存剩余有效时间（毫秒）
-         */
+        
+
+
         const getCacheTTL = (userId: string | number | null | undefined): number => {
             if (!userId) return 0
 
@@ -252,30 +252,30 @@ export const useUserProfileStore = defineStore(
             return Math.max(0, remaining)
         }
 
-        /**
-         * 获取缓存大小
-         */
+        
+
+
         const cacheSize = computed(() => profileCache.value.size)
 
-        /**
-         * 获取所有缓存的用户 ID
-         */
+        
+
+
         const cachedUserIds = computed(() => Array.from(profileCache.value.keys()))
 
         return {
-            // State
+            
             profileCache,
             cacheSize,
             cachedUserIds,
 
-            // Getters
+            
             getCachedProfile,
             getCachedFollowStats,
             getCachedUserInfo,
             isLoading,
             getCacheTTL,
 
-            // Actions
+            
             setCachedProfile,
             updateFollowStats,
             updateFollowStatus,

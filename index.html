@@ -13,20 +13,23 @@
                 const isClientPath =
                     path === '/discover' ||
                     path === '/publish' ||
+                    path === '/profile' ||
+                    path.startsWith('/profile/') ||
                     path.startsWith('/content/video-player') ||
                     path.startsWith('/content/userProfile') ||
                     path.startsWith('/user/profile')
 
                 if (isClientPath) {
+                    document.documentElement.classList.add('client-route-shell')
                     document.title = '职场吧'
                 }
             })()
         </script>
-        <!--[if lt IE 11
-            ]><script>
-                window.location.href = '/html/ie.html'
-            </script><!
-        [endif]-->
+        
+
+
+
+
         <style>
             html,
             body,
@@ -34,6 +37,12 @@
                 height: 100%;
                 margin: 0px;
                 padding: 0px;
+            }
+
+            html.client-route-shell,
+            html.client-route-shell body,
+            html.client-route-shell #app {
+                background: #ffffff;
             }
 
             .chromeframe {

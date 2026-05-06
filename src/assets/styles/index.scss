@@ -72,6 +72,12 @@ body.app-scroll-locked {
     overflow: hidden !important;
 }
 
+html.client-route-shell,
+body.client-route-shell,
+body.client-route-shell #app {
+    background: #ffffff;
+}
+
 .discover-page.app-scroll-root-locked {
     overflow: hidden !important;
 }
@@ -97,6 +103,13 @@ a:hover {
 
 div:focus {
     outline: none;
+}
+
+.el-button.is-disabled,
+.el-button.is-disabled *,
+.el-button:disabled,
+.el-button:disabled * {
+    cursor: not-allowed !important;
 }
 
 $directions: (
@@ -187,6 +200,13 @@ aside {
     padding: 20px;
     background-color: var(--el-bg-color);
     min-height: 100%;
+}
+
+.el-button,
+.el-button:hover,
+.el-button:focus,
+.el-button:active {
+    transform: none !important;
 }
 
 .app-container {
@@ -333,11 +353,22 @@ html.dark {
                     }
                 }
 
-                .el-icon-close {
+                .close-icon-wrapper {
                     color: var(--el-text-color-regular) !important;
+
                     &:hover {
-                        background-color: var(--el-color-danger) !important;
-                        color: var(--el-color-white) !important;
+                        background-color: color-mix(in srgb, var(--el-color-white) 12%, transparent) !important;
+                        color: var(--el-text-color-primary) !important;
+                    }
+                }
+
+                .el-icon-close {
+                    background-color: transparent !important;
+                    color: var(--el-text-color-regular) !important;
+
+                    &:hover {
+                        background-color: transparent !important;
+                        color: inherit !important;
                     }
                 }
             }
@@ -382,6 +413,10 @@ html.dark {
     border-radius: 0 2px 2px 0;
 }
 
+html.client-route-shell #nprogress .bar {
+    background: linear-gradient(90deg, #ffd44d, #f4b400);
+}
+
 #nprogress .peg {
     display: block;
     position: absolute;
@@ -393,6 +428,12 @@ html.dark {
         0 0 6px var(--el-color-primary);
     opacity: 1;
     transform: rotate(3deg) translate(0px, -4px);
+}
+
+html.client-route-shell #nprogress .peg {
+    box-shadow:
+        0 0 12px #f4b400,
+        0 0 6px #f4b400;
 }
 
 @include meta.load-css('./element-ui.scss');

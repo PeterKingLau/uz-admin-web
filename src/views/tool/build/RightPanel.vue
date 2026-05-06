@@ -227,12 +227,12 @@
                             <template #item="{ element, index }">
                                 <div :key="index" class="select-item">
                                     <div class="select-line-icon option-drag">
-                                        <el-icon><Operation /></el-icon>
+                                        <Icon icon="ep:operation" />
                                     </div>
                                     <el-input v-model="element.label" placeholder="选项名" size="small" />
                                     <el-input placeholder="选项值" size="small" :value="element.value" @input="setOptionValue(element, $event)" />
                                     <div class="close-btn select-line-icon" @click="activeData.options.splice(index, 1)">
-                                        <el-icon><Remove /></el-icon>
+                                        <Icon icon="ep:remove" />
                                     </div>
                                 </div>
                             </template>
@@ -387,7 +387,7 @@
                         <el-divider>正则校验</el-divider>
                         <div v-for="(item, index) in activeData.regList" :key="index" class="reg-item">
                             <span class="close-btn" @click="activeData.regList.splice(index, 1)">
-                                <el-icon><Close /></el-icon>
+                                <Icon icon="ep:close" />
                             </span>
                             <el-form-item label="表达式">
                                 <el-input v-model="item.pattern" placeholder="请输入正则" />
@@ -716,8 +716,8 @@ function tagChange(tagIcon) {
 
 <style lang="scss" scoped>
 .right-board {
-    width: 100%; // 关键修改：适应 flex 布局
-    height: 100%; // 关键修改
+    width: 100%; 
+    height: 100%; 
     padding-top: 3px;
 
     &:deep() {
@@ -855,7 +855,7 @@ function tagChange(tagIcon) {
     padding-right: 8px;
 }
 
-// 修复图标预览样式
+
 .icon-wrapper {
     display: flex;
     align-items: center;

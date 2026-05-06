@@ -22,7 +22,7 @@
                     <el-table-column prop="tableComment" label="表描述" min-width="200" show-overflow-tooltip />
                     <el-table-column label="状态" width="100" align="center">
                         <template #default>
-                            <el-icon color="#67C23A"><CircleCheckFilled /></el-icon>
+                            <Icon icon="ep:circle-check-filled" class="preview-status-icon" />
                         </template>
                     </el-table-column>
                 </el-table>
@@ -99,3 +99,10 @@ defineExpose({
     show
 })
 </script>
+
+<style scoped>
+.preview-status-icon {
+    color: var(--el-color-success);
+    font-size: 18px;
+}
+</style>

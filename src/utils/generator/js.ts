@@ -1,18 +1,18 @@
 import { titleCase } from '@/utils/index'
 import { trigger } from './config'
 
-// 文件大小设置
+
 const units: Record<'KB' | 'MB' | 'GB', string> = {
     KB: '1024',
     MB: '1024 / 1024',
     GB: '1024 / 1024 / 1024'
 }
 
-/**
- * 生成 js 代码字符串
- * @param conf 设计器生成的表单配置
- * @param type 'dialog' | 其他（普通表单）
- */
+
+
+
+
+
 export function makeUpJs(conf: any, type: string): string {
     const confCopy = JSON.parse(JSON.stringify(conf)) as any
 
@@ -41,9 +41,9 @@ export function makeUpJs(conf: any, type: string): string {
     return script
 }
 
-/**
- * 收集：formData / rules / options / props / upload 相关代码
- */
+
+
+
 function buildAttributes(
     el: any,
     dataList: string[],
@@ -73,9 +73,9 @@ function buildAttributes(
     if (el.action && el.tag === 'el-upload') {
         uploadVarList.push(
             `
-      // 上传请求路径
+      
       const ${el.vModel}Action = ref('${el.action}')
-      // 上传文件列表
+      
       const ${el.vModel}fileList =  ref([])`
         )
 
@@ -94,9 +94,9 @@ function buildAttributes(
     }
 }
 
-/**
- * 生成 formModel 字段
- */
+
+
+
 function buildData(conf: any, dataList: string[]): void {
     if (conf.vModel === undefined) return
 
@@ -111,9 +111,9 @@ function buildData(conf: any, dataList: string[]): void {
     dataList.push(`${conf.vModel}: ${defaultValue},`)
 }
 
-/**
- * 生成 formRules 字段
- */
+
+
+
 function buildRules(conf: any, ruleList: string[]): void {
     if (conf.vModel === undefined) return
 
@@ -139,9 +139,9 @@ function buildRules(conf: any, ruleList: string[]): void {
     }
 }
 
-/**
- * 生成下拉 / 多选等选项数据
- */
+
+
+
 function buildOptions(conf: any, optionsList: string[]): void {
     if (conf.vModel === undefined) return
 
@@ -155,20 +155,20 @@ function buildOptions(conf: any, optionsList: string[]): void {
     optionsList.push(str)
 }
 
-/**
- * 生成远程 options 加载方法
- */
+
+
+
 function buildOptionMethod(methodName: string, model: string, methodList: string[]): void {
     const str = `function ${methodName}() {
-    // TODO 发起请求获取数据
+    
     ${model}.value
   }`
     methodList.push(str)
 }
 
-/**
- * 生成组件 props 配置（如级联）
- */
+
+
+
 function buildProps(conf: any, propsList: string[]): void {
     const confCopy = { ...conf }
 
@@ -180,14 +180,14 @@ function buildProps(conf: any, propsList: string[]): void {
     }
 
     const str = `
-  // props设置
+  
   const ${confCopy.vModel}Props = ref(${JSON.stringify(confCopy.props.props)})`
     propsList.push(str)
 }
 
-/**
- * 生成上传组件 beforeUpload 逻辑
- */
+
+
+
 function buildBeforeUpload(conf: any): string {
     const unitNum = units[conf.sizeUnit as keyof typeof units] || '1024'
     let rightSizeCode = ''
@@ -221,18 +221,18 @@ function buildBeforeUpload(conf: any): string {
     return str
 }
 
-/**
- * 生成手动提交上传的方法
- */
+
+
+
 function buildSubmitUpload(conf: any): string {
     return `function submitUpload() {
     this.$refs['${conf.vModel}'].submit()
   }`
 }
 
-/**
- * 组装最终 js 代码字符串
- */
+
+
+
 function buildexport(conf: any, type: string, data: string, rules: string, selectOptions: string, uploadVar: string, props: string, methods: string): string {
     let str = `
     const { proxy } = getCurrentInstance()
@@ -277,7 +277,7 @@ function buildexport(conf: any, type: string, data: string, rules: string, selec
       function handelConfirm(){
         ${conf.formRef}.value.validate((valid) => {
           if (!valid) return
-          // TODO 提交表单
+          
 
           close()
           emit('confirm')
@@ -289,7 +289,7 @@ function buildexport(conf: any, type: string, data: string, rules: string, selec
     function submitForm() {
       ${conf.formRef}.value.validate((valid) => {
         if (!valid) return
-        // TODO 提交表单
+        
       })
     }
 

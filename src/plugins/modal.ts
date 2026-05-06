@@ -182,7 +182,6 @@ html.dark .modern-notification {
 }
 
 .modern-message-box .el-button--primary:hover {
-    transform: translateY(-1px) !important;
     box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3) !important;
 }
 

@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { trigger } from './config'
 
 export type LayoutType = 'colFormItem' | 'rowFormItem'
@@ -19,7 +18,7 @@ export interface BaseElement {
     size?: string
     icon?: string
 
-    // 选择类组件
+    
     options?: Array<{
         label: string
         value: any
@@ -31,7 +30,7 @@ export interface BaseElement {
     multiple?: boolean
     filterable?: boolean
 
-    // 输入类补充
+    
     maxlength?: number | null
     'show-word-limit'?: boolean
     readonly?: boolean
@@ -43,7 +42,7 @@ export interface BaseElement {
         maxRows: number
     }
 
-    // 数字类
+    
     min?: number
     max?: number
     step?: number
@@ -51,11 +50,11 @@ export interface BaseElement {
     precision?: number
     'controls-position'?: string
 
-    // slider
+    
     range?: boolean
     'show-stops'?: boolean
 
-    // switch
+    
     'active-text'?: string
     'inactive-text'?: string
     'active-color'?: string | null
@@ -63,7 +62,7 @@ export interface BaseElement {
     'active-value'?: any
     'inactive-value'?: any
 
-    // cascader
+    
     props?: any
     'show-all-levels'?: boolean
     separator?: string
@@ -72,7 +71,7 @@ export interface BaseElement {
     valueKey?: string
     childrenKey?: string
 
-    // time/date picker
+    
     placeholder?: string
     'start-placeholder'?: string
     'end-placeholder'?: string
@@ -82,16 +81,16 @@ export interface BaseElement {
     'is-range'?: boolean
     'picker-options'?: any
 
-    // rate
+    
     'allow-half'?: boolean
     'show-text'?: boolean
     'show-score'?: boolean
 
-    // color-picker
+    
     'show-alpha'?: boolean
     'color-format'?: string
 
-    // upload
+    
     action?: string
     accept?: string
     name?: string
@@ -102,13 +101,13 @@ export interface BaseElement {
     sizeUnit?: string
     'list-type'?: string
 
-    // 布局相关
+    
     justify?: string
     align?: string
     gutter?: number
     children?: BaseElement[]
 
-    // 额外字段
+    
     default?: string
     prepend?: string
     append?: string
@@ -265,7 +264,7 @@ const tags: Record<string, TagBuilder> = {
         const size = el.size ? `size="${el.size}"` : ''
         let child = buildElButtonChild(el)
 
-        if (child) child = `\n${child}\n` // 换行
+        if (child) child = `\n${child}\n` 
         return `<${el.tag} ${type} ${icon} ${size} ${disabled}>${child}</${el.tag}>`
     },
 
@@ -281,7 +280,7 @@ const tags: Record<string, TagBuilder> = {
         const autosize = el.autosize && el.autosize.minRows ? `:autosize="{minRows: ${el.autosize.minRows}, maxRows: ${el.autosize.maxRows}}"` : ''
         let child = buildElInputChild(el)
 
-        if (child) child = `\n${child}\n` // 换行
+        if (child) child = `\n${child}\n` 
         return `<${el.tag} ${vModel} ${type} ${placeholder} ${maxlength} ${showWordLimit} ${readonly} ${disabled} ${clearable} ${prefixIcon} ${suffixIcon} ${showPassword} ${autosize} ${width}>${child}</${el.tag}>`
     },
 
@@ -303,7 +302,7 @@ const tags: Record<string, TagBuilder> = {
         const multiple = el.multiple ? 'multiple' : ''
         let child = buildElSelectChild(el)
 
-        if (child) child = `\n${child}\n` // 换行
+        if (child) child = `\n${child}\n` 
         return `<${el.tag} ${vModel} ${placeholder} ${disabled} ${multiple} ${filterable} ${clearable} ${width}>${child}</${el.tag}>`
     },
 
@@ -312,7 +311,7 @@ const tags: Record<string, TagBuilder> = {
         const size = el.size ? `size="${el.size}"` : ''
         let child = buildElRadioGroupChild(el)
 
-        if (child) child = `\n${child}\n` // 换行
+        if (child) child = `\n${child}\n` 
         return `<${el.tag} ${vModel} ${size} ${disabled}>${child}</${el.tag}>`
     },
 
@@ -323,7 +322,7 @@ const tags: Record<string, TagBuilder> = {
         const max = el.max !== undefined ? `:max="${el.max}"` : ''
         let child = buildElCheckboxGroupChild(el)
 
-        if (child) child = `\n${child}\n` // 换行
+        if (child) child = `\n${child}\n` 
         return `<${el.tag} ${vModel} ${min} ${max} ${size} ${disabled}>${child}</${el.tag}>`
     },
 
@@ -419,7 +418,7 @@ const tags: Record<string, TagBuilder> = {
         const ref = `ref="${el.vModel}"`
         let child = buildElUploadChild(el)
 
-        if (child) child = `\n${child}\n` // 换行
+        if (child) child = `\n${child}\n` 
         return `<${el.tag} ${ref} ${fileList} ${action} ${autoUpload} ${multiple} ${beforeUpload} ${listType} ${accept} ${name} ${disabled}>${child}</${el.tag}>`
     }
 }
@@ -441,7 +440,7 @@ function attrBuilder(el: BaseElement): {
     }
 }
 
-// el-button 子级
+
 function buildElButtonChild(conf: BaseElement): string {
     const children: string[] = []
     if (conf.default) {
@@ -450,7 +449,7 @@ function buildElButtonChild(conf: BaseElement): string {
     return children.join('\n')
 }
 
-// el-input innerHTML
+
 function buildElInputChild(conf: BaseElement): string {
     const children: string[] = []
     if (conf.prepend) {
@@ -462,7 +461,7 @@ function buildElInputChild(conf: BaseElement): string {
     return children.join('\n')
 }
 
-// el-select options
+
 function buildElSelectChild(conf: BaseElement): string {
     const children: string[] = []
     if (conf.options && conf.options.length) {
@@ -473,7 +472,7 @@ function buildElSelectChild(conf: BaseElement): string {
     return children.join('\n')
 }
 
-// el-radio-group
+
 function buildElRadioGroupChild(conf: BaseElement): string {
     const children: string[] = []
     if (conf.options && conf.options.length) {
@@ -486,7 +485,7 @@ function buildElRadioGroupChild(conf: BaseElement): string {
     return children.join('\n')
 }
 
-// el-checkbox-group
+
 function buildElCheckboxGroupChild(conf: BaseElement): string {
     const children: string[] = []
     if (conf.options && conf.options.length) {
@@ -499,7 +498,7 @@ function buildElCheckboxGroupChild(conf: BaseElement): string {
     return children.join('\n')
 }
 
-// el-upload innerHTML
+
 function buildElUploadChild(conf: BaseElement): string {
     const list: string[] = []
     if (conf['list-type'] === 'picture-card') {

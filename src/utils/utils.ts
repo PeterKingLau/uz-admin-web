@@ -1,9 +1,9 @@
-/**
- * 通用js方法封装处理
- * Copyright (c) 2025 GaoBang
- */
 
-// 日期格式化
+
+
+
+
+
 export function parseTime(time: any, pattern?: string) {
     if (arguments.length === 0 || !time) {
         return null
@@ -37,7 +37,7 @@ export function parseTime(time: any, pattern?: string) {
     }
     const timeStr = format.replace(/{(y|m|d|h|i|s|a)+}/g, (result, key) => {
         let value = formatObj[key]
-        // Note: getDay() returns 0 on Sunday
+        
         if (key === 'a') {
             return ['日', '一', '二', '三', '四', '五', '六'][value]
         }
@@ -49,14 +49,14 @@ export function parseTime(time: any, pattern?: string) {
     return timeStr
 }
 
-// 表单重置
+
 export function resetForm(this: any, refName: string) {
     if (this.$refs[refName]) {
         this.$refs[refName].resetFields()
     }
 }
 
-// 添加日期范围
+
 export function addDateRange(params: any, dateRange: any[], propName?: string) {
     const search = params
     search.params = typeof search.params === 'object' && search.params !== null && !Array.isArray(search.params) ? search.params : {}
@@ -71,7 +71,7 @@ export function addDateRange(params: any, dateRange: any[], propName?: string) {
     return search
 }
 
-// 回显数据字典
+
 export function selectDictLabel(datas: any, value: any) {
     if (value === undefined) {
         return ''
@@ -89,7 +89,7 @@ export function selectDictLabel(datas: any, value: any) {
     return actions.join('')
 }
 
-// 回显数据字典（字符串数组）
+
 export function selectDictLabels(datas: any, value: any, separator: any) {
     if (value === undefined || value.length === 0) {
         return ''
@@ -115,9 +115,8 @@ export function selectDictLabels(datas: any, value: any, separator: any) {
     return actions.join('').substring(0, actions.join('').length - 1)
 }
 
-// 字符串格式化(%s )
+
 export function sprintf(str: string) {
-    // eslint-disable-next-line prefer-rest-params
     const args = arguments
     let flag = true,
         i = 1
@@ -132,7 +131,7 @@ export function sprintf(str: string) {
     return flag ? str : ''
 }
 
-// 转换字符串，undefined,null等转化为""
+
 export function parseStrEmpty(str: string) {
     if (!str || str === 'undefined' || str === 'null') {
         return ''
@@ -140,29 +139,29 @@ export function parseStrEmpty(str: string) {
     return str
 }
 
-// // 数据合并
-// export function mergeRecursive(source, target) {
-//     for (var p in target) {
-//         try {
-//             if (target[p].constructor == Object) {
-//                 source[p] = mergeRecursive(source[p], target[p]);
-//             } else {
-//                 source[p] = target[p];
-//             }
-//         } catch (e) {
-//             source[p] = target[p];
-//         }
-//     }
-//     return source;
-// }
 
-/**
- * 构造树型结构数据
- * @param {*} data 数据源
- * @param {*} id id字段 默认 'id'
- * @param {*} parentId 父节点字段 默认 'parentId'
- * @param {*} children 孩子节点字段 默认 'children'
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function handleTree(data: any, id: any, parentId?: any, children?: any) {
     const config = {
         id: id || 'id',
@@ -207,10 +206,10 @@ export function handleTree(data: any, id: any, parentId?: any, children?: any) {
     return tree
 }
 
-/**
- * 参数处理
- * @param {*} params  参数
- */
+
+
+
+
 export function tansParams(params: any) {
     let result = ''
     for (const propName of Object.keys(params)) {
@@ -233,7 +232,7 @@ export function tansParams(params: any) {
     return result
 }
 
-// 返回项目路径
+
 export function getNormalPath(p: any) {
     if (p.length === 0 || !p || p === 'undefined') {
         return p
@@ -245,14 +244,14 @@ export function getNormalPath(p: any) {
     return res
 }
 
-// 验证是否为blob格式
+
 export function blobValidate(data: any) {
     return data.type !== 'application/json'
 }
 
-/**
- * 生成区间随机数并格式化为 k 缩写
- */
+
+
+
 export function formatMockNumber(min: number, max: number) {
     const value = Math.floor(Math.random() * (max - min + 1)) + min
     if (value >= 1000) {

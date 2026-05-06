@@ -13,14 +13,14 @@
                 </el-select>
             </el-form-item>
             <el-form-item label="创建时间" style="width: 308px">
-                <el-date-picker
+                <AppDatePicker
                     v-model="dateRange"
                     value-format="YYYY-MM-DD"
                     type="daterange"
                     range-separator="-"
                     start-placeholder="开始日期"
                     end-placeholder="结束日期"
-                ></el-date-picker>
+                ></AppDatePicker>
             </el-form-item>
             <el-form-item class="form-actions">
                 <el-button type="primary" @click="handleQuery" class="action-btn"><Icon icon="ep:search" class="btn-icon" />搜索</el-button>
@@ -92,7 +92,7 @@
             </div>
         </div>
 
-        <!-- 添加或修改参数配置对话框 -->
+        
         <el-dialog :title="title" v-model="open" width="500px" append-to-body class="modern-dialog">
             <el-form ref="configRef" :model="form" :rules="rules" label-width="80px">
                 <el-form-item label="参数名称" prop="configName">
@@ -159,7 +159,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询参数列表 */
+
 function getList() {
     loading.value = true
     listConfig(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
@@ -169,13 +169,13 @@ function getList() {
     })
 }
 
-/** 取消按钮 */
+
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 表单重置 */
+
 function reset() {
     form.value = {
         configId: undefined,
@@ -188,34 +188,34 @@ function reset() {
     proxy.resetForm('configRef')
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     dateRange.value = []
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-/** 多选框选中数据 */
+
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.configId)
     single.value = selection.length != 1
     multiple.value = !selection.length
 }
 
-/** 新增按钮操作 */
+
 function handleAdd() {
     reset()
     open.value = true
     title.value = '添加参数'
 }
 
-/** 修改按钮操作 */
+
 function handleUpdate(row) {
     reset()
     const configId = row.configId || ids.value
@@ -226,7 +226,7 @@ function handleUpdate(row) {
     })
 }
 
-/** 提交按钮 */
+
 function submitForm() {
     proxy.$refs['configRef'].validate(valid => {
         if (valid) {
@@ -247,7 +247,7 @@ function submitForm() {
     })
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
     const configIds = row.configId || ids.value
     proxy.$modal
@@ -262,7 +262,7 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 导出按钮操作 */
+
 function handleExport() {
     proxy.download(
         'system/config/export',
@@ -273,7 +273,7 @@ function handleExport() {
     )
 }
 
-/** 刷新缓存按钮操作 */
+
 function handleRefreshCache() {
     refreshCache().then(() => {
         proxy.$modal.msgSuccess('刷新缓存成功')

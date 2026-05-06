@@ -120,9 +120,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         if (typeof window === 'undefined') return
         try {
             window.localStorage.setItem(VIDEO_LOCAL_CACHE_META_KEY, JSON.stringify(cacheMeta))
-        } catch {
-            // ignore persist errors; playback should keep working
-        }
+        } catch {}
     }
 
     const loadCacheMeta = () => {
@@ -336,9 +334,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
             await trimLocalCache(cache, contentLength)
             await cache.put(url, response.clone())
             touchCacheMeta(url, contentLength)
-        } catch {
-            // fall through to default playback without blocking UI
-        } finally {
+        } catch {} finally {
             cacheWarmupInFlight.delete(url)
         }
     }
@@ -629,9 +625,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
                 }
             }
             await safePlay(el)
-        } catch {
-            // best effort recovery
-        }
+        } catch {}
     }
 
     const scheduleStallRecovery = () => {
@@ -944,7 +938,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
                 if (Number(el.currentTime || 0) > 0) {
                     el.currentTime = 0
                 }
-                // Hint browser to release media buffer/decoder resources aggressively.
+                
                 ;(el as any).srcObject = null
                 el.preload = 'none'
                 el.removeAttribute('src')

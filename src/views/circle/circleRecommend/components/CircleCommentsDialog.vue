@@ -8,7 +8,7 @@
                 </div>
                 <div class="comments-header-actions">
                     <button type="button" class="comments-close-btn" @click="visible = false">
-                        <el-icon><Close /></el-icon>
+                        <Icon icon="ep:close" />
                     </button>
                 </div>
             </div>
@@ -151,7 +151,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleCommentsDialog' })
 import { computed, ref, watch } from 'vue'
-import { Close } from '@element-plus/icons-vue'
 import useUserStore from '@/store/modules/user'
 import LoadingState from '@/components/LoadingState/index.vue'
 
@@ -223,7 +222,7 @@ const commentCount = computed(() => {
 const resolvedUserAvatar = computed(() => {
     const avatar = userStore.avatar || props.userAvatar || ''
     if (!avatar) return ''
-    if (/^(https?:)?\/\//.test(avatar) || avatar.startsWith('data:') || avatar.startsWith('blob:') || avatar.startsWith('/')) {
+    if (/^(https?:)?\/\//i.test(avatar) || /^(blob|data|file):/i.test(avatar)) {
         return avatar
     }
     return props.getImgUrl ? props.getImgUrl(avatar) : avatar

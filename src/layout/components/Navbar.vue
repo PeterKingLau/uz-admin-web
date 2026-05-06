@@ -29,6 +29,8 @@
                 </el-tooltip>
             </template>
 
+            <ClientEntryButton :visible="canEnterClient" />
+
             <el-dropdown @command="handleCommand" class="right-menu-item hover-effect avatar-container" trigger="click" popper-class="navbar-dropdown">
                 <div class="avatar-wrapper">
                     <img :src="displayAvatar" class="user-avatar" @error="handleAvatarError" />
@@ -37,10 +39,6 @@
                 </div>
                 <template #dropdown>
                     <el-dropdown-menu>
-                        <el-dropdown-item v-if="canEnterClient" command="goClient">
-                            <Icon icon="mdi:cellphone-link" class="dropdown-icon" />
-                            进入客户端
-                        </el-dropdown-item>
                         <el-dropdown-item v-if="profileRoute" command="profile">
                             <Icon icon="ep:user" class="dropdown-icon" />
                             {{ profileMenuLabel }}
@@ -74,11 +72,12 @@ import Hamburger from '@/components/Hamburger'
 import Screenfull from '@/components/Screenfull'
 import SizeSelect from '@/components/SizeSelect'
 import HeaderSearch from '@/components/HeaderSearch'
+import ClientEntryButton from './ClientEntryButton.vue'
 import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import defaultAvatar from '@/assets/images/profile.jpg'
-import { getClientBaseUrl, getClientHomeRoute, resolvePersonalRoute } from '@/utils/routeAccess'
+import { resolvePersonalRoute } from '@/utils/routeAccess'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -109,15 +108,6 @@ function navigateTo(target) {
     router.push(target)
 }
 
-function goClient() {
-    const clientBaseUrl = getClientBaseUrl()
-    if (clientBaseUrl) {
-        window.location.href = clientBaseUrl
-        return
-    }
-    router.push(getClientHomeRoute())
-}
-
 function handleCommand(command) {
     switch (command) {
         case 'setLayout':
@@ -125,9 +115,6 @@ function handleCommand(command) {
             break
         case 'logout':
             logout()
-            break
-        case 'goClient':
-            goClient()
             break
         case 'profile':
             navigateTo(profileRoute.value)

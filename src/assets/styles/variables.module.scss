@@ -1,15 +1,15 @@
-// ===============================================
-// 1. SCSS 变量定义 (供编译使用)
-// ===============================================
 
-// 间距配置 (用于 index.scss 循环)
+
+
+
+
 $spacings: 5, 8, 10, 20;
 
-// 自定义青色变量 (用于 btn.scss，解决报错的关键)
+
 $color-cyan: #20b2aa;
 $color-cyan-hover: #48d1cc;
 
-// 优化后的基础色板 (用于 pan-btn 映射)
+
 $blue: #3b82f6;
 $light-blue: #60a5fa;
 $red: #ef4444;
@@ -19,37 +19,37 @@ $tiffany: #2dd4bf;
 $yellow: #f59e0b;
 $panGreen: #10b981;
 
-// 侧边栏颜色
+
 $menuBg: #0f172a;
 $menuHover: #1e293b;
 $menuText: #94a3b8;
 $menuActiveText: #ffffff;
 
-// 浅色主题
+
 $menuLightBg: #ffffff;
 $menuLightHover: #f1f5f9;
 $menuLightText: #334155;
 $menuLightActiveText: #3b82f6;
 
-// 布局尺寸
+
 $base-sidebar-width: 200px;
 $sideBarWidth: 200px;
 
-// 菜单变量映射
+
 $base-menu-color: $menuText;
 $base-menu-color-active: $menuActiveText;
 $base-menu-background: $menuBg;
 $base-sub-menu-background: #020617;
 $base-sub-menu-hover: $menuHover;
 
-// Element Plus 覆盖色
+
 $--color-primary: #3b82f6;
 $--color-success: #10b981;
 $--color-warning: #f59e0b;
 $--color-danger: #ef4444;
 $--color-info: #64748b;
 
-// 文本功能色映射 (如果你在 index.scss 里使用了 .text-navy 等类)
+
 $text-colors: (
     navy: #1ab394,
     success: #1c84c6,
@@ -61,7 +61,7 @@ $text-colors: (
     primary: inherit
 );
 
-// JS 导出 (供 JS 读取变量)
+
 :export {
     menuText: $menuText;
     menuActiveText: $menuActiveText;

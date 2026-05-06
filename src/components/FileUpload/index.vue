@@ -22,7 +22,7 @@
             >
                 <slot name="trigger">
                     <div class="upload-trigger-content">
-                        <el-icon class="el-icon--upload"><Icon icon="ep:upload-filled" /></el-icon>
+                        <Icon icon="ep:upload-filled" class="el-icon--upload" />
                         <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
                     </div>
                 </slot>
@@ -308,6 +308,9 @@ const resolveUploadErrorMessage = (error, file, serverMessage = '') => {
     const message = String(error?.message || '').toLowerCase()
     if (error?.code === 'ECONNABORTED' || message.includes('timeout')) {
         return `${targetLabel}上传超时，请检查网络或压缩文件后重试`
+    }
+    if (error?.code === 'ERR_NETWORK' || message.includes('network error')) {
+        return `${targetLabel}上传失败：OSS 直传网络错误，请检查 OSS 域名、跨域配置或上传凭证`
     }
     return `${targetLabel}上传失败，请重试`
 }

@@ -9,7 +9,6 @@
                                 <div class="tab-item-inner">
                                     <span class="tab-icon"><Icon icon="ep:grid" /></span>
                                     <span class="tab-text">作品</span>
-                                    <span class="tab-count" v-if="total > 0">{{ total }}</span>
                                 </div>
                             </template>
                         </el-tab-pane>
@@ -1750,7 +1749,7 @@ watch(
     }
 }
 
-/* 状态容器样式优化 */
+
 .status-box {
     display: flex;
     flex-direction: column;
@@ -1760,7 +1759,7 @@ watch(
     color: var(--el-text-color-secondary);
     font-size: 14px;
     width: 100%;
-    min-height: 200px; /* 增加最小高度，避免 Loading 闪烁 */
+    min-height: 200px; 
 
     &.empty {
         min-height: 300px;
@@ -1781,7 +1780,7 @@ watch(
     height: 1px;
 }
 
-/* ... 弹窗样式保持不变 ... */
+
 .dialog-header-modern {
     font-size: 16px;
     font-weight: 600;

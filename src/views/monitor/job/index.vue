@@ -16,11 +16,11 @@
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="handleQuery">
-                    <el-icon><Icon icon="ep:search" /></el-icon>
+                    <Icon icon="ep:search" />
                     搜索
                 </el-button>
                 <el-button @click="resetQuery">
-                    <el-icon><Icon icon="ep:refresh" /></el-icon>
+                    <Icon icon="ep:refresh" />
                     重置
                 </el-button>
             </el-form-item>
@@ -29,31 +29,31 @@
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
                 <el-button type="primary" plain @click="handleAdd" v-hasPermi="['monitor:job:add']">
-                    <el-icon><Icon icon="ep:plus" /></el-icon>
+                    <Icon icon="ep:plus" />
                     新增
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="success" plain :disabled="single" @click="handleUpdate" v-hasPermi="['monitor:job:edit']">
-                    <el-icon><Icon icon="ep:edit" /></el-icon>
+                    <Icon icon="ep:edit" />
                     修改
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="danger" plain :disabled="multiple" @click="handleDelete" v-hasPermi="['monitor:job:remove']">
-                    <el-icon><Icon icon="ep:delete" /></el-icon>
+                    <Icon icon="ep:delete" />
                     删除
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="warning" plain @click="handleExport" v-hasPermi="['monitor:job:export']">
-                    <el-icon><Icon icon="ep:download" /></el-icon>
+                    <Icon icon="ep:download" />
                     导出
                 </el-button>
             </el-col>
             <el-col :span="1.5">
                 <el-button type="info" plain @click="handleJobLog" v-hasPermi="['monitor:job:query']">
-                    <el-icon><Icon icon="ep:operation" /></el-icon>
+                    <Icon icon="ep:operation" />
                     日志
                 </el-button>
             </el-col>
@@ -80,27 +80,27 @@
                 <template #default="scope">
                     <el-tooltip content="修改" placement="top">
                         <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['monitor:job:edit']">
-                            <el-icon><Icon icon="ep:edit" /></el-icon>
+                            <Icon icon="ep:edit" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="删除" placement="top">
                         <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['monitor:job:remove']">
-                            <el-icon><Icon icon="ep:delete" /></el-icon>
+                            <Icon icon="ep:delete" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="执行一次" placement="top">
                         <el-button link type="primary" @click="handleRun(scope.row)" v-hasPermi="['monitor:job:changeStatus']">
-                            <el-icon><Icon icon="ep:caret-right" /></el-icon>
+                            <Icon icon="ep:caret-right" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="任务详细" placement="top">
                         <el-button link type="primary" @click="handleView(scope.row)" v-hasPermi="['monitor:job:query']">
-                            <el-icon><Icon icon="ep:view" /></el-icon>
+                            <Icon icon="ep:view" />
                         </el-button>
                     </el-tooltip>
                     <el-tooltip content="调度日志" placement="top">
                         <el-button link type="primary" @click="handleJobLog(scope.row)" v-hasPermi="['monitor:job:query']">
-                            <el-icon><Icon icon="ep:operation" /></el-icon>
+                            <Icon icon="ep:operation" />
                         </el-button>
                     </el-tooltip>
                 </template>
@@ -109,7 +109,7 @@
 
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
-        <!-- 添加或修改定时任务对话框 -->
+        
         <el-dialog :title="title" v-model="open" width="820px" append-to-body>
             <el-form ref="jobRef" :model="form" :rules="rules" label-width="120px">
                 <el-row>
@@ -138,7 +138,7 @@
                                                 <br />参数说明：支持字符串，布尔类型，长整型，浮点型，整型
                                             </div>
                                         </template>
-                                        <el-icon><question-filled /></el-icon>
+                                        <Icon icon="ep:question-filled" class="label-help-icon" />
                                     </el-tooltip>
                                 </span>
                             </template>
@@ -151,7 +151,7 @@
                                 <template #append>
                                     <el-button type="primary" @click="handleShowCron">
                                         生成表达式
-                                        <el-icon><Icon icon="ep:clock" /></el-icon>
+                                        <Icon icon="ep:clock" />
                                     </el-button>
                                 </template>
                             </el-input>
@@ -195,7 +195,7 @@
             <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression"></crontab>
         </el-dialog>
 
-        <!-- 任务日志详细 -->
+        
         <el-dialog title="任务详细" v-model="openView" width="700px" append-to-body>
             <el-form :model="form" label-width="120px">
                 <el-row>
@@ -288,7 +288,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询定时任务列表 */
+
 function getList() {
     loading.value = true
     listJob(queryParams.value).then(response => {
@@ -298,18 +298,18 @@ function getList() {
     })
 }
 
-/** 任务组名字典翻译 */
+
 function jobGroupFormat(row, column) {
     return selectDictLabel(sys_job_group.value, row.jobGroup)
 }
 
-/** 取消按钮 */
+
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 表单重置 */
+
 function reset() {
     form.value = {
         jobId: undefined,
@@ -324,26 +324,26 @@ function reset() {
     proxy.resetForm('jobRef')
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-// 多选框选中数据
+
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.jobId)
     single.value = selection.length != 1
     multiple.value = !selection.length
 }
 
-// 更多操作触发
+
 function handleCommand(command, row) {
     switch (command) {
         case 'handleRun':
@@ -360,7 +360,7 @@ function handleCommand(command, row) {
     }
 }
 
-// 任务状态修改
+
 function handleStatusChange(row) {
     let text = row.status === '0' ? '启用' : '停用'
     proxy.$modal
@@ -376,7 +376,7 @@ function handleStatusChange(row) {
         })
 }
 
-/* 立即执行一次 */
+
 function handleRun(row) {
     proxy.$modal
         .confirm('确认要立即执行一次"' + row.jobName + '"任务吗?')
@@ -389,7 +389,7 @@ function handleRun(row) {
         .catch(() => {})
 }
 
-/** 任务详细信息 */
+
 function handleView(row) {
     getJob(row.jobId).then(response => {
         form.value = response.data
@@ -397,31 +397,31 @@ function handleView(row) {
     })
 }
 
-/** cron表达式按钮操作 */
+
 function handleShowCron() {
     expression.value = form.value.cronExpression
     openCron.value = true
 }
 
-/** 确定后回传值 */
+
 function crontabFill(value) {
     form.value.cronExpression = value
 }
 
-/** 任务日志列表查询 */
+
 function handleJobLog(row) {
     const jobId = row.jobId || 0
     router.push('/monitor/job-log/index/' + jobId)
 }
 
-/** 新增按钮操作 */
+
 function handleAdd() {
     reset()
     open.value = true
     title.value = '添加任务'
 }
 
-/** 修改按钮操作 */
+
 function handleUpdate(row) {
     reset()
     const jobId = row.jobId || ids.value
@@ -432,7 +432,7 @@ function handleUpdate(row) {
     })
 }
 
-/** 提交按钮 */
+
 function submitForm() {
     proxy.$refs['jobRef'].validate(valid => {
         if (valid) {
@@ -453,7 +453,7 @@ function submitForm() {
     })
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
     const jobIds = row.jobId || ids.value
     proxy.$modal
@@ -468,7 +468,7 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 导出按钮操作 */
+
 function handleExport() {
     proxy.download(
         'monitor/job/export',
@@ -481,3 +481,11 @@ function handleExport() {
 
 getList()
 </script>
+
+<style scoped>
+.label-help-icon {
+    color: var(--el-text-color-secondary);
+    font-size: 15px;
+    vertical-align: -2px;
+}
+</style>

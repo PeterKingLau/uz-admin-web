@@ -8,7 +8,7 @@ import { defineStore } from 'pinia'
 import { RouteRecordRaw } from 'vue-router'
 import useUserStore from '@/store/modules/user'
 
-// 匹配views里面所有的.vue文件
+
 const modules = import.meta.glob('./../../views/**/*.vue')
 
 const usePermissionStore = defineStore('permission', {
@@ -49,7 +49,7 @@ const usePermissionStore = defineStore('permission', {
                     resolve([])
                     return
                 }
-                // 向后端请求路由数据
+                
                 getRouters().then(res => {
                     const sdata = JSON.parse(JSON.stringify(res.data))
                     const rdata = JSON.parse(JSON.stringify(res.data))
@@ -75,14 +75,14 @@ const usePermissionStore = defineStore('permission', {
     }
 })
 
-// 遍历后台传来的路由字符串，转换为组件对象
+
 function filterAsyncRouter(asyncRouterMap: any[], type = false) {
     return asyncRouterMap.filter(route => {
         if (type && route.children) {
             route.children = filterChildren(route.children)
         }
         if (route.component) {
-            // Layout ParentView 组件特殊处理
+            
             if (route.component === 'Layout') {
                 route.component = Layout
             } else if (route.component === 'ParentView') {
@@ -153,7 +153,7 @@ function filterChildren(childrenMap: any[], lastRouter: any = false) {
     return children
 }
 
-// 动态路由遍历，验证是否具备权限
+
 export function filterDynamicRoutes(routes: any[]) {
     const res: any[] = []
     routes.forEach(route => {

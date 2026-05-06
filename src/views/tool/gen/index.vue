@@ -8,14 +8,14 @@
                 <el-input v-model="queryParams.tableComment" placeholder="请输入表描述" clearable style="width: 200px" @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="创建时间" style="width: 308px">
-                <el-date-picker
+                <AppDatePicker
                     v-model="dateRange"
                     value-format="YYYY-MM-DD"
                     type="daterange"
                     range-separator="-"
                     start-placeholder="开始日期"
                     end-placeholder="结束日期"
-                ></el-date-picker>
+                ></AppDatePicker>
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="handleQuery">
@@ -187,7 +187,7 @@ onActivated(() => {
     }
 })
 
-/** 查询表集合 */
+
 function getList() {
     loading.value = true
     listTable(proxy?.addDateRange(queryParams.value, dateRange.value)).then((response: any) => {
@@ -196,12 +196,12 @@ function getList() {
         loading.value = false
     })
 }
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
-/** 生成代码操作 */
+
 function handleGenTable(row: any) {
     const tbNames = row.tableName || tableNames.value
     if (tbNames === '') {
@@ -216,7 +216,7 @@ function handleGenTable(row: any) {
         proxy?.$download.zip('/tool/gen/batchGenCode?tables=' + tbNames, 'code_gen.zip')
     }
 }
-/** 同步数据库操作 */
+
 function handleSynchDb(row: any) {
     const tableName = row.tableName
     proxy?.$modal
@@ -231,21 +231,21 @@ function handleSynchDb(row: any) {
             console.log(e)
         })
 }
-/** 打开导入表弹窗 */
+
 function openImportTable() {
     ;(proxy?.$refs['importRef'] as any).show()
 }
-/** 打开创建表弹窗 */
+
 function openCreateTable() {
     ;(proxy?.$refs['createRef'] as any).show()
 }
-/** 重置按钮操作 */
+
 function resetQuery() {
     dateRange.value = []
     proxy?.resetForm('queryRef')
     handleQuery()
 }
-/** 预览按钮 */
+
 function handlePreview(row: any) {
     previewTable(row.tableId).then(response => {
         preview.value.data = response.data
@@ -253,23 +253,23 @@ function handlePreview(row: any) {
         preview.value.activeName = 'domain.java'
     })
 }
-/** 复制代码成功 */
+
 function copyTextSuccess() {
     proxy?.$modal.msgSuccess('复制成功')
 }
-// 多选框选中数据
+
 function handleSelectionChange(selection: any[]) {
     ids.value = selection.map(item => item.tableId)
     tableNames.value = selection.map(item => item.tableName)
     single.value = selection.length !== 1
     multiple.value = !selection.length
 }
-/** 修改按钮操作 */
+
 function handleEditTable(row: any) {
     const tableId = row.tableId || ids.value[0]
     router.push({ path: '/tool/gen-edit/index/' + tableId, query: { pageNum: queryParams.value.pageNum } })
 }
-/** 删除按钮操作 */
+
 function handleDelete(row: any) {
     const tableIds = row.tableId || ids.value
     proxy?.$modal

@@ -2,9 +2,9 @@ import request from '@/utils/request'
 import { LoginParams, LoginType, RegisterParams, SendPhoneCodeParams } from './login.types'
 import { LoginResponse, UserInfoResponse } from './login.types'
 
-/** 登录方法 */
+
 export function login(params: LoginParams): Promise<LoginResponse> {
-    // 指定返回类型
+    
     const { username, password, loginType = 'PASSWORD', smsCode = '' } = params
 
     const data: {
@@ -33,10 +33,10 @@ export function login(params: LoginParams): Promise<LoginResponse> {
         },
         method: 'post',
         data
-    }) as Promise<LoginResponse> // 明确指定返回类型
+    }) as Promise<LoginResponse> 
 }
 
-/** 发送短信验证码 */
+
 export function sendPhoneCode(username: SendPhoneCodeParams) {
     return request({
         url: '/sendPhoneCode',
@@ -49,7 +49,7 @@ export function sendPhoneCode(username: SendPhoneCodeParams) {
     })
 }
 
-/** 注册方法 */
+
 export function register(data: RegisterParams) {
     return request({
         url: '/register',
@@ -61,7 +61,7 @@ export function register(data: RegisterParams) {
     })
 }
 
-/** 获取用户详细信息 */
+
 export function getInfo(): Promise<UserInfoResponse> {
     return request({
         url: '/getInfo',
@@ -69,7 +69,7 @@ export function getInfo(): Promise<UserInfoResponse> {
     })
 }
 
-/** 退出方法 */
+
 export function logout() {
     return request({
         url: '/logout',
@@ -77,7 +77,7 @@ export function logout() {
     })
 }
 
-/** 获取验证码 */
+
 export function getCodeImg() {
     return request({
         url: '/captchaImage',

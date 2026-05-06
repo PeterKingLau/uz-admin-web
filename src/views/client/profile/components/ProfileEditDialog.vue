@@ -145,7 +145,7 @@ const submit = async () => {
         try {
             await userStore.refreshProfile()
         } catch {
-            // 页面会用本次提交的数据先行更新，刷新失败不阻塞用户保存结果。
+            
         }
         proxy?.$modal?.msgSuccess?.('资料已更新')
         emit('saved', payload)

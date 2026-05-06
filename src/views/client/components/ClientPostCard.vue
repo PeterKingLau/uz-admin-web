@@ -257,12 +257,12 @@ watch(
 
 <style scoped lang="scss">
 .client-post-card {
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    background: var(--client-surface);
+    border-radius: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
     cursor: pointer;
-    box-shadow: var(--client-shadow-soft);
+    box-shadow: none;
     transition:
         border-color var(--app-motion-normal),
         box-shadow var(--app-motion-normal),
@@ -270,9 +270,7 @@ watch(
 }
 
 .client-post-card:hover {
-    border-color: var(--app-hover-border-soft);
-    box-shadow: var(--app-hover-shadow-card);
-    background: var(--client-card-hover);
+    background: transparent;
 }
 
 .cover-wrap {
@@ -280,7 +278,8 @@ watch(
     aspect-ratio: 3 / 4;
     background: var(--client-fill);
     overflow: hidden;
-    border-bottom: 1px solid var(--client-border-soft);
+    border: 1px solid var(--client-border-soft);
+    border-radius: 8px;
 }
 
 .cover-wrap::after {
@@ -357,14 +356,14 @@ watch(
 .skeleton-line {
     position: relative;
     z-index: 1;
-    border-radius: 999px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.72);
 }
 
 .skeleton-mark {
     width: 42px;
     height: 42px;
-    border-radius: 12px;
+    border-radius: 8px;
     margin-bottom: auto;
 }
 
@@ -469,14 +468,14 @@ watch(
 }
 
 .card-content {
-    padding: 16px;
-    background: var(--client-surface);
+    padding: 10px 2px 0;
+    background: transparent;
 }
 
 .content-text {
     margin: 0;
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.5;
     color: var(--text-main);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -486,7 +485,7 @@ watch(
 }
 
 .meta-row {
-    margin-top: 14px;
+    margin-top: 9px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -538,8 +537,8 @@ watch(
 
 .user-avatar,
 .avatar-fallback {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     flex-shrink: 0;
     display: block;
@@ -555,7 +554,7 @@ watch(
     justify-content: center;
     background: var(--client-fill);
     color: var(--text-minor);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
 }
 
@@ -563,7 +562,7 @@ watch(
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-regular);
     max-width: 120px;
 }
@@ -585,14 +584,14 @@ watch(
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-minor);
     white-space: nowrap;
 }
 
 @media screen and (max-width: 768px) {
     .card-content {
-        padding: 12px;
+        padding: 9px 0 0;
     }
 
     .content-text {

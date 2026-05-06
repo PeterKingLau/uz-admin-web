@@ -1,10 +1,10 @@
 import useUserStore from '@/store/modules/user'
 
-/**
- * 字符权限校验
- * @param {Array} value 校验值
- * @returns {Boolean}
- */
+
+
+
+
+
 export function checkPermi(value: Array<any>): boolean {
     if (value && value instanceof Array && value.length > 0) {
         const permissions = useUserStore().permissions
@@ -25,11 +25,11 @@ export function checkPermi(value: Array<any>): boolean {
     }
 }
 
-/**
- * 角色权限校验
- * @param {Array} value 校验值
- * @returns {Boolean}
- */
+
+
+
+
+
 export function checkRole(value: Array<any>): boolean {
     if (value && value instanceof Array && value.length > 0) {
         const roles = useUserStore().roles

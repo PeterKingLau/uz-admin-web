@@ -127,7 +127,7 @@
                         <template #header>
                             <div class="card-header">
                                 <span class="header-title">近 7 天审核趋势</span>
-                                <el-tag size="small" effect="plain">{{ isAdmin ? '全局数据' : '个人数据' }}</el-tag>
+                                <el-tag size="small" effect="plain">全局数据</el-tag>
                             </div>
                         </template>
                         <div ref="trendChartRef" class="chart-container"></div>
@@ -138,7 +138,7 @@
                     <el-card shadow="never" class="chart-card">
                         <template #header>
                             <div class="card-header">
-                                <span class="header-title">{{ isAdmin ? '审核状态占比' : '我的审核状态占比' }}</span>
+                                <span class="header-title">审核状态占比</span>
                             </div>
                         </template>
                         <div ref="statusPieRef" class="chart-container"></div>
@@ -151,7 +151,7 @@
                     <el-card shadow="never" class="chart-card">
                         <template #header>
                             <div class="card-header">
-                                <span class="header-title">{{ isAdmin ? '测评题型分布' : '提审来源分布' }}</span>
+                                <span class="header-title">测评题型分布</span>
                             </div>
                         </template>
                         <div ref="assessmentPieRef" class="chart-container chart-container--compact"></div>
@@ -164,7 +164,7 @@
                     <el-card shadow="never" class="table-card table-card--trend">
                         <template #header>
                             <div class="card-header">
-                                <span class="header-title">{{ isAdmin ? '趋势明细数据' : '我的趋势明细' }}</span>
+                                <span class="header-title">趋势明细数据</span>
                             </div>
                         </template>
                         <el-table :data="trend" class="trend-table" style="width: 100%" size="small" stripe>
@@ -198,7 +198,7 @@
                     <el-card shadow="never" class="table-card table-card--latest">
                         <template #header>
                             <div class="card-header">
-                                <span class="header-title">{{ isAdmin ? '最新审核动态' : '我的最新提审' }}</span>
+                                <span class="header-title">最新审核动态</span>
                             </div>
                         </template>
                         <el-table :data="latest" class="latest-table" style="width: 100%" size="small" :show-header="false">
@@ -237,13 +237,10 @@ import { listContentAudit } from '@/api/audit/profile/content'
 import { listUserAuditDetail } from '@/api/audit/person/person'
 import { listAssessmentQuestions, parseAssessmentQuestionRows } from '@/api/content/assessmentQuestion'
 import useSettingsStore from '@/store/modules/settings'
-import useUserStore from '@/store/modules/user'
 import { AUDIT_STATUS, POST_TYPE } from '@/utils/enum'
 
 const settingsStore = useSettingsStore()
-const userStore = useUserStore()
 const isDark = computed(() => settingsStore.isDark)
-const isAdmin = computed(() => userStore.roles.includes('admin'))
 const loading = ref(false)
 const hasLoadedOnce = ref(false)
 const showSkeleton = computed(() => loading.value && !hasLoadedOnce.value)
@@ -309,56 +306,11 @@ const extraStats = ref({
     peakDailyCount: 0
 })
 
-const userStatCards = [
-    {
-        key: 'totalCount',
-        title: '我的提审',
-        icon: 'mdi:file-document-outline',
-        color: '#409eff',
-        bgColor: 'rgba(64, 158, 255, 0.1)'
-    },
-    {
-        key: 'pendingCount',
-        title: '待审核',
-        icon: 'mdi:clock-time-four-outline',
-        color: '#e6a23c',
-        bgColor: 'rgba(230, 162, 60, 0.1)'
-    },
-    {
-        key: 'approvedCount',
-        title: '已通过',
-        icon: 'mdi:check-circle-outline',
-        color: '#67c23a',
-        bgColor: 'rgba(103, 194, 58, 0.1)'
-    },
-    {
-        key: 'rejectedCount',
-        title: '已驳回',
-        icon: 'mdi:close-circle-outline',
-        color: '#f56c6c',
-        bgColor: 'rgba(245, 108, 108, 0.1)'
-    }
-]
-
 const adminExtraCards = [
     { key: 'contentTotal', title: '内容总量', icon: 'mdi:file-document-outline', color: '#409eff', bgColor: 'rgba(64, 158, 255, 0.1)' },
     { key: 'assessmentTotal', title: '测评题量', icon: 'mdi:clipboard-text-outline', color: '#6f7ad3', bgColor: 'rgba(111, 122, 211, 0.12)' },
     { key: 'abilityCount', title: '能力题', icon: 'mdi:brain', color: '#409eff', bgColor: 'rgba(64, 158, 255, 0.12)' },
     { key: 'normalCount', title: '普通题', icon: 'mdi:format-list-bulleted', color: '#67c23a', bgColor: 'rgba(103, 194, 58, 0.12)' }
-]
-
-const userExtraCards = [
-    { key: 'contentTotal', title: '内容提审', icon: 'mdi:file-document-outline', color: '#409eff', bgColor: 'rgba(64, 158, 255, 0.1)' },
-    { key: 'profileTotal', title: '资料提审', icon: 'mdi:account-edit-outline', color: '#2f77ff', bgColor: 'rgba(47, 119, 255, 0.12)' },
-    {
-        key: 'passRate',
-        title: '通过率',
-        icon: 'mdi:percent-outline',
-        color: '#00a870',
-        bgColor: 'rgba(0, 168, 112, 0.1)',
-        formatter: value => `${Number(value || 0)}%`
-    },
-    { key: 'recentSubmitCount', title: '近 7 天提审', icon: 'mdi:chart-line', color: '#6f7ad3', bgColor: 'rgba(111, 122, 211, 0.12)' }
 ]
 
 const adminInsightCards = [
@@ -383,35 +335,13 @@ const adminInsightCards = [
     { key: 'peakDailyCount', title: '单日峰值', icon: 'mdi:fire-circle', color: '#e6a23c', bgColor: 'rgba(230, 162, 60, 0.12)', desc: '近 7 天最高单日量' }
 ]
 
-const userInsightCards = [
-    { key: 'todayCount', title: '今日提审', icon: 'mdi:calendar-today', color: '#409eff', bgColor: 'rgba(64, 158, 255, 0.1)', desc: '今天发起的提审量' },
-    {
-        key: 'todayApprovedCount',
-        title: '今日通过',
-        icon: 'mdi:check-decagram-outline',
-        color: '#67c23a',
-        bgColor: 'rgba(103, 194, 58, 0.12)',
-        desc: '今天完成通过数量'
-    },
-    {
-        key: 'avgDailyCount',
-        title: '7天日均',
-        icon: 'mdi:chart-timeline-variant',
-        color: '#6f7ad3',
-        bgColor: 'rgba(111, 122, 211, 0.12)',
-        formatter: value => formatDecimalValue(value),
-        desc: '近 7 天平均每日提审'
-    },
-    { key: 'peakDailyCount', title: '单日峰值', icon: 'mdi:fire-circle', color: '#e6a23c', bgColor: 'rgba(230, 162, 60, 0.12)', desc: '近 7 天最高单日量' }
-]
-
-const statCards = computed(() => (isAdmin.value ? adminStatCards : userStatCards))
-const extraCards = computed(() => (isAdmin.value ? adminExtraCards : userExtraCards))
-const insightCards = computed(() => (isAdmin.value ? adminInsightCards : userInsightCards))
+const statCards = adminStatCards
+const extraCards = adminExtraCards
+const insightCards = adminInsightCards
 const contentCards = computed(() => [
     {
         key: 'textPostCount',
-        title: isAdmin.value ? '文字内容' : '我的文字内容',
+        title: '文字内容',
         icon: 'mdi:format-text',
         color: '#909399',
         bgColor: 'rgba(144, 147, 153, 0.12)',
@@ -419,7 +349,7 @@ const contentCards = computed(() => [
     },
     {
         key: 'imagePostCount',
-        title: isAdmin.value ? '图文内容' : '我的图文内容',
+        title: '图文内容',
         icon: 'mdi:image-outline',
         color: '#409eff',
         bgColor: 'rgba(64, 158, 255, 0.12)',
@@ -427,7 +357,7 @@ const contentCards = computed(() => [
     },
     {
         key: 'videoPostCount',
-        title: isAdmin.value ? '视频内容' : '我的视频内容',
+        title: '视频内容',
         icon: 'mdi:video-outline',
         color: '#e6a23c',
         bgColor: 'rgba(230, 162, 60, 0.12)',
@@ -435,7 +365,7 @@ const contentCards = computed(() => [
     },
     {
         key: 'mediaPostRate',
-        title: isAdmin.value ? '媒体内容占比' : '我的媒体占比',
+        title: '媒体内容占比',
         icon: 'mdi:chart-donut',
         color: '#6f7ad3',
         bgColor: 'rgba(111, 122, 211, 0.12)',
@@ -569,23 +499,6 @@ watch(isDark, () => {
         void initCharts()
     })
 })
-
-watch(isAdmin, (nextRole, prevRole) => {
-    if (nextRole === prevRole) return
-    resetStats()
-    disposeCharts()
-    loadData()
-})
-
-watch(
-    () => userStore.id,
-    (nextId, prevId) => {
-        if (nextId === prevId) return
-        if (isAdmin.value) return
-        resetStats()
-        loadData()
-    }
-)
 
 async function initCharts() {
     const echarts = await ensureEchartsLoaded()
@@ -740,15 +653,10 @@ function renderStatusPie(bgColor) {
 function renderAssessmentPie(bgColor) {
     if (!assessmentChart || !echartsLib) return
 
-    const data = isAdmin.value
-        ? [
-              { name: '能力题', value: extraStats.value.abilityCount, itemStyle: { color: '#409eff' } },
-              { name: '普通题', value: extraStats.value.normalCount, itemStyle: { color: '#67c23a' } }
-          ]
-        : [
-              { name: '内容提审', value: extraStats.value.contentTotal, itemStyle: { color: '#409eff' } },
-              { name: '资料提审', value: extraStats.value.profileTotal, itemStyle: { color: '#6f7ad3' } }
-          ]
+    const data = [
+        { name: '能力题', value: extraStats.value.abilityCount, itemStyle: { color: '#409eff' } },
+        { name: '普通题', value: extraStats.value.normalCount, itemStyle: { color: '#67c23a' } }
+    ]
 
     assessmentChart.setOption({
         backgroundColor: bgColor,
@@ -810,23 +718,6 @@ function resolveAuditTime(item) {
     return item?.auditTime || item?.applyTime || item?.updateTime || item?.createTime || ''
 }
 
-function belongsToCurrentUser(item) {
-    const currentId = userStore.id != null ? String(userStore.id) : ''
-    const currentNames = [userStore.name, userStore.nickName].filter(Boolean).map(x => String(x))
-    const idCandidates = [item?.userId, item?.createBy, item?.ownerUserId, item?.targetUserId, item?.user?.id]
-        .filter(x => x != null && x !== '')
-        .map(x => String(x))
-    if (currentId && idCandidates.includes(currentId)) return true
-
-    const nameCandidates = [item?.userName, item?.nickName, item?.createByName, item?.applyUserName, item?.createBy].filter(Boolean).map(x => String(x))
-    return currentNames.some(name => nameCandidates.includes(name))
-}
-
-function scopeByRole(list) {
-    if (isAdmin.value) return list
-    return list.filter(belongsToCurrentUser)
-}
-
 function resetStats() {
     stats.value = {
         totalCount: 0,
@@ -870,18 +761,14 @@ async function loadData() {
         const userData = userRes.status === 'fulfilled' ? getRows(userRes.value) : []
         const assessmentRows = assessmentRes.status === 'fulfilled' ? parseAssessmentQuestionRows(assessmentRes.value) || [] : []
 
-        const scopedContent = scopeByRole(contentData).map(item => ({ ...item, __sourceType: 'content' }))
-        const scopedUser = scopeByRole(userData).map(item => ({ ...item, __sourceType: 'profile' }))
+        const scopedContent = contentData.map(item => ({ ...item, __sourceType: 'content' }))
+        const scopedUser = userData.map(item => ({ ...item, __sourceType: 'profile' }))
         const merged = [...scopedContent, ...scopedUser]
 
         contentList.value = merged
         calcStats(merged)
         calcContentStats(scopedContent)
-        if (isAdmin.value) {
-            calcAdminExtraStats(scopedContent, assessmentRows)
-        } else {
-            calcUserExtraStats(scopedContent, scopedUser)
-        }
+        calcAdminExtraStats(scopedContent, assessmentRows)
         calcTrend(merged)
         calcLatest(merged)
     } catch (e) {
@@ -909,17 +796,6 @@ function calcAdminExtraStats(contentData, assessmentRows) {
     extraStats.value.assessmentTotal = assessmentRows.length
     extraStats.value.abilityCount = assessmentRows.filter(x => x.type === 'ABILITY').length
     extraStats.value.normalCount = assessmentRows.filter(x => x.type === 'NORMAL').length
-}
-
-function calcUserExtraStats(contentData, userData) {
-    const total = stats.value.totalCount
-    extraStats.value.contentTotal = contentData.length
-    extraStats.value.profileTotal = userData.length
-    extraStats.value.passRate = total > 0 ? Math.round((stats.value.approvedCount / total) * 100) : 0
-    extraStats.value.recentSubmitCount = 0
-    extraStats.value.assessmentTotal = 0
-    extraStats.value.abilityCount = 0
-    extraStats.value.normalCount = 0
 }
 
 function calcTrend(list) {

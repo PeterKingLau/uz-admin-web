@@ -1,9 +1,9 @@
 import { defineComponent, h, resolveComponent, PropType } from 'vue'
 import { makeMap } from '@/utils/index'
 
-/**
- * HTML 原生属性
- */
+
+
+
 const isAttr = makeMap(
     'accept,accept-charset,accesskey,action,align,alt,async,autocomplete,' +
         'autofocus,autoplay,autosave,bgcolor,border,buffered,challenge,charset,' +
@@ -22,9 +22,9 @@ const isAttr = makeMap(
 
 const isNotProps = makeMap('layout,prepend,regList,tag,document,changeTag,defaultValue,prefix-icon,suffix-icon')
 
-/**
- * 统一配置类型
- */
+
+
+
 interface FormConf {
     tag: string
     options?: any[]
@@ -38,9 +38,9 @@ interface FormConf {
     [key: string]: any
 }
 
-/**
- * 子组件特殊处理
- */
+
+
+
 const componentChild: Record<string, Record<string, (h: typeof import('vue').h, conf: FormConf, key: string) => any>> = {
     'el-button': {
         default(_h, conf, key) {
@@ -86,9 +86,9 @@ const componentChild: Record<string, Record<string, (h: typeof import('vue').h, 
     }
 }
 
-/**
- * 插槽处理
- */
+
+
+
 const componentSlot: Record<string, Record<string, (h: typeof import('vue').h, conf: FormConf) => (() => any) | undefined>> = {
     'el-upload': {
         tip: (h, conf) => {
@@ -141,7 +141,7 @@ export default defineComponent({
         const children: any[] = []
         const slot: Record<string, any> = {}
 
-        /** 生成子节点 */
+        
         const childObjs = componentChild[confClone.tag]
         if (childObjs) {
             Object.keys(childObjs).forEach(key => {
@@ -155,7 +155,7 @@ export default defineComponent({
             })
         }
 
-        /** 生成 slot */
+        
         const slotObjs = componentSlot[confClone.tag]
         if (slotObjs) {
             Object.keys(slotObjs).forEach(key => {
@@ -167,7 +167,7 @@ export default defineComponent({
             })
         }
 
-        /** 分类属性 */
+        
         Object.keys(confClone).forEach((key: string) => {
             const val = confClone[key]
 

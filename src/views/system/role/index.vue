@@ -13,14 +13,14 @@
                 </el-select>
             </el-form-item>
             <el-form-item label="创建时间" style="width: 308px">
-                <el-date-picker
+                <AppDatePicker
                     v-model="dateRange"
                     value-format="YYYY-MM-DD"
                     type="daterange"
                     range-separator="-"
                     start-placeholder="开始日期"
                     end-placeholder="结束日期"
-                ></el-date-picker>
+                ></AppDatePicker>
             </el-form-item>
             <el-form-item class="form-actions">
                 <el-button type="primary" @click="handleQuery" class="action-btn"><Icon icon="ep:search" class="btn-icon" />搜索</el-button>
@@ -60,7 +60,7 @@
                 </div>
             </div>
 
-            <!-- 表格数据 -->
+            
             <el-table v-loading="loading" :data="roleList" @selection-change="handleSelectionChange" class="modern-table">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="角色编号" prop="roleId" width="120" />
@@ -116,7 +116,7 @@
             </div>
         </div>
 
-        <!-- 添加或修改角色配置对话框 -->
+        
         <el-dialog :title="title" v-model="open" width="600px" append-to-body class="role-dialog modern-dialog">
             <el-form ref="roleRef" :model="form" :rules="rules" label-width="100px" class="custom-form">
                 <el-form-item label="角色名称" prop="roleName">
@@ -127,7 +127,7 @@
                     <template #label>
                         <span>
                             <el-tooltip content="控制器中定义的权限字符，如：@PreAuthorize(`@ss.hasRole('admin')`)" placement="top">
-                                <el-icon><question-filled /></el-icon>
+                                <Icon icon="ep:question-filled" class="label-help-icon" />
                             </el-tooltip>
                             权限字符
                         </span>
@@ -185,7 +185,7 @@
             </template>
         </el-dialog>
 
-        <!-- 分配角色数据权限对话框 -->
+        
         <el-dialog :title="title" v-model="openDataScope" width="500px" append-to-body class="modern-dialog">
             <el-form :model="form" label-width="80px">
                 <el-form-item label="角色名称">
@@ -256,7 +256,7 @@ const openDataScope = ref(false)
 const menuRef = ref(null)
 const deptRef = ref(null)
 
-/** 数据范围选项*/
+
 const dataScopeOptions = ref([
     { value: '1', label: '全部数据权限' },
     { value: '2', label: '自定数据权限' },
@@ -283,7 +283,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询角色列表 */
+
 function getList() {
     loading.value = true
     listRole(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
@@ -293,20 +293,20 @@ function getList() {
     })
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
     queryParams.value.pageNum = 1
     getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
     dateRange.value = []
     proxy.resetForm('queryRef')
     handleQuery()
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
     const roleIds = row.roleId || ids.value
     if ((Array.isArray(roleIds) && roleIds.includes(1)) || roleIds === 1) {
@@ -325,7 +325,7 @@ function handleDelete(row) {
         .catch(() => {})
 }
 
-/** 导出按钮操作 */
+
 function handleExport() {
     proxy.download(
         'system/role/export',
@@ -336,7 +336,7 @@ function handleExport() {
     )
 }
 
-/** 多选框选中数据 */
+
 function handleSelectionChange(selection) {
     ids.value = selection.map(item => item.roleId)
     single.value = selection.length != 1
@@ -344,7 +344,7 @@ function handleSelectionChange(selection) {
     hasSuperAdmin.value = selection.some(item => item.roleId === 1)
 }
 
-/** 角色状态修改 */
+
 function handleStatusChange(row) {
     let text = row.status === '0' ? '启用' : '停用'
     proxy.$modal
@@ -360,7 +360,7 @@ function handleStatusChange(row) {
         })
 }
 
-/** 更多操作 */
+
 function handleCommand(command, row) {
     switch (command) {
         case 'handleDataScope':
@@ -374,29 +374,29 @@ function handleCommand(command, row) {
     }
 }
 
-/** 分配用户 */
+
 function handleAuthUser(row) {
     router.push('/system/role-auth/user/' + row.roleId)
 }
 
-/** 查询菜单树结构 */
+
 function getMenuTreeselect() {
     menuTreeselect().then(response => {
         menuOptions.value = response.data
     })
 }
 
-/** 所有部门节点数据 */
+
 function getDeptAllCheckedKeys() {
-    // 目前被选中的部门节点
+    
     let checkedKeys = deptRef.value.getCheckedKeys()
-    // 半选中的部门节点
+    
     let halfCheckedKeys = deptRef.value.getHalfCheckedKeys()
     checkedKeys.unshift.apply(checkedKeys, halfCheckedKeys)
     return checkedKeys
 }
 
-/** 重置新增的表单以及其他数据  */
+
 function reset() {
     if (menuRef.value != undefined) {
         menuRef.value.setCheckedKeys([])
@@ -420,7 +420,7 @@ function reset() {
     proxy.resetForm('roleRef')
 }
 
-/** 添加角色 */
+
 function handleAdd() {
     reset()
     getMenuTreeselect()
@@ -428,7 +428,7 @@ function handleAdd() {
     title.value = '添加角色'
 }
 
-/** 修改角色 */
+
 function handleUpdate(row) {
     if ((row && row.roleId === 1) || (!row && ids.value.includes(1))) {
         proxy.$modal.msgWarning('不允许操作超级管理员')
@@ -455,7 +455,7 @@ function handleUpdate(row) {
     title.value = '修改角色'
 }
 
-/** 根据角色ID查询菜单树结构 */
+
 function getRoleMenuTreeselect(roleId) {
     return roleMenuTreeselect(roleId).then(response => {
         menuOptions.value = response.menus
@@ -463,7 +463,7 @@ function getRoleMenuTreeselect(roleId) {
     })
 }
 
-/** 根据角色ID查询部门树结构 */
+
 function getDeptTree(roleId) {
     return deptTreeSelect(roleId).then(response => {
         deptOptions.value = response.depts
@@ -471,7 +471,7 @@ function getDeptTree(roleId) {
     })
 }
 
-/** 树权限（展开/折叠）*/
+
 function handleCheckedTreeExpand(value, type) {
     if (type == 'menu') {
         let treeList = menuOptions.value
@@ -486,7 +486,7 @@ function handleCheckedTreeExpand(value, type) {
     }
 }
 
-/** 树权限（全选/全不选） */
+
 function handleCheckedTreeNodeAll(value, type) {
     if (type == 'menu') {
         menuRef.value.setCheckedNodes(value ? menuOptions.value : [])
@@ -495,7 +495,7 @@ function handleCheckedTreeNodeAll(value, type) {
     }
 }
 
-/** 树权限（父子联动） */
+
 function handleCheckedTreeConnect(value, type) {
     if (type == 'menu') {
         form.value.menuCheckStrictly = value ? true : false
@@ -504,17 +504,17 @@ function handleCheckedTreeConnect(value, type) {
     }
 }
 
-/** 所有菜单节点数据 */
+
 function getMenuAllCheckedKeys() {
-    // 目前被选中的菜单节点
+    
     let checkedKeys = menuRef.value.getCheckedKeys()
-    // 半选中的菜单节点
+    
     let halfCheckedKeys = menuRef.value.getHalfCheckedKeys()
     checkedKeys.unshift.apply(checkedKeys, halfCheckedKeys)
     return checkedKeys
 }
 
-/** 提交按钮 */
+
 function submitForm() {
     proxy.$refs['roleRef'].validate(valid => {
         if (valid) {
@@ -537,20 +537,20 @@ function submitForm() {
     })
 }
 
-/** 取消按钮 */
+
 function cancel() {
     open.value = false
     reset()
 }
 
-/** 选择角色权限范围触发 */
+
 function dataScopeSelectChange(value) {
     if (value !== '2') {
         deptRef.value.setCheckedKeys([])
     }
 }
 
-/** 分配数据权限操作 */
+
 function handleDataScope(row) {
     reset()
     const deptTreeSelect = getDeptTree(row.roleId)
@@ -570,7 +570,7 @@ function handleDataScope(row) {
     title.value = '分配数据权限'
 }
 
-/** 提交按钮（数据权限） */
+
 function submitDataScope() {
     if (form.value.roleId != undefined) {
         form.value.deptIds = getDeptAllCheckedKeys()
@@ -582,7 +582,7 @@ function submitDataScope() {
     }
 }
 
-/** 取消按钮（数据权限）*/
+
 function cancelDataScope() {
     openDataScope.value = false
     reset()
@@ -593,4 +593,10 @@ getList()
 
 <style scoped lang="scss">
 @use '@/assets/styles/crud-page.scss' as *;
+
+.label-help-icon {
+    color: var(--el-text-color-secondary);
+    font-size: 15px;
+    vertical-align: -2px;
+}
 </style>

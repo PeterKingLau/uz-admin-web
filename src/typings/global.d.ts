@@ -21,15 +21,15 @@ declare module 'vue' {
         selectDictLabels: typeof selectDictLabels
 
         $tab: typeof tab
-        // 认证对象
+        
         $auth: typeof auth
-        // 缓存对象
+        
         $cache: typeof cache
-        // 模态框对象
+        
         $modal: typeof modal
-        // 下载文件
+        
         $download: typeof download
-        // 图片路径处理
+        
         $imgUrl: typeof getImgUrl
     }
 }
@@ -38,6 +38,4 @@ declare global {
     interface Window {
         VConsole: any
     }
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    // interface ImportMeta {}
 }

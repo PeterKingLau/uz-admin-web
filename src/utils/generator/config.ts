@@ -1,4 +1,4 @@
-// 表单整体配置
+
 export interface FormConf {
     formRef: string
     formModel: string
@@ -25,14 +25,14 @@ export const formConf: FormConf = {
     formBtns: true
 }
 
-// 通用的选项结构
+
 export interface OptionItem {
     label: string
     value: any
     [key: string]: any
 }
 
-// 通用组件配置（宽松一点，避免写爆）
+
 export interface FormComponentConfig {
     label?: string
     tag: string
@@ -51,9 +51,9 @@ export interface FormComponentConfig {
     [key: string]: any
 }
 
-/**
- * 输入类组件
- */
+
+
+
 export const inputComponents: FormComponentConfig[] = [
     {
         label: '单行文本',
@@ -149,9 +149,9 @@ export const inputComponents: FormComponentConfig[] = [
     }
 ]
 
-/**
- * 选择类组件
- */
+
+
+
 export const selectComponents: FormComponentConfig[] = [
     {
         label: '下拉选择',
@@ -437,9 +437,9 @@ export const selectComponents: FormComponentConfig[] = [
     }
 ]
 
-/**
- * 布局/按钮等组件
- */
+
+
+
 export const layoutComponents: FormComponentConfig[] = [
     {
         layout: 'rowFormItem',
@@ -450,7 +450,7 @@ export const layoutComponents: FormComponentConfig[] = [
         label: '行容器',
         layoutTree: true,
         children: [],
-        tag: '', // 占位，为了兼容 FormComponentConfig 的 tag
+        tag: '', 
         regList: [],
         document: 'https://element-plus.org/zh-CN/component/layout'
     },
@@ -472,7 +472,7 @@ export const layoutComponents: FormComponentConfig[] = [
     }
 ]
 
-// 组件 rule 的触发方式
+
 export type TriggerMap = Record<string, 'blur' | 'change'>
 
 export const trigger: TriggerMap = {

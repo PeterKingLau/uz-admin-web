@@ -1,7 +1,7 @@
 <template>
     <div class="app-container system-user">
-        <splitpanes :horizontal="appStore.device === 'mobile'" class="modern-splitpanes">
-            <pane size="18" min-size="15" max-size="30">
+        <div ref="userLayoutRef" class="user-layout">
+            <aside class="dept-pane">
                 <div class="dept-wrapper">
                     <div class="head-container">
                         <el-input v-model="deptName" placeholder="搜索部门" clearable class="dept-search custom-input">
@@ -38,9 +38,13 @@
                         </el-tree>
                     </div>
                 </div>
-            </pane>
+            </aside>
 
-            <pane size="84">
+            <div class="layout-resizer" role="separator" aria-label="调整部门栏宽度" @pointerdown="handleResizeStart">
+                <span class="resizer-handle"></span>
+            </div>
+
+            <section class="user-content-pane">
                 <div class="user-pane">
                     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" class="search-form modern-form">
                         <el-form-item label="用户名称" prop="userName">
@@ -67,7 +71,7 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="创建时间">
-                            <el-date-picker
+                            <AppDatePicker
                                 v-model="dateRange"
                                 value-format="YYYY-MM-DD"
                                 type="daterange"
@@ -107,7 +111,14 @@
                             </div>
                         </div>
 
-                        <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange" class="modern-table">
+                        <el-table
+                            v-loading="loading"
+                            :data="userList"
+                            row-key="userId"
+                            table-layout="fixed"
+                            @selection-change="handleSelectionChange"
+                            class="modern-table"
+                        >
                             <el-table-column type="selection" width="50" align="center" />
                             <el-table-column label="编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" width="80">
                                 <template #default="scope">
@@ -204,8 +215,8 @@
                         </div>
                     </div>
                 </div>
-            </pane>
-        </splitpanes>
+            </section>
+        </div>
 
         <el-dialog :title="title" v-model="open" width="650px" append-to-body class="modern-dialog">
             <el-form :model="form" :rules="rules" ref="userRef" label-width="90px" class="modern-form">
@@ -352,20 +363,17 @@
 <script setup>
 defineOptions({ name: 'User' })
 import { getToken } from '@/utils/auth'
-import useAppStore from '@/store/modules/app'
 import { getConfigKey } from '@/api/system/config'
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from '@/api/system/user'
-import { Splitpanes, Pane } from 'splitpanes'
-import 'splitpanes/dist/splitpanes.css'
 import { useRouter } from 'vue-router'
-import { ref, reactive, toRefs, watch, onMounted, getCurrentInstance } from 'vue'
+import { ref, shallowRef, reactive, toRefs, watch, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 
 const router = useRouter()
-const appStore = useAppStore()
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable, sys_user_sex } = proxy.useDict('sys_normal_disable', 'sys_user_sex')
 
-const userList = ref([])
+const userList = shallowRef([])
+const userLayoutRef = ref(null)
 const open = ref(false)
 const loading = ref(true)
 const showSearch = ref(true)
@@ -392,7 +400,7 @@ const upload = reactive({
 })
 
 const columns = ref([
-    { key: 0, label: `用户编号`, visible: true },
+    { key: 0, label: `用户编号`, visible: false },
     { key: 1, label: `用户名称`, visible: true },
     { key: 2, label: `用户昵称`, visible: true },
     { key: 3, label: `部门`, visible: true },
@@ -400,6 +408,15 @@ const columns = ref([
     { key: 5, label: `状态`, visible: true },
     { key: 6, label: `创建时间`, visible: true }
 ])
+
+const DEPT_PANE_WIDTH_KEY = 'system:user:deptPaneWidth'
+const DEPT_PANE_MIN_WIDTH = 220
+const DEPT_PANE_MOBILE_MIN_WIDTH = 180
+const DEPT_PANE_MAX_WIDTH = 480
+let resizeStartX = 0
+let resizeStartWidth = 0
+let pendingDeptPaneWidth = 0
+let resizeFrame = 0
 
 const data = reactive({
     form: {},
@@ -466,11 +483,14 @@ watch(deptName, val => {
 
 function getList() {
     loading.value = true
-    listUser(proxy.addDateRange(queryParams.value, dateRange.value)).then(res => {
-        loading.value = false
-        userList.value = res.rows
-        total.value = res.total
-    })
+    listUser(proxy.addDateRange(queryParams.value, dateRange.value))
+        .then(res => {
+            userList.value = Array.isArray(res.rows) ? res.rows : []
+            total.value = Number(res.total || 0)
+        })
+        .finally(() => {
+            loading.value = false
+        })
 }
 
 function getDeptTree() {
@@ -546,7 +566,80 @@ function handleStatusChange(row) {
         })
         .catch(function () {
             row.status = row.status === '0' ? '1' : '0'
+            refreshUserRow(row)
         })
+}
+
+function refreshUserRow(row) {
+    const index = userList.value.findIndex(item => item.userId === row.userId)
+    if (index < 0) return
+    const nextList = userList.value.slice()
+    nextList[index] = { ...row }
+    userList.value = nextList
+}
+
+function clampDeptPaneWidth(width) {
+    const layoutWidth = userLayoutRef.value?.clientWidth || window.innerWidth
+    const minWidth = window.matchMedia('(max-width: 768px)').matches ? DEPT_PANE_MOBILE_MIN_WIDTH : DEPT_PANE_MIN_WIDTH
+    const maxByLayout = Math.max(minWidth, layoutWidth - 680)
+    const maxWidth = Math.min(DEPT_PANE_MAX_WIDTH, maxByLayout)
+    return Math.min(Math.max(Math.round(width), minWidth), maxWidth)
+}
+
+function setDeptPaneWidth(width, persist = false) {
+    const nextWidth = clampDeptPaneWidth(width)
+    userLayoutRef.value?.style.setProperty('--dept-pane-width', `${nextWidth}px`)
+    if (persist && typeof window !== 'undefined') {
+        window.localStorage.setItem(DEPT_PANE_WIDTH_KEY, String(nextWidth))
+    }
+}
+
+function restoreDeptPaneWidth() {
+    if (typeof window === 'undefined') return
+    const storedWidth = Number(window.localStorage.getItem(DEPT_PANE_WIDTH_KEY))
+    if (Number.isFinite(storedWidth) && storedWidth > 0) {
+        setDeptPaneWidth(storedWidth)
+    }
+}
+
+function scheduleDeptPaneWidth(width) {
+    pendingDeptPaneWidth = width
+    if (resizeFrame) return
+    resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = 0
+        setDeptPaneWidth(pendingDeptPaneWidth)
+    })
+}
+
+function handleResizeMove(event) {
+    scheduleDeptPaneWidth(resizeStartWidth + event.clientX - resizeStartX)
+}
+
+function handleResizeEnd() {
+    window.removeEventListener('pointermove', handleResizeMove)
+    userLayoutRef.value?.classList.remove('is-resizing')
+    document.body.style.userSelect = ''
+    document.body.style.cursor = ''
+    if (resizeFrame) {
+        window.cancelAnimationFrame(resizeFrame)
+        resizeFrame = 0
+    }
+    setDeptPaneWidth(pendingDeptPaneWidth || resizeStartWidth, true)
+}
+
+function handleResizeStart(event) {
+    const layout = userLayoutRef.value
+    const deptPane = layout?.querySelector('.dept-pane')
+    if (!layout || !deptPane) return
+    event.preventDefault()
+    resizeStartX = event.clientX
+    resizeStartWidth = deptPane.getBoundingClientRect().width
+    pendingDeptPaneWidth = resizeStartWidth
+    layout.classList.add('is-resizing')
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    window.addEventListener('pointermove', handleResizeMove)
+    window.addEventListener('pointerup', handleResizeEnd, { once: true })
 }
 
 function handleCommand(command, row) {
@@ -692,11 +785,20 @@ function submitForm() {
 }
 
 onMounted(() => {
+    restoreDeptPaneWidth()
     getDeptTree()
     getList()
     getConfigKey('sys.user.initPassword').then(response => {
         initPassword.value = response.msg
     })
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('pointermove', handleResizeMove)
+    if (resizeFrame) {
+        window.cancelAnimationFrame(resizeFrame)
+        resizeFrame = 0
+    }
 })
 </script>
 
@@ -706,45 +808,65 @@ onMounted(() => {
     padding: 20px;
     background-color: var(--el-bg-color-page);
     box-sizing: border-box;
+    overflow: auto;
 
-    .modern-splitpanes {
+    .user-layout {
+        --dept-pane-width: 18%;
+
         height: 100%;
+        min-width: 980px;
+        display: grid;
+        grid-template-columns: minmax(220px, var(--dept-pane-width)) 14px minmax(720px, 1fr);
 
-        :deep(.splitpanes__splitter) {
-            background-color: transparent;
-            box-sizing: border-box;
-            position: relative;
-            flex-shrink: 0;
-            width: 16px;
-
-            &::before {
-                content: '';
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                transform: translate(-50%, -50%);
-                width: 4px;
-                height: 30px;
-                border-radius: 2px;
-                background-color: var(--el-border-color-light);
-                transition: background-color 0.3s;
-                z-index: 10;
-            }
-
-            &:hover::before {
-                background-color: var(--el-color-primary-light-3);
+        &.is-resizing {
+            .dept-pane,
+            .user-content-pane {
+                transition: none;
             }
         }
+    }
 
-        :deep(.splitpanes__pane) {
-            background-color: var(--el-bg-color);
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-            border: 1px solid var(--el-border-color-lighter);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+    .dept-pane,
+    .user-content-pane {
+        min-width: 0;
+        min-height: 0;
+        background-color: var(--el-bg-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--el-border-color-lighter);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .layout-resizer {
+        min-width: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: col-resize;
+        touch-action: none;
+        user-select: none;
+
+        .resizer-handle {
+            width: 4px;
+            height: 32px;
+            border-radius: 999px;
+            background-color: var(--el-border-color-light);
+            transition:
+                background-color var(--app-motion-fast),
+                height var(--app-motion-fast);
         }
+
+        &:hover .resizer-handle {
+            height: 44px;
+            background-color: var(--el-color-primary-light-3);
+        }
+    }
+
+    .user-layout.is-resizing .layout-resizer .resizer-handle {
+        height: 52px;
+        background-color: var(--el-color-primary);
     }
 
     .dept-wrapper {
@@ -891,21 +1013,12 @@ onMounted(() => {
         font-weight: 500;
         transition: all 0.2s;
 
-        &:hover {
-            transform: translateY(-1px);
-        }
-
         &.is-disabled,
         &:disabled {
             opacity: 0.55;
             cursor: not-allowed;
             box-shadow: none !important;
             transform: none !important;
-        }
-
-        &.is-disabled:hover,
-        &:disabled:hover {
-            transform: none;
         }
     }
 
@@ -980,6 +1093,23 @@ onMounted(() => {
             color: var(--el-text-color-primary);
             font-weight: 600;
             height: 48px;
+        }
+
+        :deep(.el-table__cell.el-table-fixed-column--right),
+        :deep(.el-table__cell.is-right) {
+            z-index: 2;
+            background-color: var(--el-bg-color);
+        }
+
+        :deep(th.el-table__cell.el-table-fixed-column--right),
+        :deep(th.el-table__cell.is-right) {
+            z-index: 3;
+            background-color: var(--el-fill-color-light);
+        }
+
+        :deep(.el-table__body tr:hover > .el-table__cell.el-table-fixed-column--right),
+        :deep(.el-table__body tr:hover > .el-table__cell.is-right) {
+            background-color: var(--el-table-row-hover-bg-color);
         }
 
         .row-code {
@@ -1215,14 +1345,19 @@ onMounted(() => {
 
 :global(html.dark) {
     .system-user {
-        .modern-splitpanes {
-            :deep(.splitpanes__splitter::before) {
+        .dept-pane,
+        .user-content-pane {
+            background-color: var(--el-bg-color-overlay);
+            border-color: var(--el-border-color-darker);
+        }
+
+        .layout-resizer {
+            .resizer-handle {
                 background-color: var(--el-border-color-dark);
             }
 
-            :deep(.splitpanes__pane) {
-                background-color: var(--el-bg-color-overlay);
-                border-color: var(--el-border-color-darker);
+            &:hover .resizer-handle {
+                background-color: var(--el-color-primary);
             }
         }
 
@@ -1244,6 +1379,23 @@ onMounted(() => {
             }
         }
 
+        .modern-table {
+            :deep(.el-table__cell.el-table-fixed-column--right),
+            :deep(.el-table__cell.is-right) {
+                background-color: var(--el-bg-color-overlay);
+            }
+
+            :deep(th.el-table__cell.el-table-fixed-column--right),
+            :deep(th.el-table__cell.is-right) {
+                background-color: var(--el-fill-color-darker);
+            }
+
+            :deep(.el-table__body tr:hover > .el-table__cell.el-table-fixed-column--right),
+            :deep(.el-table__body tr:hover > .el-table__cell.is-right) {
+                background-color: var(--el-table-row-hover-bg-color);
+            }
+        }
+
         .modern-upload {
             :deep(.el-upload-dragger) {
                 background-color: var(--el-fill-color-darker);
@@ -1261,8 +1413,29 @@ onMounted(() => {
 @media screen and (max-width: 768px) {
     .system-user {
         padding: 12px;
-        height: auto;
+        height: calc(100vh - 84px);
         min-height: calc(100vh - 84px);
+
+        .user-layout {
+            --dept-pane-width: 190px;
+
+            display: grid;
+            min-width: 940px;
+            min-height: 0;
+            grid-template-columns: minmax(180px, var(--dept-pane-width)) 12px minmax(720px, 1fr);
+        }
+
+        .layout-resizer {
+            min-width: 12px;
+        }
+
+        .dept-pane {
+            min-height: 0;
+        }
+
+        .user-content-pane {
+            min-height: 0;
+        }
 
         .modern-form {
             flex-direction: column;

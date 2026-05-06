@@ -13,7 +13,7 @@ const srcDir = fileURLToPath(new URL('./src', import.meta.url))
 const proxyTargets = {
     wired: 'http://192.168.10.7:8080/api',
     wireless: 'http://192.168.100.26:8080/api',
-    // production: 'http://47.109.96.135'
+    
     production: 'http://47.108.212.205/'
 } as const
 
@@ -41,13 +41,13 @@ function resolveProxyTarget(env: ViteRuntimeEnv, mode: string): string {
         return proxyTargets[proxyMode]
     }
 
-    return mode === 'development' ? proxyTargets.production : proxyTargets.wireless
+    return proxyTargets.wireless
 }
 
 function resolveProxyRewrite(env: ViteRuntimeEnv, mode: string) {
     const targetFromEnv = env.VITE_PROXY_TARGET?.trim()
     const proxyMode = env.VITE_PROXY_MODE as ProxyMode | undefined
-    const useProductionGateway = proxyMode === 'production' || (!targetFromEnv && mode === 'development') || targetFromEnv === proxyTargets.production
+    const useProductionGateway = proxyMode === 'production' || targetFromEnv === proxyTargets.production
 
     return (path: string) => {
         if (useProductionGateway) {

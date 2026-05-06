@@ -1,7 +1,7 @@
 import { computed, type ComputedRef } from 'vue'
 import { ENUM_TAG_CONFIG } from '@/utils/enum'
 
-// 每一项配置的结构
+
 interface EnumConfig {
     label: string
     type: string

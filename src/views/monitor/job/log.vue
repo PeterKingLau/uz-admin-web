@@ -41,14 +41,14 @@
             </el-select>
          </el-form-item>
          <el-form-item label="执行时间" style="width: 308px">
-            <el-date-picker
+            <AppDatePicker
                v-model="dateRange"
                value-format="YYYY-MM-DD"
                type="daterange"
                range-separator="-"
                start-placeholder="开始日期"
                end-placeholder="结束日期"
-            ></el-date-picker>
+            ></AppDatePicker>
          </el-form-item>
          <el-form-item>
             <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
@@ -132,7 +132,7 @@
          @pagination="getList"
       />
 
-      <!-- 调度日志详细 -->
+      
       <el-dialog title="调度日志详细" v-model="open" width="700px" append-to-body>
          <el-form :model="form" label-width="100px">
             <el-row>
@@ -201,7 +201,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询调度日志列表 */
+
 function getList() {
   loading.value = true
   listJobLog(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
@@ -211,38 +211,38 @@ function getList() {
   })
 }
 
-// 返回按钮
+
 function handleClose() {
   const obj = { path: "/monitor/job" }
   proxy.$tab.closeOpenPage(obj)
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
   queryParams.value.pageNum = 1
   getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
   dateRange.value = []
   proxy.resetForm("queryRef")
   handleQuery()
 }
 
-// 多选框选中数据
+
 function handleSelectionChange(selection) {
   ids.value = selection.map(item => item.jobLogId)
   multiple.value = !selection.length
 }
 
-/** 详细按钮操作 */
+
 function handleView(row) {
   open.value = true
   form.value = row
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
   proxy.$modal.confirm('是否确认删除调度日志编号为"' + ids.value + '"的数据项?').then(function () {
     return delJobLog(ids.value)
@@ -252,7 +252,7 @@ function handleDelete(row) {
   }).catch(() => {})
 }
 
-/** 清空按钮操作 */
+
 function handleClean() {
   proxy.$modal.confirm("是否确认清空所有调度日志数据项?").then(function () {
     return cleanJobLog()
@@ -262,7 +262,7 @@ function handleClean() {
   }).catch(() => {})
 }
 
-/** 导出按钮操作 */
+
 function handleExport() {
   proxy.download("monitor/jobLog/export", {
     ...queryParams.value,

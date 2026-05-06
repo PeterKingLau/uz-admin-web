@@ -105,7 +105,7 @@
          </div>
       </div>
 
-      <!-- 添加或修改岗位对话框 -->
+      
       <el-dialog :title="title" v-model="open" width="500px" append-to-body class="modern-dialog">
          <el-form ref="postRef" :model="form" :rules="rules" label-width="80px">
             <el-form-item label="岗位名称" prop="postName">
@@ -175,7 +175,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 查询岗位列表 */
+
 function getList() {
   loading.value = true
   listPost(queryParams.value).then(response => {
@@ -185,13 +185,13 @@ function getList() {
   })
 }
 
-/** 取消按钮 */
+
 function cancel() {
   open.value = false
   reset()
 }
 
-/** 表单重置 */
+
 function reset() {
   form.value = {
     postId: undefined,
@@ -204,33 +204,33 @@ function reset() {
   proxy.resetForm("postRef")
 }
 
-/** 搜索按钮操作 */
+
 function handleQuery() {
   queryParams.value.pageNum = 1
   getList()
 }
 
-/** 重置按钮操作 */
+
 function resetQuery() {
   proxy.resetForm("queryRef")
   handleQuery()
 }
 
-/** 多选框选中数据 */
+
 function handleSelectionChange(selection) {
   ids.value = selection.map(item => item.postId)
   single.value = selection.length != 1
   multiple.value = !selection.length
 }
 
-/** 新增按钮操作 */
+
 function handleAdd() {
   reset()
   open.value = true
   title.value = "添加岗位"
 }
 
-/** 修改按钮操作 */
+
 function handleUpdate(row) {
   reset()
   const postId = row.postId || ids.value
@@ -241,7 +241,7 @@ function handleUpdate(row) {
   })
 }
 
-/** 提交按钮 */
+
 function submitForm() {
   proxy.$refs["postRef"].validate(valid => {
     if (valid) {
@@ -262,7 +262,7 @@ function submitForm() {
   })
 }
 
-/** 删除按钮操作 */
+
 function handleDelete(row) {
   const postIds = row.postId || ids.value
   proxy.$modal.confirm('是否确认删除岗位编号为"' + postIds + '"的数据项？').then(function() {
@@ -273,7 +273,7 @@ function handleDelete(row) {
   }).catch(() => {})
 }
 
-/** 导出按钮操作 */
+
 function handleExport() {
   proxy.download("system/post/export", {
     ...queryParams.value
