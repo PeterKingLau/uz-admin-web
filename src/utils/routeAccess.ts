@@ -113,7 +113,7 @@ export function decodeClientUserId(encodedUserId?: string | number | null): stri
             return new TextDecoder().decode(payload)
         }
     }
-    return ''
+    return text
 }
 
 export function getClientUserProfileRoute(userId?: string | number | null): RouteLocationRaw {

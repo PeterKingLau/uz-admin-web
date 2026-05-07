@@ -2,7 +2,7 @@
     <div class="app-container">
         <el-row :gutter="10">
             <el-col :span="8">
-                <el-card style="height: calc(100vh - 125px)">
+                <el-card class="app-card" shadow="never" style="height: calc(100vh - 125px)">
                     <template #header>
                         <Collection style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">缓存列表</span>
                         <el-button style="float: right; padding: 3px 0" link type="primary" icon="Refresh" @click="refreshCacheNames()"></el-button>
@@ -29,7 +29,7 @@
             </el-col>
 
             <el-col :span="8">
-                <el-card style="height: calc(100vh - 125px)">
+                <el-card class="app-card" shadow="never" style="height: calc(100vh - 125px)">
                     <template #header>
                         <Key style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">键名列表</span>
                         <el-button style="float: right; padding: 3px 0" link type="primary" icon="Refresh" @click="refreshCacheKeys()"></el-button>
@@ -54,7 +54,7 @@
             </el-col>
 
             <el-col :span="8">
-                <el-card :bordered="false" style="height: calc(100vh - 125px)">
+                <el-card class="app-card" shadow="never" :bordered="false" style="height: calc(100vh - 125px)">
                     <template #header>
                         <Document style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">缓存内容</span>
                         <el-button style="float: right; padding: 3px 0" link type="primary" icon="Refresh" @click="handleClearCacheAll()">清理全部</el-button>

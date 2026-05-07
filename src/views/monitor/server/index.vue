@@ -2,7 +2,7 @@
     <div class="app-container">
         <el-row :gutter="10">
             <el-col :span="12" class="card-box">
-                <el-card>
+                <el-card class="app-card" shadow="never">
                     <template #header><Cpu style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">CPU</span></template>
                     <div class="el-table el-table--enable-row-hover el-table--medium">
                         <table cellspacing="0" style="width: 100%">
@@ -44,7 +44,7 @@
             </el-col>
 
             <el-col :span="12" class="card-box">
-                <el-card>
+                <el-card class="app-card" shadow="never">
                     <template #header
                         ><Tickets style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">内存</span></template
                     >
@@ -101,7 +101,7 @@
             </el-col>
 
             <el-col :span="24" class="card-box">
-                <el-card>
+                <el-card class="app-card" shadow="never">
                     <template #header
                         ><Monitor style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">服务器信息</span></template
                     >
@@ -135,7 +135,7 @@
             </el-col>
 
             <el-col :span="24" class="card-box">
-                <el-card>
+                <el-card class="app-card" shadow="never">
                     <template #header
                         ><CoffeeCup style="width: 1em; height: 1em; vertical-align: middle" />
                         <span style="vertical-align: middle">Java虚拟机信息</span></template
@@ -188,7 +188,7 @@
             </el-col>
 
             <el-col :span="24" class="card-box">
-                <el-card>
+                <el-card class="app-card" shadow="never">
                     <template #header
                         ><MessageBox style="width: 1em; height: 1em; vertical-align: middle" /> <span style="vertical-align: middle">磁盘状态</span></template
                     >

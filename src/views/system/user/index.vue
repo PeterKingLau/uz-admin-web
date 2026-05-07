@@ -366,6 +366,7 @@ import { getToken } from '@/utils/auth'
 import { getConfigKey } from '@/api/system/config'
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from '@/api/system/user'
 import { useRouter } from 'vue-router'
+import { encodeRouteId } from '@/router/routeParams'
 import { ref, shallowRef, reactive, toRefs, watch, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 
 const router = useRouter()
@@ -449,7 +450,7 @@ const data = reactive({
             },
             {
                 pattern: /^[^<>"'|\\]+$/,
-                message: '不能包含非法字符：< > " \' \\\ |',
+                message: `不能包含非法字符：< > " ' \\ |`,
                 trigger: 'blur'
             }
         ],
@@ -657,7 +658,7 @@ function handleCommand(command, row) {
 
 function handleAuthRole(row) {
     const userId = row.userId
-    router.push('/system/user-auth/role/' + userId)
+    router.push('/system/user-auth/role/' + encodeRouteId(userId))
 }
 
 function handleResetPwd(row) {
@@ -670,7 +671,7 @@ function handleResetPwd(row) {
             inputErrorMessage: '用户密码长度必须介于 5 和 20 之间',
             inputValidator: value => {
                 if (/<|>|"|'|\||\\/.test(value)) {
-                    return '不能包含非法字符：< > " \' \\\ |'
+                    return `不能包含非法字符：< > " ' \\ |`
                 }
             }
         })
@@ -760,7 +761,7 @@ function handleUpdate(row) {
         form.value.roleIds = response.roleIds
         open.value = true
         title.value = '修改用户'
-        form.password = ''
+        form.value.password = ''
     })
 }
 

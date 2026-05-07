@@ -174,6 +174,7 @@
 defineOptions({ name: 'JobLog' })
 import { getJob } from "@/api/monitor/job"
 import { listJobLog, delJobLog, cleanJobLog } from "@/api/monitor/jobLog"
+import { decodeRouteId } from '@/router/routeParams'
 
 const { proxy } = getCurrentInstance()
 const { sys_common_status, sys_job_group } = proxy.useDict("sys_common_status", "sys_job_group")
@@ -270,7 +271,7 @@ function handleExport() {
 }
 
 (() => {
-  const jobId = route.params && route.params.jobId
+  const jobId = decodeRouteId(route.params && route.params.jobId)
   if (jobId !== undefined && jobId != 0) {
     getJob(jobId).then(response => {
       queryParams.value.jobName = response.data.jobName

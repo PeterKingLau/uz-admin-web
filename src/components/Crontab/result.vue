@@ -281,7 +281,7 @@ function expressionChange() {
                             continue
                         }
                         
-                        goSecond: for (let si = sIdx; si <= sDate.length - 1; si++) {
+                        for (let si = sIdx; si <= sDate.length - 1; si++) {
                             let ss = sDate[si] < 10 ? '0' + sDate[si] : sDate[si]
                             
                             if (MM !== '00' && DD !== '00') {

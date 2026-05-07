@@ -1,7 +1,8 @@
 <template>
     <button v-if="visible" type="button" class="client-entry-button" @click="handleClick">
-        <Icon icon="mdi:cellphone-link" />
-        <span>进入客户端</span>
+        <Icon icon="mdi:cellphone-link" class="client-entry-icon" />
+        <span class="entry-label-full">进入客户端</span>
+        <span class="entry-label-short">客户端</span>
     </button>
 </template>
 
@@ -38,9 +39,13 @@ const handleClick = () => {
     align-items: center;
     justify-content: center;
     gap: 7px;
+    flex-shrink: 0;
     font-size: 13px;
     font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
     transition:
         background-color var(--app-motion-fast),
         border-color var(--app-motion-fast),
@@ -53,18 +58,56 @@ const handleClick = () => {
     color: var(--el-color-white);
 }
 
-.client-entry-button :deep(svg) {
+.client-entry-icon {
     font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.client-entry-icon :deep(svg),
+.client-entry-icon :deep(.iconify) {
+    width: 1em;
+    height: 1em;
+    display: block;
+}
+
+.entry-label-short {
+    display: none;
 }
 
 @media screen and (max-width: 1100px) {
     .client-entry-button {
-        width: 34px;
-        padding: 0;
+        min-width: 0;
+        flex-basis: auto;
+        padding: 0 10px;
+        gap: 5px;
     }
 
-    .client-entry-button span {
+    .entry-label-full {
         display: none;
+    }
+
+    .entry-label-short {
+        display: inline;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .client-entry-button {
+        height: 32px;
+        border-radius: 7px;
+        font-size: 12px;
+    }
+
+    .client-entry-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
     }
 }
 </style>

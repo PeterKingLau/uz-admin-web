@@ -230,6 +230,7 @@
 defineOptions({ name: 'Role' })
 import { addRole, changeRoleStatus, dataScope, delRole, getRole, listRole, updateRole, deptTreeSelect } from '@/api/system/role'
 import { roleMenuTreeselect, treeselect as menuTreeselect } from '@/api/system/menu'
+import { encodeRouteId } from '@/router/routeParams'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -376,7 +377,7 @@ function handleCommand(command, row) {
 
 
 function handleAuthUser(row) {
-    router.push('/system/role-auth/user/' + row.roleId)
+    router.push('/system/role-auth/user/' + encodeRouteId(row.roleId))
 }
 
 

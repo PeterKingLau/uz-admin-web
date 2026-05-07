@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsToolBuildIconsDialog' })
-import { computed, ref, watch, onMounted, nextTick } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { createIconStringMap, ensureIconCollectionByPrefix, iconCollectionTabs, loadIconNamesByPrefix, type IconCollectionPrefix } from '@/utils/iconify'
 
 const emit = defineEmits(['select'])
@@ -49,6 +49,7 @@ const value = defineModel<boolean>()
 const keyword = ref('')
 const debouncedKeyword = ref('')
 let keywordTimer: ReturnType<typeof setTimeout> | null = null
+let isDestroyed = false
 
 const active = ref('')
 const setTabs = iconCollectionTabs.map(item => ({ label: `${item.label}(${item.value})`, value: item.value }))
@@ -114,14 +115,19 @@ async function ensureIconsLoaded(setKey: IconCollectionPrefix) {
     loading.value = true
     try {
         await ensureIconCollectionByPrefix(setKey)
+        if (isDestroyed) return
         originMap.value[setKey] = await loadIconNamesByPrefix(setKey)
+        if (isDestroyed) return
         loadedMap.value[setKey] = true
     } catch {
+        if (isDestroyed) return
         originMap.value[setKey] = []
         loadedMap.value[setKey] = true
     } finally {
-        loading.value = false
-        visibleCount.value = BATCH_SIZE
+        if (!isDestroyed) {
+            loading.value = false
+            visibleCount.value = BATCH_SIZE
+        }
     }
 }
 
@@ -150,6 +156,14 @@ watch(
     },
     { flush: 'post' }
 )
+
+onBeforeUnmount(() => {
+    isDestroyed = true
+    if (keywordTimer) {
+        clearTimeout(keywordTimer)
+        keywordTimer = null
+    }
+})
 
 function onScroll(event: Event) {
     const element = event.target as HTMLElement

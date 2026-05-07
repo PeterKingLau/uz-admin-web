@@ -1188,6 +1188,12 @@ const removePreviewComment = (post: any, commentId: string | number) => {
 }
 
 const likingPosts = new Set<string | number>()
+const likingPostTimers = new Map<string | number, ReturnType<typeof setTimeout>>()
+
+function clearLikingPostTimers() {
+    likingPostTimers.forEach(timer => clearTimeout(timer))
+    likingPostTimers.clear()
+}
 
 async function handleCardLike(post: any) {
     if (!post) return
@@ -1221,9 +1227,12 @@ async function handleCardLike(post: any) {
         post.likeCount = oldCount
         ;(proxy as any)?.$modal?.msgError?.('操作失败，请重试')
     } finally {
-        setTimeout(() => {
+        if (likingPostTimers.has(postId)) clearTimeout(likingPostTimers.get(postId))
+        const timer = setTimeout(() => {
             likingPosts.delete(postId)
+            likingPostTimers.delete(postId)
         }, 500)
+        likingPostTimers.set(postId, timer)
     }
 }
 
@@ -1489,6 +1498,7 @@ onBeforeUnmount(() => {
     window.removeEventListener(CONTENT_LIST_REFRESH_EVENT, handleContentListRefresh as EventListener)
     unbindWindowScroll()
     pageScrollLock.setLocked(false)
+    clearLikingPostTimers()
     ;[...videoPreloadCache.keys()].forEach(disposePreloadedVideo)
 })
 

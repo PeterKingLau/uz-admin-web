@@ -257,20 +257,22 @@ watch(
 
 <style scoped lang="scss">
 .client-post-card {
-    border-radius: 0;
+    border-radius: var(--client-feed-card-radius);
     overflow: visible;
-    border: 0;
+    border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
     box-shadow: none;
     transition:
-        border-color var(--app-motion-normal),
-        box-shadow var(--app-motion-normal),
-        background-color var(--app-motion-normal);
+        border-color var(--client-feed-card-transition),
+        box-shadow var(--client-feed-card-transition),
+        background-color var(--client-feed-card-transition);
 }
 
 .client-post-card:hover {
-    background: transparent;
+    border-color: var(--client-feed-card-border);
+    background: var(--client-card-hover);
+    box-shadow: var(--client-feed-card-hover-shadow);
 }
 
 .cover-wrap {
@@ -279,7 +281,7 @@ watch(
     background: var(--client-fill);
     overflow: hidden;
     border: 1px solid var(--client-border-soft);
-    border-radius: 8px;
+    border-radius: var(--client-feed-card-radius);
 }
 
 .cover-wrap::after {

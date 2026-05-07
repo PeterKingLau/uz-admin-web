@@ -20,6 +20,7 @@ import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { addComment, bookmarkPost, likePost, repostPost } from '@/api/content/post'
 import { toggleFollowUser } from '@/api/content/userFollow'
+import { decodeRouteId } from '@/router/routeParams'
 import useUserStore from '@/store/modules/user'
 import { resolveCollectionVideoUrl } from '@/features/content/personProfile/videoModule/helpers'
 import { VIDEO_PLAYER_CACHE_KEY } from '@/utils/content/videoPlayer'
@@ -58,7 +59,7 @@ const fallbackPath = computed(() => {
 
 const loadPayload = () => {
     const rawId = route.params.id
-    const postId = Array.isArray(rawId) ? rawId[0] : rawId
+    const postId = decodeRouteId(rawId)
     if (postId == null || postId === '') {
         currentUserInfo.value = resolveFallbackUser()
         return false

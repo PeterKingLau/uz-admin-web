@@ -54,4 +54,11 @@ p {
     margin: 0;
     font-size: 14px;
 }
+
+@media screen and (max-width: 768px) {
+    .profile-empty {
+        min-height: 220px;
+        border-radius: 10px;
+    }
+}
 </style>

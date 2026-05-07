@@ -129,6 +129,21 @@ const resolveMediaResourceUrl = (url: string): string => {
     return raw
 }
 
+const fetchVideoBlob = async (url: string): Promise<Blob> => {
+    const response = await withTimeout(fetch(url, { mode: 'cors', credentials: 'omit' }), VIDEO_FRAME_CAPTURE_TIMEOUT, 'video fetch timeout')
+    if (!response.ok) {
+        throw new Error(`video fetch failed: ${response.status}`)
+    }
+    return withTimeout(response.blob(), VIDEO_FRAME_CAPTURE_TIMEOUT, 'video blob read timeout')
+}
+
+export const createVideoObjectUrlFromUrl = async (url: string): Promise<string> => {
+    const mediaUrl = resolveMediaResourceUrl(url)
+    if (!mediaUrl) return ''
+    const videoBlob = await fetchVideoBlob(mediaUrl)
+    return URL.createObjectURL(videoBlob)
+}
+
 export const buildVideoCoverFile = async (source: { mediaUrl?: string; file?: File }): Promise<File | null> => {
     if (typeof document === 'undefined') return null
 
@@ -146,7 +161,12 @@ export const buildVideoCoverFile = async (source: { mediaUrl?: string; file?: Fi
         } else {
             const mediaUrl = resolveMediaResourceUrl(String(source.mediaUrl || ''))
             if (!mediaUrl) return null
-            video.src = mediaUrl
+            try {
+                objectUrl = await createVideoObjectUrlFromUrl(mediaUrl)
+                video.src = objectUrl
+            } catch {
+                video.src = mediaUrl
+            }
         }
 
         await withTimeout(waitForVideoReady(video))

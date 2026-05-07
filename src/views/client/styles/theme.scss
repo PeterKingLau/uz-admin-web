@@ -51,6 +51,11 @@
     --client-on-overlay: #ffffff;
     --client-text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     --client-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.02);
+    --client-feed-card-radius: 10px;
+    --client-feed-card-border: var(--client-border-soft);
+    --client-feed-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    --client-feed-card-hover-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    --client-feed-card-transition: 180ms ease;
     --client-shadow-avatar: 0 8px 24px rgba(15, 23, 42, 0.14);
     --client-focus-ring: 0 0 0 4px rgba(244, 180, 0, 0.12);
     --client-focus-ring-soft: 0 0 0 4px rgba(244, 180, 0, 0.08);
@@ -124,6 +129,9 @@ html.dark {
         --client-on-overlay: #ffffff;
         --client-text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
         --client-shadow-soft: none;
+        --client-feed-card-border: var(--client-border-soft);
+        --client-feed-card-shadow: none;
+        --client-feed-card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         --client-shadow-avatar: 0 8px 24px rgba(0, 0, 0, 0.38);
         --client-focus-ring: 0 0 0 4px rgba(216, 165, 26, 0.22);
         --client-focus-ring-soft: 0 0 0 4px rgba(216, 165, 26, 0.16);

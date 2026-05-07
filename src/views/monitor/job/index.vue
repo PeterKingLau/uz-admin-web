@@ -251,6 +251,7 @@
 defineOptions({ name: 'Job' })
 import Crontab from '@/components/Crontab'
 import { listJob, getJob, delJob, addJob, updateJob, runJob, changeJobStatus } from '@/api/monitor/job'
+import { encodeRouteId } from '@/router/routeParams'
 import { selectDictLabel } from '@/utils/utils'
 
 const router = useRouter()
@@ -411,7 +412,7 @@ function crontabFill(value) {
 
 function handleJobLog(row) {
     const jobId = row.jobId || 0
-    router.push('/monitor/job-log/index/' + jobId)
+    router.push('/monitor/job-log/index/' + encodeRouteId(jobId))
 }
 
 

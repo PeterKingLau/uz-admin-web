@@ -99,6 +99,7 @@
 defineOptions({ name: 'TagData' })
 import { onMounted, reactive, ref, toRefs, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { decodeRouteId } from '@/router/routeParams'
 import { parseTime } from '@/utils/utils'
 import { addInterestTag, deleteInterestTag, listInterestTag, updateInterestTag } from '@/api/configuration/tag'
 
@@ -143,7 +144,7 @@ const data = reactive({
 const { form, queryParams, rules } = toRefs(data)
 
 function ensureCategoryId() {
-    const id = Number(route.params.id)
+    const id = Number(decodeRouteId(route.params.id))
     if (!Number.isFinite(id) || id <= 0) {
         proxy.$modal?.msgError && proxy.$modal.msgError('未获取到父级标签ID')
         return null

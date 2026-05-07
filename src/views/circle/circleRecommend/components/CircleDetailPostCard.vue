@@ -128,7 +128,7 @@
                                 </div>
 
                                 <button class="icon-btn" type="button" @click="togglePictureInPicture">
-                                    <Icon :icon="videoState.isPip ? 'mdi:picture-in-picture-exit' : 'mdi:picture-in-picture-bottom-right'" />
+                                    <Icon :icon="videoState.isPip ? 'mdi:picture-in-picture-bottom-right-outline' : 'mdi:picture-in-picture-bottom-right'" />
                                 </button>
 
                                 <button class="icon-btn" type="button" @click="toggleFullscreen">
@@ -528,20 +528,20 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .social-card {
     background: var(--el-bg-color);
-    border-radius: 16px;
+    border-radius: var(--circle-card-radius, 10px);
     padding: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--circle-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.03));
     border: 1px solid var(--el-border-color-lighter);
     transition:
-        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease;
     position: relative;
     overflow: hidden;
 
     &:hover {
         transform: none;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        box-shadow: var(--circle-card-hover-shadow, 0 4px 12px rgba(15, 23, 42, 0.06));
         border-color: var(--el-border-color);
         background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-fill-color-light));
     }
@@ -566,7 +566,7 @@ onBeforeUnmount(() => {
         .user-avatar {
             border: 2px solid var(--el-bg-color);
             box-shadow: 0 0 0 1px var(--el-border-color-lighter);
-            transition: transform 0.2s ease;
+            transition: none;
         }
     }
 
@@ -601,7 +601,9 @@ onBeforeUnmount(() => {
             cursor: pointer;
             padding: 8px;
             border-radius: 50%;
-            transition: all 0.2s;
+            transition:
+                background-color 180ms ease,
+                color 180ms ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -658,12 +660,12 @@ onBeforeUnmount(() => {
         .grid-img {
             width: 100%;
             height: 100%;
-            transition: transform 0.26s cubic-bezier(0.2, 0, 0.2, 1);
+            transition: opacity 180ms ease;
             object-fit: cover;
         }
 
         &:hover .grid-img {
-            transform: scale(1.015);
+            opacity: 0.94;
         }
 
         .more-overlay {

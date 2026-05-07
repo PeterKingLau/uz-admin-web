@@ -725,7 +725,7 @@ onMounted(() => {
         &:hover {
             background-color: var(--el-fill-color-light);
             border-color: var(--el-color-primary-light-5);
-            box-shadow: var(--app-hover-shadow-card);
+            box-shadow: var(--app-card-hover-shadow);
         }
 
         .file-info {
@@ -813,6 +813,59 @@ onMounted(() => {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .upload-file-uploader {
+        :deep(.el-upload) {
+            width: 100%;
+        }
+
+        :deep(.el-upload-dragger) {
+            width: 100%;
+            min-height: 132px;
+            height: auto;
+            padding: 22px 16px;
+            box-sizing: border-box;
+
+            .upload-trigger-content {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .el-icon--upload {
+                font-size: 40px;
+                margin-bottom: 8px;
+            }
+
+            .el-upload__text {
+                width: 100%;
+                max-width: 220px;
+                margin: 0 auto;
+                font-size: 13px;
+                line-height: 1.6;
+                text-align: center;
+                word-break: normal;
+
+                em {
+                    display: inline;
+                    white-space: nowrap;
+                }
+            }
+        }
+    }
+
+    .upload-file-list {
+        .file-item {
+            align-items: flex-start;
+            padding: 10px 12px;
+
+            .file-actions {
+                flex-shrink: 0;
+                margin-left: 10px;
+            }
+        }
     }
 }
 </style>

@@ -73,7 +73,7 @@ const createRandomPalette = (seed: string): TextCoverPaletteItem => {
 
 export const resolveTextCoverPalette = (seed = '') => createRandomPalette(seed)
 
-const escapeXml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&apos;')
+const escapeXml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 
 const applySvgTemplate = (template: string, replacements: Record<string, string>) => {
     let output = template

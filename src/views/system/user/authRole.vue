@@ -1,6 +1,6 @@
 <template>
     <div class="app-container auth-role-page">
-        <el-card class="info-card" shadow="never">
+        <el-card class="info-card app-page-card" shadow="never">
             <template #header>
                 <div class="card-header">
                     <span class="title">基本信息</span>
@@ -16,7 +16,7 @@
             </el-descriptions>
         </el-card>
 
-        <el-card class="role-card" shadow="never">
+        <el-card class="role-card app-table-card" shadow="never">
             <template #header>
                 <div class="card-header">
                     <span class="title">角色信息</span>
@@ -78,6 +78,7 @@
 defineOptions({ name: 'AuthRole' })
 import { ref, nextTick, getCurrentInstance } from 'vue'
 import { useRoute } from 'vue-router'
+import { decodeRouteId } from '@/router/routeParams'
 import { getAuthRole, updateAuthRole } from '@/api/system/user'
 
 const route = useRoute()
@@ -128,7 +129,7 @@ function submitForm() {
 }
 
 ;(() => {
-    const userId = route.params && route.params.userId
+    const userId = decodeRouteId(route.params && route.params.userId)
     if (userId) {
         loading.value = true
         getAuthRole(userId).then(response => {
@@ -156,24 +157,15 @@ function submitForm() {
 
     .info-card,
     .role-card {
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        background: var(--el-bg-color);
         margin-bottom: 24px;
-        transition: box-shadow 0.3s ease;
-
-        &:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
-        }
 
         :deep(.el-card__header) {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--el-border-color-lighter);
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--app-card-border-color);
         }
 
         :deep(.el-card__body) {
-            padding: 24px;
+            padding: 18px;
         }
     }
 
@@ -199,14 +191,14 @@ function submitForm() {
                 transform: translateY(-50%);
                 width: 4px;
                 height: 16px;
-                background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+                background: var(--el-color-primary);
                 border-radius: 2px;
             }
         }
     }
 
     .modern-descriptions {
-        border-radius: 12px;
+        border-radius: var(--app-card-radius);
         overflow: hidden;
         border: 1px solid var(--el-border-color-lighter);
 
@@ -235,7 +227,7 @@ function submitForm() {
     }
 
     .table-wrapper {
-        border-radius: 12px;
+        border-radius: var(--app-card-radius);
         border: 1px solid var(--el-border-color-lighter);
         overflow: hidden;
     }
@@ -308,12 +300,16 @@ function submitForm() {
         margin-bottom: 20px;
 
         .action-btn {
-            border-radius: 12px;
+            border-radius: var(--app-card-radius);
             padding: 0 36px;
             font-weight: 600;
             font-size: 15px;
             height: 48px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition:
+                background-color 160ms ease,
+                border-color 160ms ease,
+                color 160ms ease,
+                box-shadow 160ms ease;
 
             &.cancel-btn {
                 background-color: var(--el-bg-color);
@@ -328,17 +324,15 @@ function submitForm() {
             }
 
             &.submit-btn {
-                box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.25);
+                box-shadow: none;
                 border: none;
 
                 &:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.35);
+                    box-shadow: var(--app-card-hover-shadow);
                 }
 
                 &:active {
-                    transform: translateY(0);
-                    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+                    box-shadow: none;
                 }
             }
         }

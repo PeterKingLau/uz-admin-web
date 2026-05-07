@@ -11,7 +11,7 @@
             </el-button>
         </div>
 
-        <el-card shadow="never" class="form-card">
+        <el-card shadow="never" class="form-card app-page-card">
             <el-form ref="formRef" :model="props.form" :rules="props.rules" label-position="top" class="post-form">
                 <el-form-item prop="postType" class="type-form-item custom-labeled-item">
                     <div class="field-heading">选择发布类型</div>
@@ -863,18 +863,10 @@ defineExpose({
 }
 
 .form-card {
-    border-radius: 20px;
-    border: 1px solid var(--el-border-color-lighter);
-    background: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
-    backdrop-filter: blur(20px);
-    box-shadow:
-        0 4px 6px -1px color-mix(in srgb, var(--el-color-black) 2%, transparent),
-        0 2px 4px -1px color-mix(in srgb, var(--el-color-black) 2%, transparent),
-        0 20px 40px -8px color-mix(in srgb, var(--el-color-black) 4%, transparent);
     overflow: visible;
 
     :deep(.el-card__body) {
-        padding: 40px;
+        padding: 32px;
     }
 }
 
@@ -921,10 +913,13 @@ defineExpose({
     width: 100%;
 
     .type-card {
-        border-radius: 16px;
+        border-radius: var(--app-card-radius);
         padding: 16px;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+            background-color 160ms ease,
+            border-color 160ms ease,
+            box-shadow 160ms ease;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -932,24 +927,24 @@ defineExpose({
         text-align: center;
         gap: 10px;
         background: var(--el-fill-color-light);
-        border: 2px solid transparent;
+        border: 1px solid var(--el-border-color-lighter);
         overflow: hidden;
 
         &:hover {
             background: var(--el-fill-color);
-            transform: translateY(-2px);
+            border-color: var(--el-border-color);
+            box-shadow: var(--app-card-hover-shadow);
         }
 
         &.active {
             background: var(--el-color-primary-light-9);
             border-color: var(--el-color-primary);
-            box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.15);
+            box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.12);
 
             .icon-box {
                 background: var(--el-color-primary);
                 color: var(--el-color-white);
-                transform: scale(1.1);
-                box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.3);
+                box-shadow: none;
             }
 
             .type-name {
@@ -960,15 +955,17 @@ defineExpose({
         .icon-box {
             width: 48px;
             height: 48px;
-            border-radius: 14px;
+            border-radius: var(--app-card-radius);
             background: var(--el-bg-color);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             color: var(--el-text-color-regular);
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+            transition:
+                background-color 160ms ease,
+                color 160ms ease;
+            box-shadow: none;
         }
 
         .info-box {
@@ -1000,7 +997,7 @@ defineExpose({
 
 .check-scale-enter-active,
 .check-scale-leave-active {
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: opacity 160ms ease;
 }
 
 .check-scale-enter-from,
@@ -1024,20 +1021,24 @@ defineExpose({
     border: 1px solid color-mix(in srgb, var(--el-border-color) 88%, transparent);
     background: color-mix(in srgb, var(--el-bg-color) 88%, var(--el-color-white));
     color: var(--el-text-color-secondary);
-    box-shadow: 0 6px 14px color-mix(in srgb, var(--el-color-black) 8%, transparent);
-    transition: all 0.2s ease;
+    box-shadow: var(--app-card-shadow);
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease;
 
     &:hover {
         color: var(--el-color-danger);
         border-color: color-mix(in srgb, var(--el-color-danger) 30%, var(--el-border-color));
         background: color-mix(in srgb, var(--el-color-danger-light-9) 80%, var(--el-bg-color));
-        transform: translateY(-1px);
+        box-shadow: var(--app-card-hover-shadow);
     }
 }
 
 .custom-textarea {
     :deep(.el-textarea__inner) {
-        border-radius: 16px;
+        border-radius: var(--app-card-radius);
         padding: 20px;
         padding-right: 56px;
         font-size: 15px;
@@ -1045,8 +1046,10 @@ defineExpose({
         border: none;
         background-color: var(--el-fill-color-light);
         color: var(--el-text-color-primary);
-        box-shadow: inset 0 2px 4px color-mix(in srgb, var(--el-color-black) 2%, transparent);
-        transition: all 0.3s;
+        box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
+        transition:
+            background-color 160ms ease,
+            box-shadow 160ms ease;
 
         &::placeholder {
             color: var(--el-text-color-placeholder);
@@ -1084,10 +1087,12 @@ defineExpose({
 .upload-container {
     width: 100%;
     padding: 20px;
-    border: 2px dashed var(--el-border-color);
-    border-radius: 16px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: var(--app-card-radius);
     background: var(--el-fill-color-lighter);
-    transition: all 0.3s ease;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease;
     text-align: center;
 
     &:hover {
@@ -1113,15 +1118,19 @@ defineExpose({
     :deep(.el-upload--picture-card) {
         width: 110px;
         height: 110px;
-        border-radius: 16px;
-        border: none;
+        border-radius: var(--app-card-radius);
+        border: 1px solid var(--app-card-border-color);
         background: var(--el-bg-color-overlay);
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 5%, transparent);
-        transition: all 0.2s;
+        box-shadow: var(--app-card-shadow);
+        transition:
+            background-color 160ms ease,
+            border-color 160ms ease,
+            box-shadow 160ms ease,
+            color 160ms ease;
 
         &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.15);
+            border-color: var(--el-color-primary);
+            box-shadow: var(--app-card-hover-shadow);
             color: var(--el-color-primary);
         }
     }
@@ -1129,13 +1138,13 @@ defineExpose({
     :deep(.el-upload-list--picture-card .el-upload-list__item) {
         width: 110px;
         height: 110px;
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+        border-radius: var(--app-card-radius);
+        border: 1px solid var(--app-card-border-color);
+        box-shadow: var(--app-card-shadow);
     }
 
     :deep(.image-sort-assist-item) {
-        border-radius: 16px;
+        border-radius: var(--app-card-radius);
         background: color-mix(in srgb, var(--el-bg-color-overlay) 94%, var(--el-color-white));
         border-color: var(--el-border-color-lighter);
         padding: 14px 16px;
@@ -1198,10 +1207,11 @@ defineExpose({
 .image-preview-card {
     display: block;
     width: 100%;
-    border-radius: 16px;
+    border-radius: var(--app-card-radius);
     overflow: hidden;
     background: var(--el-bg-color-overlay);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    border: 1px solid var(--app-card-border-color);
+    box-shadow: var(--app-card-shadow);
     cursor: zoom-in;
 
     &.image-preview-card--hero {
@@ -1218,31 +1228,28 @@ defineExpose({
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.25s ease;
-    }
-
-    &:hover {
-        :deep(.el-image__inner) {
-            transform: scale(1.03);
-        }
+        transition: opacity 160ms ease;
     }
 }
 
 .video-upload {
     :deep(.upload-file-uploader .el-upload-dragger) {
         height: 200px;
-        border: none;
-        border-radius: 16px;
+        border: 1px solid var(--app-card-border-color);
+        border-radius: var(--app-card-radius);
         background: var(--el-bg-color-overlay);
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+        box-shadow: var(--app-card-shadow);
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transition: all 0.3s;
+        transition:
+            background-color 160ms ease,
+            border-color 160ms ease,
+            box-shadow 160ms ease;
 
         &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.15);
+            border-color: var(--el-color-primary);
+            box-shadow: var(--app-card-hover-shadow);
             background: var(--el-color-primary-light-9);
         }
 
@@ -1274,11 +1281,11 @@ defineExpose({
 
 .video-cover-picker {
     margin-top: 16px;
-    border-radius: 16px;
+    border-radius: var(--app-card-radius);
     padding: 16px;
     background: var(--el-bg-color-overlay);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 4%, transparent);
-    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: var(--app-card-shadow);
+    border: 1px solid var(--app-card-border-color);
 
     .cover-picker-header {
         display: flex;
@@ -1296,16 +1303,16 @@ defineExpose({
     .cover-picker-video {
         width: 100%;
         max-height: 260px;
-        border-radius: 12px;
+        border-radius: var(--app-card-radius);
         background: var(--el-color-black);
-        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+        box-shadow: none;
     }
 
     .cover-picked {
         margin-top: 16px;
         padding: 12px;
         background: var(--el-fill-color-lighter);
-        border-radius: 12px;
+        border-radius: var(--app-card-radius);
         display: flex;
         align-items: center;
         gap: 16px;
@@ -1313,10 +1320,10 @@ defineExpose({
         .cover-thumb {
             width: 90px;
             height: 90px;
-            border-radius: 10px;
+            border-radius: var(--app-card-radius);
             object-fit: cover;
             border: 2px solid var(--el-bg-color-overlay);
-            box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+            box-shadow: var(--app-card-shadow);
         }
 
         .cover-picked-meta {
@@ -1358,11 +1365,14 @@ defineExpose({
 }
 
 .video-batch-item {
-    border-radius: 16px;
+    border-radius: var(--app-card-radius);
     padding: 20px;
     background: var(--el-fill-color-blank);
     border: 1px solid var(--el-border-color-lighter);
-    transition: all 0.3s ease;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
     position: relative;
 
     &::before {
@@ -1380,13 +1390,13 @@ defineExpose({
 
     &:hover {
         border-color: var(--el-border-color);
-        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-black) 5%, transparent);
+        box-shadow: var(--app-card-hover-shadow);
     }
 
     &.is-active {
         background: var(--el-bg-color-overlay);
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.08);
+        box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
 
         &::before {
             opacity: 1;
@@ -1633,7 +1643,10 @@ defineExpose({
             font-size: 13px;
             font-weight: var(--tag-pill-font-weight, 400);
             line-height: 1.2;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition:
+                background-color 160ms ease,
+                border-color 160ms ease,
+                color 160ms ease;
         }
 
         &:hover,
@@ -1723,9 +1736,7 @@ defineExpose({
 :global(html.dark) .edit-section {
     .form-card {
         border-color: var(--el-border-color);
-        box-shadow:
-            0 8px 20px -10px color-mix(in srgb, var(--el-color-black) 70%, transparent),
-            0 20px 40px -24px color-mix(in srgb, var(--el-color-black) 78%, transparent);
+        box-shadow: var(--app-card-shadow);
     }
 
     .type-grid .type-card {
@@ -1752,7 +1763,7 @@ defineExpose({
         &.active {
             background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-fill-color-darker));
             border-color: color-mix(in srgb, var(--el-color-primary) 60%, transparent);
-            box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+            box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
         }
     }
 
@@ -1878,18 +1889,18 @@ defineExpose({
         font-size: 16px;
         font-weight: 600;
         letter-spacing: 0.5px;
-        background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         border: none;
-        box-shadow: 0 10px 20px -5px rgba(var(--el-color-primary-rgb), 0.4);
-        transition: all 0.3s;
+        box-shadow: none;
+        transition:
+            background-color 160ms ease,
+            box-shadow 160ms ease;
 
         &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 24px -5px rgba(var(--el-color-primary-rgb), 0.5);
+            box-shadow: var(--app-card-hover-shadow);
         }
 
         &:active {
-            transform: translateY(0);
+            box-shadow: none;
         }
 
         &.is-disabled {
@@ -1937,6 +1948,41 @@ defineExpose({
     .image-preview-card {
         &.image-preview-card--hero {
             min-height: 180px;
+        }
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .video-upload {
+        :deep(.upload-file-uploader .el-upload) {
+            width: 100%;
+        }
+
+        :deep(.upload-file-uploader .el-upload-dragger) {
+            width: 100%;
+            height: auto;
+            min-height: 148px;
+            padding: 24px 16px;
+            box-sizing: border-box;
+
+            .el-icon--upload {
+                font-size: 42px;
+                margin-bottom: 10px;
+                filter: none;
+            }
+
+            .el-upload__text {
+                max-width: 220px;
+                margin: 0 auto;
+                font-size: 13px;
+                line-height: 1.6;
+                text-align: center;
+
+                em {
+                    display: inline;
+                    white-space: nowrap;
+                }
+            }
         }
     }
 }

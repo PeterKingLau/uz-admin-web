@@ -94,6 +94,8 @@ const emit = defineEmits<{
 const sentinelRef = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 let loadLock = false
+let loadLockTimer: ReturnType<typeof setTimeout> | null = null
+let isDestroyed = false
 
 const selectedIdsSet = computed(() => new Set(props.selectedIds || []))
 
@@ -108,6 +110,11 @@ const destroyObserver = () => {
         observer.disconnect()
         observer = null
     }
+    if (loadLockTimer) {
+        clearTimeout(loadLockTimer)
+        loadLockTimer = null
+    }
+    loadLock = false
 }
 
 const createObserver = () => {
@@ -124,7 +131,8 @@ const createObserver = () => {
 
             loadLock = true
             emit('load-more', { source: 'auto' })
-            setTimeout(() => {
+            loadLockTimer = setTimeout(() => {
+                loadLockTimer = null
                 loadLock = false
             }, 200)
         },
@@ -135,12 +143,16 @@ const createObserver = () => {
 }
 
 onMounted(createObserver)
-onBeforeUnmount(destroyObserver)
+onBeforeUnmount(() => {
+    isDestroyed = true
+    destroyObserver()
+})
 
 watch(
     () => props.posts.length,
     async () => {
         await nextTick()
+        if (isDestroyed) return
         createObserver()
     }
 )

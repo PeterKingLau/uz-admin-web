@@ -171,6 +171,164 @@
                     }
                 }
             }
+
+            @media screen and (max-width: 768px) {
+                margin-bottom: 12px;
+                overflow: hidden;
+                border-bottom: 1px solid var(--el-border-color-lighter);
+
+                .banner {
+                    height: 156px;
+
+                    .banner-mask {
+                        background: linear-gradient(
+                            to bottom,
+                            transparent 52%,
+                            color-mix(in srgb, var(--el-bg-color) 78%, transparent) 88%,
+                            var(--el-bg-color) 100%
+                        );
+                    }
+                }
+
+                .user-info-wrapper {
+                    padding: 0 16px 18px;
+                    margin-top: -38px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 12px;
+
+                    .avatar-container {
+                        align-self: flex-start;
+                        margin-right: 0;
+                        padding: 3px;
+
+                        :deep(.el-avatar),
+                        .avatar-img,
+                        .avatar-skeleton {
+                            width: 88px !important;
+                            height: 88px !important;
+                        }
+                    }
+
+                    .info-content {
+                        min-width: 0;
+                        padding-bottom: 0;
+
+                        .name-row {
+                            margin-bottom: 12px;
+                            min-width: 0;
+
+                            .nickname {
+                                min-width: 0;
+                                max-width: 100%;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                white-space: nowrap;
+                                font-size: 22px;
+                                line-height: 1.2;
+                                margin-right: 0;
+                            }
+                        }
+
+                        .stat-row {
+                            width: 100%;
+                            max-width: 280px;
+                            flex-wrap: nowrap;
+                            justify-content: space-between;
+                            gap: 0;
+                            margin-bottom: 10px;
+
+                            .stat-item {
+                                min-width: 0;
+                                flex: 1;
+                                flex-direction: column;
+                                align-items: center;
+                                gap: 2px;
+
+                                .num {
+                                    margin-right: 0;
+                                    font-size: 15px;
+                                    line-height: 1;
+                                }
+
+                                .label {
+                                    font-size: 12px;
+                                    line-height: 1.1;
+                                }
+                            }
+
+                            .stat-divider {
+                                flex: 0 0 1px;
+                                height: 20px;
+                            }
+                        }
+
+                        .desc-row {
+                            max-width: none;
+                            font-size: 13px;
+                            line-height: 1.5;
+                            word-break: break-word;
+
+                            p {
+                                margin: 0;
+                            }
+                        }
+                    }
+
+                    .action-btn {
+                        width: 100%;
+                        padding-bottom: 0;
+                        justify-content: flex-start;
+
+                        .edit-btn,
+                        .follow-btn {
+                            width: 100%;
+                            max-width: 220px;
+                            height: 32px;
+                            padding: 0 14px;
+                        }
+                    }
+                }
+            }
+
+            @media screen and (max-width: 480px) {
+                .banner {
+                    height: 138px;
+                }
+
+                .user-info-wrapper {
+                    padding-inline: 14px;
+                    margin-top: -34px;
+                    gap: 10px;
+
+                    .avatar-container {
+                        :deep(.el-avatar),
+                        .avatar-img,
+                        .avatar-skeleton {
+                            width: 78px !important;
+                            height: 78px !important;
+                        }
+                    }
+
+                    .info-content {
+                        .name-row .nickname {
+                            font-size: 20px;
+                        }
+
+                        .stat-row {
+                            max-width: 260px;
+                        }
+                    }
+
+                    .action-btn {
+                        .edit-btn,
+                        .follow-btn {
+                            max-width: none;
+                        }
+                    }
+                }
+            }
         }
     }
 }

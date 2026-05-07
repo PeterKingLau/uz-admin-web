@@ -144,8 +144,9 @@
 </template>
 
 <script setup>
-defineOptions({ name: 'Data' })
+defineOptions({ name: 'DictData' })
 import useDictStore from '@/store/modules/dict'
+import { decodeRouteId } from '@/router/routeParams'
 import { optionselect as getDictOptionselect, getType } from '@/api/system/dict/type'
 import { listData, getData, delData, addData, updateData } from '@/api/system/dict/data'
 
@@ -323,7 +324,7 @@ function handleExport() {
     )
 }
 
-getTypes(route.params && route.params.dictId)
+getTypes(decodeRouteId(route.params && route.params.dictId))
 getTypeList()
 </script>
 

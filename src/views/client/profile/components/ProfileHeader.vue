@@ -336,6 +336,10 @@ button:focus-visible {
 }
 
 @media screen and (max-width: 768px) {
+    .profile-header {
+        border-radius: 10px;
+    }
+
     .cover {
         height: 140px;
     }

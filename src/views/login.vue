@@ -105,7 +105,7 @@
 
 <script setup>
 defineOptions({ name: 'ViewsLogin' })
-import { ref, computed, watch, onMounted, nextTick, getCurrentInstance } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Cookies from 'js-cookie'
 import { encryptRememberedPassword, decryptRememberedPassword } from '@/utils/rememberMeCrypto'
@@ -348,6 +348,13 @@ watch(
 
 const smsSending = ref(false)
 const smsCountdown = ref(0)
+let smsCountdownTimer = null
+
+function clearSmsCountdownTimer() {
+    if (!smsCountdownTimer) return
+    clearInterval(smsCountdownTimer)
+    smsCountdownTimer = null
+}
 
 async function sendSms() {
     const phone = loginForm.value.username
@@ -362,9 +369,10 @@ async function sendSms() {
         await sendPhoneCode(loginForm.value.username)
         proxy?.$modal?.msgSuccess?.('验证码已发送')
         smsCountdown.value = 60
-        const timer = setInterval(() => {
+        clearSmsCountdownTimer()
+        smsCountdownTimer = setInterval(() => {
             smsCountdown.value--
-            if (smsCountdown.value <= 0) clearInterval(timer)
+            if (smsCountdown.value <= 0) clearSmsCountdownTimer()
         }, 1000)
     } catch {
         proxy?.$modal?.msgError?.('发送失败，请稍后重试')
@@ -372,6 +380,10 @@ async function sendSms() {
         smsSending.value = false
     }
 }
+
+onBeforeUnmount(() => {
+    clearSmsCountdownTimer()
+})
 
 async function restoreRememberedLoginState() {
     removeRememberedAgreementState()
@@ -801,9 +813,14 @@ function togglePassword() {
 
     :deep(.el-checkbox) {
         display: inline-flex;
-        align-items: center;
+        align-items: flex-start;
         white-space: normal;
         min-height: 20px;
+    }
+
+    :deep(.el-checkbox__input) {
+        margin-top: 2px;
+        flex-shrink: 0;
     }
 
     :deep(.el-checkbox__label) {

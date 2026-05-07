@@ -3,6 +3,7 @@ import type { IconifyJSON } from '@iconify/types'
 import epSubset from '@/assets/iconify/subsets/ep.json'
 import mdiSubset from '@/assets/iconify/subsets/mdi.json'
 import materialSymbolsSubset from '@/assets/iconify/subsets/material-symbols.json'
+import simpleIconsSubset from '@/assets/iconify/subsets/simple-icons.json'
 
 export type IconCollectionPrefix = 'ep' | 'mdi' | 'material-symbols' | 'simple-icons'
 
@@ -23,7 +24,7 @@ export function createIconStringMap<T>(factory: () => T): Record<IconCollectionP
     )
 }
 
-const staticCollections = [epSubset, mdiSubset, materialSymbolsSubset] as IconifyJSON[]
+const staticCollections = [epSubset, mdiSubset, materialSymbolsSubset, simpleIconsSubset] as IconifyJSON[]
 const collectionAssetFiles: Record<IconCollectionPrefix, string> = {
     ep: 'ep-icons.json',
     mdi: 'mdi-icons.json',
@@ -41,6 +42,10 @@ function normalizePrefix(icon: string): string {
     const separatorIndex = icon.indexOf(':')
     if (separatorIndex <= 0) return ''
     return icon.slice(0, separatorIndex)
+}
+
+function isIconName(iconName?: string | null): iconName is string {
+    return typeof iconName === 'string' && iconName.includes(':') && iconName !== '#'
 }
 
 function registerCollection(collection: IconifyJSON | null) {
@@ -114,9 +119,20 @@ export async function ensureIconCollectionByPrefix(prefix: string): Promise<void
 
 export async function ensureIconCollectionByName(iconName?: string | null): Promise<void> {
     registerStaticCollections()
-    if (!iconName || typeof iconName !== 'string') return
+    if (!isIconName(iconName)) return
     if (availableIcons.has(iconName)) return
     await ensureIconCollectionByPrefix(normalizePrefix(iconName))
+}
+
+export async function ensureIconCollectionsByNames(iconNames: Array<string | null | undefined>): Promise<void> {
+    registerStaticCollections()
+    const prefixes = new Set<string>()
+    iconNames.forEach(iconName => {
+        if (!isIconName(iconName) || availableIcons.has(iconName)) return
+        const prefix = normalizePrefix(iconName)
+        if (prefix) prefixes.add(prefix)
+    })
+    await Promise.all(Array.from(prefixes).map(prefix => ensureIconCollectionByPrefix(prefix)))
 }
 
 export function preloadIconCollections(prefixes: string[]): void {

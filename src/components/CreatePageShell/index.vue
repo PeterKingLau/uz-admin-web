@@ -1,7 +1,7 @@
 <template>
     <div class="create-page-shell">
         <div class="shell-main">
-            <el-card class="shell-card" shadow="never">
+            <el-card class="shell-card app-page-card" shadow="never">
                 <template v-if="title || subtitle" #header>
                     <div class="shell-header">
                         <div class="shell-header-text">
@@ -115,19 +115,15 @@ const rowStyle = computed(() => {
 }
 
 .shell-card {
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-    background: var(--el-bg-color);
     width: 100%;
 
     :deep(.el-card__header) {
-        padding: 30px 40px;
-        border-bottom: 1px solid var(--el-border-color-lighter);
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--app-card-border-color);
     }
 
     :deep(.el-card__body) {
-        padding: 40px;
+        padding: 32px;
     }
 }
 

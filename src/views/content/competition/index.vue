@@ -156,6 +156,7 @@ import { getCurrentInstance, reactive, ref, toRefs } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { COMPETITION_WORK_RETURN_PATH_KEY } from '@/router/constants'
+import { encodeRouteId } from '@/router/routeParams'
 import { parseTime } from '@/utils/utils'
 import {
     delCompetition,
@@ -310,7 +311,7 @@ function handleWorks(row: CompetitionItem) {
     rememberCompetitionWorkReturnPath(competitionId)
     router.push({
         name: 'CompetitionWorkData',
-        params: { competitionId },
+        params: { competitionId: encodeRouteId(competitionId) },
         query: { returnPath: route.fullPath }
     })
 }

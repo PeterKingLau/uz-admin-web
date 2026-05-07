@@ -346,26 +346,26 @@ h6,
 }
 
 .main-card {
-    border-radius: 8px;
-    border: none;
-    box-shadow: var(--el-box-shadow-light);
-    background-color: var(--el-bg-color);
+    border: 1px solid var(--app-card-border-color);
+    border-radius: var(--app-card-radius);
+    box-shadow: var(--app-card-shadow);
+    background-color: var(--app-card-bg);
 
     .el-card__header {
-        padding: 15px 20px !important;
-        border-bottom: 1px solid var(--el-border-color-light);
+        padding: 14px 16px !important;
+        border-bottom: 1px solid var(--app-card-border-color);
     }
 
     .el-card__body {
-        padding: 20px !important;
+        padding: var(--app-card-padding) !important;
     }
 }
 
 .el-card {
     transition:
-        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        background-color 160ms ease;
 }
 
 .el-card.is-hover-shadow:hover,
@@ -373,13 +373,13 @@ h6,
 .card-box > .el-card:hover {
     transform: none;
     border-color: var(--el-border-color);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-card-hover-shadow);
 }
 
 .card-box {
     margin-bottom: 16px;
-    border-radius: 4px;
-    background: var(--el-bg-color);
+    border-radius: var(--app-card-radius);
+    background: var(--app-card-bg);
 }
 
 

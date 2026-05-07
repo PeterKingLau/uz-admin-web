@@ -289,6 +289,7 @@ const followActionLoading = reactive({})
 let followObserver = null
 let cleanupTimer = null
 let hasActivatedOnce = false
+let isDestroyed = false
 
 const queryParams = reactive({
     pageNum: 1,
@@ -626,7 +627,9 @@ const handleFollowIntersect = entries => {
 
 const setupFollowObserver = async () => {
     if (followObserver) followObserver.disconnect()
+    if (isDestroyed) return
     await nextTick()
+    if (isDestroyed || !followDialogVisible.value) return
     const listRef = followDialogRef.value?.followListRef?.value
     const triggerRef = followDialogRef.value?.followTriggerRef?.value
     if (!listRef || !triggerRef) return
@@ -1857,6 +1860,7 @@ onActivated(() => {
 })
 
 onBeforeUnmount(() => {
+    isDestroyed = true
     followObserver?.disconnect()
     followObserver = null
     closeAvatarPreview()

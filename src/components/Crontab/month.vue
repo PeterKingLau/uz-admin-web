@@ -39,7 +39,7 @@ const emit = defineEmits(['update'])
 const props = defineProps({
     cron: {
         type: Object,
-        default: {
+        default: () => ({
             second: "*",
             min: "*",
             hour: "*",
@@ -47,7 +47,7 @@ const props = defineProps({
             month: "*",
             week: "?",
             year: "",
-        }
+        })
     },
     check: {
         type: Function,

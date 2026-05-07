@@ -69,6 +69,8 @@ const loading = ref(false)
 let activeLoadToken = 0
 let hasStartedBackgroundPreload = false
 let scrollListenerTarget: HTMLElement | null = null
+let backgroundPreloadTimer: ReturnType<typeof setTimeout> | null = null
+let isDestroyed = false
 
 const currentIcons = computed(() => {
     if (activePrefix.value === 'all') {
@@ -98,10 +100,10 @@ async function syncActiveIcons(prefix: IconPrefix) {
 
     try {
         await ensureActivePrefixLoaded(prefix)
-        if (token !== activeLoadToken) return
+        if (isDestroyed || token !== activeLoadToken) return
         filterIcons()
     } finally {
-        if (token === activeLoadToken) {
+        if (!isDestroyed && token === activeLoadToken) {
             loading.value = false
         }
     }
@@ -111,7 +113,9 @@ function startBackgroundPreload() {
     if (hasStartedBackgroundPreload) return
     hasStartedBackgroundPreload = true
 
-    setTimeout(() => {
+    backgroundPreloadTimer = setTimeout(() => {
+        backgroundPreloadTimer = null
+        if (isDestroyed) return
         supportedPrefixes
             .filter(prefix => prefix !== activePrefix.value)
             .forEach(prefix => {
@@ -177,9 +181,16 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-    if (!scrollListenerTarget) return
-    scrollListenerTarget.removeEventListener('scroll', handleNativeScroll)
-    scrollListenerTarget = null
+    isDestroyed = true
+    activeLoadToken++
+    if (backgroundPreloadTimer) {
+        clearTimeout(backgroundPreloadTimer)
+        backgroundPreloadTimer = null
+    }
+    if (scrollListenerTarget) {
+        scrollListenerTarget.removeEventListener('scroll', handleNativeScroll)
+        scrollListenerTarget = null
+    }
 })
 
 defineExpose({

@@ -1394,12 +1394,12 @@ watch(
 
     &:hover .cover-box {
         transform: none;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        box-shadow: var(--app-card-hover-shadow);
         border-color: var(--el-border-color);
         background-color: color-mix(in srgb, var(--el-fill-color-light) 92%, var(--el-bg-color));
 
         img {
-            transform: scale(1.015);
+            opacity: 0.94;
         }
         .play-indicator {
             transform: translate(-50%, -50%) scale(1);
@@ -1415,9 +1415,9 @@ watch(
         overflow: hidden;
         background-color: var(--el-fill-color-light);
         transition:
-            border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-            box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-            background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            background-color 180ms ease;
         border: 1px solid var(--el-border-color-extra-light);
 
         img,
@@ -1428,7 +1428,7 @@ watch(
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.26s cubic-bezier(0.2, 0, 0.2, 1);
+            transition: opacity 180ms ease;
         }
 
         .video-container {
@@ -1452,8 +1452,8 @@ watch(
             background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(2px);
             transition:
-                background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-                transform 0.24s cubic-bezier(0.2, 0, 0.2, 1);
+                background-color 180ms ease,
+                transform 180ms ease;
         }
 
         .text-container {
@@ -1597,26 +1597,26 @@ watch(
     position: relative;
     background: var(--el-bg-color-overlay);
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 16px;
     cursor: pointer;
     transition:
-        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease;
 
     &.bulk-selected {
         border-color: var(--el-color-primary);
-        box-shadow: 0 6px 16px var(--el-color-primary-light-9);
+        box-shadow: 0 2px 8px var(--el-color-primary-light-9);
     }
 
     &:hover {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--app-card-hover-shadow);
         background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, var(--el-fill-color-light));
 
         .cover-visual img {
-            transform: scale(1.015);
+            opacity: 0.94;
         }
 
         .more-btn {
@@ -1648,7 +1648,7 @@ watch(
             height: 100%;
             object-fit: cover;
             display: block;
-            transition: transform 0.3s;
+            transition: opacity 180ms ease;
         }
 
         .cover-fallback {
@@ -1880,9 +1880,9 @@ watch(
 :deep(.collection-posts-dialog .el-dialog),
 :deep(.el-dialog.collection-posts-dialog) {
     background: var(--el-bg-color-overlay);
-    border-radius: 16px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--app-card-hover-shadow);
     border: 1px solid var(--el-border-color-lighter);
 
     .el-dialog__header {
@@ -1956,7 +1956,7 @@ watch(
         border: none;
         color: var(--el-color-white);
         background: var(--el-color-primary);
-        box-shadow: 0 6px 16px var(--el-color-primary-light-5);
+        box-shadow: none;
     }
 
     .primary-btn.is-disabled {
@@ -2065,20 +2065,20 @@ watch(
     border: 1px solid var(--el-border-color-lighter);
     cursor: pointer;
     transition:
-        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease;
 
     &:hover {
         border-color: var(--el-border-color);
         transform: none;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--app-card-hover-shadow);
         background: color-mix(in srgb, var(--el-fill-color) 94%, var(--el-bg-color));
     }
 
     &.selected {
         border-color: var(--el-color-primary);
-        box-shadow: var(--el-box-shadow-light);
+        box-shadow: 0 2px 8px var(--el-color-primary-light-9);
     }
 
     &.selected-tab.selected {
@@ -2301,6 +2301,188 @@ watch(
     .empty-desc {
         font-size: 13px;
         color: var(--el-text-color-secondary);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .content-wrapper {
+        overflow-x: hidden;
+    }
+
+    .tabs-sticky-container {
+        top: 0;
+        padding-top: 0;
+    }
+
+    .tabs-full,
+    .content-area {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .tabs-header {
+        align-items: center;
+        gap: 10px;
+    }
+
+    .tabs-header :deep(.profile-tabs) {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    :deep(.profile-tabs) {
+        .el-tabs__nav-wrap {
+            overflow: hidden;
+        }
+
+        .el-tabs__nav-scroll {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+
+            &::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
+        .el-tabs__item {
+            height: 44px;
+            line-height: 44px;
+            padding: 0 16px;
+
+            &:first-child {
+                padding-left: 0;
+            }
+        }
+
+        .el-tabs__active-bar {
+            bottom: 2px;
+        }
+    }
+
+    .batch-btn {
+        flex-shrink: 0;
+        height: 30px;
+        padding: 0 12px;
+        font-size: 12px;
+    }
+
+    .content-area {
+        padding-top: 16px;
+        padding-bottom: 40px;
+    }
+
+    .sub-filter-bar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+
+        .filter-group {
+            width: 100%;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+
+            &::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
+        .filter-chip {
+            flex: 0 0 auto;
+            padding: 6px 16px;
+            white-space: nowrap;
+        }
+
+        .create-collection-btn {
+            align-self: flex-start;
+        }
+    }
+
+    .bulk-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .bulk-left,
+    .bulk-actions {
+        width: 100%;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .bulk-count {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .works-grid-view {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .work-card-modern {
+        min-width: 0;
+
+        .cover-box {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 3 / 4;
+        }
+
+        .title-box {
+            width: 100%;
+            font-size: 13px;
+            height: 38px;
+        }
+    }
+
+    .collection-grid-view {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .collection-card-modern {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 14px;
+    }
+
+    .status-box {
+        padding: 44px 0;
+
+        &.empty {
+            min-height: 240px;
+        }
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .tabs-full,
+    .content-area {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    :deep(.profile-tabs) {
+        .el-tabs__item {
+            padding: 0 12px;
+        }
+    }
+
+    .batch-btn {
+        padding: 0 10px;
+    }
+
+    .works-grid-view {
+        gap: 12px;
     }
 }
 </style>

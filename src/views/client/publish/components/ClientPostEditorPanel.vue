@@ -1017,6 +1017,34 @@ defineExpose({
     }
 }
 
+@media screen and (max-width: 768px) {
+    .flat-video-upload {
+        :deep(.upload-file-uploader .el-upload) {
+            width: 100%;
+        }
+
+        :deep(.upload-file-uploader .el-upload-dragger) {
+            width: 100%;
+            min-height: 132px;
+            padding: 22px 16px;
+            box-sizing: border-box;
+
+            .el-upload__text {
+                max-width: 220px;
+                margin: 0 auto;
+                font-size: 13px;
+                line-height: 1.6;
+                text-align: center;
+
+                em {
+                    display: inline;
+                    white-space: nowrap;
+                }
+            }
+        }
+    }
+}
+
 .preview-gallery {
     margin-top: 16px;
     border-top: 1px solid var(--border-color);

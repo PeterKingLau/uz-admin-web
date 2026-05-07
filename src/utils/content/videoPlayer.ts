@@ -1,4 +1,5 @@
 import { POST_TYPE } from '@/utils/enum'
+import { encodeRouteId } from '@/router/routeParams'
 
 export const VIDEO_PLAYER_CACHE_KEY = 'video-player-payload'
 
@@ -64,6 +65,6 @@ export function openVideoPlayerPreview(options: OpenVideoPlayerPreviewOptions): 
         from
     })
 
-    router.push({ name: 'VideoPlayer', params: { id: postId }, query: { from } })
+    router.push({ name: 'VideoPlayer', params: { id: encodeRouteId(postId) }, query: { from } })
     return true
 }

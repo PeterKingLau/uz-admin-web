@@ -57,6 +57,7 @@ const getPostKey = (item: Record<string, any>) => item?.id ?? item?.postId ?? `$
 const loadTriggerRef = ref<HTMLElement | null>(null)
 const loadPending = ref(false)
 let loadObserver: IntersectionObserver | null = null
+let isDestroyed = false
 
 const triggerLoadMore = () => {
     if (loadPending.value || props.loading || props.loadingMore || props.noMore || !props.items.length) return
@@ -71,6 +72,8 @@ const handleIntersect: IntersectionObserverCallback = entries => {
 
 const setupObserver = () => {
     loadObserver?.disconnect()
+    loadObserver = null
+    if (isDestroyed) return
     if (!loadTriggerRef.value) return
     loadObserver = new IntersectionObserver(handleIntersect, {
         root: null,
@@ -85,13 +88,17 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+    isDestroyed = true
     loadObserver?.disconnect()
+    loadObserver = null
 })
 
 watch(
     () => [props.items.length, props.noMore] as const,
     () => {
-        nextTick(setupObserver)
+        void nextTick(() => {
+            if (!isDestroyed) setupObserver()
+        })
     }
 )
 
@@ -100,7 +107,9 @@ watch(
     ([loading, loadingMore]) => {
         if (loading || loadingMore) return
         loadPending.value = false
-        nextTick(setupObserver)
+        void nextTick(() => {
+            if (!isDestroyed) setupObserver()
+        })
     }
 )
 </script>
@@ -119,9 +128,10 @@ watch(
 
 .skeleton-card {
     overflow: hidden;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
+    border-radius: var(--client-feed-card-radius);
+    border: 1px solid var(--client-feed-card-border);
     background: var(--client-surface);
+    box-shadow: var(--client-feed-card-shadow);
     padding-bottom: 16px;
 }
 

@@ -1248,9 +1248,11 @@ button:focus-visible {
 @media screen and (max-width: 1024px) {
     .main-inner {
         flex-direction: column;
+        align-items: stretch;
     }
 
-    .left-sidebar {
+    .left-sidebar,
+    .content-area {
         width: 100%;
     }
 
@@ -1270,6 +1272,7 @@ button:focus-visible {
         flex-direction: row;
         justify-content: center;
         padding: 0;
+        width: 100%;
     }
 
     .nav-item {
@@ -1297,11 +1300,13 @@ button:focus-visible {
 
     .main-inner {
         padding: 0 var(--page-x);
+        gap: 12px;
     }
 
     .nav-item {
         padding: 10px;
         font-size: 15px;
+        min-height: 44px;
     }
 
     .profile-feed {

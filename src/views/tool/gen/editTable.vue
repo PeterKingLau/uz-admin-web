@@ -1,5 +1,5 @@
 <template>
-    <el-card shadow="never">
+    <el-card shadow="never" class="app-page-card gen-edit-card">
         <el-tabs v-model="activeName">
             <el-tab-pane label="基本信息" name="basic">
                 <basic-info-form ref="basicInfo" :info="info" />
@@ -117,6 +117,7 @@
 defineOptions({ name: 'GenEdit' })
 import { getGenTable, updateGenTable } from '@/api/tool/gen'
 import { optionselect as getDictOptionselect } from '@/api/system/dict/type'
+import { decodeRouteId } from '@/router/routeParams'
 import basicInfoForm from './basicInfoForm.vue'
 import genInfoForm from './genInfoForm.vue'
 import { ComponentInternalInstance, getCurrentInstance, ref, onMounted, nextTick } from 'vue'
@@ -176,7 +177,7 @@ onMounted(() => {
         tableHeight.value = `${document.documentElement.scrollHeight - 280}px`
     })
 
-    const tableId = route.params && route.params.tableId
+    const tableId = decodeRouteId(route.params && route.params.tableId)
     if (tableId) {
         getGenTable(tableId).then(res => {
             columns.value = res.data.rows
@@ -191,6 +192,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.gen-edit-card :deep(.el-card__body) {
+    padding: 18px;
+}
+
 .footer-actions {
     margin-top: 20px;
     display: flex;

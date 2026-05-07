@@ -4,6 +4,7 @@
             <template v-if="!isClientMode">
                 <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
                 <breadcrumb v-if="!settingsStore.topNav" id="breadcrumb-container" class="breadcrumb-container" />
+                <span v-if="!settingsStore.topNav" class="mobile-route-title">{{ currentRouteTitle }}</span>
                 <top-nav v-if="settingsStore.topNav" id="topmenu-container" class="topmenu-container" />
             </template>
             <div v-else class="client-title">{{ currentClientTitle }}</div>
@@ -90,6 +91,7 @@ const isClientMode = computed(() => userStore.isCommonClient === true)
 const canEnterClient = computed(() => !isClientMode.value && userStore.canAccessClientEntry)
 const currentClientTitle = computed(() => String(route.meta?.title || '推荐'))
 const displayName = computed(() => String(userStore.nickName || userStore.name || '用户'))
+const currentRouteTitle = computed(() => String(route.meta?.title || route.title || '首页'))
 const displayAvatar = computed(() => (avatarLoadFailed.value ? defaultAvatar : String(userStore.avatar || defaultAvatar)))
 const profileRoute = computed(() => resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'profile'))
 const passwordRoute = computed(() => resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'password'))
@@ -203,6 +205,10 @@ function toggleTheme() {
             display: flex;
             align-items: center;
         }
+
+        .mobile-route-title {
+            display: none;
+        }
     }
 
     .right-menu {
@@ -311,6 +317,89 @@ function toggleTheme() {
 
         .setting {
             margin-left: 4px;
+        }
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .navbar {
+        padding-right: 8px;
+
+        .left-menu {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+
+            .hamburger-container {
+                flex-shrink: 0;
+                padding: 0 12px;
+            }
+
+            .breadcrumb-container {
+                display: none;
+            }
+
+            .mobile-route-title {
+                display: block;
+                min-width: 0;
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                color: var(--el-text-color-primary);
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1;
+            }
+        }
+
+        .right-menu {
+            gap: 2px;
+            flex-shrink: 0;
+
+            .avatar-container {
+                margin-left: 2px;
+                padding: 0 8px;
+                height: 36px;
+
+                .avatar-wrapper {
+                    gap: 6px;
+
+                    .user-avatar {
+                        width: 28px;
+                        height: 28px;
+                    }
+
+                    .user-nickname {
+                        max-width: 84px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                }
+            }
+
+            .setting {
+                margin-left: 0;
+                min-width: 36px;
+                height: 36px;
+                padding: 0 8px;
+            }
+        }
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .navbar {
+        .right-menu {
+            .avatar-container {
+                padding: 0 6px;
+
+                .avatar-wrapper {
+                    .user-nickname {
+                        max-width: 70px;
+                    }
+                }
+            }
         }
     }
 }

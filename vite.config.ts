@@ -13,7 +13,6 @@ const srcDir = fileURLToPath(new URL('./src', import.meta.url))
 const proxyTargets = {
     wired: 'http://192.168.10.7:8080/api',
     wireless: 'http://192.168.100.26:8080/api',
-    
     production: 'http://47.108.212.205/'
 } as const
 

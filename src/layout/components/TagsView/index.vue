@@ -19,7 +19,6 @@
                 :class="{ active: isActive(tag), 'has-icon': tagsIcon }"
                 :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
                 class="tags-view-item"
-                :style="activeStyle(tag)"
                 @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
                 @contextmenu.prevent="openMenu(tag, $event)"
             >
@@ -71,6 +70,7 @@ const scrollPaneRef = ref(null)
 const hasOverflow = ref(false)
 const canScrollPrev = ref(false)
 const canScrollNext = ref(false)
+let scrollStateTimer = null
 const TAG_SCROLL_STEP = 220
 
 const { proxy } = getCurrentInstance()
@@ -79,7 +79,6 @@ const router = useRouter()
 
 const visitedViews = computed(() => useTagsViewStore().visitedViews)
 const routes = computed(() => usePermissionStore().routes)
-const theme = computed(() => useSettingsStore().theme)
 const tagsIcon = computed(() => useSettingsStore().tagsIcon)
 
 watch(route, () => {
@@ -117,19 +116,14 @@ onMounted(() => {
 onBeforeUnmount(() => {
     window.removeEventListener('resize', updateScrollState)
     document.body.removeEventListener('click', closeMenu)
+    if (scrollStateTimer) {
+        clearTimeout(scrollStateTimer)
+        scrollStateTimer = null
+    }
 })
 
 function isActive(r) {
     return r.path === route.path
-}
-
-function activeStyle(tag) {
-    if (!isActive(tag)) return {}
-    return {
-        'background-color': `var(--el-color-primary-light-9)`,
-        color: `var(--el-color-primary)`,
-        'border-color': `var(--el-color-primary-light-5)`
-    }
 }
 
 function isAffix(tag) {
@@ -222,7 +216,9 @@ function updateScrollState() {
 function scrollTabs(direction) {
     const distance = direction === 'prev' ? -TAG_SCROLL_STEP : TAG_SCROLL_STEP
     scrollPaneRef.value?.scrollBy?.(distance)
-    window.setTimeout(() => {
+    if (scrollStateTimer) clearTimeout(scrollStateTimer)
+    scrollStateTimer = window.setTimeout(() => {
+        scrollStateTimer = null
         updateScrollState()
     }, 220)
 }
@@ -318,41 +314,37 @@ function handleScroll() {
 <style lang="scss" scoped>
 .tags-view-container {
     display: flex;
-    align-items: center;
-    gap: 0;
+    align-items: flex-end;
+    gap: 2px;
     height: 44px;
     width: 100%;
     padding: 6px 8px 0;
-    background: var(--el-fill-color-lighter);
-    box-shadow: inset 0 -1px 0 var(--el-border-color-lighter);
+    background: var(--el-fill-color-light);
+    border-bottom: 1px solid var(--el-border-color-light);
 
     .scroll-nav {
-        width: 30px;
-        height: 30px;
-        margin-bottom: 6px;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 3px;
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border: 0;
-        border-radius: 8px;
+        border-radius: 6px;
         background: transparent;
-        color: var(--el-text-color-regular);
+        color: var(--el-text-color-secondary);
         cursor: pointer;
-        transition:
-            background-color var(--app-motion-fast),
-            border-color var(--app-motion-fast),
-            color var(--app-motion-fast),
-            opacity var(--app-motion-fast);
+        transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
 
         &:hover:not(.disabled) {
             color: var(--el-color-primary);
-            background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+            background: var(--el-fill-color);
         }
 
         &.disabled,
         &:disabled {
-            opacity: 0.45;
+            opacity: 0.3;
             cursor: not-allowed;
         }
     }
@@ -361,6 +353,7 @@ function handleScroll() {
         flex: 1;
         min-width: 0;
         height: 38px;
+        display: flex;
 
         .tags-view-item {
             display: inline-flex;
@@ -369,32 +362,37 @@ function handleScroll() {
             cursor: pointer;
             height: 38px;
             line-height: 38px;
-            min-width: 112px;
-            max-width: 210px;
+            min-width: 100px;
+            max-width: 220px;
             border: 0;
             color: var(--el-text-color-regular);
             background: transparent;
-            padding: 0 10px 0 14px;
+            padding: 0 12px 0 16px;
             font-size: 13px;
             border-radius: 10px 10px 0 0;
-            transition:
-                background-color var(--app-motion-fast),
-                color var(--app-motion-fast);
+            transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            user-select: none;
 
             &::after {
                 content: '';
                 position: absolute;
-                right: -1px;
-                top: 9px;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
                 width: 1px;
-                height: 20px;
+                height: 16px;
                 background: var(--el-border-color);
-                opacity: 0.75;
+                opacity: 0.8;
+                transition: opacity 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            }
+
+            &:last-child::after {
+                display: none;
             }
 
             &:hover {
                 color: var(--el-text-color-primary);
-                background: color-mix(in srgb, var(--el-bg-color) 72%, transparent);
+                background: var(--el-fill-color);
 
                 &::after {
                     opacity: 0;
@@ -404,20 +402,19 @@ function handleScroll() {
             &.active {
                 z-index: 2;
                 background-color: var(--el-bg-color);
-                color: var(--el-text-color-primary);
-                font-weight: 600;
-                box-shadow:
-                    0 -1px 0 var(--el-border-color-lighter),
-                    1px 0 0 var(--el-border-color-lighter),
-                    -1px 0 0 var(--el-border-color-lighter);
-
-                &::before {
-                    content: none;
-                }
+                color: var(--el-color-primary);
+                font-weight: 500;
 
                 &::after {
                     opacity: 0;
                 }
+            }
+
+            &.active + .tags-view-item::after,
+            &:hover + .tags-view-item::after,
+            &:has(+ .tags-view-item.active)::after,
+            &:has(+ .tags-view-item:hover)::after {
+                opacity: 0;
             }
 
             .tag-icon {
@@ -427,67 +424,53 @@ function handleScroll() {
             }
 
             .tag-title {
+                flex: 1;
                 min-width: 0;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                margin-right: 4px;
             }
 
             .close-icon-wrapper {
-                margin-left: auto;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 16px;
-                height: 16px;
+                width: 18px;
+                height: 18px;
+                margin-left: 2px;
                 border-radius: 50%;
                 flex-shrink: 0;
                 color: var(--el-text-color-secondary);
-                opacity: 0.72;
                 line-height: 1;
-                transition:
-                    background-color var(--app-motion-fast),
-                    color var(--app-motion-fast),
-                    opacity var(--app-motion-fast);
+                transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
 
                 .el-icon-close {
                     display: block;
-                    width: 10px;
-                    height: 10px;
-                    font-size: 10px;
-                    stroke-width: 2.4;
-                    background: transparent !important;
-                    transition: color var(--app-motion-fast);
+                    width: 12px;
+                    height: 12px;
+                    font-size: 12px;
+                    line-height: 1;
+                    flex-shrink: 0;
+                }
 
-                    &:hover {
-                        background: transparent !important;
-                    }
+                :deep(svg) {
+                    display: block;
                 }
 
                 &:hover {
-                    opacity: 1;
-                    background-color: color-mix(in srgb, var(--el-text-color-primary) 10%, transparent);
+                    background-color: var(--el-fill-color-dark);
                     color: var(--el-text-color-primary);
-
-                    .el-icon-close {
-                        background: transparent !important;
-                        color: var(--el-text-color-primary);
-                    }
                 }
             }
 
             &:not(:hover):not(.active) .close-icon-wrapper {
                 opacity: 0;
-            }
-
-            &.active .close-icon-wrapper {
-                opacity: 0.82;
+                width: 0;
+                margin-left: 0;
+                pointer-events: none;
             }
         }
-    }
-
-    .tags-view-item.active.has-icon::before {
-        content: none !important;
     }
 
     .modern-contextmenu {
@@ -497,13 +480,13 @@ function handleScroll() {
         position: absolute;
         list-style-type: none;
         padding: 6px 0;
-        border-radius: 12px;
+        border-radius: 8px;
         font-size: 13px;
         font-weight: 400;
         color: var(--el-text-color-regular);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--el-box-shadow-light);
         border: 1px solid var(--el-border-color-lighter);
-        min-width: 120px;
+        min-width: 130px;
 
         li {
             margin: 0;
@@ -513,8 +496,8 @@ function handleScroll() {
             align-items: center;
             gap: 8px;
             transition:
-                background-color var(--app-motion-fast),
-                color var(--app-motion-fast);
+                background-color 0.2s,
+                color 0.2s;
 
             .menu-icon {
                 font-size: 15px;
@@ -546,47 +529,36 @@ function handleScroll() {
 }
 
 :global(html.dark) .tags-view-container {
-    background: var(--el-fill-color-darker);
-    box-shadow: inset 0 -1px 0 var(--el-border-color-darker);
+    background: var(--el-bg-color-page);
+    border-bottom: 1px solid var(--el-border-color-dark);
 
     .scroll-nav {
-        background: transparent;
-
         &:hover:not(.disabled) {
-            background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+            background: var(--el-fill-color-dark);
         }
     }
 
     .tags-view-wrapper .tags-view-item {
-        background: transparent;
-
         &::after {
-            background: var(--el-border-color-darker);
+            background: var(--el-border-color-dark);
         }
 
         &:hover {
-            background: color-mix(in srgb, var(--el-bg-color-overlay) 62%, transparent);
+            background: var(--el-bg-color-overlay);
         }
 
         &.active {
             background-color: var(--el-bg-color);
-            color: var(--el-text-color-primary);
-            box-shadow:
-                0 -1px 0 var(--el-border-color-darker),
-                1px 0 0 var(--el-border-color-darker),
-                -1px 0 0 var(--el-border-color-darker);
         }
 
         .close-icon-wrapper:hover {
-            background-color: color-mix(in srgb, var(--el-color-white) 12%, transparent);
-            color: var(--el-text-color-primary);
+            background-color: var(--el-fill-color-darker);
         }
     }
 
     .modern-contextmenu {
-        background: var(--el-bg-color-overlay);
         border-color: var(--el-border-color-darker);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--el-box-shadow-dark);
 
         li:hover {
             background: var(--el-fill-color-darker);

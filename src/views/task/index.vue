@@ -635,12 +635,12 @@ function parseOptionBatchLines(text: string) {
         .filter(Boolean)
 
     return lines.map((line, index) => {
-        const match = line.match(/^\s*([A-F])[\.\s、)]*\s*(.+?)\s*$/i)
+        const match = line.match(/^\s*([A-F])[.\s、)]*\s*(.+?)\s*$/i)
         const optionKey = (match?.[1] || String.fromCharCode(65 + index)).toUpperCase()
         const rawContent = match?.[2] || line
-        const scoreMatch = rawContent.match(/[\(（]\s*分值\s*[:：]\s*([-\d.]+)\s*[\)）]/)
+        const scoreMatch = rawContent.match(/[(（]\s*分值\s*[:：]\s*([-\d.]+)\s*[)）]/)
         const scoreValue = scoreMatch?.[1] ? Number(scoreMatch[1]) : 0
-        const content = rawContent.replace(/[\(（]\s*分值\s*[:：]\s*[-\d.]+\s*[\)）]/, '').trim()
+        const content = rawContent.replace(/[(（]\s*分值\s*[:：]\s*[-\d.]+\s*[)）]/, '').trim()
 
         return {
             optionKey,
@@ -782,7 +782,7 @@ function normalizeLinesExpanded(text: string) {
 
     const splitInlineOptions = (line: string) => {
         const parts: string[] = []
-        const re = /([A-F])[\.\s、\)）]\s*/gi
+        const re = /([A-F])[.\s、)）]\s*/gi
         let match: RegExpExecArray | null = null
         const indices: { idx: number }[] = []
 
@@ -818,7 +818,7 @@ function normalizeLinesExpanded(text: string) {
 }
 
 function isOptionLine(line: string) {
-    return /^[A-F][\.\s、\)）]/i.test(line)
+    return /^[A-F][.\s、)）]/i.test(line)
 }
 
 function isQuestionLine(line: string) {
@@ -836,21 +836,21 @@ function isHeadingLine(line: string) {
         isOptionLine,
         isQuestionLine,
         input => /分值\s*[:：]/.test(input),
-        input => /^\d+[\.\s、]/.test(input),
-        input => /[。,.，:：;；!！\(\)（）]/.test(input),
+        input => /^\d+[.\s、]/.test(input),
+        input => /[。,.，:：;；!！()（）]/.test(input),
         input => input.length > 20
     ]
     return !rules.some(rule => rule(line))
 }
 
 function parseOptionLine(line: string, fallbackKey: string) {
-    const match = line.match(/^\s*([A-F])[\.\s、)]*\s*(.+?)\s*$/i)
+    const match = line.match(/^\s*([A-F])[.\s、)]*\s*(.+?)\s*$/i)
     const optionKey = (match?.[1] || fallbackKey).toUpperCase()
     const raw = match?.[2] || line
 
-    const scoreMatch = raw.match(/[\(（]\s*分值\s*[:：]\s*([-\d.]+)\s*[\)）]/)
+    const scoreMatch = raw.match(/[(（]\s*分值\s*[:：]\s*([-\d.]+)\s*[)）]/)
     const scoreValue = scoreMatch?.[1] ? Number(scoreMatch[1]) : 0
-    const content = raw.replace(/[\(（]\s*分值\s*[:：]\s*[-\d.]+\s*[\)）]/, '').trim()
+    const content = raw.replace(/[(（]\s*分值\s*[:：]\s*[-\d.]+\s*[)）]/, '').trim()
 
     return {
         optionKey,

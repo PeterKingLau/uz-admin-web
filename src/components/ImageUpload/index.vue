@@ -185,6 +185,7 @@ let ossQueueRunning = false
 let ossQueueTimer = null
 let sortableInstance = null
 let sortableContainerEl = null
+let isDestroyed = false
 
 const accept = computed(() => {
     if (props.fileType?.length) {
@@ -745,6 +746,7 @@ watch(
     () => [props.drag, props.sortable, props.showSortHandle, props.disabled, props.listType, props.showFileList, props.sortAssistMode, fileList.value.length],
     async ([dragEnabled, sortableEnabled, showSortHandle, disabled, listType, showFileList]) => {
         await nextTick()
+        if (isDestroyed) return
         if (!dragEnabled || !sortableEnabled || !showSortHandle || disabled || listType !== 'picture-card' || !showFileList || fileList.value.length <= 1) {
             destroySortable()
             return
@@ -756,10 +758,18 @@ watch(
 
 onMounted(async () => {
     await nextTick()
+    if (isDestroyed) return
     initSortable()
 })
 
 onBeforeUnmount(() => {
+    isDestroyed = true
+    pendingOssRequestQueue.length = 0
+    if (ossQueueTimer) {
+        clearTimeout(ossQueueTimer)
+        ossQueueTimer = null
+    }
+    ossQueueScheduled = false
     destroySortable()
 })
 </script>
@@ -771,22 +781,16 @@ onBeforeUnmount(() => {
     --hover-bg: color-mix(in srgb, var(--el-color-primary-light-9) 52%, var(--el-color-white));
     --text-primary: var(--el-text-color-primary);
     --text-secondary: var(--el-text-color-secondary);
-    --radius: 14px;
+    --radius: var(--app-card-radius);
     --item-size: clamp(92px, 12vw, 116px);
     --grid-gap: 12px;
 
     width: 100%;
     padding: clamp(14px, 2.2vw, 20px);
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--el-fill-color-lighter) 82%, var(--el-color-white)),
-        color-mix(in srgb, var(--el-fill-color-light) 58%, var(--el-color-white))
-    );
+    background: var(--app-card-bg);
     border-radius: var(--radius);
-    border: 1px solid color-mix(in srgb, var(--el-border-color-light) 80%, transparent);
-    box-shadow:
-        0 2px 10px color-mix(in srgb, var(--el-color-black) 6%, transparent),
-        0 1px 2px color-mix(in srgb, var(--el-color-black) 4%, transparent);
+    border: 1px solid var(--app-card-border-color);
+    box-shadow: var(--app-card-shadow);
 }
 
 .upload-wrapper {
@@ -856,8 +860,7 @@ onBeforeUnmount(() => {
             margin: 0;
             border: var(--glass-border);
             border-radius: var(--radius);
-            background: var(--glass-bg);
-            backdrop-filter: blur(3px);
+            background: var(--app-card-bg);
             transition:
                 border-color var(--app-motion-fast),
                 box-shadow var(--app-motion-fast),
@@ -867,7 +870,7 @@ onBeforeUnmount(() => {
             display: block;
 
             &:hover {
-                box-shadow: var(--app-hover-shadow-card);
+                box-shadow: var(--app-card-hover-shadow);
                 border-color: color-mix(in srgb, var(--el-color-primary) 36%, var(--el-border-color));
             }
 
@@ -963,7 +966,7 @@ onBeforeUnmount(() => {
         &:hover {
             border-color: var(--el-color-primary);
             background: var(--hover-bg);
-            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+            box-shadow: var(--app-card-hover-shadow);
 
             .upload-trigger-content {
                 .icon-box {
@@ -1022,7 +1025,6 @@ onBeforeUnmount(() => {
         font-size: 32px;
         color: var(--text-secondary);
         transition:
-            transform 0.25s ease,
             color 0.25s ease;
     }
 
@@ -1107,7 +1109,7 @@ onBeforeUnmount(() => {
 
     &:hover {
         border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--el-border-color-lighter));
-        box-shadow: 0 4px 10px color-mix(in srgb, var(--el-color-black) 6%, transparent);
+        box-shadow: var(--app-card-hover-shadow);
     }
 }
 
@@ -1233,7 +1235,7 @@ onBeforeUnmount(() => {
     opacity: 0.5;
     background: color-mix(in srgb, var(--el-color-primary-light-8) 65%, var(--el-color-white)) !important;
     border: 2px dashed var(--el-color-primary) !important;
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+    box-shadow: var(--app-card-hover-shadow);
 
     img {
         opacity: 0;

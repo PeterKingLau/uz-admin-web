@@ -1,6 +1,6 @@
 ﻿<template>
     <div class="app-container version-manage">
-        <el-card class="version-form-card" shadow="never">
+        <el-card class="version-form-card app-page-card" shadow="never">
             <template #header>
                 <div class="card-header">
                     <span class="title">APK 版本管理</span>
@@ -94,7 +94,7 @@
             </el-form>
         </el-card>
 
-        <el-card class="version-table-card" shadow="never">
+        <el-card class="version-table-card app-table-card" shadow="never">
             <template #header>
                 <div class="table-header">
                     <span class="title">版本记录</span>
@@ -489,26 +489,17 @@ onMounted(() => {
 
     .version-form-card,
     .version-table-card {
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        background: var(--el-bg-color);
-        transition:
-            box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-            background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
-
         &:hover {
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
             background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-fill-color-light));
         }
 
         :deep(.el-card__header) {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--el-border-color-lighter);
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--app-card-border-color);
         }
 
         :deep(.el-card__body) {
-            padding: 28px 24px;
+            padding: 20px 18px;
         }
     }
 
@@ -539,7 +530,7 @@ onMounted(() => {
                 transform: translateY(-50%);
                 width: 4px;
                 height: 16px;
-                background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+                background: var(--el-color-primary);
                 border-radius: 2px;
             }
         }
@@ -557,11 +548,11 @@ onMounted(() => {
             align-items: center;
             gap: 6px;
             font-weight: 500;
-            transition: all 0.2s;
-
-            &:hover {
-                transform: translateY(-1px);
-            }
+            transition:
+                background-color 160ms ease,
+                border-color 160ms ease,
+                color 160ms ease,
+                box-shadow 160ms ease;
         }
     }
 
@@ -591,7 +582,7 @@ onMounted(() => {
 
         .custom-textarea {
             :deep(.el-textarea__inner) {
-                border-radius: 12px;
+                border-radius: var(--app-card-radius);
                 padding: 12px 16px;
                 box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
                 background-color: var(--el-fill-color-blank);
@@ -646,8 +637,10 @@ onMounted(() => {
 
     .upload-wrapper {
         width: 100%;
-        border-radius: 12px;
-        transition: all 0.3s ease;
+        border-radius: var(--app-card-radius);
+        transition:
+            background-color 160ms ease,
+            border-color 160ms ease;
 
         &.has-error {
             :deep(.el-upload-dragger) {
@@ -661,11 +654,13 @@ onMounted(() => {
         width: 100%;
 
         :deep(.el-upload-dragger) {
-            border-radius: 12px;
+            border-radius: var(--app-card-radius);
             background-color: var(--el-fill-color-light);
             border: 1px dashed var(--el-border-color);
             padding: 30px;
-            transition: all 0.3s;
+            transition:
+                background-color 160ms ease,
+                border-color 160ms ease;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -686,7 +681,7 @@ onMounted(() => {
             .upload-icon {
                 font-size: 48px;
                 color: var(--el-color-primary-light-3);
-                transition: transform 0.3s;
+                transition: color 160ms ease;
             }
 
             .upload-text {
@@ -702,7 +697,6 @@ onMounted(() => {
         }
 
         &:hover .upload-icon {
-            transform: translateY(-4px);
             color: var(--el-color-primary);
         }
 
@@ -764,17 +758,16 @@ onMounted(() => {
         }
 
         .btn-submit {
-            box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+            box-shadow: none;
 
             &:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
+                box-shadow: var(--app-card-hover-shadow);
             }
         }
     }
 
     .custom-table {
-        border-radius: 12px;
+        border-radius: var(--app-card-radius);
         overflow: hidden;
         border: 1px solid var(--el-border-color-lighter);
 
@@ -916,12 +909,13 @@ onMounted(() => {
             justify-content: center;
             color: var(--el-text-color-secondary);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition:
+                background-color 160ms ease,
+                color 160ms ease;
 
             &:hover {
                 background-color: var(--el-fill-color-light);
                 color: var(--el-color-primary);
-                transform: translateY(-1px);
             }
 
             &.danger:hover {

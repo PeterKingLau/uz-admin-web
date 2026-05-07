@@ -90,8 +90,8 @@ const emit = defineEmits<{
     padding-bottom: 24px;
     margin-bottom: 16px;
     background: var(--circle-card-bg);
-    border-radius: 16px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    border-radius: var(--circle-card-radius);
+    box-shadow: var(--circle-card-shadow);
     overflow: hidden;
 }
 
@@ -128,7 +128,7 @@ const emit = defineEmits<{
     align-items: center;
     background: var(--circle-card-bg);
     border-top: 1px solid var(--el-border-color-lighter);
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 var(--circle-card-radius) var(--circle-card-radius);
 
     .header-main {
         display: flex;
@@ -141,13 +141,13 @@ const emit = defineEmits<{
     .avatar-wrapper {
         padding: 4px;
         background: var(--circle-card-bg);
-        border-radius: 20px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-radius: var(--circle-card-radius);
+        box-shadow: var(--circle-card-shadow);
         margin-top: -28px;
 
         .main-avatar {
             display: block;
-            border-radius: 16px;
+            border-radius: var(--circle-card-radius);
             background: var(--el-fill-color-light);
             border: 1px solid var(--el-border-color-lighter);
         }
@@ -219,11 +219,15 @@ const emit = defineEmits<{
             font-weight: 500;
             padding: 10px 24px;
             border-radius: 99px;
-            transition: all 0.2s;
+            transition:
+                background-color 180ms ease,
+                border-color 180ms ease,
+                color 180ms ease,
+                box-shadow 180ms ease;
 
             &.btn-join {
                 min-width: 100px;
-                box-shadow: 0 4px 12px var(--el-color-primary-light-5);
+                box-shadow: none;
 
                 &.is-joined {
                     background-color: var(--el-fill-color);

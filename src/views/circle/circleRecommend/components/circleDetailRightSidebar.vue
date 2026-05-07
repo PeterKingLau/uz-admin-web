@@ -156,21 +156,20 @@ const showAllManagers = ref(false)
 
 .sidebar-widget {
     background: var(--circle-card-bg);
-    border-radius: 16px;
+    border-radius: var(--circle-card-radius);
     box-shadow: var(--circle-card-shadow);
     border: 1px solid var(--circle-border-color);
     overflow: hidden;
     transition:
-        transform 0.3s ease,
-        box-shadow 0.3s ease;
+        box-shadow 180ms ease;
 
     &:hover {
-        box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-black) 10%, transparent);
+        box-shadow: var(--circle-card-hover-shadow);
     }
 }
 
 .widget-publish {
-    background: linear-gradient(180deg, var(--circle-card-bg) 0%, var(--el-fill-color-lighter) 100%);
+    background: var(--circle-card-bg);
     border: 1px solid var(--circle-border-color);
 
     .publish-content {
@@ -213,12 +212,13 @@ const showAllManagers = ref(false)
         border-radius: 10px;
         font-weight: 600;
         font-size: 14px;
-        box-shadow: var(--el-box-shadow-light);
-        transition: all 0.2s;
+        box-shadow: none;
+        transition:
+            background-color 180ms ease,
+            box-shadow 180ms ease;
 
         &:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--el-box-shadow);
+            box-shadow: var(--circle-card-hover-shadow);
         }
 
         .btn-icon {

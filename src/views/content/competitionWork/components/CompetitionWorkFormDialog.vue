@@ -63,7 +63,7 @@
         </template>
     </el-drawer>
 
-    <el-dialog v-else :title="dialogTitle" v-model="open" width="780px" append-to-body class="modern-dialog" destroy-on-close @closed="handleDialogClosed">
+    <el-dialog v-else :title="dialogTitle" v-model="open" width="920px" append-to-body class="modern-dialog" destroy-on-close @closed="handleDialogClosed">
         <el-form ref="workRef" :model="form" :rules="rules" label-width="110px">
             <el-row :gutter="20">
                 <el-col :xs="24" :md="12" v-if="isAddMode || isDetailMode">
@@ -97,28 +97,113 @@
                         </el-radio-group>
                     </el-form-item>
                 </el-col>
-                <el-col :span="24">
-                    <el-form-item :label="isVideoMedia ? '视频文件' : '作品图片'" prop="mediaUrl">
-                        <template v-if="isVideoMedia">
-                            <FileUpload
-                                ref="videoUploadRef"
-                                v-model="form.mediaUrl"
-                                :limit="1"
-                                :is-show-tip="false"
-                                :hide-when-reach-limit="true"
-                                oss-type="competition-works"
-                                class="work-video-uploader"
-                                :file-size="200"
-                                :file-type="['mp4', 'mov', 'm4v', 'webm']"
-                            />
-                            <div v-if="form.mediaUrl" class="media-preview">
-                                <Icon icon="mdi:video-outline" class="media-preview-icon" />
-                                <span class="media-preview-name">{{ resolveMediaDisplayName(form.mediaUrl) }}</span>
-                                <el-button type="primary" link @click="previewVideo(form.mediaUrl)">预览视频</el-button>
-                            </div>
-                        </template>
+                <el-col :span="24" v-if="isVideoMedia">
+                    <el-form-item label="视频素材" prop="mediaUrl">
+                        <div class="video-workspace">
+                            <section class="video-workspace-card app-section-card video-file-card">
+                                <div class="workspace-card-title">视频文件</div>
+                                <FileUpload
+                                    ref="videoUploadRef"
+                                    v-model="form.mediaUrl"
+                                    :limit="1"
+                                    :is-show-tip="false"
+                                    :hide-when-reach-limit="true"
+                                    oss-type="competition-works"
+                                    class="work-video-uploader"
+                                    :file-size="200"
+                                    :file-type="['mp4', 'mov', 'm4v', 'webm']"
+                                />
+                                <div v-if="form.mediaUrl" class="media-preview">
+                                    <Icon icon="mdi:video-outline" class="media-preview-icon" />
+                                    <span class="media-preview-name">{{ resolveMediaDisplayName(form.mediaUrl) }}</span>
+                                    <el-button type="primary" link @click="previewVideo(form.mediaUrl)">预览</el-button>
+                                </div>
+                            </section>
+
+                            <section class="video-workspace-card app-section-card video-cover-card">
+                                <div class="video-cover-header">
+                                    <div class="workspace-card-title">视频封面</div>
+                                    <el-radio-group v-model="coverSourceMode" class="cover-source-group" size="small" @change="handleCoverSourceChange">
+                                        <el-radio-button value="auto">自动首帧</el-radio-button>
+                                        <el-radio-button value="manual">手动选帧</el-radio-button>
+                                    </el-radio-group>
+                                </div>
+
+                                <div v-if="coverSourceMode === 'auto'" class="auto-cover-box">
+                                    <div class="auto-cover-main">
+                                        <el-image
+                                            v-if="form.coverUrl"
+                                            :src="resolveMediaUrl(form.coverUrl)"
+                                            :preview-src-list="[resolveMediaUrl(form.coverUrl)]"
+                                            preview-teleported
+                                            fit="cover"
+                                            class="auto-cover-preview"
+                                        />
+                                        <div v-else class="auto-cover-empty">
+                                            <Icon icon="mdi:image-auto-adjust" />
+                                            <span>{{ isGeneratingCover ? '正在生成...' : '上传后自动生成' }}</span>
+                                        </div>
+                                        <el-button
+                                            type="primary"
+                                            plain
+                                            :loading="isGeneratingCover"
+                                            :disabled="!form.mediaUrl"
+                                            @click="generateVideoCover(true)"
+                                        >
+                                            重新截取
+                                        </el-button>
+                                    </div>
+                                </div>
+
+                                <div v-else class="manual-cover-box">
+                                    <div class="manual-cover-main">
+                                        <video
+                                            v-if="videoCoverSourceUrl"
+                                            ref="videoCoverRef"
+                                            :src="videoCoverSourceUrl"
+                                            class="cover-picker-video"
+                                            controls
+                                            preload="metadata"
+                                            controlslist="nodownload noplaybackrate"
+                                            disablepictureinpicture
+                                            crossorigin="anonymous"
+                                            @contextmenu.prevent
+                                        ></video>
+                                        <div v-else class="auto-cover-empty">
+                                            <Icon icon="mdi:video-outline" />
+                                            <span>上传后可选帧</span>
+                                        </div>
+                                        <div class="manual-cover-side">
+                                            <el-image
+                                                v-if="form.coverUrl"
+                                                :src="resolveMediaUrl(form.coverUrl)"
+                                                :preview-src-list="[resolveMediaUrl(form.coverUrl)]"
+                                                preview-teleported
+                                                fit="cover"
+                                                class="manual-cover-preview"
+                                            />
+                                            <div v-else class="manual-cover-preview is-empty">
+                                                <Icon icon="mdi:image-outline" />
+                                            </div>
+                                            <el-button
+                                                type="primary"
+                                                plain
+                                                :loading="isGeneratingCover || isPreparingVideoCoverSource"
+                                                :disabled="!videoCoverSourceUrl || !videoCoverSourceCanCapture || isPreparingVideoCoverSource"
+                                                @click="captureCurrentFrame(true)"
+                                            >
+                                                {{ isPreparingVideoCoverSource ? '准备视频中' : form.coverUrl ? '使用当前帧' : '设为封面' }}
+                                            </el-button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="24" v-else>
+                    <el-form-item label="作品图片" prop="mediaUrl">
                         <ImageUpload
-                            v-else
                             v-model="form.mediaUrl"
                             :limit="1"
                             :is-show-tip="false"
@@ -129,81 +214,12 @@
                         />
                     </el-form-item>
                 </el-col>
-                <el-col :span="24" v-if="isVideoMedia">
-                    <el-form-item label="视频封面" prop="coverUrl">
-                        <div class="video-cover-panel">
-                            <el-radio-group v-model="coverSourceMode" class="cover-source-group" @change="handleCoverSourceChange">
-                                <el-radio-button value="auto">自动截取首帧</el-radio-button>
-                                <el-radio-button value="manual">手动选择帧</el-radio-button>
-                            </el-radio-group>
-
-                            <div v-if="coverSourceMode === 'auto'" class="auto-cover-box">
-                                <div class="auto-cover-main">
-                                    <el-image
-                                        v-if="form.coverUrl"
-                                        :src="resolveMediaUrl(form.coverUrl)"
-                                        :preview-src-list="[resolveMediaUrl(form.coverUrl)]"
-                                        preview-teleported
-                                        fit="cover"
-                                        class="auto-cover-preview"
-                                    />
-                                    <div v-else class="auto-cover-empty">
-                                        <Icon icon="mdi:image-auto-adjust" />
-                                        <span>{{ isGeneratingCover ? '正在生成封面...' : '上传视频后自动生成封面' }}</span>
-                                    </div>
-                                    <el-button type="primary" plain :loading="isGeneratingCover" :disabled="!form.mediaUrl" @click="generateVideoCover(true)">
-                                        重新截取
-                                    </el-button>
-                                </div>
-                                <div class="form-tip">自动从视频首帧生成封面；如首帧不合适，可切换为手动选择帧。</div>
-                            </div>
-
-                            <div v-else class="manual-cover-box">
-                                <video
-                                    v-if="videoCoverSourceUrl"
-                                    ref="videoCoverRef"
-                                    :src="videoCoverSourceUrl"
-                                    class="cover-picker-video"
-                                    controls
-                                    preload="metadata"
-                                    controlslist="nodownload noplaybackrate"
-                                    disablepictureinpicture
-                                    @contextmenu.prevent
-                                ></video>
-                                <div v-else class="auto-cover-empty">
-                                    <Icon icon="mdi:video-outline" />
-                                    <span>上传视频后可选择封面帧</span>
-                                </div>
-                                <div class="manual-cover-actions">
-                                    <el-button
-                                        type="primary"
-                                        plain
-                                        :loading="isGeneratingCover"
-                                        :disabled="!videoCoverSourceUrl"
-                                        @click="captureCurrentFrame(true)"
-                                    >
-                                        {{ form.coverUrl ? '重新选择当前帧' : '使用当前帧作为封面' }}
-                                    </el-button>
-                                    <el-image
-                                        v-if="form.coverUrl"
-                                        :src="resolveMediaUrl(form.coverUrl)"
-                                        :preview-src-list="[resolveMediaUrl(form.coverUrl)]"
-                                        preview-teleported
-                                        fit="cover"
-                                        class="manual-cover-preview"
-                                    />
-                                </div>
-                                <div class="form-tip">拖动视频到合适画面后，点击按钮将当前帧作为封面。</div>
-                            </div>
-                        </div>
-                    </el-form-item>
-                </el-col>
                 <el-col :span="24">
                     <el-form-item label="作品描述" prop="workDescription">
                         <el-input
                             v-model="form.workDescription"
                             type="textarea"
-                            :rows="4"
+                            :rows="3"
                             placeholder="请输入作品描述"
                             maxlength="2000"
                             show-word-limit
@@ -213,7 +229,7 @@
                 </el-col>
                 <el-col :span="24">
                     <el-form-item label="备注" prop="remark">
-                        <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" maxlength="500" show-word-limit resize="none" />
+                        <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" maxlength="500" show-word-limit resize="none" />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -246,7 +262,7 @@ import {
 } from '@/api/content/competition'
 import FileUpload from '@/components/FileUpload/index.vue'
 import ImageUpload from '@/components/ImageUpload/index.vue'
-import { buildVideoCoverFile, normalizeStoragePath } from '@/utils/content/postMedia'
+import { buildVideoCoverFile, createVideoObjectUrlFromUrl, normalizeStoragePath } from '@/utils/content/postMedia'
 
 type DialogMode = 'add' | 'edit' | 'detail'
 
@@ -269,7 +285,11 @@ const coverSourceMode = ref<'auto' | 'manual'>('auto')
 const isGeneratingCover = ref(false)
 const autoCoverMediaUrl = ref('')
 const videoCoverSourceUrl = ref('')
+const videoCoverSourceCanCapture = ref(false)
+const isPreparingVideoCoverSource = ref(false)
 let videoCoverObjectUrl = ''
+let videoCoverSourceRequestId = 0
+let isDestroyed = false
 
 const data = reactive({
     form: createDefaultForm()
@@ -380,6 +400,8 @@ function reset() {
     isGeneratingCover.value = false
     autoCoverMediaUrl.value = ''
     videoCoverSourceUrl.value = ''
+    videoCoverSourceCanCapture.value = false
+    isPreparingVideoCoverSource.value = false
     revokeVideoCoverSourceObjectUrl()
     workRef.value?.clearValidate()
 }
@@ -401,10 +423,11 @@ async function openWithDetail(row: CompetitionWorkItem, mode: DialogMode) {
         coverSourceMode.value = nextForm.coverUrl ? 'manual' : 'auto'
         autoCoverMediaUrl.value = ''
         form.value = nextForm
-        await nextTick()
-        syncVideoCoverSource()
         dialogMode.value = mode
         open.value = true
+        nextTick(() => {
+            void syncVideoCoverSource()
+        })
     } finally {
         detailLoading.value = false
     }
@@ -443,17 +466,47 @@ function revokeVideoCoverSourceObjectUrl() {
     videoCoverObjectUrl = ''
 }
 
-function syncVideoCoverSource() {
+async function syncVideoCoverSource() {
+    const requestId = ++videoCoverSourceRequestId
     revokeVideoCoverSourceObjectUrl()
+    videoCoverSourceCanCapture.value = false
     const rawFile = getVideoRawFile()
     if (rawFile) {
+        if (isDestroyed) return
         videoCoverObjectUrl = URL.createObjectURL(rawFile)
         videoCoverSourceUrl.value = videoCoverObjectUrl
+        videoCoverSourceCanCapture.value = true
         return
     }
 
     const mediaUrl = String(form.value.mediaUrl || '').trim()
-    videoCoverSourceUrl.value = mediaUrl ? resolveMediaUrl(mediaUrl) : ''
+    if (!mediaUrl) {
+        videoCoverSourceUrl.value = ''
+        return
+    }
+
+    const resolvedMediaUrl = resolveMediaUrl(mediaUrl)
+    videoCoverSourceUrl.value = resolvedMediaUrl
+    isPreparingVideoCoverSource.value = true
+    try {
+        const objectUrl = await createVideoObjectUrlFromUrl(resolvedMediaUrl)
+        if (isDestroyed || requestId !== videoCoverSourceRequestId) {
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
+            return
+        }
+        videoCoverObjectUrl = objectUrl
+        videoCoverSourceUrl.value = objectUrl
+        videoCoverSourceCanCapture.value = true
+    } catch (error) {
+        if (isDestroyed || requestId !== videoCoverSourceRequestId) return
+        console.error(error)
+        videoCoverSourceUrl.value = resolvedMediaUrl
+        videoCoverSourceCanCapture.value = false
+    } finally {
+        if (!isDestroyed && requestId === videoCoverSourceRequestId) {
+            isPreparingVideoCoverSource.value = false
+        }
+    }
 }
 
 async function uploadCoverFile(coverFile: File): Promise<string> {
@@ -470,11 +523,16 @@ async function generateVideoCover(force = false) {
 
     isGeneratingCover.value = true
     try {
-        const coverFile = await buildVideoCoverFile({ file: getVideoRawFile() || undefined, mediaUrl })
+        const rawFile = getVideoRawFile()
+        const coverFile = await buildVideoCoverFile({
+            file: rawFile || undefined,
+            mediaUrl: rawFile ? undefined : resolveMediaUrl(mediaUrl)
+        })
         if (!coverFile) throw new Error('视频首帧生成失败')
+        if (isDestroyed) return
         form.value.coverUrl = await uploadCoverFile(coverFile)
+        if (isDestroyed) return
         autoCoverMediaUrl.value = mediaUrl
-        workRef.value?.validateField('coverUrl').catch(() => {})
         if (force) proxy?.$modal?.msgSuccess?.('封面生成成功')
     } catch (error) {
         console.error(error)
@@ -482,7 +540,7 @@ async function generateVideoCover(force = false) {
             proxy?.$modal?.msgError?.('自动截取封面失败，请切换为手动上传')
         }
     } finally {
-        isGeneratingCover.value = false
+        if (!isDestroyed) isGeneratingCover.value = false
     }
 }
 
@@ -490,6 +548,10 @@ async function captureCurrentFrame(showMessage = true) {
     const video = videoCoverRef.value
     if (!video || !videoCoverSourceUrl.value) {
         if (showMessage) proxy?.$modal?.msgWarning?.('请先上传视频')
+        return
+    }
+    if (!videoCoverSourceCanCapture.value) {
+        if (showMessage) proxy?.$modal?.msgWarning?.('当前视频未允许跨域读取，无法截取封面')
         return
     }
     if (video.readyState < 2) {
@@ -521,20 +583,21 @@ async function captureCurrentFrame(showMessage = true) {
         })
 
         const coverFile = new File([blob], `video-cover-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        if (isDestroyed) return
         form.value.coverUrl = await uploadCoverFile(coverFile)
+        if (isDestroyed) return
         autoCoverMediaUrl.value = ''
-        workRef.value?.validateField('coverUrl').catch(() => {})
         if (showMessage) proxy?.$modal?.msgSuccess?.('已选择当前帧作为封面')
     } catch (error) {
         console.error(error)
         if (showMessage) proxy?.$modal?.msgError?.('封面截取失败，请重试')
     } finally {
-        isGeneratingCover.value = false
+        if (!isDestroyed) isGeneratingCover.value = false
     }
 }
 
-function handleCoverSourceChange(value: string | number | boolean | undefined) {
-    syncVideoCoverSource()
+async function handleCoverSourceChange(value: string | number | boolean | undefined) {
+    await syncVideoCoverSource()
     if (value === 'auto') {
         generateVideoCover(true)
     }
@@ -585,7 +648,8 @@ function submitForm() {
 defineExpose({
     openAdd,
     openEdit,
-    openDetail
+    openDetail,
+    previewVideo
 })
 
 watch(
@@ -593,7 +657,7 @@ watch(
     async ([mediaType, mediaUrl], previous) => {
         const oldMediaUrl = previous?.[1]
         await nextTick()
-        syncVideoCoverSource()
+        await syncVideoCoverSource()
         if (String(mediaType) !== '2') return
         if (!mediaUrl || coverSourceMode.value !== 'auto') return
         if (String(mediaUrl) === String(oldMediaUrl || '') && form.value.coverUrl) return
@@ -604,6 +668,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
+    isDestroyed = true
+    videoCoverSourceRequestId++
     revokeVideoCoverSourceObjectUrl()
 })
 </script>
@@ -623,6 +689,8 @@ onBeforeUnmount(() => {
 
     :deep(.el-dialog__body) {
         padding: 24px;
+        max-height: calc(100vh - 180px);
+        overflow-y: auto;
     }
 
     :deep(.el-dialog__footer) {
@@ -724,15 +792,16 @@ onBeforeUnmount(() => {
     width: 100%;
 
     :deep(.upload-file-uploader) {
-        max-width: 420px;
+        max-width: 100%;
     }
 
     :deep(.el-upload-dragger) {
-        height: 112px;
+        height: 92px;
+        padding: 14px 16px;
     }
 
     :deep(.upload-file-list) {
-        max-width: 420px;
+        max-width: 100%;
     }
 }
 
@@ -755,16 +824,41 @@ onBeforeUnmount(() => {
     }
 }
 
-.video-cover-panel {
+.video-workspace {
     width: 100%;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     gap: 12px;
 }
 
-.cover-source-group {
+.video-workspace-card {
+    min-width: 0;
+    padding: 12px;
+    background: color-mix(in srgb, var(--app-card-bg) 88%, var(--el-fill-color-light));
+}
+
+.workspace-card-title {
+    margin-bottom: 10px;
+    color: var(--el-text-color-primary);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.video-cover-header {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+
+    .workspace-card-title {
+        margin-bottom: 0;
+    }
+}
+
+.cover-source-group {
+    flex-shrink: 0;
 }
 
 .auto-cover-box {
@@ -773,35 +867,44 @@ onBeforeUnmount(() => {
     gap: 8px;
 }
 
-.manual-cover-box {
-    max-width: 520px;
-    display: flex;
-    flex-direction: column;
+.manual-cover-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    align-items: stretch;
     gap: 10px;
 }
 
 .cover-picker-video {
     width: 100%;
-    max-height: 260px;
+    height: 158px;
     display: block;
     border-radius: 8px;
     background: #000;
     border: 1px solid var(--el-border-color-lighter);
+    object-fit: contain;
 }
 
-.manual-cover-actions {
+.manual-cover-side {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .manual-cover-preview {
-    width: 96px;
-    height: 62px;
+    width: 100%;
+    height: 92px;
     border-radius: 8px;
     border: 1px solid var(--el-border-color-lighter);
     background: var(--el-fill-color-light);
+
+    &.is-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--el-text-color-placeholder);
+        font-size: 24px;
+    }
 }
 
 .auto-cover-main {
@@ -813,8 +916,8 @@ onBeforeUnmount(() => {
 
 .auto-cover-preview,
 .auto-cover-empty {
-    width: 148px;
-    height: 96px;
+    width: 132px;
+    height: 82px;
     border-radius: 8px;
     border: 1px solid var(--el-border-color-lighter);
     background: var(--el-fill-color-light);
@@ -846,7 +949,7 @@ onBeforeUnmount(() => {
 
 .media-preview {
     margin-top: 8px;
-    max-width: 420px;
+    max-width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -877,5 +980,11 @@ onBeforeUnmount(() => {
     display: block;
     background: #000;
     border-radius: 8px;
+}
+
+@media screen and (max-width: 900px) {
+    .video-workspace {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

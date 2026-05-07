@@ -326,6 +326,7 @@ const renderedReplyCountMap = ref<Record<string, number>>({})
 
 let commentLoadObserver: IntersectionObserver | null = null
 let worksLoadObserver: IntersectionObserver | null = null
+let isDestroyed = false
 
 const visibleModel = computed({
     get: () => props.visible,
@@ -482,8 +483,9 @@ const handleWorksLoadIntersect: IntersectionObserverCallback = entries => {
 
 const setupLoadObservers = async () => {
     disconnectLoadObservers()
-    if (!props.visible || typeof IntersectionObserver === 'undefined') return
+    if (isDestroyed || !props.visible || typeof IntersectionObserver === 'undefined') return
     await nextTick()
+    if (isDestroyed || !props.visible) return
     const root = commentBodyRef.value
     if (!root) return
 
@@ -566,6 +568,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+    isDestroyed = true
     disconnectLoadObservers()
 })
 

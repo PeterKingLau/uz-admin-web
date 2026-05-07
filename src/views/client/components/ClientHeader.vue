@@ -27,8 +27,9 @@
                 <slot name="actions" />
 
                 <button v-if="adminRoute" type="button" class="admin-entry" @click="navigateTo(adminRoute)">
-                    <Icon icon="ep:monitor" />
-                    <span>进入管理端</span>
+                    <Icon icon="ep:monitor" class="admin-entry-icon" />
+                    <span class="admin-entry-label-full">进入管理端</span>
+                    <span class="admin-entry-label-short">管理端</span>
                 </button>
 
                 <el-dropdown
@@ -362,11 +363,18 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
+    line-height: 1;
     white-space: nowrap;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background-color var(--app-motion-fast),
+        border-color var(--app-motion-fast),
+        color var(--app-motion-fast),
+        box-shadow var(--app-motion-fast);
 }
 
 .admin-entry:hover {
@@ -381,8 +389,26 @@ onMounted(() => {
     outline: none;
 }
 
-.admin-entry :deep(svg) {
+.admin-entry-icon {
     font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.admin-entry-icon :deep(svg),
+.admin-entry-icon :deep(.iconify) {
+    width: 1em;
+    height: 1em;
+    display: block;
+}
+
+.admin-entry-label-short {
+    display: none;
 }
 
 .user-dropdown {
@@ -460,13 +486,18 @@ onMounted(() => {
 }
 
 @media screen and (max-width: 1180px) {
-    .admin-entry span {
+    .admin-entry-label-full {
         display: none;
     }
 
+    .admin-entry-label-short {
+        display: inline;
+    }
+
     .admin-entry {
-        width: 38px;
-        padding: 0;
+        min-width: 0;
+        padding: 0 10px;
+        gap: 5px;
         justify-content: center;
         border-radius: 8px;
     }
@@ -481,6 +512,7 @@ onMounted(() => {
 
     .header-actions {
         grid-column: 2;
+        gap: 8px;
     }
 
     .search-container {
@@ -493,6 +525,33 @@ onMounted(() => {
 
     .user-name {
         max-width: 72px;
+    }
+
+    .admin-entry {
+        min-width: 0;
+        flex-basis: auto;
+        height: 34px;
+        font-size: 12px;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .header-inner {
+        padding: 0 12px;
+        gap: 10px;
+    }
+
+    .header-actions {
+        gap: 6px;
+    }
+
+    .user-entry {
+        padding: 0 8px 0 4px;
+        gap: 8px;
+    }
+
+    .user-name {
+        max-width: 56px;
     }
 }
 </style>

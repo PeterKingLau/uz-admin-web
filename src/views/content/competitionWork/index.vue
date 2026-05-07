@@ -144,10 +144,6 @@
         </div>
 
         <CompetitionWorkFormDialog ref="workDialogRef" @success="getList" />
-
-        <el-dialog v-model="videoPreviewVisible" title="视频预览" width="720px" append-to-body class="modern-dialog">
-            <video v-if="videoPreviewUrl" :src="resolveMediaUrl(videoPreviewUrl)" controls class="video-preview"></video>
-        </el-dialog>
     </div>
 </template>
 
@@ -157,6 +153,7 @@ import { computed, getCurrentInstance, reactive, ref, toRefs, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { COMPETITION_WORK_RETURN_PATH_KEY } from '@/router/constants'
+import { decodeRouteId } from '@/router/routeParams'
 import { parseTime } from '@/utils/utils'
 import {
     delCompetitionWork,
@@ -174,6 +171,7 @@ type WorkDialogExpose = {
     openAdd: (competitionId?: string | number) => void
     openEdit: (row: CompetitionWorkItem) => void
     openDetail: (row: CompetitionWorkItem) => void
+    previewVideo: (url?: string) => void
 }
 
 const { proxy } = getCurrentInstance() as any
@@ -187,8 +185,6 @@ const showSearch = ref(true)
 const ids = ref<Array<string | number>>([])
 const multiple = ref(true)
 const total = ref(0)
-const videoPreviewVisible = ref(false)
-const videoPreviewUrl = ref('')
 const competitionInfo = ref<CompetitionItem | null>(null)
 const fileBaseUrl = String(import.meta.env.VITE_APP_FILE_BASE_URL || '').trim()
 
@@ -209,8 +205,7 @@ const currentCompetitionTitle = computed(() => resolveCompetitionTitle(competiti
 
 function resolveRouteCompetitionId() {
     const value = route.params.competitionId
-    const raw = Array.isArray(value) ? value[0] : value
-    const text = String(raw ?? '').trim()
+    const text = decodeRouteId(value)
     return text || undefined
 }
 
@@ -346,8 +341,7 @@ function handleDelete(row?: CompetitionWorkItem) {
 }
 
 function previewVideo(url?: string) {
-    videoPreviewUrl.value = String(url || '')
-    videoPreviewVisible.value = Boolean(videoPreviewUrl.value)
+    workDialogRef.value?.previewVideo(url)
 }
 
 function resolveRouteText(value: unknown): string {
@@ -469,14 +463,6 @@ getList()
     .image-placeholder {
         color: var(--el-text-color-placeholder);
         font-size: 12px;
-    }
-
-    .video-preview {
-        width: 100%;
-        max-height: 420px;
-        display: block;
-        background: #000;
-        border-radius: 8px;
     }
 }
 </style>

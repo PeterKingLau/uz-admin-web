@@ -62,7 +62,7 @@
                 </el-table-column>
                 <el-table-column label="标签编码" prop="code" align="center" :show-overflow-tooltip="true">
                     <template #default="scope">
-                        <router-link :to="`/configuration/tag-data/index/${scope.row.id}`" class="link-type">
+                        <router-link :to="`/configuration/tag-data/index/${encodeRouteId(scope.row.id)}`" class="link-type">
                             <span class="row-code">{{ scope.row.code }}</span>
                         </router-link>
                     </template>
@@ -147,6 +147,7 @@
 <script setup>
 defineOptions({ name: 'InterestCategory' })
 import { ref, reactive, toRefs, getCurrentInstance, onMounted, computed } from 'vue'
+import { encodeRouteId } from '@/router/routeParams'
 import { parseTime } from '@/utils/utils'
 import { addInterestCategory, deleteInterestCategory, listInterestCategory, updateInterestCategory } from '@/api/configuration/tag'
 

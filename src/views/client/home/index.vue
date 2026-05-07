@@ -55,7 +55,7 @@
 
                 <section class="content-area">
                     <div class="tab-panel">
-                        <div class="tab-row" role="tablist" aria-label="一级标签">
+                        <div class="tab-row primary-tabs" role="tablist" aria-label="一级标签">
                             <button type="button" class="tab-item" :class="{ active: activePrimaryId === '' }" @click="handlePrimaryTagChange('')">推荐</button>
                             <button
                                 v-for="tag in topLevelTagOptions"
@@ -64,6 +64,22 @@
                                 class="tab-item"
                                 :class="{ active: activePrimaryId === String(tag.id) }"
                                 @click="handlePrimaryTagChange(String(tag.id))"
+                            >
+                                {{ tag.name }}
+                            </button>
+                        </div>
+
+                        <div v-if="secondaryTagOptions.length" class="tab-row secondary-tabs" role="tablist" aria-label="二级标签">
+                            <button type="button" class="tab-item sub-tab" :class="{ active: activeSecondaryId === '' }" @click="handleSecondaryTagChange('')">
+                                全部
+                            </button>
+                            <button
+                                v-for="tag in secondaryTagOptions"
+                                :key="tag.id"
+                                type="button"
+                                class="tab-item sub-tab"
+                                :class="{ active: activeSecondaryId === String(tag.id) }"
+                                @click="handleSecondaryTagChange(String(tag.id))"
                             >
                                 {{ tag.name }}
                             </button>
@@ -184,6 +200,7 @@ const loadMoreTriggerRef = ref<HTMLElement | null>(null)
 let loadObserver: IntersectionObserver | null = null
 let resizeHandler: (() => void) | null = null
 let scrollHandler: (() => void) | null = null
+let isDestroyed = false
 let recommendLoadTimer: ReturnType<typeof setTimeout> | null = null
 let recommendEmptyRetryTimer: ReturnType<typeof setTimeout> | null = null
 let lastRecommendLoadAt = 0
@@ -240,6 +257,7 @@ const primaryTagOptions = ref<any[]>([])
 const activeSideKey = ref('discover')
 const topLevelTagOptions = computed(() => primaryTagOptions.value.filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name))
 const activePrimaryId = ref('')
+const activeSecondaryId = ref('')
 const normalizedSearchKeyword = computed(() => activeSearchKeyword.value.trim())
 const isSearchMode = computed(() => Boolean(normalizedSearchKeyword.value))
 const isRecommendMode = computed(() => !activePrimaryId.value && !isSearchMode.value)
@@ -252,8 +270,12 @@ const loadMoreStatusText = computed(() => {
 const emptyDescription = computed(() => (isSearchMode.value ? '没有找到相关内容' : '当前分类暂无内容'))
 
 const activePrimaryTag = computed(() => topLevelTagOptions.value.find((item: any) => String(item.id) === activePrimaryId.value) || null)
+const secondaryTagOptions = computed(() =>
+    (activePrimaryTag.value?.children || []).filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
+)
 const activeRequestTagIds = computed(() => {
     if (!activePrimaryId.value) return isSearchMode.value ? [null] : ([] as Array<string | number | null>)
+    if (activeSecondaryId.value) return [activeSecondaryId.value]
     const childIds = (activePrimaryTag.value?.children || [])
         .filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
         .map((item: any) => item.id)
@@ -274,6 +296,16 @@ watch(
     groups => {
         const hasActivePrimary = groups.some((item: any) => String(item.id) === activePrimaryId.value)
         if (!hasActivePrimary) activePrimaryId.value = ''
+    },
+    { immediate: true }
+)
+
+watch(
+    secondaryTagOptions,
+    options => {
+        if (!activeSecondaryId.value) return
+        const hasActiveSecondary = options.some((item: any) => String(item.id) === activeSecondaryId.value)
+        if (!hasActiveSecondary) activeSecondaryId.value = ''
     },
     { immediate: true }
 )
@@ -694,7 +726,9 @@ const setupLoadObserver = async () => {
         loadObserver.disconnect()
         loadObserver = null
     }
+    if (isDestroyed) return
     await nextTick()
+    if (isDestroyed) return
     const target = loadMoreTriggerRef.value
     if (!target || (!isRecommendMode.value && finished.value)) return
     loadObserver = new IntersectionObserver(
@@ -808,6 +842,15 @@ const handlePrimaryTagChange = (tagId?: string | number) => {
     if (activePrimaryId.value === nextPrimaryId) return
 
     activePrimaryId.value = nextPrimaryId
+    activeSecondaryId.value = ''
+    resetAndFetch(true)
+}
+
+const handleSecondaryTagChange = (tagId?: string | number) => {
+    const nextSecondaryId = tagId === undefined || tagId === null || tagId === '' ? '' : String(tagId)
+    if (activeSecondaryId.value === nextSecondaryId) return
+
+    activeSecondaryId.value = nextSecondaryId
     resetAndFetch(true)
 }
 
@@ -1001,6 +1044,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+    isDestroyed = true
     nextFeedRequestId()
     abortFeedRequest()
     closePreview()
@@ -1131,7 +1175,9 @@ onBeforeUnmount(() => {
     font-weight: 600;
     cursor: pointer;
     text-align: left;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition:
+        background-color var(--client-feed-card-transition),
+        color var(--client-feed-card-transition);
 }
 
 .nav-item:hover {
@@ -1214,13 +1260,24 @@ onBeforeUnmount(() => {
     z-index: 1;
     background: var(--client-surface);
     margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .tab-row {
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
     padding: 0;
     scrollbar-width: none;
 }
@@ -1240,8 +1297,9 @@ onBeforeUnmount(() => {
     color: var(--text-regular);
     font-size: 16px;
     font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: color var(--client-feed-card-transition);
 }
 
 .tab-item:hover {
@@ -1251,6 +1309,34 @@ onBeforeUnmount(() => {
 .tab-item.active {
     color: var(--client-active-text);
     font-weight: 700;
+}
+
+.secondary-tabs {
+    gap: 10px;
+}
+
+.sub-tab {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--client-border-soft);
+    border-radius: 999px;
+    color: var(--text-regular);
+    font-size: 14px;
+    background: var(--client-surface-muted);
+    transition:
+        background-color var(--app-motion-fast),
+        border-color var(--app-motion-fast),
+        color var(--app-motion-fast);
+}
+
+.sub-tab:hover {
+    background: var(--client-surface-hover);
+}
+
+.sub-tab.active {
+    border-color: color-mix(in srgb, var(--primary-color) 28%, transparent);
+    background: var(--client-active-bg);
+    color: var(--client-active-text);
 }
 
 button:focus,
@@ -1279,20 +1365,22 @@ button:focus-visible {
 }
 
 .post-card {
-    border-radius: 8px;
+    border-radius: var(--client-feed-card-radius);
     overflow: hidden;
-    border: 1px solid var(--client-border-soft);
+    border: 1px solid var(--client-feed-card-border);
     background: var(--client-surface);
     cursor: pointer;
-    box-shadow: none;
+    box-shadow: var(--client-feed-card-shadow);
     transition:
-        transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-        box-shadow 0.3s ease;
+        border-color var(--client-feed-card-transition),
+        background-color var(--client-feed-card-transition),
+        box-shadow var(--client-feed-card-transition);
 }
 
 .post-card:hover {
-    border-color: var(--app-hover-border-soft);
-    box-shadow: var(--client-shadow-soft);
+    border-color: var(--client-border-strong);
+    background: var(--client-card-hover);
+    box-shadow: var(--client-feed-card-hover-shadow);
 }
 
 .cover-wrap {
@@ -1309,7 +1397,7 @@ button:focus-visible {
     background: color-mix(in srgb, var(--text-main) 5%, transparent);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--client-feed-card-transition);
 }
 
 .post-card:hover .cover-wrap::after {
@@ -1517,9 +1605,26 @@ button:focus-visible {
     }
 
     .tab-panel {
-        left: 16px;
-        right: 16px;
+        margin-left: calc(var(--page-x) * -1);
+        margin-right: calc(var(--page-x) * -1);
         padding: 0;
+    }
+
+    .tab-row {
+        padding: 0 var(--page-x);
+        scroll-padding-inline: var(--page-x);
+    }
+
+    .tab-item {
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: 15px;
+    }
+
+    .sub-tab {
+        min-height: 30px;
+        padding: 0 11px;
+        font-size: 13px;
     }
 
     .masonry-grid {

@@ -62,6 +62,7 @@
 defineOptions({ name: 'AuthUser' })
 import selectUser from './selectUser'
 import { allocatedUserList, authUserCancel, authUserCancelAll } from '@/api/system/role'
+import { decodeRouteId } from '@/router/routeParams'
 
 const route = useRoute()
 const { proxy } = getCurrentInstance()
@@ -77,7 +78,7 @@ const userIds = ref([])
 const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
-    roleId: route.params.roleId,
+    roleId: decodeRouteId(route.params.roleId),
     userName: undefined,
     phonenumber: undefined
 })

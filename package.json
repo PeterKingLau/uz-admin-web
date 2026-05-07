@@ -14,8 +14,9 @@
         "preview": "vite preview",
         "prepare": "husky",
         "typecheck": "vue-tsc --noEmit",
+        "lint:eslint": "eslint \"src/**/*.{js,ts,vue}\" \"vite/**/*.ts\" vite.config.ts eslint.config.js",
         "lint:style": "stylelint \"src/**/*.vue\" --allow-empty-input",
-        "verify": "yarn run -s typecheck && yarn run -s lint:style",
+        "verify": "yarn run -s typecheck && yarn run -s lint:eslint && yarn run -s lint:style",
         "clean": "rimraf node_modules yarn.lock && yarn install"
     },
     "engines": {
@@ -49,6 +50,7 @@
         "vue3-next-qrcode": "^4.0.0"
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.1",
         "@iconify-json/ep": "^1.2.3",
         "@iconify-json/mdi": "^1.2.3",
         "@types/file-saver": "^2.0.7",
@@ -56,13 +58,14 @@
         "@types/node": "^24.10.1",
         "@types/nprogress": "^0.2.3",
         "@types/sortablejs": "^1.15.8",
+        "@typescript-eslint/parser": "^8.59.2",
         "@vitejs/plugin-vue": "^6.0.5",
         "autoprefixer": "^10.4.21",
         "esbuild": "^0.27.0",
         "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
-        "eslint-plugin-prettier": "^5.5.4",
         "eslint-plugin-vue": "^10.5.1",
+        "globals": "^17.6.0",
         "husky": "^9.1.7",
         "javascript-obfuscator": "^5.4.1",
         "postcss": "^8.4.38",
@@ -82,6 +85,7 @@
         "unplugin-auto-import": "^21.0.0",
         "unplugin-vue-components": "^30.0.0",
         "vite": "^8.0.0",
+        "vite-plugin-checker": "^0.13.0",
         "vite-plugin-compression2": "^2.2.1",
         "vite-plugin-zip-pack": "^1.2.4",
         "vue-eslint-parser": "^10.2.0",

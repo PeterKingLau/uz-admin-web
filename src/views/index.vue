@@ -3,7 +3,7 @@
         <template v-if="showSkeleton">
             <el-row :gutter="20" class="card-row">
                 <el-col v-for="n in 4" :key="`skeleton-stat-${n}`" :xs="24" :sm="12" :md="6" :lg="6">
-                    <el-card shadow="never" class="stat-card">
+                    <el-card shadow="never" class="stat-card app-stat-card">
                         <div class="stat-card-inner skeleton-card-inner">
                             <div class="skeleton-lines">
                                 <div class="skeleton-block skeleton-block--title"></div>
@@ -17,13 +17,13 @@
 
             <el-row :gutter="20" class="charts-row">
                 <el-col :xs="24" :sm="24" :md="16" :lg="16">
-                    <el-card shadow="never" class="chart-card skeleton-chart-card">
+                    <el-card shadow="never" class="chart-card app-section-card skeleton-chart-card">
                         <div class="skeleton-block skeleton-block--header"></div>
                         <div class="skeleton-block skeleton-block--chart"></div>
                     </el-card>
                 </el-col>
                 <el-col :xs="24" :sm="24" :md="8" :lg="8">
-                    <el-card shadow="never" class="chart-card skeleton-chart-card">
+                    <el-card shadow="never" class="chart-card app-section-card skeleton-chart-card">
                         <div class="skeleton-block skeleton-block--header"></div>
                         <div class="skeleton-block skeleton-block--chart"></div>
                     </el-card>
@@ -32,13 +32,13 @@
 
             <el-row :gutter="20" class="bottom-row">
                 <el-col :xs="24" :sm="24" :md="14" :lg="14" class="bottom-col">
-                    <el-card shadow="never" class="table-card skeleton-table-card">
+                    <el-card shadow="never" class="table-card app-table-card skeleton-table-card">
                         <div class="skeleton-block skeleton-block--header"></div>
                         <div v-for="n in 6" :key="`skeleton-trend-${n}`" class="skeleton-block skeleton-block--row"></div>
                     </el-card>
                 </el-col>
                 <el-col :xs="24" :sm="24" :md="10" :lg="10" class="bottom-col">
-                    <el-card shadow="never" class="table-card skeleton-table-card">
+                    <el-card shadow="never" class="table-card app-table-card skeleton-table-card">
                         <div class="skeleton-block skeleton-block--header"></div>
                         <div v-for="n in 6" :key="`skeleton-latest-${n}`" class="skeleton-block skeleton-block--row"></div>
                     </el-card>
@@ -49,7 +49,7 @@
         <template v-else>
             <el-row :gutter="20" class="card-row">
                 <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in statCards" :key="card.key">
-                    <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
+                    <el-card shadow="never" class="stat-card app-stat-card" :body-style="{ padding: '0px' }">
                         <div class="stat-card-inner">
                             <div class="stat-content">
                                 <div class="stat-title">{{ card.title }}</div>
@@ -67,7 +67,7 @@
 
             <el-row :gutter="20" class="card-row">
                 <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in extraCards" :key="card.key">
-                    <el-card shadow="hover" class="stat-card" :body-style="{ padding: '0px' }">
+                    <el-card shadow="never" class="stat-card app-stat-card" :body-style="{ padding: '0px' }">
                         <div class="stat-card-inner">
                             <div class="stat-content">
                                 <div class="stat-title">{{ card.title }}</div>
@@ -85,7 +85,7 @@
 
             <el-row :gutter="20" class="card-row">
                 <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in insightCards" :key="card.key">
-                    <el-card shadow="hover" class="stat-card stat-card--insight" :body-style="{ padding: '0px' }">
+                    <el-card shadow="never" class="stat-card app-stat-card stat-card--insight" :body-style="{ padding: '0px' }">
                         <div class="stat-card-inner">
                             <div class="stat-content">
                                 <div class="stat-title">{{ card.title }}</div>
@@ -104,7 +104,7 @@
 
             <el-row :gutter="20" class="card-row">
                 <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="card in contentCards" :key="card.key">
-                    <el-card shadow="hover" class="stat-card stat-card--content" :body-style="{ padding: '0px' }">
+                    <el-card shadow="never" class="stat-card app-stat-card stat-card--content" :body-style="{ padding: '0px' }">
                         <div class="stat-card-inner">
                             <div class="stat-content">
                                 <div class="stat-title">{{ card.title }}</div>
@@ -123,7 +123,7 @@
 
             <el-row :gutter="20" class="charts-row">
                 <el-col :xs="24" :sm="24" :md="16" :lg="16">
-                    <el-card shadow="never" class="chart-card">
+                    <el-card shadow="never" class="chart-card app-section-card">
                         <template #header>
                             <div class="card-header">
                                 <span class="header-title">近 7 天审核趋势</span>
@@ -135,7 +135,7 @@
                 </el-col>
 
                 <el-col :xs="24" :sm="24" :md="8" :lg="8">
-                    <el-card shadow="never" class="chart-card">
+                    <el-card shadow="never" class="chart-card app-section-card">
                         <template #header>
                             <div class="card-header">
                                 <span class="header-title">审核状态占比</span>
@@ -148,7 +148,7 @@
 
             <el-row :gutter="20" class="charts-row">
                 <el-col :span="24">
-                    <el-card shadow="never" class="chart-card">
+                    <el-card shadow="never" class="chart-card app-section-card">
                         <template #header>
                             <div class="card-header">
                                 <span class="header-title">测评题型分布</span>
@@ -161,7 +161,7 @@
 
             <el-row :gutter="20" class="bottom-row">
                 <el-col :xs="24" :sm="24" :md="14" :lg="14" class="bottom-col">
-                    <el-card shadow="never" class="table-card table-card--trend">
+                    <el-card shadow="never" class="table-card app-table-card table-card--trend">
                         <template #header>
                             <div class="card-header">
                                 <span class="header-title">趋势明细数据</span>
@@ -195,7 +195,7 @@
                 </el-col>
 
                 <el-col :xs="24" :sm="24" :md="10" :lg="10" class="bottom-col">
-                    <el-card shadow="never" class="table-card table-card--latest">
+                    <el-card shadow="never" class="table-card app-table-card table-card--latest">
                         <template #header>
                             <div class="card-header">
                                 <span class="header-title">最新审核动态</span>
@@ -894,7 +894,7 @@ onBeforeUnmount(() => {
     }
 
     .skeleton-block {
-        border-radius: 10px;
+        border-radius: var(--app-card-radius);
         background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color-lighter) 37%, var(--el-fill-color-light) 63%);
         background-size: 400% 100%;
         animation: dashboard-skeleton-shimmer 1.4s ease infinite;
@@ -913,7 +913,7 @@ onBeforeUnmount(() => {
     .skeleton-block--icon {
         width: 56px;
         height: 56px;
-        border-radius: 16px;
+        border-radius: var(--app-card-radius);
         flex-shrink: 0;
     }
 
@@ -933,7 +933,7 @@ onBeforeUnmount(() => {
     .skeleton-block--chart {
         width: 100%;
         height: 260px;
-        border-radius: 12px;
+        border-radius: var(--app-card-radius);
     }
 
     .skeleton-block--row {
@@ -952,18 +952,9 @@ onBeforeUnmount(() => {
     }
 
     .stat-card {
-        border: none;
-        border-radius: 12px;
         overflow: hidden;
-        transition:
-            border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-            box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-            background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
-        background: var(--el-bg-color-overlay);
 
         &:hover {
-            transform: none;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
             background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, var(--el-fill-color-light));
         }
 
@@ -997,7 +988,7 @@ onBeforeUnmount(() => {
             .stat-icon {
                 width: 56px;
                 height: 56px;
-                border-radius: 16px;
+                border-radius: var(--app-card-radius);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -1040,10 +1031,7 @@ onBeforeUnmount(() => {
 
     .chart-card,
     .table-card {
-        border-radius: 12px;
-        border: none;
         margin-bottom: 20px;
-        background: var(--el-bg-color-overlay);
 
         .card-header {
             display: flex;
@@ -1093,12 +1081,12 @@ onBeforeUnmount(() => {
         width: 100%;
 
         :deep(.el-card__header) {
-            padding: 18px 20px 16px;
-            border-bottom: 1px solid var(--el-border-color-lighter);
+            padding: 16px 18px 14px;
+            border-bottom: 1px solid var(--app-card-border-color);
         }
 
         :deep(.el-card__body) {
-            padding: 12px 20px 18px;
+            padding: 12px 18px 16px;
         }
     }
 

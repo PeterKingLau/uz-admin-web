@@ -2,27 +2,6 @@ import { createWebHistory, createRouter, RouteRecordRaw } from 'vue-router'
 
 import Layout from '@/layout/index.vue'
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 declare module 'vue-router' {
     interface RouteMeta {
         hidden?: boolean
@@ -42,7 +21,6 @@ declare module 'vue-router' {
         title?: string
     }
 }
-
 
 export const constantRoutes: RouteRecordRaw[] = [
     {
@@ -75,11 +53,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         hidden: true,
         meta: { title: '隐私政策', platform: 'public' }
     },
-    
-    
-    
-    
-    
+
     {
         path: '/:pathMatch(.*)*',
         component: () => import('@/views/error/404.vue'),
@@ -98,7 +72,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         hidden: true,
         children: [
             {
-                path: 'index/:id(\\d+)',
+                path: 'index/:id',
                 component: () => import('@/views/configuration/tag/data.vue'),
                 name: 'TagData',
                 meta: { title: '标签数据', activeMenu: '/configuration/tag', platform: 'admin' }
@@ -186,7 +160,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         hidden: true,
         children: [
             {
-                path: 'index/:id(\\d+)',
+                path: 'index/:id',
                 component: () => import('@/views/circle/circleRecommend/detail.vue'),
                 name: 'CircleDetail',
                 meta: { title: '圈子详情', platform: 'client' }
@@ -194,7 +168,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         ]
     }
 ]
-
 
 export const dynamicRoutes: RouteRecordRaw[] = [
     {
@@ -204,7 +177,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         permissions: ['system:user:edit'],
         children: [
             {
-                path: 'role/:userId(\\d+)',
+                path: 'role/:userId',
                 component: () => import('@/views/system/user/authRole.vue'),
                 name: 'AuthRole',
                 meta: { title: '分配角色', activeMenu: '/system/user', platform: 'admin' }
@@ -218,7 +191,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         permissions: ['system:role:edit'],
         children: [
             {
-                path: 'user/:roleId(\\d+)',
+                path: 'user/:roleId',
                 component: () => import('@/views/system/role/authUser.vue'),
                 name: 'AuthUser',
                 meta: { title: '分配用户', activeMenu: '/system/role', platform: 'admin' }
@@ -232,7 +205,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         permissions: ['system:dict:list'],
         children: [
             {
-                path: 'index/:dictId(\\d+)',
+                path: 'index/:dictId',
                 component: () => import('@/views/system/dict/data.vue'),
                 name: 'Data',
                 meta: { title: '字典数据', activeMenu: '/system/dict', platform: 'admin' }
@@ -246,7 +219,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         permissions: ['content:competition:list'],
         children: [
             {
-                path: 'index/:competitionId(\\d+)',
+                path: 'index/:competitionId',
                 component: () => import('@/views/content/competitionWork/index.vue'),
                 name: 'CompetitionWorkData',
                 meta: { title: '作品管理', activeMenu: '/content/competition', platform: 'admin' }
@@ -260,7 +233,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         permissions: ['monitor:job:list'],
         children: [
             {
-                path: 'index/:jobId(\\d+)',
+                path: 'index/:jobId',
                 component: () => import('@/views/monitor/job/log.vue'),
                 name: 'JobLog',
                 meta: { title: '调度日志', activeMenu: '/monitor/job', platform: 'admin' }
@@ -274,7 +247,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         permissions: ['tool:gen:edit'],
         children: [
             {
-                path: 'index/:tableId(\\d+)',
+                path: 'index/:tableId',
                 component: () => import('@/views/tool/gen/editTable.vue'),
                 name: 'GenEdit',
                 meta: { title: '修改生成配置', activeMenu: '/tool/gen', platform: 'admin' }

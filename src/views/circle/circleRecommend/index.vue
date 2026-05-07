@@ -132,6 +132,7 @@
 <script setup lang="ts" name="CirclePlaza">
 import { ref, onMounted, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
+import { encodeRouteId } from '@/router/routeParams'
 import { getImgUrl } from '@/utils/img'
 import { listCircles, listMyJoinedCircles, parseCircleRows, joinCircle, exitCircle, getCircleInfo } from '@/api/content/circleManagement'
 import type { CircleItem } from '@/api/content/circleManagement.types'
@@ -271,7 +272,7 @@ function loadMore() {
 
 function handleCardClick(item: CircleItem) {
     router.push({
-        path: `/circle-manage/circle-data/index/${item.id}`
+        path: `/circle-manage/circle-data/index/${encodeRouteId(item.id)}`
     })
 }
 
@@ -372,21 +373,21 @@ onMounted(() => {
 
 .joined-card {
     background: var(--el-bg-color);
-    border-radius: 12px;
+    border-radius: var(--app-card-radius);
     border: 1px solid var(--el-border-color-lighter);
     padding: 16px;
     cursor: pointer;
     transition:
-        border-color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-        box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-        background-color 0.22s cubic-bezier(0.2, 0, 0.2, 1);
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease;
     display: flex;
     flex-direction: column;
     gap: 12px;
 
     &:hover {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--app-card-hover-shadow);
         background: color-mix(in srgb, var(--el-bg-color) 94%, var(--el-fill-color-light));
 
         .joined-arrow {
@@ -439,8 +440,8 @@ onMounted(() => {
         color: var(--el-text-color-placeholder);
         font-size: 18px;
         transition:
-            color 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-            transform 0.22s cubic-bezier(0.2, 0, 0.2, 1);
+            color 180ms ease,
+            transform 180ms ease;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -486,27 +487,24 @@ onMounted(() => {
 
 .circle-card {
     background: var(--el-bg-color);
-    border-radius: 16px;
+    border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
     transition:
-        border-color 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-        box-shadow 0.24s cubic-bezier(0.2, 0, 0.2, 1),
-        background-color 0.24s cubic-bezier(0.2, 0, 0.2, 1);
-    border: 1px solid transparent;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: var(--app-card-shadow);
     display: flex;
     flex-direction: column;
 
     &:hover {
         transform: none;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        box-shadow: var(--app-card-hover-shadow);
         border-color: var(--el-border-color);
         background: color-mix(in srgb, var(--el-bg-color) 95%, var(--el-fill-color-light));
 
-        .cover-img {
-            transform: scale(1.015);
-        }
     }
 }
 
@@ -519,7 +517,7 @@ onMounted(() => {
     .cover-img {
         width: 100%;
         height: 100%;
-        transition: transform 0.28s cubic-bezier(0.2, 0, 0.2, 1);
+        transition: opacity 180ms ease;
     }
 
     .cover-placeholder {

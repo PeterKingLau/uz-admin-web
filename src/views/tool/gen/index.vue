@@ -131,6 +131,7 @@
 defineOptions({ name: 'Gen' })
 import { listTable, previewTable, delTable, genCode, synchDb } from '@/api/tool/gen'
 import router from '@/router'
+import { encodeRouteId } from '@/router/routeParams'
 import { oneOf } from '@zeronejs/utils'
 import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
@@ -267,7 +268,7 @@ function handleSelectionChange(selection: any[]) {
 
 function handleEditTable(row: any) {
     const tableId = row.tableId || ids.value[0]
-    router.push({ path: '/tool/gen-edit/index/' + tableId, query: { pageNum: queryParams.value.pageNum } })
+    router.push({ path: '/tool/gen-edit/index/' + encodeRouteId(tableId), query: { pageNum: queryParams.value.pageNum } })
 }
 
 function handleDelete(row: any) {

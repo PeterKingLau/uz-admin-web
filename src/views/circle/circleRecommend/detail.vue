@@ -69,6 +69,7 @@
 <script setup lang="ts" name="CircleDetail">
 import { ref, onMounted, getCurrentInstance, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { decodeRouteId } from '@/router/routeParams'
 import { getImgUrl } from '@/utils/img'
 import { POST_TYPE } from '@/utils/enum'
 import { closeCircle, getCircleInfo, getCircleMemberList, joinCircle, exitCircle, setCircleAdmin, removeCircleMember } from '@/api/content/circleManagement'
@@ -408,12 +409,12 @@ function hydrateJoinedStateFromCache() {
 function resolveCircleId(value: unknown): string | number | undefined {
     if (value == null) return undefined
     if (Array.isArray(value)) return resolveCircleId(value[0])
-    if (typeof value === 'string' || typeof value === 'number') return value
+    if (typeof value === 'string' || typeof value === 'number') return decodeRouteId(value)
     return undefined
 }
 
 async function fetchCircleInfo() {
-    const id = (route.params.id || route.query.id) as string | undefined
+    const id = resolveCircleId(route.params.id || route.query.id)
     if (!id) {
         proxy?.$modal?.msgError?.('圈子ID不存在')
         router.push('/circle/plaza')
@@ -446,7 +447,7 @@ async function fetchCircleInfo() {
 }
 
 async function fetchPosts() {
-    const circleId = (route.params.id || route.query.id) as string | undefined
+    const circleId = resolveCircleId(route.params.id || route.query.id)
     if (!circleId) return
     loadingPosts.value = true
     try {
@@ -462,7 +463,7 @@ async function fetchPosts() {
 }
 
 async function fetchMembers() {
-    const id = (route.params.id || route.query.id) as string | undefined
+    const id = resolveCircleId(route.params.id || route.query.id)
     if (!id) return
     try {
         const res = await getCircleMemberList({ circleId: id, limit: 20 })
@@ -501,7 +502,7 @@ function markMemberAsManager(targetId: string | number) {
 }
 
 async function fetchAllMembers(loadMore = false) {
-    const id = (route.params.id || route.query.id) as string | undefined
+    const id = resolveCircleId(route.params.id || route.query.id)
     if (!id) return
     if (allMembersLoading.value || allMembersFinished.value) return
     if (!loadMore) resetAllMembers()
@@ -669,8 +670,9 @@ watch(
     min-height: 100vh;
     background-color: var(--el-bg-color-page);
     --circle-card-bg: var(--el-bg-color);
-    --circle-card-radius: 16px;
-    --circle-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    --circle-card-radius: 10px;
+    --circle-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    --circle-card-hover-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
     --circle-primary-color: var(--el-color-primary);
     --circle-text-main: var(--el-text-color-primary);
     --circle-text-sub: var(--el-text-color-regular);
@@ -681,7 +683,8 @@ watch(
 :global(html.dark) .circle-detail-page {
     background-color: #0f1115;
     --circle-card-bg: #1b1f26;
-    --circle-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --circle-card-shadow: none;
+    --circle-card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
     --circle-text-main: #e5e7eb;
     --circle-text-sub: #cbd5e1;
     --circle-text-muted: #94a3b8;
@@ -722,7 +725,7 @@ watch(
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-light);
     border-radius: 999px;
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-black) 8%, transparent);
+    box-shadow: var(--circle-card-hover-shadow);
     cursor: pointer;
 }
 

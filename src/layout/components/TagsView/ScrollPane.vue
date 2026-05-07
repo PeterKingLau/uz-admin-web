@@ -9,7 +9,7 @@ defineOptions({ name: 'LayoutComponentsTagsViewScrollPane' })
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import useTagsViewStore from '@/store/modules/tagsView'
 
-const tagAndTagSpacing = ref(4)
+const tagAndTagSpacing = ref(0)
 const scrollContainerRef = ref(null)
 
 const scrollWrapper = computed(() => {
@@ -146,8 +146,8 @@ defineExpose({
         display: inline-flex;
         align-items: center;
         height: 100%;
-        padding: 0 12px;
-        gap: 6px;
+        padding: 0 6px;
+        gap: 0;
     }
 
     :deep(.el-scrollbar__bar.is-horizontal) {

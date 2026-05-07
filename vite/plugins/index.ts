@@ -1,7 +1,9 @@
 import type { PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import autoImport from 'unplugin-auto-import/vite'
+import components from 'unplugin-vue-components/vite'
 import { compression } from 'vite-plugin-compression2'
+import checker from 'vite-plugin-checker'
 
 interface ViteEnv {
     VITE_BUILD_COMPRESS?: string
@@ -9,6 +11,7 @@ interface ViteEnv {
 
 export default function createVitePlugins(env: ViteEnv, isBuild = false): PluginOption[] {
     return [
+        ...createDevPlugins(isBuild),
         vue(),
         autoImport({
             imports: ['vue', 'vue-router', 'pinia'],
@@ -17,7 +20,34 @@ export default function createVitePlugins(env: ViteEnv, isBuild = false): Plugin
             dts: false,
             vueTemplate: false
         }),
+        components({
+            dirs: ['src/components'],
+            extensions: ['vue'],
+            deep: true,
+            directoryAsNamespace: true,
+            dts: 'src/types/components.d.ts'
+        }),
         ...createCompression(env, isBuild)
+    ]
+}
+
+function createDevPlugins(isBuild: boolean): PluginOption[] {
+    if (isBuild) return []
+
+    return [
+        checker({
+            vueTsc: true,
+            eslint: {
+                lintCommand: 'eslint "src/**/*.{js,ts,vue}" "vite/**/*.ts" vite.config.ts eslint.config.js'
+            },
+            stylelint: {
+                lintCommand: 'stylelint "src/**/*.vue" --allow-empty-input'
+            },
+            overlay: {
+                initialIsOpen: 'error',
+                position: 'br'
+            }
+        })
     ]
 }
 

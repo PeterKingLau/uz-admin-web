@@ -32,7 +32,7 @@ const useSettingsStore = defineStore('settings', {
         
         changeSetting(data: { key: any; value: any }) {
             const { key, value } = data
-            if (this.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(this, key)) {
                 Reflect.set(this, key, value)
             }
         },

@@ -7,6 +7,7 @@ import InnerLink from '@/layout/components/InnerLink/index.vue'
 import { defineStore } from 'pinia'
 import { RouteRecordRaw } from 'vue-router'
 import useUserStore from '@/store/modules/user'
+import { ensureIconCollectionsByNames } from '@/utils/iconify'
 
 
 const modules = import.meta.glob('./../../views/**/*.vue')
@@ -50,7 +51,8 @@ const usePermissionStore = defineStore('permission', {
                     return
                 }
                 
-                getRouters().then(res => {
+                getRouters().then(async res => {
+                    await ensureIconCollectionsByNames(collectRouteIcons(res.data))
                     const sdata = JSON.parse(JSON.stringify(res.data))
                     const rdata = JSON.parse(JSON.stringify(res.data))
                     const defaultData = JSON.parse(JSON.stringify(res.data))
@@ -74,6 +76,19 @@ const usePermissionStore = defineStore('permission', {
         }
     }
 })
+
+function collectRouteIcons(routes: any[]): string[] {
+    if (!Array.isArray(routes)) return []
+    const icons: string[] = []
+    routes.forEach(route => {
+        if (typeof route?.icon === 'string') icons.push(route.icon)
+        if (typeof route?.meta?.icon === 'string') icons.push(route.meta.icon)
+        if (Array.isArray(route?.children)) {
+            icons.push(...collectRouteIcons(route.children))
+        }
+    })
+    return icons
+}
 
 
 function filterAsyncRouter(asyncRouterMap: any[], type = false) {
@@ -110,7 +125,7 @@ function ensureUniqueRouteNames(routes: any[], usedNames = new Set<string>(), pa
             let nextName = originalName
             if (nextName === parentName || usedNames.has(nextName)) {
                 const pathSuffix = String(route.path || 'child')
-                    .replace(/[\/:]+/g, '_')
+                    .replace(/[/:]+/g, '_')
                     .replace(/_+/g, '_')
                     .replace(/^_+|_+$/g, '')
                 nextName = `${originalName}_${pathSuffix || 'child'}`
