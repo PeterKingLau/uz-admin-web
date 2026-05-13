@@ -58,6 +58,14 @@ export function isClientRoutePath(path?: string | null): boolean {
     return CLIENT_ROUTE_PREFIXES.some(prefix => value === prefix || value.startsWith(`${prefix}/`) || value.startsWith(`${prefix}?`))
 }
 
+export function isMobileWebViewport(): boolean {
+    if (typeof window === 'undefined') return false
+    const userAgent = window.navigator.userAgent || ''
+    const isMobileAgent = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(userAgent)
+    const isNarrowViewport = window.matchMedia?.('(max-width: 768px)').matches || window.innerWidth <= 768
+    return isMobileAgent || isNarrowViewport
+}
+
 export function getClientHomeRoute(): RouteLocationRaw {
     return { path: '/discover' }
 }

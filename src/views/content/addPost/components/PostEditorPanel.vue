@@ -931,9 +931,9 @@ defineExpose({
         overflow: hidden;
 
         &:hover {
-            background: var(--el-fill-color);
-            border-color: var(--el-border-color);
-            box-shadow: var(--app-card-hover-shadow);
+            background: var(--el-fill-color-light);
+            border-color: var(--el-border-color-lighter);
+            box-shadow: none;
         }
 
         &.active {
@@ -1123,14 +1123,11 @@ defineExpose({
         background: var(--el-bg-color-overlay);
         box-shadow: var(--app-card-shadow);
         transition:
-            background-color 160ms ease,
-            border-color 160ms ease,
-            box-shadow 160ms ease,
             color 160ms ease;
 
         &:hover {
-            border-color: var(--el-color-primary);
-            box-shadow: var(--app-card-hover-shadow);
+            border-color: var(--app-card-border-color);
+            box-shadow: var(--app-card-shadow);
             color: var(--el-color-primary);
         }
     }
@@ -1242,15 +1239,11 @@ defineExpose({
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transition:
-            background-color 160ms ease,
-            border-color 160ms ease,
-            box-shadow 160ms ease;
 
         &:hover {
-            border-color: var(--el-color-primary);
-            box-shadow: var(--app-card-hover-shadow);
-            background: var(--el-color-primary-light-9);
+            border-color: var(--app-card-border-color);
+            box-shadow: var(--app-card-shadow);
+            background: var(--el-bg-color-overlay);
         }
 
         .el-icon--upload {
@@ -1389,8 +1382,8 @@ defineExpose({
     }
 
     &:hover {
-        border-color: var(--el-border-color);
-        box-shadow: var(--app-card-hover-shadow);
+        border-color: var(--el-border-color-lighter);
+        box-shadow: none;
     }
 
     &.is-active {

@@ -1279,8 +1279,8 @@ onMounted(() => {
             transition: all 0.2s;
 
             &:hover {
-                border-color: var(--el-color-primary-light-5);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                border-color: var(--el-border-color-lighter);
+                box-shadow: none;
             }
 
             .option-content {

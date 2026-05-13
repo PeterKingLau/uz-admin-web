@@ -1,12 +1,10 @@
 <template>
-    <Icon :icon="iconName" class="svg-icon" />
+    <Icon v-if="iconName" v-bind="$attrs" :icon="iconName" class="svg-icon" />
 </template>
 
 <script setup>
-defineOptions({ name: 'ComponentsSvgIcon' })
+defineOptions({ name: 'ComponentsSvgIcon', inheritAttrs: false })
 import { computed } from 'vue'
-
-import { iconMap } from '@/utils/generator/iconMap'
 
 const props = defineProps({
     iconClass: {
@@ -16,20 +14,20 @@ const props = defineProps({
 })
 
 const iconName = computed(() => {
-    const key = props.iconClass
-
-    if (iconMap[key]) return iconMap[key]
-
-    if (key.includes(':')) return key
-
-    return `ep:${key}`
+    const key = String(props.iconClass || '').trim()
+    return key.includes(':') ? key : ''
 })
 </script>
 
 <style scoped>
 .svg-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 1em;
     height: 1em;
+    line-height: 1;
     vertical-align: middle;
+    flex-shrink: 0;
 }
 </style>

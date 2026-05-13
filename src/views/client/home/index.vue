@@ -147,7 +147,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientHome' })
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { addComment, likePost, listPostByApp, listRecommendFeed } from '@/api/content/post'
 import { listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getInterestAll } from '@/api/content/interest'
@@ -157,7 +157,9 @@ import ClientHeader from '@/views/client/components/ClientHeader.vue'
 import ClientPostCard from '@/views/client/components/ClientPostCard.vue'
 import PostPreviewModal from '@/views/content/personProfile/components/Modal/PostPreviewModal.vue'
 import { POST_TYPE } from '@/utils/enum'
+import { encodeRouteId } from '@/router/routeParams'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
+import { openVideoPlayerPreview } from '@/utils/content/videoPlayer'
 import {
     getCommentId,
     getCommentReplyCount as resolveCommentReplyCount,
@@ -168,6 +170,7 @@ import {
 } from '@/utils/content/common'
 
 const router = useRouter()
+const route = useRoute()
 const settingsStore = useSettingsStore()
 const userStore = useUserStore()
 const posts = ref<any[]>([])
@@ -208,6 +211,7 @@ let lastRecommendEmptyAt = 0
 let feedRequestId = 0
 let feedAbortController: AbortController | null = null
 const CLIENT_HOME_SCROLL_CLASS = 'client-home-scroll-lock'
+const CLIENT_MEDIA_VIEWER_CACHE_KEY = 'client-media-viewer-payload'
 const RECOMMEND_LOAD_THROTTLE_MS = 900
 const RECOMMEND_EMPTY_COOLDOWN_MS = 5000
 const LOAD_MORE_SCROLL_THRESHOLD = 220
@@ -315,6 +319,7 @@ const getPostKey = (item: any) => item?.id ?? item?.postId ?? `${item?.createTim
 const getType = (item: any) => String(item?.postType ?? '')
 const isTextPost = (item: any) => getType(item) === POST_TYPE.TEXT
 const isVideoPost = (item: any) => getType(item) === POST_TYPE.VIDEO
+const isH5Viewport = computed(() => columnCount.value <= 2)
 const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
 const getContent = (item: any) => String(item?.content || '').trim() || '分享了一条内容'
 const getNick = (item: any) => String(item?.nickName || item?.userName || '用户')
@@ -485,6 +490,35 @@ const getCover = (item: any) => {
         .map((url: string) => resolveMediaUrl(url))
         .filter(Boolean)
     return urls.find((url: string) => !isVideoUrl(url)) || urls[0] || ''
+}
+
+const getPostMediaUrls = (item: any) =>
+    parseMediaRaw(item?.mediaUrls || item?.files || [])
+        .map((media: any) => (typeof media === 'object' ? media?.url || media?.cover || media?.thumbnail || media?.poster : media))
+        .map((url: string) => resolveMediaUrl(url))
+        .filter(Boolean)
+
+const getPostImageUrls = (item: any) => {
+    if (isTextPost(item)) return [getTextCover(item)]
+    const urls = getPostMediaUrls(item).filter((url: string) => !isVideoUrl(url))
+    const cover = getCover(item)
+    return urls.length ? urls : cover ? [cover] : []
+}
+
+const getVideoUrl = (item: any) => getPostMediaUrls(item).find((url: string) => isVideoUrl(url)) || ''
+
+const normalizePostFlags = (item: any) => {
+    const normalized = { ...item }
+    const liked = Boolean(normalized.isLiked ?? normalized.like)
+    normalized.isLiked = liked
+    normalized.like = liked
+    return normalized
+}
+
+const sessionCache = {
+    setJSON(key: string, value: unknown) {
+        sessionStorage.setItem(key, JSON.stringify(value))
+    }
 }
 
 const comparePostOrder = (a: any, b: any) => {
@@ -921,6 +955,33 @@ const fetchRecommendFeedPage = async (isLoadMore: boolean, requestId: number, si
 
 const openPost = (post: any) => {
     if (!post) return
+    if (isH5Viewport.value) {
+        if (
+            openVideoPlayerPreview({
+                item: post,
+                getVideoUrl,
+                normalizePostFlags,
+                userStore,
+                cacheSession: sessionCache,
+                router,
+                route
+            })
+        ) {
+            return
+        }
+
+        const postId = getPreviewPostId(post)
+        const images = getPostImageUrls(post)
+        if (postId == null || !images.length) return
+        sessionCache.setJSON(`${CLIENT_MEDIA_VIEWER_CACHE_KEY}:${postId}`, {
+            id: postId,
+            post: normalizePostFlags(post),
+            images,
+            from: route.fullPath
+        })
+        router.push({ name: 'ClientMediaViewer', params: { id: encodeRouteId(postId) }, query: { from: route.fullPath } })
+        return
+    }
     previewPost.value = { ...post }
     previewVisible.value = true
     loadPreviewComments(previewPost.value)
@@ -1371,16 +1432,12 @@ button:focus-visible {
     background: var(--client-surface);
     cursor: pointer;
     box-shadow: var(--client-feed-card-shadow);
-    transition:
-        border-color var(--client-feed-card-transition),
-        background-color var(--client-feed-card-transition),
-        box-shadow var(--client-feed-card-transition);
 }
 
 .post-card:hover {
-    border-color: var(--client-border-strong);
-    background: var(--client-card-hover);
-    box-shadow: var(--client-feed-card-hover-shadow);
+    border-color: var(--client-feed-card-border);
+    background: var(--client-surface);
+    box-shadow: var(--client-feed-card-shadow);
 }
 
 .cover-wrap {

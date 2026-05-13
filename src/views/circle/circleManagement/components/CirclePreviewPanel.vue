@@ -176,35 +176,20 @@ onBeforeUnmount(() => {
     padding-left: 20px;
     border-left: 1px dashed var(--el-border-color);
     --preview-primary: var(--el-color-primary);
-    --nav-bg: color-mix(in srgb, var(--el-bg-color-overlay) 88%, transparent);
-    --nav-border: color-mix(in srgb, var(--el-border-color) 72%, transparent);
-    --surface-muted: color-mix(in srgb, var(--el-fill-color-light) 82%, var(--el-bg-color));
-    --surface-subtle: color-mix(in srgb, var(--el-fill-color-light) 62%, var(--el-bg-color));
-    --surface-card: var(--el-bg-color-overlay);
-    --text-primary: var(--el-text-color-primary);
-    --text-regular: var(--el-text-color-regular);
-    --text-secondary: var(--el-text-color-secondary);
-    --text-placeholder: var(--el-text-color-placeholder);
-    --primary-soft: color-mix(in srgb, var(--el-color-primary-light-9) 78%, var(--el-bg-color-overlay));
 }
 
 .circle-scroll-area {
-    background:
-        radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--el-color-primary-light-9) 52%, transparent), transparent 44%),
-        linear-gradient(180deg, color-mix(in srgb, var(--el-fill-color-light) 40%, transparent), transparent 22%), var(--surface-muted);
+    background: var(--surface-muted);
 }
 
 .circle-cover-card {
     position: relative;
     margin: 16px 16px 0;
-    height: 214px;
-    border-radius: 24px;
+    height: 200px;
+    border-radius: 8px;
     overflow: hidden;
     background: var(--surface-subtle);
-    border: 1px solid color-mix(in srgb, var(--el-border-color) 66%, transparent);
-    box-shadow:
-        0 12px 24px -18px color-mix(in srgb, var(--el-color-black) 20%, transparent),
-        inset 0 0 0 1px color-mix(in srgb, var(--el-color-white) 22%, transparent);
+    border: 1px solid var(--nav-border);
 }
 
 .circle-cover-image {
@@ -219,28 +204,26 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
-    color: color-mix(in srgb, var(--text-placeholder) 84%, var(--el-color-primary));
-    background:
-        radial-gradient(circle at 22% 24%, color-mix(in srgb, var(--el-color-primary-light-8) 46%, transparent), transparent 46%),
-        linear-gradient(135deg, color-mix(in srgb, var(--el-color-primary-light-9) 72%, var(--surface-subtle)), var(--surface-card));
+    font-size: 40px;
+    color: var(--text-placeholder);
+    background: var(--surface-subtle);
 }
 
 .circle-cover-overlay {
     position: absolute;
     inset: 0;
-    background:
-        linear-gradient(to top, color-mix(in srgb, var(--el-color-black) 26%, transparent), transparent 58%),
-        linear-gradient(to bottom, color-mix(in srgb, var(--el-color-white) 12%, transparent), transparent 26%);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    pointer-events: none;
 }
 
 .circle-content-body {
-    margin: -24px 16px 10px;
-    border-radius: 28px 28px 20px 20px;
+    margin: -24px 16px 16px;
+    padding: 20px 16px 16px;
+    border-radius: 8px;
     position: relative;
-    border: 1px solid color-mix(in srgb, var(--el-border-color) 58%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--el-bg-color-overlay) 96%, var(--el-color-white)), var(--surface-card));
-    box-shadow: 0 14px 28px -22px color-mix(in srgb, var(--el-color-black) 20%, transparent);
+    border: 1px solid var(--nav-border);
+    background: var(--surface-card);
+    box-shadow: 0 8px 20px -18px var(--tabbar-shadow);
 }
 
 .circle-title-row {
@@ -248,21 +231,20 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .circle-title {
     margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
 }
 
 .circle-state-tag {
-    border-radius: 999px;
-    padding: 0 10px;
+    border-radius: 4px;
     flex-shrink: 0;
-    font-weight: 600;
-    --el-tag-border-color: color-mix(in srgb, var(--preview-primary) 35%, var(--el-border-color));
-    --el-tag-bg-color: color-mix(in srgb, var(--preview-primary) 12%, transparent);
-    --el-tag-text-color: var(--preview-primary);
 }
 
 .circle-meta-row {
@@ -273,23 +255,23 @@ onBeforeUnmount(() => {
 }
 
 .circle-meta-card {
-    background: color-mix(in srgb, var(--surface-subtle) 88%, var(--surface-card));
-    border: 1px solid color-mix(in srgb, var(--el-border-color) 64%, transparent);
-    border-radius: 16px;
-    padding: 12px 14px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--nav-border);
+    border-radius: 6px;
+    padding: 12px;
     display: flex;
     align-items: center;
     gap: 8px;
     color: var(--text-regular);
 
     .iconify {
-        font-size: 18px;
+        font-size: 16px;
         color: var(--preview-primary);
     }
 
     .meta-value {
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--text-primary);
     }
 
@@ -300,48 +282,52 @@ onBeforeUnmount(() => {
 }
 
 .circle-tags-row {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
 
 .circle-bottom-meta {
-    margin-top: 2px;
+    margin-top: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--nav-border);
 }
 
 .circle-highlights {
     margin: 0 16px 16px;
-    min-height: auto;
-    border-radius: 24px;
-    border: 1px solid color-mix(in srgb, var(--el-border-color) 56%, transparent);
-    box-shadow: 0 14px 28px -24px color-mix(in srgb, var(--el-color-black) 20%, transparent);
+    padding: 16px;
+    background: var(--surface-card);
+    border-radius: 8px;
+    border: 1px solid var(--nav-border);
+    box-shadow: 0 8px 20px -18px var(--tabbar-shadow);
 }
 
 .circle-highlight-list {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
 .circle-highlight-item {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    border-radius: 14px;
-    padding: 10px 12px;
-    background: color-mix(in srgb, var(--surface-subtle) 72%, transparent);
+    border-radius: 6px;
+    padding: 12px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--nav-border);
 }
 
 .highlight-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 18px;
+    font-size: 16px;
     color: var(--preview-primary);
-    background: var(--el-color-primary-light-9);
+    background: var(--primary-soft);
 }
 
 .highlight-text {
@@ -349,11 +335,10 @@ onBeforeUnmount(() => {
 }
 
 .highlight-title {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 4px;
-    letter-spacing: 0.15px;
 }
 
 .highlight-desc {
@@ -365,28 +350,51 @@ onBeforeUnmount(() => {
 .circle-join-button {
     width: 100%;
     height: 40px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--preview-primary) 34%, transparent);
-    background: linear-gradient(135deg, var(--preview-primary), color-mix(in srgb, var(--preview-primary) 76%, var(--el-color-white)));
-    color: var(--el-color-white);
+    border-radius: 4px;
+    background: var(--preview-primary);
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease,
-        filter 0.2s ease;
+    font-weight: 500;
+    cursor: pointer;
+}
 
-    &:hover {
-        filter: saturate(1.05);
-        box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--preview-primary) 58%, transparent);
+:global(html.dark) .circle-preview-wrapper {
+    border-left-color: var(--el-border-color-darker);
+
+    .circle-cover-card,
+    .circle-content-body,
+    .circle-highlights,
+    .circle-meta-card,
+    .circle-highlight-item {
+        border-color: rgba(255, 255, 255, 0.08);
     }
 
-    &:active {
-        transform: translateY(1px);
+    .circle-cover-placeholder {
+        background: #1d1e1f;
+        color: rgba(255, 255, 255, 0.34);
+    }
+
+    .circle-cover-overlay {
+        border-color: rgba(255, 255, 255, 0.04);
+    }
+
+    .circle-state-tag {
+        background: rgba(var(--el-color-primary-rgb), 0.14);
+        border-color: rgba(var(--el-color-primary-rgb), 0.45);
+        color: var(--el-color-primary-light-3);
+    }
+
+    .circle-meta-card,
+    .circle-highlight-item {
+        background: rgba(255, 255, 255, 0.035);
+    }
+
+    .circle-join-button {
+        background: var(--el-color-primary-light-3);
+        color: #0f141d;
     }
 }
 

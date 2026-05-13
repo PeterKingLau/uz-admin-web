@@ -2,7 +2,9 @@
     <el-dialog
         :model-value="modelValue"
         title="编辑资料"
-        width="520px"
+        :width="isMobileDialog ? '100%' : '520px'"
+        :fullscreen="isMobileDialog"
+        :lock-scroll="false"
         append-to-body
         destroy-on-close
         class="client-profile-edit-dialog"
@@ -47,7 +49,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientProfileComponentsProfileEditDialog' })
-import { computed, getCurrentInstance, reactive, ref, watch } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { updateUserProfile } from '@/api/system/user'
 import useUserStore from '@/store/modules/user'
 
@@ -65,6 +67,9 @@ const userStore = useUserStore()
 const { proxy } = getCurrentInstance() || {}
 const formRef = ref<any>()
 const saving = ref(false)
+const isMobileDialog = ref(false)
+const MOBILE_DIALOG_QUERY = '(max-width: 768px)'
+let mobileDialogMediaQuery: MediaQueryList | null = null
 
 const form = reactive({
     nickName: '',
@@ -124,6 +129,31 @@ const handleVisibleChange = (value: boolean) => {
     emit('update:modelValue', value)
 }
 
+function handleMobileDialogChange(event: MediaQueryListEvent) {
+    isMobileDialog.value = event.matches
+}
+
+function bindMobileDialogMediaQuery() {
+    if (typeof window === 'undefined') return
+    mobileDialogMediaQuery = window.matchMedia(MOBILE_DIALOG_QUERY)
+    isMobileDialog.value = mobileDialogMediaQuery.matches
+    if (typeof mobileDialogMediaQuery.addEventListener === 'function') {
+        mobileDialogMediaQuery.addEventListener('change', handleMobileDialogChange)
+    } else {
+        mobileDialogMediaQuery.addListener(handleMobileDialogChange)
+    }
+}
+
+function unbindMobileDialogMediaQuery() {
+    if (!mobileDialogMediaQuery) return
+    if (typeof mobileDialogMediaQuery.removeEventListener === 'function') {
+        mobileDialogMediaQuery.removeEventListener('change', handleMobileDialogChange)
+    } else {
+        mobileDialogMediaQuery.removeListener(handleMobileDialogChange)
+    }
+    mobileDialogMediaQuery = null
+}
+
 const submit = async () => {
     if (saving.value) return
     const valid = await formRef.value?.validate?.().catch(() => false)
@@ -170,6 +200,14 @@ watch(
     },
     { deep: true }
 )
+
+onMounted(() => {
+    bindMobileDialogMediaQuery()
+})
+
+onBeforeUnmount(() => {
+    unbindMobileDialogMediaQuery()
+})
 </script>
 
 <style scoped lang="scss">
@@ -333,6 +371,31 @@ watch(
 
     .gender-segmented .el-segmented__item {
         border-radius: 9px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .client-profile-edit-dialog.is-fullscreen {
+        height: 100svh !important;
+        display: flex;
+        flex-direction: column;
+        border-radius: 0 !important;
+
+        .el-dialog__header {
+            padding: 18px 20px 10px;
+        }
+
+        .el-dialog__body {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 10px 20px 4px;
+        }
+
+        .el-dialog__footer {
+            padding: 12px 20px calc(18px + env(safe-area-inset-bottom));
+            border-top: 1px solid var(--client-border-soft);
+        }
     }
 }
 </style>

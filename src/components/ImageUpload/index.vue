@@ -861,17 +861,13 @@ onBeforeUnmount(() => {
             border: var(--glass-border);
             border-radius: var(--radius);
             background: var(--app-card-bg);
-            transition:
-                border-color var(--app-motion-fast),
-                box-shadow var(--app-motion-fast),
-                background-color var(--app-motion-fast);
             position: relative;
             overflow: hidden;
             display: block;
 
             &:hover {
-                box-shadow: var(--app-card-hover-shadow);
-                border-color: color-mix(in srgb, var(--el-color-primary) 36%, var(--el-border-color));
+                box-shadow: none;
+                border: var(--glass-border);
             }
 
             .el-upload-list__item-thumbnail {
@@ -955,18 +951,14 @@ onBeforeUnmount(() => {
         border: 2px dashed color-mix(in srgb, var(--el-border-color) 64%, transparent);
         border-radius: var(--radius);
         background: var(--glass-bg);
-        transition:
-            background-color var(--app-motion-fast),
-            border-color var(--app-motion-fast),
-            box-shadow var(--app-motion-fast);
         position: relative;
         overflow: hidden;
         margin-bottom: var(--grid-gap);
 
         &:hover {
-            border-color: var(--el-color-primary);
-            background: var(--hover-bg);
-            box-shadow: var(--app-card-hover-shadow);
+            border-color: color-mix(in srgb, var(--el-border-color) 64%, transparent);
+            background: var(--glass-bg);
+            box-shadow: none;
 
             .upload-trigger-content {
                 .icon-box {
@@ -1102,14 +1094,10 @@ onBeforeUnmount(() => {
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 10px;
     background: color-mix(in srgb, var(--el-bg-color) 90%, var(--el-color-white));
-    transition:
-        border-color var(--app-motion-fast),
-        box-shadow var(--app-motion-fast),
-        background-color var(--app-motion-fast);
 
     &:hover {
-        border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--el-border-color-lighter));
-        box-shadow: var(--app-card-hover-shadow);
+        border-color: var(--el-border-color-lighter);
+        box-shadow: none;
     }
 }
 

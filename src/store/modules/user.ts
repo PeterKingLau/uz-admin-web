@@ -47,12 +47,18 @@ function normalizeTokenValue(token: unknown): string {
 
 function extractLoginToken(response: any): string {
     const candidates = [
+        response,
         response?.token,
         response?.accessToken,
         response?.access_token,
+        response?.authorization,
+        response?.Authorization,
+        response?.data,
         response?.data?.token,
         response?.data?.accessToken,
-        response?.data?.access_token
+        response?.data?.access_token,
+        response?.data?.authorization,
+        response?.data?.Authorization
     ]
     for (const candidate of candidates) {
         const token = normalizeTokenValue(candidate)

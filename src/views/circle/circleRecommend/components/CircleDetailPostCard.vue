@@ -532,18 +532,14 @@ onBeforeUnmount(() => {
     padding: 24px;
     box-shadow: var(--circle-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.03));
     border: 1px solid var(--el-border-color-lighter);
-    transition:
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        background-color 180ms ease;
     position: relative;
     overflow: hidden;
 
     &:hover {
         transform: none;
-        box-shadow: var(--circle-card-hover-shadow, 0 4px 12px rgba(15, 23, 42, 0.06));
-        border-color: var(--el-border-color);
-        background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-fill-color-light));
+        box-shadow: var(--circle-card-shadow, 0 1px 2px rgba(15, 23, 42, 0.03));
+        border-color: var(--el-border-color-lighter);
+        background: var(--el-bg-color);
     }
 }
 

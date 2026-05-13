@@ -49,6 +49,7 @@ web_modules/
 
 # Optional npm cache directory
 .npm
+.yarn-cache
 
 # Optional eslint cache
 .eslintcache
@@ -139,9 +140,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
-
-# Yarn.lock
-yarn.lock
 
 # vscode settings\
 .vscode

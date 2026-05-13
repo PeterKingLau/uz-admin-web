@@ -256,16 +256,23 @@ const layouts: Record<LayoutType, LayoutBuilder> = {
 
 type TagBuilder = (el: BaseElement) => string
 
+function normalizeEpIcon(icon?: string) {
+    if (!icon) return ''
+    if (icon.includes(':')) return icon
+    return `ep:${icon.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`
+}
+
 const tags: Record<string, TagBuilder> = {
     'el-button': el => {
         const { disabled } = attrBuilder(el)
         const type = el.type ? `type="${el.type}"` : ''
-        const icon = el.icon ? `icon="${el.icon}"` : ''
         const size = el.size ? `size="${el.size}"` : ''
+        const icon = normalizeEpIcon(el.icon)
         let child = buildElButtonChild(el)
+        if (icon) child = `<Icon icon="${icon}" />${child || ''}`
 
         if (child) child = `\n${child}\n` 
-        return `<${el.tag} ${type} ${icon} ${size} ${disabled}>${child}</${el.tag}>`
+        return `<${el.tag} ${type} ${size} ${disabled}>${child}</${el.tag}>`
     },
 
     'el-input': el => {
@@ -502,9 +509,9 @@ function buildElCheckboxGroupChild(conf: BaseElement): string {
 function buildElUploadChild(conf: BaseElement): string {
     const list: string[] = []
     if (conf['list-type'] === 'picture-card') {
-        list.push('<i class="el-icon-plus"></i>')
+        list.push('<Icon icon="ep:plus" />')
     } else {
-        list.push(`<el-button size="small" type="primary" icon="el-icon-upload">${conf.buttonText}</el-button>`)
+        list.push(`<el-button size="small" type="primary"><Icon icon="ep:upload" />${conf.buttonText}</el-button>`)
     }
     if (conf.showTip) {
         list.push(`<div slot="tip" class="el-upload__tip">只能上传不超过 ${conf.fileSize}${conf.sizeUnit} 的${conf.accept}文件</div>`)

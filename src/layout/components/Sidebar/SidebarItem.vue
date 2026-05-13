@@ -4,8 +4,8 @@
             <app-link v-if="onlyOneChild.meta" :to="resolvePath(onlyOneChild.path, onlyOneChild.query)">
                 <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
                     <Icon
-                        v-if="onlyOneChild.meta.icon || (item.meta && item.meta.icon)"
-                        :icon="onlyOneChild.meta.icon || (item.meta && item.meta.icon)"
+                        v-if="resolveMenuIcon(onlyOneChild.meta.icon || (item.meta && item.meta.icon), onlyOneChild)"
+                        :icon="resolveMenuIcon(onlyOneChild.meta.icon || (item.meta && item.meta.icon), onlyOneChild)"
                         class="nav-icon"
                     />
                     <template #title>
@@ -17,7 +17,7 @@
 
         <el-sub-menu v-else :index="resolvePath(item.path)" teleported>
             <template v-if="item.meta" #title>
-                <Icon v-if="item.meta && item.meta.icon" :icon="item.meta.icon" class="nav-icon" />
+                <Icon v-if="resolveMenuIcon(item.meta.icon, item)" :icon="resolveMenuIcon(item.meta.icon, item)" class="nav-icon" />
                 <span class="menu-title truncate" :title="hasTitle(item.meta.title)">{{ item.meta.title }}</span>
             </template>
 
@@ -39,6 +39,7 @@ import { ref } from 'vue'
 import { isExternal } from '@/utils/validate'
 import AppLink from './Link'
 import { getNormalPath } from '@/utils/utils'
+import Icon from '@/components/Icon/index.vue'
 
 const props = defineProps({
     item: {
@@ -84,6 +85,17 @@ function resolvePath(routePath, routeQuery) {
 
 function hasTitle(title) {
     return title.length > 5 ? title : ''
+}
+
+function isHomeRoute(route) {
+    return route?.path === '/index' || route?.path === 'index' || route?.name === 'Index' || route?.meta?.title === '首页'
+}
+
+function resolveMenuIcon(icon, route) {
+    const normalizedIcon = String(icon || '').trim()
+    if (normalizedIcon.includes(':')) return normalizedIcon
+    if (isHomeRoute(route)) return 'mdi:chart-line'
+    return ''
 }
 </script>
 

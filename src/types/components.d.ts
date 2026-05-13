@@ -35,6 +35,7 @@ declare module 'vue' {
     IFrame: typeof import('./../components/iFrame/index.vue')['default']
     ImageUpload: typeof import('./../components/ImageUpload/index.vue')['default']
     LoadingState: typeof import('./../components/LoadingState/index.vue')['default']
+    LocaleSwitcher: typeof import('./../components/LocaleSwitcher/index.vue')['default']
     MediaPreview: typeof import('./../components/MediaPreview/index.vue')['default']
     Pagination: typeof import('./../components/Pagination/index.vue')['default']
     ParentView: typeof import('./../components/ParentView/index.vue')['default']

@@ -32,8 +32,25 @@ const wrapperAttrs = computed<HTMLAttributes & Record<string, unknown>>(() => {
     const { class: className, style, ...rest } = attrs as Record<string, unknown>
     return {
         ...rest,
-        class: className as HTMLAttributes['class'],
+        class: ['app-icon', className] as HTMLAttributes['class'],
         style: style as StyleValue | undefined
     }
 })
 </script>
+
+<style scoped>
+.app-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    vertical-align: -0.125em;
+    flex-shrink: 0;
+}
+
+.app-icon :deep(svg) {
+    display: block;
+    width: 1em;
+    height: 1em;
+}
+</style>

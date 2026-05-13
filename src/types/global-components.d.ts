@@ -1,9 +1,7 @@
-type ElementPlusIconComponents = typeof import('@element-plus/icons-vue')
-
 export {}
 
 declare module 'vue' {
-    export interface GlobalComponents extends ElementPlusIconComponents {
+    export interface GlobalComponents {
         AppDatePicker: typeof import('../components/AppDatePicker/index.vue')['default']
         DictTag: typeof import('../components/DictTag/index.vue')['default']
         Icon: typeof import('../components/Icon/index.vue')['default']

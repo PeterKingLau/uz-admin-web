@@ -155,7 +155,9 @@ import ProfileTabs from './components/ProfileTabs.vue'
 import useSettingsStore from '@/store/modules/settings'
 import useUserStore from '@/store/modules/user'
 import { POST_TYPE } from '@/utils/enum'
+import { encodeRouteId } from '@/router/routeParams'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
+import { openVideoPlayerPreview } from '@/utils/content/videoPlayer'
 import {
     getCommentId,
     getCommentReplyCount as resolveCommentReplyCount,
@@ -324,6 +326,7 @@ const emptyIcon = computed(() => {
 })
 
 const getPostKey = (item: any) => item?.id ?? item?.postId ?? `${item?.createTime || ''}-${item?.content || ''}`
+const CLIENT_MEDIA_VIEWER_CACHE_KEY = 'client-media-viewer-payload'
 const getType = (item: any) => String(item?.postType ?? '')
 const isTextPost = (item: any) => getType(item) === POST_TYPE.TEXT
 const isVideoPost = (item: any) => getType(item) === POST_TYPE.VIDEO
@@ -347,6 +350,37 @@ const getCover = (item: any) => {
         .filter(Boolean)
     return urls.find((url: string) => !isVideoUrl(url)) || urls[0] || ''
 }
+
+const getPostMediaUrls = (item: any) =>
+    parseMediaRaw(item?.mediaUrls || item?.files || [])
+        .map((media: any) => (typeof media === 'object' ? media?.url || media?.cover || media?.thumbnail || media?.poster : media))
+        .map((url: string) => resolveMediaUrl(url))
+        .filter(Boolean)
+
+const getPostImageUrls = (item: any) => {
+    if (isTextPost(item)) return [getTextCover(item)]
+    const urls = getPostMediaUrls(item).filter((url: string) => !isVideoUrl(url))
+    const cover = getCover(item)
+    return urls.length ? urls : cover ? [cover] : []
+}
+
+const getVideoUrl = (item: any) => getPostMediaUrls(item).find((url: string) => isVideoUrl(url)) || ''
+
+const normalizePostFlags = (item: any) => {
+    const normalized = { ...item }
+    const liked = Boolean(normalized.isLiked ?? normalized.like)
+    normalized.isLiked = liked
+    normalized.like = liked
+    return normalized
+}
+
+const sessionCache = {
+    setJSON(key: string, value: unknown) {
+        sessionStorage.setItem(key, JSON.stringify(value))
+    }
+}
+
+const isH5Viewport = () => typeof window !== 'undefined' && window.innerWidth <= 768
 
 const previewMediaList = computed(() => {
     const post = previewPost.value
@@ -912,6 +946,33 @@ const handleProfileSaved = (payload: Record<string, any>) => {
 
 const openPost = (post: any) => {
     if (!post) return
+    if (isH5Viewport()) {
+        if (
+            openVideoPlayerPreview({
+                item: post,
+                getVideoUrl,
+                normalizePostFlags,
+                userStore,
+                cacheSession: sessionCache,
+                router,
+                route
+            })
+        ) {
+            return
+        }
+
+        const postId = getPreviewPostId(post)
+        const images = getPostImageUrls(post)
+        if (postId == null || !images.length) return
+        sessionCache.setJSON(`${CLIENT_MEDIA_VIEWER_CACHE_KEY}:${postId}`, {
+            id: postId,
+            post: normalizePostFlags(post),
+            images,
+            from: route.fullPath
+        })
+        router.push({ name: 'ClientMediaViewer', params: { id: encodeRouteId(postId) }, query: { from: route.fullPath } })
+        return
+    }
     previewPost.value = { ...post }
     previewVisible.value = true
     loadPreviewComments(previewPost.value)

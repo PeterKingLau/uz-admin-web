@@ -3,14 +3,24 @@ import type {
     AddVersionPayload,
     AddVersionResponse,
     DeleteVersionResponse,
+    GetNewVersionResponse,
     ListVersionParams,
     ListVersionResponse,
     VersionItem
 } from './version.types'
 
-export type { AddVersionPayload, AddVersionResponse, DeleteVersionResponse, ListVersionParams, ListVersionResponse, VersionItem } from './version.types'
+export type {
+    AddVersionPayload,
+    AddVersionResponse,
+    DeleteVersionResponse,
+    GetNewVersionResponse,
+    ListVersionParams,
+    ListVersionResponse,
+    VersionItem
+} from './version.types'
 
 const ADD_VERSION_URL = '/content/version/v1/addVersion'
+const GET_NEW_VERSION_URL = '/content/version/v1/getNewVersion'
 const LIST_VERSION_URL = '/content/version/list'
 const REQUEST_TIMEOUT = 300000
 
@@ -43,6 +53,21 @@ export function listVersion(params?: ListVersionParams): Promise<ListVersionResp
         params,
         timeout: REQUEST_TIMEOUT
     })
+}
+
+export function getNewVersion(): Promise<GetNewVersionResponse> {
+    return request<GetNewVersionResponse, GetNewVersionResponse>({
+        url: GET_NEW_VERSION_URL,
+        method: 'get',
+        isToken: false,
+        timeout: REQUEST_TIMEOUT
+    })
+}
+
+export function parseNewVersion(payload: GetNewVersionResponse | any): VersionItem | null {
+    const data = payload?.data ?? payload
+    if (data && typeof data === 'object' && !Array.isArray(data)) return data
+    return null
 }
 
 export function parseVersionRows(payload: ListVersionResponse | any): VersionItem[] {

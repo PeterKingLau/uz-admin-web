@@ -45,3 +45,9 @@ export interface ListVersionResponse {
     rows?: VersionItem[]
     data?: any
 }
+
+export interface GetNewVersionResponse {
+    code?: number
+    msg?: string
+    data?: VersionItem
+}

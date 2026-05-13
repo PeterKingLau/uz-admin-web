@@ -11,6 +11,7 @@ import App from './App.vue'
 import store from './store'
 import router from './router'
 import directive from './directive' 
+import { i18n } from './locales'
 
 
 import plugins from './plugins' 
@@ -18,8 +19,6 @@ import { download } from '@/utils/request'
 
 
 
-
-import elementIcons from '@/components/SvgIcon/svgicon'
 
 import './permission' 
 
@@ -110,8 +109,8 @@ store.use(piniaPluginPersistedstate)
 
 app.use(router)
 app.use(store)
+app.use(i18n)
 app.use(plugins)
-app.use(elementIcons)
 app.config.globalProperties.onVnodeBeforeMountRef_ = onVnodeBeforeMountRef_
 
 app.component('Icon', AppIcon)

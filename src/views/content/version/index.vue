@@ -142,17 +142,17 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="下载地址" prop="downloadUrl" min-width="260">
+                <el-table-column label="下载地址" prop="downloadUrl" align="center" width="180">
                     <template #default="{ row }">
                         <div v-if="row.downloadUrl" class="download-cell">
-                            <a :href="resolveDownloadUrl(row.downloadUrl)" target="_blank" rel="noopener noreferrer" class="download-link">
+                            <button type="button" class="download-action-btn" @click="handleDownloadApk(row)">
                                 <Icon icon="mdi:link-variant" />
-                                {{ resolveDownloadUrl(row.downloadUrl) }}
-                            </a>
-                            <el-button link type="primary" class="download-qr-btn" @click="handleOpenDownloadQr(row)">
-                                <Icon icon="mdi:qrcode" />
-                                二维码
-                            </el-button>
+                                下载
+                            </button>
+                            <button type="button" class="download-action-btn" @click="handleCopyDownloadUrl(row.downloadUrl)">
+                                <Icon icon="mdi:content-copy" />
+                                复制地址
+                            </button>
                         </div>
                         <span v-else class="empty-text">-</span>
                     </template>
@@ -182,8 +182,6 @@
                 <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
             </div>
         </el-card>
-
-        <QrcodeDialog v-model="qrcodeVisible" :text="qrcodeText" :title="qrcodeTitle" :description="qrcodeDescription" :file-name="qrcodeFileName" />
     </div>
 </template>
 
@@ -194,7 +192,6 @@ import { parseTime } from '@/utils/utils'
 import { getImgUrl } from '@/utils/img'
 import { addVersion, deleteVersion, listVersion, parseVersionRows, parseVersionTotal } from '@/api/content/version'
 import type { VersionItem } from '@/api/content/version.types'
-import QrcodeDialog from '../postInfo/components/QrcodeDialog.vue'
 
 interface VersionTableItem {
     id: number | string
@@ -216,7 +213,6 @@ interface FormModel {
 }
 
 const maxApkSizeMB = 600
-
 const { proxy } = getCurrentInstance() as any
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
@@ -228,11 +224,6 @@ const uploadFileList = ref<UploadUserFile[]>([])
 const selectedFile = ref<File | null>(null)
 const selectedRows = ref<VersionTableItem[]>([])
 const versionList = ref<VersionTableItem[]>([])
-const qrcodeVisible = ref(false)
-const qrcodeText = ref('')
-const qrcodeTitle = ref('')
-const qrcodeDescription = ref('')
-const qrcodeFileName = ref('')
 const queryParams = reactive({
     pageNum: 1,
     pageSize: 10
@@ -335,28 +326,90 @@ const resolveDownloadUrl = (url: string) => {
     return raw ? getImgUrl(raw) : ''
 }
 
-const resolveQrFileName = (row: VersionTableItem) => {
+const resolveDownloadFileName = (row: VersionTableItem) => {
     const versionSeed = String(row.versionName || row.versionCode || 'version').trim()
     const sanitizedVersion = versionSeed
         .replace(/[^\w.-]+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
-    const fallback = sanitizedVersion || 'version'
-    return `apk-download-${fallback}-${Date.now()}.png`
+    return `uz-app-${sanitizedVersion || 'version'}.apk`
 }
 
-const handleOpenDownloadQr = (row: VersionTableItem) => {
-    const text = resolveDownloadUrl(row.downloadUrl)
-    if (!text) {
-        proxy?.$modal?.msgWarning?.('下载地址为空，无法生成二维码')
+const triggerBlobDownload = (blob: Blob, fileName: string) => {
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = fileName
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(objectUrl)
+}
+
+const handleDownloadApk = async (row: VersionTableItem) => {
+    const downloadUrl = resolveDownloadUrl(row.downloadUrl)
+    if (!downloadUrl) {
+        proxy?.$modal?.msgWarning?.('下载地址为空')
         return
     }
-    const versionText = String(row.versionName || row.versionCode || '').trim()
-    qrcodeText.value = text
-    qrcodeTitle.value = versionText ? `APK 下载二维码 - v${versionText}` : 'APK 下载二维码'
-    qrcodeDescription.value = text
-    qrcodeFileName.value = resolveQrFileName(row)
-    qrcodeVisible.value = true
+
+    try {
+        const response = await fetch(downloadUrl)
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status}`)
+        }
+        const blob = await response.blob()
+        triggerBlobDownload(blob, resolveDownloadFileName(row))
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.('下载失败，请检查文件地址是否有效')
+    }
+}
+
+const copyTextWithFallback = (text: string) => {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+
+    let success = false
+    try {
+        success = document.execCommand('copy')
+    } catch {
+        success = false
+    }
+
+    textarea.remove()
+    return success
+}
+
+const handleCopyDownloadUrl = async (url: string) => {
+    const text = resolveDownloadUrl(url)
+    if (!text) {
+        proxy?.$modal?.msgWarning?.('下载地址为空')
+        return
+    }
+
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text)
+            proxy?.$modal?.msgSuccess?.('下载地址已复制')
+            return
+        } catch {
+            // fallback below
+        }
+    }
+
+    if (copyTextWithFallback(text)) {
+        proxy?.$modal?.msgSuccess?.('下载地址已复制')
+    } else {
+        proxy?.$modal?.msgError?.('复制失败，请手动复制')
+    }
 }
 
 const normalizeRecord = (row: VersionItem | undefined, fallback?: FormModel, index = 0): VersionTableItem => ({
@@ -843,45 +896,39 @@ onMounted(() => {
             }
         }
 
-        .download-link {
+        .download-action-btn {
+            height: 28px;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 6px;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            gap: 5px;
+            background: transparent;
             color: var(--el-color-primary);
             text-decoration: none;
             font-size: 13px;
-            transition: color 0.2s;
-            width: 100%;
-            min-width: 0;
-            max-width: 100%;
+            line-height: 1;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            cursor: pointer;
+            transition:
+                background-color 160ms ease,
+                color 160ms ease;
 
             &:hover {
-                color: var(--el-color-primary-light-3);
-                text-decoration: underline;
+                background: var(--el-color-primary-light-9);
+                color: var(--el-color-primary);
+                text-decoration: none;
             }
         }
 
         .download-cell {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-            width: 100%;
-        }
-
-        .download-qr-btn {
-            flex-shrink: 0;
-            height: auto;
-            padding: 0;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            line-height: 1;
+            justify-content: center;
+            gap: 8px;
+            width: auto;
         }
 
         .empty-text {

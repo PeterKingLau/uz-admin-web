@@ -717,15 +717,11 @@ onMounted(() => {
         background-color: var(--el-fill-color-blank);
         border: 1px solid var(--el-border-color-light);
         border-radius: 6px;
-        transition:
-            background-color var(--app-motion-fast),
-            border-color var(--app-motion-fast),
-            box-shadow var(--app-motion-fast);
 
         &:hover {
-            background-color: var(--el-fill-color-light);
-            border-color: var(--el-color-primary-light-5);
-            box-shadow: var(--app-card-hover-shadow);
+            background-color: var(--el-fill-color-blank);
+            border-color: var(--el-border-color-light);
+            box-shadow: none;
         }
 
         .file-info {

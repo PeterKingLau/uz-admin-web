@@ -69,11 +69,11 @@
             <div class="agreement-box">
                 <el-checkbox :model-value="agreementChecked" @update:model-value="handleAgreementChange">
                     <span class="agreement-text">我已阅读并同意</span>
-                    <router-link class="policy-link inline-policy-link" to="/h5/user-agreement" target="_blank" rel="noopener noreferrer" @click.stop>
+                    <router-link class="policy-link inline-policy-link" to="/user-agreement" target="_blank" rel="noopener noreferrer" @click.stop>
                         《用户协议》
                     </router-link>
                     <span class="agreement-text">和</span>
-                    <router-link class="policy-link inline-policy-link" to="/h5/privacy-policy" target="_blank" rel="noopener noreferrer" @click.stop>
+                    <router-link class="policy-link inline-policy-link" to="/privacy-policy" target="_blank" rel="noopener noreferrer" @click.stop>
                         《隐私政策》
                     </router-link>
                 </el-checkbox>
@@ -330,6 +330,14 @@ async function handleBeianLinkClick() {
 }
 
 watch(
+    () => route.query.redirect,
+    value => {
+        redirect.value = Array.isArray(value) ? value[0] : value
+    },
+    { immediate: true }
+)
+
+watch(
     () => loginForm.value.loginType,
     async val => {
         agreementChecked.value = false
@@ -473,10 +481,12 @@ function handleLogin() {
                     if (cur !== 'redirect') acc[cur] = query[cur]
                     return acc
                 }, {})
-                router.push({ path: redirect.value || '/', query: otherQueryParams })
+                await router.push({ path: redirect.value || '/index', query: otherQueryParams })
             })
-            .catch(() => {
+            .catch(error => {
                 loading.value = false
+                console.error('Login or redirect failed:', error)
+                proxy?.$modal?.msgError?.(error?.message || '登录失败，请检查账号信息或稍后重试')
             })
     })
 }
@@ -715,10 +725,40 @@ function togglePassword() {
     }
 }
 
-.input-icon {
-    font-size: 18px;
-    color: var(--el-text-color-placeholder);
+:deep(.el-input__prefix),
+:deep(.el-input__suffix) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+:deep(.el-input__prefix) {
     margin-right: 8px;
+}
+
+:deep(.el-input__suffix) {
+    margin-left: 8px;
+}
+
+:deep(.el-input__prefix-inner),
+:deep(.el-input__suffix-inner) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.input-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--el-text-color-placeholder);
+    margin-right: 0;
     transition: color 0.3s;
 }
 
@@ -727,9 +767,15 @@ function togglePassword() {
 }
 
 .password-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
     cursor: pointer;
     color: var(--el-text-color-placeholder);
     font-size: 18px;
+    line-height: 1;
     transition: color 0.2s;
 
     &:hover {

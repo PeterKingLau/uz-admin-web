@@ -1,66 +1,4 @@
-
-
-
-
-
-$spacings: 5, 8, 10, 20;
-
-
-$color-cyan: #20b2aa;
-$color-cyan-hover: #48d1cc;
-
-
-$blue: #3b82f6;
-$light-blue: #60a5fa;
-$red: #ef4444;
-$pink: #f472b6;
-$green: #10b981;
-$tiffany: #2dd4bf;
-$yellow: #f59e0b;
-$panGreen: #10b981;
-
-
-$menuBg: #0f172a;
-$menuHover: #1e293b;
-$menuText: #94a3b8;
-$menuActiveText: #ffffff;
-
-
-$menuLightBg: #ffffff;
-$menuLightHover: #f1f5f9;
-$menuLightText: #334155;
-$menuLightActiveText: #3b82f6;
-
-
-$base-sidebar-width: 200px;
-$sideBarWidth: 200px;
-
-
-$base-menu-color: $menuText;
-$base-menu-color-active: $menuActiveText;
-$base-menu-background: $menuBg;
-$base-sub-menu-background: #020617;
-$base-sub-menu-hover: $menuHover;
-
-
-$--color-primary: #3b82f6;
-$--color-success: #10b981;
-$--color-warning: #f59e0b;
-$--color-danger: #ef4444;
-$--color-info: #64748b;
-
-
-$text-colors: (
-    navy: #1ab394,
-    success: #1c84c6,
-    secondary: #909399,
-    info: #23c6c8,
-    warning: #f8ac59,
-    danger: #ed5565,
-    muted: #888888,
-    primary: inherit
-);
-
+@use './variables.scss' as *;
 
 :export {
     menuText: $menuText;
@@ -80,9 +18,9 @@ $text-colors: (
     tiffany: $tiffany;
     yellow: $yellow;
     panGreen: $panGreen;
-    colorPrimary: $--color-primary;
-    colorSuccess: $--color-success;
-    colorWarning: $--color-warning;
-    colorDanger: $--color-danger;
-    colorInfo: $--color-info;
+    colorPrimary: $color-primary;
+    colorSuccess: $color-success;
+    colorWarning: $color-warning;
+    colorDanger: $color-danger;
+    colorInfo: $color-info;
 }

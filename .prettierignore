@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.vite-inspect
+.husky/_
+
+public/iconify
+src/assets/iconify/subsets
+src/types/components.d.ts
+src/types/global-components.d.ts
+src/utils/generator/icon.json
+
+yarn.lock
+*.log

@@ -42,6 +42,31 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { platform: 'public' }
     },
     {
+        path: '/portal',
+        component: () => import('@/views/portal/index.vue'),
+        hidden: true,
+        name: 'PortalHome',
+        meta: { title: '职场吧', platform: 'public' }
+    },
+    {
+        path: '/user-agreement',
+        component: () => import('@/views/legal/agreement/index.vue'),
+        hidden: true,
+        meta: { title: '用户协议', platform: 'public' }
+    },
+    {
+        path: '/privacy-policy',
+        component: () => import('@/views/legal/privacy/index.vue'),
+        hidden: true,
+        meta: { title: '隐私政策', platform: 'public' }
+    },
+    {
+        path: '/h5/app-download',
+        component: () => import('@/views/h5/appDownload/index.vue'),
+        hidden: true,
+        meta: { title: '下载职场吧 App', platform: 'public' }
+    },
+    {
         path: '/h5/user-agreement',
         component: () => import('@/views/h5/agreement/index.vue'),
         hidden: true,
@@ -54,12 +79,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: '隐私政策', platform: 'public' }
     },
 
-    {
-        path: '/:pathMatch(.*)*',
-        component: () => import('@/views/error/404.vue'),
-        hidden: true,
-        meta: { platform: 'public' }
-    },
     {
         path: '/401',
         component: () => import('@/views/error/401.vue'),
@@ -80,12 +99,17 @@ export const constantRoutes: RouteRecordRaw[] = [
         ]
     },
     {
-        path: '',
+        path: '/',
+        redirect: '/portal',
+        hidden: true,
+        meta: { platform: 'public' }
+    },
+    {
+        path: '/index',
         component: Layout,
-        redirect: '/index',
         children: [
             {
-                path: '/index',
+                path: '',
                 component: () => import('@/views/index.vue'),
                 name: 'Index',
                 meta: { title: '首页', icon: 'mdi:chart-line', affix: true, platform: 'admin' }
@@ -155,6 +179,13 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: '视频播放器', platform: 'client' }
     },
     {
+        path: '/content/media-viewer/:id',
+        component: () => import('@/views/client/mediaViewer/index.vue'),
+        name: 'ClientMediaViewer',
+        hidden: true,
+        meta: { title: '内容预览', platform: 'client' }
+    },
+    {
         path: '/circle-manage/circle-data',
         component: Layout,
         hidden: true,
@@ -166,6 +197,12 @@ export const constantRoutes: RouteRecordRaw[] = [
                 meta: { title: '圈子详情', platform: 'client' }
             }
         ]
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        component: () => import('@/views/error/404.vue'),
+        hidden: true,
+        meta: { platform: 'public' }
     }
 ]
 

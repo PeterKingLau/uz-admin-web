@@ -221,9 +221,9 @@ function restartVideo() {
 
     &:hover {
         transform: none;
-        box-shadow: var(--app-hover-shadow-card);
-        border-color: var(--el-color-primary-light-5);
-        background: color-mix(in srgb, var(--el-fill-color-blank) 96%, var(--el-fill-color-light));
+        box-shadow: var(--app-card-shadow);
+        border-color: var(--el-border-color-lighter);
+        background: var(--el-fill-color-blank);
 
         .video-cover {
             filter: brightness(0.96);

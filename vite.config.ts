@@ -108,9 +108,10 @@ export default defineConfig(({ mode, command }) => {
         },
 
         build: {
-            target: 'esnext',
+            target: 'es2018',
+            cssTarget: 'chrome64',
             modulePreload: {
-                polyfill: false
+                polyfill: true
             },
             sourcemap: shouldGenerateSourceMap,
             outDir: 'dist',

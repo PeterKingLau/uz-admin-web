@@ -11,7 +11,6 @@ const manualChunkRules: ManualChunkRule[] = [
             '/vue-router/',
             '/pinia/',
             '/element-plus/',
-            '/@element-plus/icons-vue/',
             '/@popperjs/',
             '/@floating-ui/',
             '/async-validator/',

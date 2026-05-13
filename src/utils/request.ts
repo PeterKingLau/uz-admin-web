@@ -146,9 +146,45 @@ interface ExtendedInternalAxiosRequestConfig extends InternalAxiosRequestConfig 
 
 const isAbsoluteHttpUrl = (url?: string): boolean => /^https?:\/\//i.test(String(url || '').trim())
 
+function stableStringify(value: unknown): string {
+    if (value === undefined || value === null) return ''
+    if (typeof value !== 'object') return JSON.stringify(value)
+    if (value instanceof FormData) return '[FormData]'
+    if (value instanceof URLSearchParams) return value.toString()
+    if (value instanceof Blob) return `[Blob:${value.size}:${value.type}]`
+
+    const seen = new WeakSet<object>()
+    const normalize = (input: unknown): unknown => {
+        if (input === undefined || input === null) return input
+        if (typeof input !== 'object') return input
+        if (input instanceof Date) return input.toISOString()
+        if (input instanceof URLSearchParams) return input.toString()
+        if (input instanceof FormData) return '[FormData]'
+        if (input instanceof Blob) return `[Blob:${input.size}:${input.type}]`
+        if (seen.has(input as object)) return '[Circular]'
+        seen.add(input as object)
+
+        if (Array.isArray(input)) {
+            return input.map(item => normalize(item))
+        }
+
+        return Object.keys(input as Record<string, unknown>)
+            .sort()
+            .reduce<Record<string, unknown>>((result, key) => {
+                const normalizedValue = normalize((input as Record<string, unknown>)[key])
+                if (normalizedValue !== undefined) result[key] = normalizedValue
+                return result
+            }, {})
+    }
+
+    return JSON.stringify(normalize(value))
+}
+
 function generateRequestKey(config: InternalAxiosRequestConfig): string {
     const { method, url, params, data } = config
-    return [method, url, JSON.stringify(params), JSON.stringify(data)].join('&')
+    const headers = config.headers as any
+    const authorization = typeof headers?.get === 'function' ? headers.get('Authorization') : headers?.Authorization || headers?.authorization || ''
+    return [String(method || 'get').toUpperCase(), config.baseURL || '', url || '', authorization, stableStringify(params), stableStringify(data)].join('&')
 }
 
 function addPendingRequest(config: InternalAxiosRequestConfig) {
@@ -281,7 +317,6 @@ service.interceptors.request.use(
             addPendingRequest(config)
         }
 
-        
         headers.delete('isToken')
         headers.delete('repeatSubmit')
         headers.delete('skipPending')
@@ -396,6 +431,10 @@ service.interceptors.response.use(
     }
 )
 
+function request<T = any, _R = any>(config: ExtendedAxiosRequestConfig): Promise<T> {
+    return service(config) as Promise<T>
+}
+
 export function requestOss(config: AxiosRequestConfig): Promise<any> {
     const baseHeaders = (config.headers || {}) as Record<string, any>
     return service({
@@ -459,4 +498,4 @@ export function cancelAllPendingRequests(): void {
     pendingRequests.clear()
 }
 
-export default service
+export default request

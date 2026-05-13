@@ -191,15 +191,11 @@ const videoSrc = computed(() => {
         overflow: hidden;
         cursor: zoom-in;
         border: 1px solid var(--el-border-color-lighter);
-        transition:
-            border-color var(--app-motion-fast),
-            box-shadow var(--app-motion-fast),
-            background-color var(--app-motion-fast);
         background-color: var(--el-fill-color-light);
 
         &:hover {
-            box-shadow: var(--app-hover-shadow-card);
-            border-color: var(--el-color-primary-light-5);
+            box-shadow: none;
+            border-color: var(--el-border-color-lighter);
 
             .hover-overlay {
                 opacity: 1;

@@ -1,5 +1,5 @@
 @use 'sass:meta';
-@use './variables.module.scss' as *;
+@use './variables.scss' as *;
 @use './tokens.scss' as *;
 @use './mixin.scss' as *;
 @use './transition.scss' as *;
@@ -79,10 +79,52 @@ body.app-scroll-locked {
     overflow: hidden !important;
 }
 
+html.auth-route-shell,
+body.auth-route-shell,
+body.auth-route-shell #app {
+    background: #0f172a;
+}
+
 html.client-route-shell,
 body.client-route-shell,
 body.client-route-shell #app {
-    background: #ffffff;
+    background: #f4f6f8;
+}
+
+html.portal-route-shell,
+body.portal-route-shell,
+body.portal-route-shell #app {
+    background: #f8fafc;
+}
+
+html.admin-route-shell,
+body.admin-route-shell,
+body.admin-route-shell #app {
+    background: var(--el-bg-color-page);
+}
+
+html.dark.auth-route-shell,
+html.dark body.auth-route-shell,
+html.dark body.auth-route-shell #app {
+    background: #030712;
+}
+
+html.dark.client-route-shell,
+html.dark body.client-route-shell,
+html.dark body.client-route-shell #app {
+    background: #0f172a;
+}
+
+html.dark.portal-route-shell,
+html.dark body.portal-route-shell,
+html.dark body.portal-route-shell #app {
+    background: #0f172a;
+}
+
+html.dark.admin-route-shell,
+html.dark body.admin-route-shell,
+html.dark body.admin-route-shell #app {
+    background: var(--el-bg-color-page);
 }
 
 .discover-page.app-scroll-root-locked {
@@ -221,8 +263,7 @@ aside {
     box-shadow: var(--app-card-shadow);
     transition:
         background-color 160ms ease,
-        border-color 160ms ease,
-        box-shadow 160ms ease;
+        border-color 160ms ease;
 }
 
 .app-card:hover,
@@ -231,8 +272,8 @@ aside {
 .app-filter-card:hover,
 .app-table-card:hover,
 .app-section-card:hover {
-    border-color: var(--el-border-color);
-    box-shadow: var(--app-card-hover-shadow);
+    border-color: var(--app-card-border-color);
+    box-shadow: var(--app-card-shadow);
 }
 
 .app-card-header {

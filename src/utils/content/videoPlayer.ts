@@ -16,7 +16,7 @@ type RouteLike = {
 }
 
 type RouterLike = {
-    push: (location: { name: string; params: { id: unknown }; query: { from: string } }) => unknown
+    push: (location: any) => unknown
 }
 
 type CacheSessionLike = {

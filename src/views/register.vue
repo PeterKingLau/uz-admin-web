@@ -4,12 +4,12 @@
             <h3 class="title">{{ title }}</h3>
             <el-form-item prop="username">
                 <el-input v-model="registerForm.username" type="text" size="large" auto-complete="off" placeholder="账号">
-                    <template #prefix><SvgIcon icon-class="user" class="el-input__icon input-icon" /></template>
+                    <template #prefix><Icon icon="ep:user" class="el-input__icon input-icon" /></template>
                 </el-input>
             </el-form-item>
             <el-form-item prop="password">
                 <el-input v-model="registerForm.password" type="password" size="large" auto-complete="off" placeholder="密码" @keyup.enter="handleRegister">
-                    <template #prefix><SvgIcon icon-class="password" class="el-input__icon input-icon" /></template>
+                    <template #prefix><Icon icon="ep:lock" class="el-input__icon input-icon" /></template>
                 </el-input>
             </el-form-item>
             <el-form-item prop="confirmPassword">
@@ -21,12 +21,12 @@
                     placeholder="确认密码"
                     @keyup.enter="handleRegister"
                 >
-                    <template #prefix><SvgIcon icon-class="password" class="el-input__icon input-icon" /></template>
+                    <template #prefix><Icon icon="ep:lock" class="el-input__icon input-icon" /></template>
                 </el-input>
             </el-form-item>
             <el-form-item prop="code" v-if="captchaEnabled">
                 <el-input size="large" v-model="registerForm.code" auto-complete="off" placeholder="验证码" style="width: 63%" @keyup.enter="handleRegister">
-                    <template #prefix><SvgIcon icon-class="validCode" class="el-input__icon input-icon" /></template>
+                    <template #prefix><Icon icon="mdi:check-decagram-outline" class="el-input__icon input-icon" /></template>
                 </el-input>
                 <div class="register-code">
                     <img :src="codeUrl" @click="getCode" class="register-code-img" />
@@ -42,7 +42,7 @@
                 </div>
             </el-form-item>
         </el-form>
-        
+
         <div class="el-register-footer">
             <span>Copyright © 2026 All Rights Reserved.</span>
         </div>
@@ -54,7 +54,7 @@ defineOptions({ name: 'Register' })
 import { getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCodeImg, register } from '@/api/login/login'
-import SvgIcon from '@/components/SvgIcon/index.vue'
+import Icon from '@/components/Icon/index.vue'
 
 const title = import.meta.env.VITE_APP_TITLE
 const router = useRouter()
@@ -211,5 +211,3 @@ getCode()
     padding-left: 12px;
 }
 </style>
-
-

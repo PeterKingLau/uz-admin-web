@@ -364,7 +364,6 @@ h6,
 .el-card {
     transition:
         border-color 160ms ease,
-        box-shadow 160ms ease,
         background-color 160ms ease;
 }
 
@@ -372,8 +371,8 @@ h6,
 .main-card:hover,
 .card-box > .el-card:hover {
     transform: none;
-    border-color: var(--el-border-color);
-    box-shadow: var(--app-card-hover-shadow);
+    border-color: var(--app-card-border-color);
+    box-shadow: var(--app-card-shadow);
 }
 
 .card-box {

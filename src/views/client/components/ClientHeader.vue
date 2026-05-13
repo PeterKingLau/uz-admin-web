@@ -56,7 +56,7 @@
                                 <Icon icon="ep:lock" class="dropdown-icon" />
                                 修改密码
                             </el-dropdown-item>
-                            <el-dropdown-item command="logout" class="logout-item">
+                            <el-dropdown-item divided command="logout" class="logout-item">
                                 <Icon icon="ep:switch-button" class="dropdown-icon" />
                                 退出登录
                             </el-dropdown-item>
@@ -558,34 +558,37 @@ onMounted(() => {
 
 <style lang="scss">
 .client-header-dropdown {
-    background: var(--client-surface) !important;
-    border-radius: 8px !important;
-    padding: 10px !important;
+    border-radius: 12px !important;
+    padding: 8px !important;
     min-width: 160px;
-    border: 1px solid color-mix(in srgb, var(--text-main) 6%, transparent) !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08) !important;
+    background: var(--el-bg-color-overlay) !important;
+    border: 1px solid var(--el-border-color-lighter) !important;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--el-color-black) 8%, transparent) !important;
+
+    .el-dropdown-menu {
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+    }
 
     .el-dropdown-menu__item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        border-radius: 6px;
+        gap: 10px;
+        border-radius: 8px;
+        padding: 10px 16px;
         font-size: 14px;
-        font-weight: 500;
-        color: var(--text-main);
+        font-weight: 400;
+        color: var(--el-text-color-regular);
         line-height: 1;
-        padding: 12px 16px;
-        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    .el-dropdown-menu__item:hover {
-        background: color-mix(in srgb, var(--text-main) 4%, transparent);
-        transform: translateX(4px);
+        transition:
+            background-color var(--app-motion-fast),
+            color var(--app-motion-fast);
     }
 
     .el-dropdown-menu__item--divided {
-        margin-top: 4px;
-        border-top: 1px solid color-mix(in srgb, var(--text-main) 6%, transparent);
+        margin-top: 6px;
+        border-top-color: var(--el-border-color-extra-light);
     }
 
     .el-dropdown-menu__item--divided::before {
@@ -594,25 +597,26 @@ onMounted(() => {
 
     .dropdown-icon {
         font-size: 16px;
-        color: var(--text-minor);
-        transition: color 0.2s ease;
+        color: var(--el-text-color-secondary);
+        transition: color var(--app-motion-fast);
     }
 
-    .el-dropdown-menu__item:hover .dropdown-icon {
-        color: var(--text-main);
-    }
+    .el-dropdown-menu__item:hover {
+        background-color: var(--el-fill-color-light);
+        color: var(--el-color-primary);
 
-    .logout-item {
-        margin-top: 4px;
+        .dropdown-icon {
+            color: var(--el-color-primary);
+        }
     }
 
     .logout-item:hover {
-        background: color-mix(in srgb, var(--client-danger-text) 10%, transparent);
-        color: var(--client-danger-text);
-    }
+        background-color: var(--el-color-danger-light-9);
+        color: var(--el-color-danger);
 
-    .logout-item:hover .dropdown-icon {
-        color: var(--client-danger-text);
+        .dropdown-icon {
+            color: var(--el-color-danger);
+        }
     }
 }
 </style>

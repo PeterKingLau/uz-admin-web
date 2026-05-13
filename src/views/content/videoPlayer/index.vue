@@ -54,7 +54,7 @@ const resolveFallbackUser = () => ({
 
 const fallbackPath = computed(() => {
     const from = route.query.from
-    return typeof from === 'string' && from ? from : '/index'
+    return typeof from === 'string' && from ? from : '/discover'
 })
 
 const loadPayload = () => {

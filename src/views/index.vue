@@ -955,7 +955,7 @@ onBeforeUnmount(() => {
         overflow: hidden;
 
         &:hover {
-            background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, var(--el-fill-color-light));
+            background: var(--el-bg-color-overlay);
         }
 
         .stat-card-inner {

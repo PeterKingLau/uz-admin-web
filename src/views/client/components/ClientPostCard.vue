@@ -263,16 +263,12 @@ watch(
     background: transparent;
     cursor: pointer;
     box-shadow: none;
-    transition:
-        border-color var(--client-feed-card-transition),
-        box-shadow var(--client-feed-card-transition),
-        background-color var(--client-feed-card-transition);
 }
 
 .client-post-card:hover {
-    border-color: var(--client-feed-card-border);
-    background: var(--client-card-hover);
-    box-shadow: var(--client-feed-card-hover-shadow);
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
 }
 
 .cover-wrap {

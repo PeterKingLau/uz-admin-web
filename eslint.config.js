@@ -9,7 +9,12 @@ const sourceFiles = ['**/*.{js,mjs,cjs,ts,tsx,vue}']
 
 export default [
     {
-        ignores: ['dist/**', 'node_modules/**', 'public/iconify/**', '.vite-inspect/**', 'src/types/components.d.ts']
+        ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.vite-inspect/**', 'public/iconify/**', 'src/types/components.d.ts']
+    },
+    {
+        linterOptions: {
+            reportUnusedDisableDirectives: 'warn'
+        }
     },
     js.configs.recommended,
     ...vue.configs['flat/essential'],
@@ -47,7 +52,6 @@ export default [
             }
         }
     },
-    prettierConfig,
     {
         files: sourceFiles,
         rules: {
@@ -62,8 +66,10 @@ export default [
             'no-prototype-builtins': 'warn',
             'no-unused-labels': 'warn',
             'no-useless-escape': 'warn',
+            'no-useless-assignment': 'warn',
             'no-unused-vars': 'off',
             'no-undef': 'off'
         }
-    }
+    },
+    prettierConfig
 ]

@@ -22,6 +22,12 @@ const isAttr = makeMap(
 
 const isNotProps = makeMap('layout,prepend,regList,tag,document,changeTag,defaultValue,prefix-icon,suffix-icon')
 
+const normalizeEpIcon = (icon?: string) => {
+    if (!icon) return ''
+    if (icon.includes(':')) return icon
+    return `ep:${icon.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`
+}
+
 
 
 
@@ -43,6 +49,11 @@ interface FormConf {
 
 const componentChild: Record<string, Record<string, (h: typeof import('vue').h, conf: FormConf, key: string) => any>> = {
     'el-button': {
+        icon(h, conf) {
+            const icon = normalizeEpIcon(conf.icon)
+            if (!icon) return
+            return h(resolveComponent('Icon'), { icon })
+        },
         default(_h, conf, key) {
             return conf[key]
         }
@@ -76,11 +87,10 @@ const componentChild: Record<string, Record<string, (h: typeof import('vue').h, 
             const option: Record<string, any> = {}
 
             if (conf['list-type'] === 'picture-card') {
-                return h(resolveComponent('el-icon'), option, () => h(resolveComponent('Plus')))
+                return h(resolveComponent('Icon'), { icon: 'ep:plus' })
             } else {
                 option.type = 'primary'
-                option.icon = 'Upload'
-                return h(resolveComponent('el-button'), option, () => conf.buttonText)
+                return h(resolveComponent('el-button'), option, () => [h(resolveComponent('Icon'), { icon: 'ep:upload' }), conf.buttonText])
             }
         }
     }
@@ -173,6 +183,8 @@ export default defineComponent({
 
             if ((dataObject as any)[key]) {
                 ;(dataObject as any)[key] = val
+            } else if (confClone.tag === 'el-button' && key === 'icon') {
+                return
             } else if (isAttr(key)) {
                 dataObject.attrs[key] = val
             } else if (!isNotProps(key)) {

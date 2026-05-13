@@ -1394,9 +1394,9 @@ watch(
 
     &:hover .cover-box {
         transform: none;
-        box-shadow: var(--app-card-hover-shadow);
-        border-color: var(--el-border-color);
-        background-color: color-mix(in srgb, var(--el-fill-color-light) 92%, var(--el-bg-color));
+        box-shadow: none;
+        border-color: var(--el-border-color-lighter);
+        background-color: var(--el-fill-color-light);
 
         img {
             opacity: 0.94;
@@ -1600,10 +1600,6 @@ watch(
     border-radius: 10px;
     padding: 16px;
     cursor: pointer;
-    transition:
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        background-color 180ms ease;
 
     &.bulk-selected {
         border-color: var(--el-color-primary);
@@ -1611,9 +1607,9 @@ watch(
     }
 
     &:hover {
-        border-color: var(--el-color-primary-light-5);
-        box-shadow: var(--app-card-hover-shadow);
-        background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, var(--el-fill-color-light));
+        border-color: var(--el-border-color-lighter);
+        box-shadow: none;
+        background: var(--el-bg-color-overlay);
 
         .cover-visual img {
             opacity: 0.94;
@@ -2064,16 +2060,12 @@ watch(
     background: var(--el-fill-color);
     border: 1px solid var(--el-border-color-lighter);
     cursor: pointer;
-    transition:
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        background-color 180ms ease;
 
     &:hover {
-        border-color: var(--el-border-color);
+        border-color: var(--el-border-color-lighter);
         transform: none;
-        box-shadow: var(--app-card-hover-shadow);
-        background: color-mix(in srgb, var(--el-fill-color) 94%, var(--el-bg-color));
+        box-shadow: none;
+        background: var(--el-fill-color);
     }
 
     &.selected {

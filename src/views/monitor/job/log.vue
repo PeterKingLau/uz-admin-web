@@ -51,8 +51,8 @@
             ></AppDatePicker>
          </el-form-item>
          <el-form-item>
-            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            <el-button type="primary" @click="handleQuery"><Icon icon="ep:search" />搜索</el-button>
+            <el-button @click="resetQuery"><Icon icon="ep:refresh" />重置</el-button>
          </el-form-item>
       </el-form>
 
@@ -61,37 +61,33 @@
             <el-button
                type="danger"
                plain
-               icon="Delete"
                :disabled="multiple"
                @click="handleDelete"
                v-hasPermi="['monitor:job:remove']"
-            >删除</el-button>
+            ><Icon icon="ep:delete" />删除</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
                type="danger"
                plain
-               icon="Delete"
                @click="handleClean"
                v-hasPermi="['monitor:job:remove']"
-            >清空</el-button>
+            ><Icon icon="ep:delete" />清空</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
                type="warning"
                plain
-               icon="Download"
                @click="handleExport"
                v-hasPermi="['monitor:job:export']"
-            >导出</el-button>
+            ><Icon icon="ep:download" />导出</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button 
                type="warning" 
-               plain 
-               icon="Close"
+               plain
                @click="handleClose"
-            >关闭</el-button>
+            ><Icon icon="ep:close" />关闭</el-button>
          </el-col>
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
@@ -119,7 +115,7 @@
          </el-table-column>
          <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
             <template #default="scope">
-               <el-button link type="primary" icon="View" @click="handleView(scope.row)" v-hasPermi="['monitor:job:query']">详细</el-button>
+               <el-button link type="primary" @click="handleView(scope.row)" v-hasPermi="['monitor:job:query']"><Icon icon="ep:view" />详细</el-button>
             </template>
          </el-table-column>
       </el-table>

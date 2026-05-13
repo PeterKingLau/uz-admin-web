@@ -377,18 +377,14 @@ onMounted(() => {
     border: 1px solid var(--el-border-color-lighter);
     padding: 16px;
     cursor: pointer;
-    transition:
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        background-color 180ms ease;
     display: flex;
     flex-direction: column;
     gap: 12px;
 
     &:hover {
-        border-color: var(--el-color-primary-light-5);
-        box-shadow: var(--app-card-hover-shadow);
-        background: color-mix(in srgb, var(--el-bg-color) 94%, var(--el-fill-color-light));
+        border-color: var(--el-border-color-lighter);
+        box-shadow: none;
+        background: var(--el-bg-color);
 
         .joined-arrow {
             color: var(--el-color-primary);
@@ -501,10 +497,9 @@ onMounted(() => {
 
     &:hover {
         transform: none;
-        box-shadow: var(--app-card-hover-shadow);
-        border-color: var(--el-border-color);
-        background: color-mix(in srgb, var(--el-bg-color) 95%, var(--el-fill-color-light));
-
+        box-shadow: var(--app-card-shadow);
+        border-color: var(--el-border-color-lighter);
+        background: var(--el-bg-color);
     }
 }
 

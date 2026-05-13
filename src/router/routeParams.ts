@@ -22,23 +22,52 @@ function parseUuidBytes(value: string): Uint8Array | null {
 }
 
 function numericTextToBytes(value: string): Uint8Array {
-    let numericValue = BigInt(value)
-    if (numericValue === 0n) return new Uint8Array([0])
+    let numericValue = value.replace(/^0+/, '') || '0'
+    if (numericValue === '0') return new Uint8Array([0])
 
     const bytes: number[] = []
-    while (numericValue > 0n) {
-        bytes.unshift(Number(numericValue & 0xffn))
-        numericValue >>= 8n
+    while (numericValue !== '0') {
+        let quotient = ''
+        let remainder = 0
+
+        for (let index = 0; index < numericValue.length; index += 1) {
+            const nextValue = remainder * 10 + Number(numericValue[index])
+            const nextDigit = Math.floor(nextValue / 256)
+            remainder = nextValue % 256
+            if (quotient || nextDigit > 0) {
+                quotient += String(nextDigit)
+            }
+        }
+
+        bytes.unshift(remainder)
+        numericValue = quotient || '0'
     }
+
     return new Uint8Array(bytes)
 }
 
 function bytesToNumericText(bytes: Uint8Array): string {
-    let value = 0n
+    let value = '0'
+
     bytes.forEach(byte => {
-        value = (value << 8n) + BigInt(byte)
+        let carry = byte
+        let nextValue = ''
+
+        for (let index = value.length - 1; index >= 0; index -= 1) {
+            const nextDigit = Number(value[index]) * 256 + carry
+            nextValue = String(nextDigit % 10) + nextValue
+            carry = Math.floor(nextDigit / 10)
+        }
+
+        while (carry > 0) {
+            nextValue = String(carry % 10) + nextValue
+            carry = Math.floor(carry / 10)
+        }
+
+        value = nextValue.replace(/^0+/, '') || '0'
     })
-    return value.toString()
+
+    return value
 }
 
 export function isEncodedRouteId(value: unknown): boolean {

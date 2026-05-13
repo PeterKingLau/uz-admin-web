@@ -2,7 +2,17 @@
     <div class="client-publish-page">
         <ClientHeader :show-search="false" @brand-click="goDiscover" />
 
-        <main class="page-main">
+        <PublishAppDownloadPrompt
+            v-if="showMobileDownloadPrompt"
+            :brand-logo="brandLogo"
+            :download-url="appDownloadUrl"
+            :version-name="latestAppVersion?.versionName"
+            :loading="latestAppVersionLoading"
+            @retry="loadLatestAppVersion(false)"
+            @go-discover="goDiscover"
+        />
+
+        <main v-else class="page-main">
             <div class="main-inner">
                 <aside class="left-sidebar">
                     <div class="sidebar-sticky-container">
@@ -85,13 +95,17 @@ defineOptions({ name: 'ViewsClientPublish' })
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { FormRules } from 'element-plus'
 import { useRouter } from 'vue-router'
+import brandLogo from '@/assets/logo/logo.png'
 import { addPost } from '@/api/content/post'
 import { getInterestAll } from '@/api/content/interest'
+import { getNewVersion, parseNewVersion, type VersionItem } from '@/api/content/version'
 import ClientHeader from '@/views/client/components/ClientHeader.vue'
 import ClientPostEditorPanel from '@/views/client/publish/components/ClientPostEditorPanel.vue'
+import PublishAppDownloadPrompt from '@/views/client/publish/components/PublishAppDownloadPrompt.vue'
 import useSettingsStore from '@/store/modules/settings'
 import { POST_TYPE } from '@/utils/enum'
 import { markContentListRefreshNeeded } from '@/utils/content/refreshSignal'
+import { getImgUrl } from '@/utils/img'
 
 interface PostEditorExpose {
     validateForm: () => Promise<boolean>
@@ -137,6 +151,11 @@ const selectedTagIds = ref<Array<number | string>>([])
 const suppressTagValidate = ref(false)
 const videoAutoDescription = ref('')
 const isVideoContentAutoFilled = ref(false)
+const isMobileViewport = ref(false)
+const latestAppVersion = ref<VersionItem | null>(null)
+const latestAppVersionLoading = ref(false)
+const MOBILE_PUBLISH_QUERY = '(max-width: 768px)'
+let mobileMediaQuery: MediaQueryList | null = null
 
 const normalizeMediaUrls = (value: unknown): string[] => {
     if (Array.isArray(value)) {
@@ -160,6 +179,11 @@ const currentMediaUrls = computed(() => {
     if (form.postType === POST_TYPE.IMAGE) return imageMediaUrls.value
     if (form.postType === POST_TYPE.VIDEO) return videoMediaUrls.value
     return []
+})
+const showMobileDownloadPrompt = computed(() => isMobileViewport.value)
+const appDownloadUrl = computed(() => {
+    const rawUrl = String(latestAppVersion.value?.downloadUrl || '').trim()
+    return rawUrl ? getImgUrl(rawUrl) : ''
 })
 const currentPostTypeText = computed(() => {
     if (form.postType === POST_TYPE.IMAGE) return '图文内容'
@@ -425,6 +449,14 @@ watch(
     }
 )
 
+watch(showMobileDownloadPrompt, value => {
+    if (value) {
+        void loadLatestAppVersion()
+    } else if (!interestTree.value.length) {
+        void loadInterest()
+    }
+})
+
 const loadInterest = async () => {
     interestLoading.value = true
     try {
@@ -433,6 +465,50 @@ const loadInterest = async () => {
     } finally {
         interestLoading.value = false
     }
+}
+
+async function loadLatestAppVersion(silent = true) {
+    if (latestAppVersionLoading.value) return
+    latestAppVersionLoading.value = true
+    try {
+        const response = await getNewVersion()
+        latestAppVersion.value = parseNewVersion(response)
+        if (!appDownloadUrl.value && !silent) {
+            proxy?.$modal?.msgWarning?.('最新版本下载地址暂不可用')
+        }
+    } catch (error) {
+        console.error(error)
+        if (!silent) {
+            proxy?.$modal?.msgError?.('获取最新版本失败，请稍后重试')
+        }
+    } finally {
+        latestAppVersionLoading.value = false
+    }
+}
+
+function handleMobileViewportChange(event: MediaQueryListEvent) {
+    isMobileViewport.value = event.matches
+}
+
+function bindMobileViewport() {
+    if (typeof window === 'undefined') return
+    mobileMediaQuery = window.matchMedia(MOBILE_PUBLISH_QUERY)
+    isMobileViewport.value = mobileMediaQuery.matches
+    if (typeof mobileMediaQuery.addEventListener === 'function') {
+        mobileMediaQuery.addEventListener('change', handleMobileViewportChange)
+    } else {
+        mobileMediaQuery.addListener(handleMobileViewportChange)
+    }
+}
+
+function unbindMobileViewport() {
+    if (!mobileMediaQuery) return
+    if (typeof mobileMediaQuery.removeEventListener === 'function') {
+        mobileMediaQuery.removeEventListener('change', handleMobileViewportChange)
+    } else {
+        mobileMediaQuery.removeListener(handleMobileViewportChange)
+    }
+    mobileMediaQuery = null
 }
 
 const handleContentInput = () => {
@@ -621,10 +697,16 @@ const handleReset = async () => {
 onMounted(() => {
     settingsStore.setTitle('职场吧')
     document.title = '职场吧'
-    loadInterest()
+    bindMobileViewport()
+    if (showMobileDownloadPrompt.value) {
+        void loadLatestAppVersion()
+    } else {
+        void loadInterest()
+    }
 })
 
 onBeforeUnmount(() => {
+    unbindMobileViewport()
     submitting.value = false
 })
 </script>

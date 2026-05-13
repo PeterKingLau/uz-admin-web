@@ -2,7 +2,9 @@
     <el-dialog
         :model-value="modelValue"
         title="关注与粉丝"
-        width="540px"
+        :width="isMobileDialog ? '100%' : '540px'"
+        :fullscreen="isMobileDialog"
+        :lock-scroll="false"
         append-to-body
         destroy-on-close
         class="client-profile-follow-dialog"
@@ -64,7 +66,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientProfileComponentsProfileFollowDialog' })
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import LoadingState from '@/components/LoadingState/index.vue'
 
 type FollowTabKey = 'following' | 'followers'
@@ -93,6 +95,9 @@ const emit = defineEmits<{
 }>()
 
 const followListRef = ref<HTMLElement | null>(null)
+const isMobileDialog = ref(false)
+const MOBILE_DIALOG_QUERY = '(max-width: 768px)'
+let mobileDialogMediaQuery: MediaQueryList | null = null
 
 const activeTabValue = computed({
     get: () => props.activeTab,
@@ -134,6 +139,31 @@ const handleVisibleChange = (value: boolean) => {
     emit('update:modelValue', value)
 }
 
+function handleMobileDialogChange(event: MediaQueryListEvent) {
+    isMobileDialog.value = event.matches
+}
+
+function bindMobileDialogMediaQuery() {
+    if (typeof window === 'undefined') return
+    mobileDialogMediaQuery = window.matchMedia(MOBILE_DIALOG_QUERY)
+    isMobileDialog.value = mobileDialogMediaQuery.matches
+    if (typeof mobileDialogMediaQuery.addEventListener === 'function') {
+        mobileDialogMediaQuery.addEventListener('change', handleMobileDialogChange)
+    } else {
+        mobileDialogMediaQuery.addListener(handleMobileDialogChange)
+    }
+}
+
+function unbindMobileDialogMediaQuery() {
+    if (!mobileDialogMediaQuery) return
+    if (typeof mobileDialogMediaQuery.removeEventListener === 'function') {
+        mobileDialogMediaQuery.removeEventListener('change', handleMobileDialogChange)
+    } else {
+        mobileDialogMediaQuery.removeListener(handleMobileDialogChange)
+    }
+    mobileDialogMediaQuery = null
+}
+
 const handleTabChange = (key: FollowTabKey) => {
     if (key === activeTabValue.value) return
     activeTabValue.value = key
@@ -145,6 +175,14 @@ const handleListScroll = () => {
     if (!el || props.followLoading || props.followNoMore) return
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) emit('load-more')
 }
+
+onMounted(() => {
+    bindMobileDialogMediaQuery()
+})
+
+onBeforeUnmount(() => {
+    unbindMobileDialogMediaQuery()
+})
 </script>
 
 <style lang="scss">
@@ -183,8 +221,23 @@ const handleListScroll = () => {
 }
 
 @media screen and (max-width: 768px) {
-    .client-profile-follow-dialog {
-        width: calc(100vw - 24px) !important;
+    .client-profile-follow-dialog.is-fullscreen {
+        height: 100svh !important;
+        display: flex;
+        flex-direction: column;
+        border-radius: 0 !important;
+
+        .el-dialog__header {
+            padding: 18px 20px 10px;
+        }
+
+        .el-dialog__body {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            padding-top: 10px;
+        }
     }
 }
 </style>
@@ -379,7 +432,8 @@ button:focus-visible {
 
 @media screen and (max-width: 768px) {
     .follow-dialog-body {
-        height: min(560px, 74vh);
+        height: 100%;
+        min-height: 0;
     }
 
     .follow-tabs,

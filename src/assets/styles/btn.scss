@@ -1,4 +1,4 @@
-@use './variables.module.scss' as *;
+@use './variables.scss' as *;
 
 
 
@@ -36,7 +36,7 @@
         color: var(--el-color-white);
     }
 
-    
+
     &.is-disabled {
         background-color: var(--el-color-primary-light-5);
         border-color: var(--el-color-primary-light-5);
@@ -64,7 +64,7 @@ $pan-btn-colors: (
 
     &:hover {
         color: $color;
-        
+
         &:before,
         &:after {
             background: $color;
@@ -83,7 +83,7 @@ $pan-btn-colors: (
     transition: 600ms ease all;
     position: relative;
     display: inline-block;
-    cursor: pointer; 
+    cursor: pointer;
 
     &:hover {
         background: var(--el-color-white);
@@ -95,7 +95,7 @@ $pan-btn-colors: (
         }
     }
 
-    
+
     &:before,
     &:after {
         content: '';
@@ -107,7 +107,7 @@ $pan-btn-colors: (
         transition: 400ms ease all;
     }
 
-    
+
     &::after {
         right: inherit;
         top: inherit;
@@ -154,9 +154,9 @@ $pan-btn-colors: (
 
 
 html.dark {
-    
-    
-    
+
+
+
     .pan-btn:hover {
         background: var(--el-fill-color-light);
     }
