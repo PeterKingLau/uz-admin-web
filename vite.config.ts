@@ -29,6 +29,8 @@ interface ViteRuntimeEnv {
     VITE_ENABLE_OBFUSCATION?: string
     VITE_USE_TERSER?: string
     VITE_OBSCURE_BUNDLE_NAMES?: string
+    VITE_ASSETS_INLINE_LIMIT?: string
+    VITE_CHUNK_SIZE_WARNING_LIMIT?: string
 }
 
 function resolveProxyTarget(env: ViteRuntimeEnv, mode: string): string {
@@ -56,6 +58,11 @@ function resolveProxyRewrite(env: ViteRuntimeEnv, mode: string) {
     }
 }
 
+function resolveIntegerEnv(value: string | undefined, fallback: number): number {
+    const normalizedValue = Number.parseInt(String(value ?? ''), 10)
+    return Number.isFinite(normalizedValue) && normalizedValue >= 0 ? normalizedValue : fallback
+}
+
 export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv
     const isBuild = command === 'build'
@@ -69,6 +76,8 @@ export default defineConfig(({ mode, command }) => {
     const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProdBuild)
     const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
     const shouldAnalyzeBuild = isBuild && env.VITE_BUILD_ANALYZE === 'true'
+    const assetsInlineLimit = resolveIntegerEnv(env.VITE_ASSETS_INLINE_LIMIT, 2048)
+    const chunkSizeWarningLimit = resolveIntegerEnv(env.VITE_CHUNK_SIZE_WARNING_LIMIT, 1500)
 
     return {
         base: '/',
@@ -107,16 +116,27 @@ export default defineConfig(({ mode, command }) => {
             __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false
         },
 
+        css: {
+            devSourcemap: !isBuild
+        },
+
+        optimizeDeps: {
+            include: ['vue', 'vue-router', 'pinia', 'axios', '@vueuse/core', '@iconify/vue'],
+            exclude: ['echarts', 'video.js', 'md-editor-v3', 'vue-cropper', 'qr-code-styling']
+        },
+
         build: {
             target: 'es2018',
             cssTarget: 'chrome64',
+            cssCodeSplit: true,
+            assetsInlineLimit,
             modulePreload: {
                 polyfill: true
             },
             sourcemap: shouldGenerateSourceMap,
             outDir: 'dist',
             assetsDir: 'assets',
-            chunkSizeWarningLimit: 2000,
+            chunkSizeWarningLimit,
             reportCompressedSize: false,
             cssMinify: 'esbuild',
             minify: isProdBuild && useTerserMinify ? 'terser' : 'esbuild',
@@ -125,7 +145,8 @@ export default defineConfig(({ mode, command }) => {
                       compress: {
                           passes: enableObfuscation ? 2 : 1,
                           drop_console: shouldDropConsole,
-                          drop_debugger: shouldDropConsole
+                          drop_debugger: shouldDropConsole,
+                          pure_funcs: shouldDropConsole ? ['console.log', 'console.info', 'console.debug', 'console.warn'] : []
                       },
                       mangle: enableObfuscation
                           ? {
@@ -142,6 +163,9 @@ export default defineConfig(({ mode, command }) => {
                   }
                 : undefined,
             rolldownOptions: {
+                checks: {
+                    invalidAnnotation: false
+                },
                 output: {
                     manualChunks,
                     chunkFileNames: obscureBundleNames ? 'static/js/[hash].js' : 'static/js/[name]-[hash].js',

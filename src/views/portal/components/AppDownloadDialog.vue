@@ -48,7 +48,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import QRCodeStyling from 'qr-code-styling'
-import downloadVisualImage from '@/assets/images/portal-app-download-visual.png'
+import downloadVisualImage from '@/assets/images/portal-app-download-visual.jpg'
 import type { PortalUiText } from '../data'
 
 defineOptions({ name: 'PortalAppDownloadDialog' })

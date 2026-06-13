@@ -68,7 +68,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import brandLogo from '@/assets/logo/logo.png'
-import portalPageBg from '@/assets/images/portal-page-bg.png'
+import portalPageBg from '@/assets/images/portal-page-bg.jpg'
 import { getNewVersion, parseNewVersion, type VersionItem } from '@/api/content/version'
 import { getImgUrl } from '@/utils/img'
 import { useRouteLocale } from '@/locales/useRouteLocale'
@@ -102,6 +102,7 @@ const latestAppVersionLoading = ref(false)
 const HERO_INTERVAL_MS = 5200
 const CAPABILITY_INTERVAL_MS = 5600
 const NEWS_INTERVAL_MS = 6400
+const ADMIN_CONSOLE_ROUTE = '/login?redirect=/index'
 let heroTimer: number | null = null
 let capabilityTimer: number | null = null
 let newsTimer: number | null = null
@@ -153,6 +154,10 @@ function navigateTo(route: string) {
         window.open(route, '_blank', 'noopener,noreferrer')
         return
     }
+    if (isAdminConsoleRoute(route) && isMobileWebViewport()) {
+        router.push(getMobileAppDownloadRoute())
+        return
+    }
     if (route.startsWith('#')) {
         lockActiveNav(route)
         const target = document.querySelector(route)
@@ -167,6 +172,18 @@ function navigateTo(route: string) {
         return
     }
     router.push(route)
+}
+
+function getMobileAppDownloadRoute() {
+    return { path: '/h5/app-download', query: { lang: locale.value } }
+}
+
+function isAdminConsoleRoute(route: string) {
+    const normalizedRoute = String(route || '').trim()
+    if (normalizedRoute === ADMIN_CONSOLE_ROUTE) return true
+    const [path, queryText = ''] = normalizedRoute.split('?')
+    if (path !== '/login') return false
+    return new URLSearchParams(queryText).get('redirect') === '/index'
 }
 
 function updateHeaderScrollState() {
@@ -304,7 +321,7 @@ async function loadLatestAppVersion(silent = true) {
 
 async function openAppDownloadQr() {
     if (isMobileWebViewport()) {
-        await router.push({ path: '/h5/app-download', query: { lang: locale.value } })
+        await router.push(getMobileAppDownloadRoute())
         return
     }
     if (!appDownloadUrl.value) {
@@ -397,7 +414,7 @@ function goClient() {
 }
 
 function goConsole() {
-    router.push({ path: '/login', query: { redirect: '/index' } })
+    navigateTo(ADMIN_CONSOLE_ROUTE)
 }
 </script>
 

@@ -25,10 +25,11 @@ const manualChunkRules: ManualChunkRule[] = [
         includes: ['/video.js/', '/@videojs/', '/videojs-vtt.js/', '/m3u8-parser/', '/url-toolkit/', '/mpd-parser/', '/@xmldom/', '/mux.js/']
     },
     { name: 'vendor-cropper', includes: ['/vue-cropper/'] },
+    { name: 'vendor-mobile-ui', includes: ['/@varlet/ui/'] },
     { name: 'vendor-dnd', includes: ['/sortablejs/', '/vue-draggable-plus/'] },
     { name: 'vendor-builder', includes: ['/clipboard/', '/js-beautify/'] },
-    { name: 'vendor-auth', includes: ['/js-cookie/'] },
-    { name: 'vendor-qrcode', includes: ['/vue3-next-qrcode/', '/js-binary-schema-parser/', '/qrcode/'] },
+    { name: 'vendor-auth', includes: ['/js-cookie/', '/pinia-plugin-persistedstate/'] },
+    { name: 'vendor-qrcode', includes: ['/vue3-next-qrcode/', '/qr-code-styling/', '/js-binary-schema-parser/', '/qrcode/'] },
     { name: 'vendor-markdown-codemirror', includes: ['/codemirror/', '/@codemirror/', '/@lezer/', '/@marijn/', '/style-mod/', '/w3c-keyname/', '/crelt/'] },
     { name: 'vendor-markdown-plugins', includes: ['/mermaid/', '/katex/', '/highlight.js/', '/medium-zoom/', '/jszip/'] },
     {
@@ -48,6 +49,7 @@ const manualChunkRules: ManualChunkRule[] = [
     { name: 'vendor-prettier', includes: ['/prettier/'] },
     { name: 'vendor-date', includes: ['/dayjs/'] },
     { name: 'vendor-search', includes: ['/fuse.js/', '/pinyin-match/'] },
+    { name: 'vendor-mock', includes: ['/@faker-js/faker/'] },
     {
         name: 'vendor-lodash',
         includes: ['/lodash/', '/lodash-es/', '/lodash-unified/', '/lodash.clonedeep/', '/lodash.isequal/', '/lodash.merge/', '/lodash.truncate/']

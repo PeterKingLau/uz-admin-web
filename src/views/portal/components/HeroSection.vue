@@ -81,11 +81,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PortalHeroSlide, PortalMetric, PortalUiText } from '../data'
-import heroImage from '@/assets/images/portal-hero-overview.png'
-import eventImage from '@/assets/images/portal-hero-event.png'
-import creatorImage from '@/assets/images/portal-hero-creator.png'
-import stageImage from '@/assets/images/portal-hero-stage.png'
-import metricsImage from '@/assets/images/portal-hero-metrics.png'
+import heroImage from '@/assets/images/portal-hero-overview.jpg'
+import eventImage from '@/assets/images/portal-hero-event.jpg'
+import creatorImage from '@/assets/images/portal-hero-creator.jpg'
+import stageImage from '@/assets/images/portal-hero-stage.jpg'
+import metricsImage from '@/assets/images/portal-hero-metrics.jpg'
 
 defineOptions({ name: 'PortalHeroSection' })
 const boardImage = eventImage
