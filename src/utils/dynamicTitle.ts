@@ -11,12 +11,12 @@ export function useDynamicTitle() {
     const path = window.location.pathname || ''
 
     if (path === '/portal') {
-        document.title = nextTitle || '职场吧'
+        document.title = nextTitle || '测吧'
         return
     }
 
-    if (nextTitle === '职场吧' || isClientRoutePath(path)) {
-        document.title = '职场吧'
+    if (nextTitle === '测吧' || isClientRoutePath(path)) {
+        document.title = '测吧'
         return
     }
 

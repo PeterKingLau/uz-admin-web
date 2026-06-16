@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div ref="discoverPageRef" class="discover-page">
         <ClientHeader v-model:search-value="searchDraft" @brand-click="goDiscover" @search="handleSearch" />
 
@@ -1087,8 +1087,8 @@ onMounted(() => {
         const next = resolveColumnCount()
         if (next !== columnCount.value) columnCount.value = next
     }
-    settingsStore.setTitle('职场吧')
-    document.title = '职场吧'
+    settingsStore.setTitle('测吧')
+    document.title = '测吧'
     document.documentElement.classList.add(CLIENT_HOME_SCROLL_CLASS)
     document.body.classList.add(CLIENT_HOME_SCROLL_CLASS)
     window.addEventListener('resize', resizeHandler)

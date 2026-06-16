@@ -1,8 +1,8 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch, type ComputedRef } from 'vue'
 import { clamp, clampRate, formatClock, isTypingTarget } from '../helpers'
 
-const VIDEO_LOCAL_CACHE_NAME = 'uz-web-video-cache-v1'
-const VIDEO_LOCAL_CACHE_META_KEY = 'uz-web-video-cache-meta-v1'
+const VIDEO_LOCAL_CACHE_NAME = 'ceba-web-video-cache-v1'
+const VIDEO_LOCAL_CACHE_META_KEY = 'ceba-web-video-cache-meta-v1'
 const VIDEO_LOCAL_CACHE_MAX_BYTES = 35 * 1024 * 1024
 const VIDEO_LOCAL_CACHE_TOTAL_MAX_BYTES = 160 * 1024 * 1024
 const VIDEO_LOCAL_CACHE_MAX_ITEMS = 5

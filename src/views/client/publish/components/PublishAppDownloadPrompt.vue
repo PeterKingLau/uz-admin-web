@@ -4,7 +4,7 @@
             <div class="prompt-brand">
                 <img :src="brandLogo" alt="" />
                 <div>
-                    <h1>请下载职场吧 App 发布内容</h1>
+                    <h1>请下载测吧 App 发布内容</h1>
                     <p>移动端发布、素材上传与内容管理已在 App 内提供更完整的操作体验。</p>
                 </div>
             </div>

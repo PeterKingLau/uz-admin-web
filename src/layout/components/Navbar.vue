@@ -56,7 +56,7 @@
                 </template>
             </el-dropdown>
 
-            <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="settingsStore.showSettings && !isClientMode">
+            <div class="right-menu-item hover-effect setting" @click="setLayout" v-if="canUseLayoutSettings">
                 <Icon icon="mdi:dots-vertical" class="action-icon" />
             </div>
         </div>
@@ -96,6 +96,8 @@ const displayAvatar = computed(() => (avatarLoadFailed.value ? defaultAvatar : S
 const profileRoute = computed(() => resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'profile'))
 const passwordRoute = computed(() => resolvePersonalRoute({ id: userStore.id, roles: userStore.roles, admin: userStore.admin }, 'password'))
 const profileMenuLabel = computed(() => (isClientMode.value ? '个人主页' : '个人中心'))
+const isAdminUser = computed(() => userStore.admin === true || userStore.roleKeys.includes('admin'))
+const canUseLayoutSettings = computed(() => settingsStore.showSettings && !isClientMode.value && isAdminUser.value)
 
 function toggleSideBar() {
     appStore.toggleSideBar()
@@ -147,6 +149,7 @@ watch(
 
 const emits = defineEmits(['setLayout'])
 function setLayout() {
+    if (!canUseLayoutSettings.value) return
     emits('setLayout')
 }
 

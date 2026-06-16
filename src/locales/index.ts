@@ -12,16 +12,16 @@ export const localeLabels: Record<SupportLocale, { label: string; shortLabel: st
 const messages = {
     'zh-CN': {
         appDownload: {
-            brandName: '职场吧',
+            brandName: '测吧',
             headerDownload: '下载 App',
             headerLoading: '获取中',
             headerFetch: '获取下载',
             headerIos: 'iOS 开发中',
             kicker: '用户下载入口',
-            title: '请前往 App 使用职场吧',
+            title: '请前往 App 使用测吧',
             description: '移动端内容浏览、发布、互动和活动参与已在 App 内提供更完整、稳定的使用体验。',
-            ariaCarousel: '职场吧 App 功能展示',
-            ariaQr: '职场吧 App 下载二维码',
+            ariaCarousel: '测吧 App 功能展示',
+            ariaQr: '测吧 App 下载二维码',
             slides: {
                 contentLabel: '内容推荐',
                 contentTitle: '持续浏览内容动态',
@@ -44,21 +44,21 @@ const messages = {
             backPortal: '返回门户首页',
             toastUnavailable: '下载地址暂不可用',
             toastFailed: '获取下载地址失败，请稍后重试',
-            pageTitle: '下载职场吧 App'
+            pageTitle: '下载测吧 App'
         }
     },
     'zh-TW': {
         appDownload: {
-            brandName: '職場吧',
+            brandName: '測吧',
             headerDownload: '下載 App',
             headerLoading: '取得中',
             headerFetch: '取得下載',
             headerIos: 'iOS 開發中',
             kicker: '使用者下載入口',
-            title: '請前往 App 使用職場吧',
+            title: '請前往 App 使用測吧',
             description: '行動端內容瀏覽、發布、互動和活動參與已在 App 內提供更完整、穩定的使用體驗。',
-            ariaCarousel: '職場吧 App 功能展示',
-            ariaQr: '職場吧 App 下載 QR Code',
+            ariaCarousel: '測吧 App 功能展示',
+            ariaQr: '測吧 App 下載 QR Code',
             slides: {
                 contentLabel: '內容推薦',
                 contentTitle: '持續瀏覽內容動態',
@@ -81,21 +81,21 @@ const messages = {
             backPortal: '返回門戶首頁',
             toastUnavailable: '下載地址暫不可用',
             toastFailed: '取得下載地址失敗，請稍後重試',
-            pageTitle: '下載職場吧 App'
+            pageTitle: '下載測吧 App'
         }
     },
     'en-US': {
         appDownload: {
-            brandName: 'ZhiChangBa',
+            brandName: 'CeBa',
             headerDownload: 'Download App',
             headerLoading: 'Loading',
             headerFetch: 'Get Link',
             headerIos: 'iOS in progress',
             kicker: 'User download',
-            title: 'Continue in the ZhiChangBa App',
+            title: 'Continue in the CeBa App',
             description: 'For mobile browsing, publishing, interaction, and activity participation, the app provides a more complete and stable experience.',
-            ariaCarousel: 'ZhiChangBa app feature showcase',
-            ariaQr: 'ZhiChangBa app download QR code',
+            ariaCarousel: 'CeBa app feature showcase',
+            ariaQr: 'CeBa app download QR code',
             slides: {
                 contentLabel: 'Content feed',
                 contentTitle: 'Keep up with content updates',
@@ -118,7 +118,7 @@ const messages = {
             backPortal: 'Back to portal',
             toastUnavailable: 'Download link is unavailable',
             toastFailed: 'Failed to fetch download link. Please try again later.',
-            pageTitle: 'Download ZhiChangBa App'
+            pageTitle: 'Download CeBa App'
         }
     }
 }

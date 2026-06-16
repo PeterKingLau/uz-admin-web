@@ -36,6 +36,7 @@ const device = computed(() => appStore.device)
 const needTagsView = computed(() => settingsStore.tagsView)
 const fixedHeader = computed(() => settingsStore.fixedHeader)
 const isCommonClient = computed(() => userStore.isCommonClient === true)
+const isAdminUser = computed(() => userStore.admin === true || userStore.roleKeys.includes('admin'))
 const showSidebar = computed(() => !sidebar.value.hide && !isCommonClient.value)
 const showTagsView = computed(() => needTagsView.value && !isCommonClient.value)
 
@@ -89,6 +90,7 @@ function handleClickOutside() {
 const settingRef = shallowRef(null)
 
 function setLayout() {
+    if (!isAdminUser.value) return
     settingRef.value?.openSetting()
 }
 </script>

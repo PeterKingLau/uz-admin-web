@@ -221,7 +221,7 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
     'zh-CN': {
         ui: {
             header: {
-                brandName: '职场吧',
+                brandName: '测吧',
                 navAriaLabel: '门户导航',
                 appDownload: '下载 APP',
                 goClient: '进入客户端',
@@ -233,7 +233,7 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
                 carouselAriaLabel: '首屏轮播切换',
                 slideAriaPrefix: '切换到',
                 boardAriaLabel: '平台能力概览',
-                imageAlt: '职场吧内容与活动运营界面示意图'
+                imageAlt: '测吧内容与活动运营界面示意图'
             },
             sections: {
                 news: {
@@ -278,22 +278,22 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
                     ariaLabel: '合作伙伴展示'
                 },
                 bottomCta: {
-                    title: '从一个清晰入口开始运营职场吧',
+                    title: '从一个清晰入口开始运营测吧',
                     desc: '先承接浏览、投稿和后台待办，再根据真实数据逐步扩展服务能力。',
                     download: '下载 APP',
-                    enter: '进入职场吧',
+                    enter: '进入测吧',
                     contact: '联系合作'
                 }
             },
             footer: {
-                brandName: '职场吧',
-                intro: '用于承接职场吧官网展示、客户端入口和运营后台入口。',
-                copyright: 'Copyright © 2026 职场吧. All Rights Reserved.',
+                brandName: '测吧',
+                intro: '用于承接测吧官网展示、客户端入口和运营后台入口。',
+                copyright: 'Copyright © 2026 测吧. All Rights Reserved.',
                 icpText: '蜀ICP备2026006423号-1'
             },
             appDialog: {
                 closeAriaLabel: '关闭下载弹窗',
-                title: '职场吧',
+                title: '测吧',
                 desc: '扫码下载 App，随时查看内容与活动进展',
                 qrAriaLabel: 'APP 下载二维码',
                 currentVersion: '当前版本 v{version}',
@@ -319,7 +319,7 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
                 key: 'overview',
                 topic: '首页',
                 title: '把内容、活动和用户入口整理清晰',
-                desc: '职场吧承接内容浏览、活动投稿、作品展示和后台审核，让早期运营不再依赖分散表格和临时沟通。',
+                desc: '测吧承接内容浏览、活动投稿、作品展示和后台审核，让早期运营不再依赖分散表格和临时沟通。',
                 primaryText: '查看赛事',
                 primaryHref: commonRoutes.competition,
                 secondaryText: '查看服务入口',
@@ -452,7 +452,7 @@ portalData['zh-TW'] = {
     ...portalData['zh-CN'],
     ui: {
         header: {
-            brandName: '職場吧',
+            brandName: '測吧',
             navAriaLabel: '門戶導覽',
             appDownload: '下載 APP',
             goClient: '進入客戶端',
@@ -464,7 +464,7 @@ portalData['zh-TW'] = {
             carouselAriaLabel: '首屏輪播切換',
             slideAriaPrefix: '切換到',
             boardAriaLabel: '平台能力概覽',
-            imageAlt: '職場吧內容與活動營運介面示意圖'
+            imageAlt: '測吧內容與活動營運介面示意圖'
         },
         sections: {
             news: {
@@ -509,22 +509,22 @@ portalData['zh-TW'] = {
                 ariaLabel: '合作夥伴展示'
             },
             bottomCta: {
-                title: '從一個清晰入口開始營運職場吧',
+                title: '從一個清晰入口開始營運測吧',
                 desc: '先承接瀏覽、投稿和後台待辦，再根據真實數據逐步擴展服務能力。',
                 download: '下載 APP',
-                enter: '進入職場吧',
+                enter: '進入測吧',
                 contact: '聯絡合作'
             }
         },
         footer: {
-            brandName: '職場吧',
-            intro: '用於承接職場吧官網展示、客戶端入口和營運後台入口。',
-            copyright: 'Copyright © 2026 職場吧. All Rights Reserved.',
+            brandName: '測吧',
+            intro: '用於承接測吧官網展示、客戶端入口和營運後台入口。',
+            copyright: 'Copyright © 2026 測吧. All Rights Reserved.',
             icpText: '蜀ICP備2026006423號-1'
         },
         appDialog: {
             closeAriaLabel: '關閉下載彈窗',
-            title: '職場吧',
+            title: '測吧',
             desc: '掃碼下載 App，隨時查看內容與活動進展',
             qrAriaLabel: 'APP 下載 QR Code',
             currentVersion: '目前版本 v{version}',
@@ -546,7 +546,7 @@ portalData['zh-TW'] = {
         { label: '關於平台', href: commonRoutes.about }
     ],
     heroSlides: [
-        { ...portalData['zh-CN'].heroSlides[0], topic: '首頁', title: '把內容、活動和使用者入口整理清楚', desc: '職場吧承接內容瀏覽、活動投稿、作品展示和後台審核，讓早期營運不再依賴分散表格和臨時溝通。', primaryText: '查看賽事', secondaryText: '查看服務入口', boardLabel: '營運工作台', boardStatus: '概覽視圖', sideCards: [{ label: '活動鏈路', value: '徵集、評選、結果公示' }, { label: '創作沉澱', value: '主頁、合集、互動記錄' }] },
+        { ...portalData['zh-CN'].heroSlides[0], topic: '首頁', title: '把內容、活動和使用者入口整理清楚', desc: '測吧承接內容瀏覽、活動投稿、作品展示和後台審核，讓早期營運不再依賴分散表格和臨時溝通。', primaryText: '查看賽事', secondaryText: '查看服務入口', boardLabel: '營運工作台', boardStatus: '概覽視圖', sideCards: [{ label: '活動鏈路', value: '徵集、評選、結果公示' }, { label: '創作沉澱', value: '主頁、合集、互動記錄' }] },
         { ...portalData['zh-CN'].heroSlides[1], topic: '賽事活動', title: '把活動流程拆成可跟進的節點', desc: '從報名、投稿到評選和結果公布，每個階段都能看到目前狀態，方便營運人員及時處理。', primaryText: '查看賽事', secondaryText: '營運方案', boardLabel: '活動進度', boardStatus: '徵集中', sideCards: [{ label: '階段管理', value: '報名、評選、公示節奏' }, { label: '復盤指標', value: '參與、瀏覽、有效互動' }] },
         { ...portalData['zh-CN'].heroSlides[2], topic: '作品展示', title: '讓投稿資料更容易查看和復盤', desc: '作品封面、媒體資料、作者來源和互動記錄集中展示，方便使用者瀏覽，也方便後續推薦判斷。', primaryText: '作品展示', secondaryText: '進入發布', boardLabel: '投稿動態', boardStatus: '持續更新', sideCards: [{ label: '媒體資料', value: '封面、影片、圖文資訊' }, { label: '展示狀態', value: '審核、推薦、互動進展' }] },
         { ...portalData['zh-CN'].heroSlides[3], topic: '發現入口', title: '讓發現頁保持可維護的更新節奏', desc: '圍繞標籤、推薦位和主頁內容整理資訊，讓使用者能看到近期更新，也讓編輯更容易維護欄目。', primaryText: '進入發現', secondaryText: '接入指南', boardLabel: '發現頁維護', boardStatus: '更新中', sideCards: [{ label: '更新節奏', value: '標籤、專題、推薦位維護' }, { label: '後台支撐', value: '審核、權限、基礎資料' }] }
@@ -565,7 +565,7 @@ portalData['en-US'] = {
     ...portalData['zh-CN'],
     ui: {
         header: {
-            brandName: 'ZhiChangBa',
+            brandName: 'CeBa',
             navAriaLabel: 'Portal navigation',
             appDownload: 'Download App',
             goClient: 'Open Client',
@@ -577,7 +577,7 @@ portalData['en-US'] = {
             carouselAriaLabel: 'Hero carousel',
             slideAriaPrefix: 'Switch to',
             boardAriaLabel: 'Platform capability overview',
-            imageAlt: 'ZhiChangBa content and activity operations interface preview'
+            imageAlt: 'CeBa content and activity operations interface preview'
         },
         sections: {
             news: {
@@ -622,22 +622,22 @@ portalData['en-US'] = {
                 ariaLabel: 'Partner showcase'
             },
             bottomCta: {
-                title: 'Start operating ZhiChangBa from a clear entry point',
+                title: 'Start operating CeBa from a clear entry point',
                 desc: 'Support browsing, submissions, and admin tasks first, then expand capabilities based on real operational data.',
                 download: 'Download App',
-                enter: 'Open ZhiChangBa',
+                enter: 'Open CeBa',
                 contact: 'Contact Us'
             }
         },
         footer: {
-            brandName: 'ZhiChangBa',
+            brandName: 'CeBa',
             intro: 'The official portal for product presentation, client access, and operations console entry.',
-            copyright: 'Copyright © 2026 ZhiChangBa. All Rights Reserved.',
+            copyright: 'Copyright © 2026 CeBa. All Rights Reserved.',
             icpText: 'Shu ICP No. 2026006423-1'
         },
         appDialog: {
             closeAriaLabel: 'Close download dialog',
-            title: 'ZhiChangBa',
+            title: 'CeBa',
             desc: 'Scan to download the app and check content and activity progress anytime.',
             qrAriaLabel: 'App download QR code',
             currentVersion: 'Current version v{version}',
@@ -659,7 +659,7 @@ portalData['en-US'] = {
         { label: 'About', href: commonRoutes.about }
     ],
     heroSlides: [
-        { ...portalData['zh-CN'].heroSlides[0], topic: 'Home', title: 'Organize content, activities, and user entry points', desc: 'ZhiChangBa connects content browsing, activity submissions, work showcases, and operational review in one clear portal.', primaryText: 'View events', secondaryText: 'View services', boardLabel: 'Operations desk', boardStatus: 'Overview', sideCards: [{ label: 'Activity flow', value: 'Collection and results' }, { label: 'Creator assets', value: 'Profiles and records' }] },
+        { ...portalData['zh-CN'].heroSlides[0], topic: 'Home', title: 'Organize content, activities, and user entry points', desc: 'CeBa connects content browsing, activity submissions, work showcases, and operational review in one clear portal.', primaryText: 'View events', secondaryText: 'View services', boardLabel: 'Operations desk', boardStatus: 'Overview', sideCards: [{ label: 'Activity flow', value: 'Collection and results' }, { label: 'Creator assets', value: 'Profiles and records' }] },
         { ...portalData['zh-CN'].heroSlides[1], topic: 'Events', title: 'Break activity operations into trackable stages', desc: 'From registration and submission to review and result publishing, each stage has a clear status for operators.', primaryText: 'View events', secondaryText: 'Use cases', boardLabel: 'Event progress', boardStatus: 'Collecting', sideCards: [{ label: 'Stage control', value: 'Registration and review' }, { label: 'Review metrics', value: 'Views and engagement' }] },
         { ...portalData['zh-CN'].heroSlides[2], topic: 'Works', title: 'Make submissions easier to view and review', desc: 'Covers, media assets, creator sources, and engagement records are presented together for browsing and follow-up recommendations.', primaryText: 'View works', secondaryText: 'Start publishing', boardLabel: 'Submission updates', boardStatus: 'Updating', sideCards: [{ label: 'Media assets', value: 'Covers and videos' }, { label: 'Display status', value: 'Review and engagement' }] },
         { ...portalData['zh-CN'].heroSlides[3], topic: 'Discovery', title: 'Keep the discovery feed maintainable', desc: 'Tags, featured positions, and profile content are organized so users can see recent updates and editors can maintain sections efficiently.', primaryText: 'Open discovery', secondaryText: 'Guide', boardLabel: 'Discovery maintenance', boardStatus: 'Updating', sideCards: [{ label: 'Update rhythm', value: 'Tags and topics' }, { label: 'Admin support', value: 'Review and permissions' }] }

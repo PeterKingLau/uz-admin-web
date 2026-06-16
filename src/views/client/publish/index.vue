@@ -695,8 +695,8 @@ const handleReset = async () => {
 }
 
 onMounted(() => {
-    settingsStore.setTitle('职场吧')
-    document.title = '职场吧'
+    settingsStore.setTitle('测吧')
+    document.title = '测吧'
     bindMobileViewport()
     if (showMobileDownloadPrompt.value) {
         void loadLatestAppVersion()

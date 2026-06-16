@@ -1,8 +1,3 @@
-
-
-
-
-
 export default {
     beforeMount(el: any, { value, arg }: { value: any; arg: any }) {
         if (arg === 'callback') {
@@ -21,19 +16,18 @@ export default {
     }
 }
 
-function copyTextToClipboard(input: any, { target = document.body } = {}) {
+export function copyTextToClipboard(input: any, { target = document.body } = {}) {
     const element = document.createElement('textarea')
     const previouslyFocusedElement = document.activeElement
 
     element.value = input
 
-    
     element.setAttribute('readonly', '')
 
     element.style.contain = 'strict'
     element.style.position = 'absolute'
     element.style.left = '-9999px'
-    element.style.fontSize = '12pt' 
+    element.style.fontSize = '12pt'
 
     const selection = document.getSelection()
     const originalRange = selection?.rangeCount && selection.rangeCount > 0 && selection.getRangeAt(0)
@@ -41,7 +35,6 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
     target.append(element)
     element.select()
 
-    
     element.selectionStart = 0
     element.selectionEnd = input.length
 
@@ -57,7 +50,6 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
         selection.addRange(originalRange)
     }
 
-    
     if (previouslyFocusedElement) {
         ;(previouslyFocusedElement as any).focus()
     }

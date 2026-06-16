@@ -50,7 +50,7 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 }
 
 function getKeyMaterialSeed(version: string): string {
-    const appName = String(import.meta.env.VITE_APP_TITLE || 'uz-web').trim()
+    const appName = String(import.meta.env.VITE_APP_TITLE || 'ceba-web').trim()
     const origin = globalThis.location?.origin || 'unknown-origin'
     if (version === LEGACY_CRYPTO_VERSION) {
         const userAgent = globalThis.navigator?.userAgent || 'unknown-user-agent'

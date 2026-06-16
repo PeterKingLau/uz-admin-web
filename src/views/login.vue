@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="login">
         <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
             <div class="header-box">
@@ -67,16 +67,10 @@
             </div>
 
             <div class="agreement-box">
-                <el-checkbox :model-value="agreementChecked" @update:model-value="handleAgreementChange">
-                    <span class="agreement-text">我已阅读并同意</span>
-                    <router-link class="policy-link inline-policy-link" to="/user-agreement" target="_blank" rel="noopener noreferrer" @click.stop>
-                        《用户协议》
-                    </router-link>
-                    <span class="agreement-text">和</span>
-                    <router-link class="policy-link inline-policy-link" to="/privacy-policy" target="_blank" rel="noopener noreferrer" @click.stop>
-                        《隐私政策》
-                    </router-link>
-                </el-checkbox>
+                <span class="agreement-text">登录即表示您已阅读并同意</span>
+                <router-link class="policy-link inline-policy-link" to="/user-agreement" target="_blank" rel="noopener noreferrer">《用户协议》</router-link>
+                <span class="agreement-text">和</span>
+                <router-link class="policy-link inline-policy-link" to="/privacy-policy" target="_blank" rel="noopener noreferrer">《隐私政策》</router-link>
             </div>
 
             <el-form-item style="margin-bottom: 0">
@@ -100,6 +94,33 @@
                 </a>
             </div>
         </div>
+
+        <el-dialog
+            v-model="beianDialogVisible"
+            title="备案查询"
+            width="360px"
+            append-to-body
+            align-center
+            class="beian-dialog"
+            @opened="selectBeianRecordNumber"
+        >
+            <div class="beian-dialog-content">
+                <p>备案号已为您选中，可直接复制后前往备案查询页。</p>
+                <input
+                    ref="beianRecordInputRef"
+                    class="beian-record-input"
+                    type="text"
+                    :value="beianRecordNumber"
+                    readonly
+                    @focus="selectBeianRecordNumber"
+                    @click="selectBeianRecordNumber"
+                />
+            </div>
+            <template #footer>
+                <el-button @click="beianDialogVisible = false">关闭</el-button>
+                <el-button type="primary" @click="openBeianRecordQuery">打开查询页</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -111,6 +132,7 @@ import Cookies from 'js-cookie'
 import { encryptRememberedPassword, decryptRememberedPassword } from '@/utils/rememberMeCrypto'
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
+import { copyTextToClipboard } from '@/directive/common/copyText'
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -173,17 +195,17 @@ function handleUsernameInput(val) {
 const loading = ref(false)
 const register = ref(false)
 const redirect = ref()
-const agreementChecked = ref(false)
 const beianRecordNumber = '蜀ICP备2026006423号-1'
 const beianRecordUrl = 'https://beian.miit.gov.cn/#/Integrated/recordQuery'
+const beianDialogVisible = ref(false)
+const beianRecordInputRef = ref()
 const BEIAN_REDIRECT_DELAY_MS = 320
 const DAY_IN_MS = 24 * 60 * 60 * 1000
 const DEFAULT_REMEMBER_ME_DAYS = 30
 const MIN_REMEMBER_ME_DAYS = 1
 const MAX_REMEMBER_ME_DAYS = 365
-const appStoragePrefix = `${String(import.meta.env.VITE_APP_TITLE || 'uz-web').trim() || 'uz-web'}`
+const appStoragePrefix = `${String(import.meta.env.VITE_APP_TITLE || 'ceba-web').trim() || 'ceba-web'}`
 const rememberedPasswordStorageKey = `${appStoragePrefix}:remembered-password`
-const rememberedAgreementStorageKey = `${appStoragePrefix}:remembered-agreement`
 
 function resolveRememberMeDays() {
     const rawDays = Number(import.meta.env.VITE_APP_REMEMBER_ME_DAYS || DEFAULT_REMEMBER_ME_DAYS)
@@ -232,14 +254,6 @@ function getRememberedPasswordCipher() {
     return getRememberedRecord(rememberedPasswordStorageKey)?.value || ''
 }
 
-function removeRememberedAgreementState() {
-    try {
-        localStorage.removeItem(rememberedAgreementStorageKey)
-    } catch {
-        return
-    }
-}
-
 function setRememberedPasswordCipher(value) {
     try {
         localStorage.setItem(rememberedPasswordStorageKey, buildRememberedRecord(value))
@@ -261,7 +275,6 @@ function clearRememberedLoginState() {
     Cookies.remove('password')
     Cookies.remove('rememberMe')
     removeRememberedPasswordCipher()
-    removeRememberedAgreementState()
 }
 
 async function persistRememberedLoginState() {
@@ -269,64 +282,26 @@ async function persistRememberedLoginState() {
     Cookies.set('rememberMe', 'true', { expires: rememberMeDays })
     setRememberedPasswordCipher(await encryptRememberedPassword(loginForm.value.password))
     Cookies.remove('password')
-    removeRememberedAgreementState()
 }
 
-function handleAgreementChange(val) {
-    if (val) {
-        agreementChecked.value = true
-        proxy?.$modal?.alertWarning?.('您已勾选阅读协议，请确认您已阅读《用户协议》和《隐私政策》。')
-    } else {
-        agreementChecked.value = false
-    }
-}
-
-function copyTextWithFallback(value) {
-    const text = String(value ?? '')
-    if (!text) return false
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.setAttribute('readonly', '')
-    textarea.style.position = 'absolute'
-    textarea.style.left = '-9999px'
-    document.body.appendChild(textarea)
-    textarea.select()
-    textarea.selectionStart = 0
-    textarea.selectionEnd = text.length
-
-    let success = false
-    try {
-        success = document.execCommand('copy')
-    } catch {
-        success = false
-    }
-
-    textarea.remove()
-    return success
-}
-
-async function copyBeianRecordNumber() {
-    if (navigator.clipboard?.writeText) {
-        try {
-            await navigator.clipboard.writeText(beianRecordNumber)
-            return true
-        } catch {
-            return copyTextWithFallback(beianRecordNumber)
-        }
-    }
-    return copyTextWithFallback(beianRecordNumber)
-}
-
-async function handleBeianLinkClick() {
-    const copied = await copyBeianRecordNumber()
-    if (copied) {
+function handleBeianLinkClick() {
+    if (copyTextToClipboard(beianRecordNumber)) {
         proxy?.$modal?.msgSuccess?.('备案号已复制')
-    } else {
-        proxy?.$modal?.msgWarning?.('备案号复制失败，请手动复制后查询')
+        window.setTimeout(openBeianRecordQuery, BEIAN_REDIRECT_DELAY_MS)
+        return
     }
-    window.setTimeout(() => {
-        window.open(beianRecordUrl, '_blank', 'noopener,noreferrer')
-    }, BEIAN_REDIRECT_DELAY_MS)
+    beianDialogVisible.value = true
+}
+
+function selectBeianRecordNumber() {
+    nextTick(() => {
+        beianRecordInputRef.value?.focus?.()
+        beianRecordInputRef.value?.select?.()
+    })
+}
+
+function openBeianRecordQuery() {
+    window.open(beianRecordUrl, '_blank', 'noopener,noreferrer')
 }
 
 watch(
@@ -340,7 +315,6 @@ watch(
 watch(
     () => loginForm.value.loginType,
     async val => {
-        agreementChecked.value = false
         if (val === 'SMS') {
             loginForm.value.username = ''
             loginForm.value.password = ''
@@ -394,7 +368,6 @@ onBeforeUnmount(() => {
 })
 
 async function restoreRememberedLoginState() {
-    removeRememberedAgreementState()
     const username = Cookies.get('username')
     const passwordCookie = Cookies.get('password')
     const passwordCipher = getRememberedPasswordCipher()
@@ -408,7 +381,6 @@ async function restoreRememberedLoginState() {
         clearRememberedLoginState()
         loginForm.value.rememberMe = false
         loginForm.value.password = ''
-        agreementChecked.value = false
         return
     }
 
@@ -416,14 +388,12 @@ async function restoreRememberedLoginState() {
         clearRememberedLoginState()
         loginForm.value.rememberMe = false
         loginForm.value.password = ''
-        agreementChecked.value = false
         return
     }
 
     loginForm.value.loginType = 'PASSWORD'
     loginForm.value.rememberMe = true
     loginForm.value.username = username ?? loginForm.value.username
-    agreementChecked.value = false
 
     try {
         loginForm.value.password = await decryptRememberedPassword(passwordCipher)
@@ -432,7 +402,6 @@ async function restoreRememberedLoginState() {
         clearRememberedLoginState()
         loginForm.value.rememberMe = false
         loginForm.value.password = ''
-        agreementChecked.value = false
     }
 }
 
@@ -444,11 +413,6 @@ function handleLogin() {
     loginForm.value.username = (loginForm.value.username || '').trim()
     if (loginForm.value.loginType === 'SMS') {
         loginForm.value.smsCode = (loginForm.value.smsCode || '').trim()
-    }
-
-    if (!agreementChecked.value) {
-        proxy?.$modal?.msgWarning?.('请先阅读并同意《用户协议》和《隐私政策》')
-        return
     }
 
     loginRef.value.validate(async valid => {
@@ -856,26 +820,10 @@ function togglePassword() {
 
 .agreement-box {
     margin-bottom: 24px;
-
-    :deep(.el-checkbox) {
-        display: inline-flex;
-        align-items: flex-start;
-        white-space: normal;
-        min-height: 20px;
-    }
-
-    :deep(.el-checkbox__input) {
-        margin-top: 2px;
-        flex-shrink: 0;
-    }
-
-    :deep(.el-checkbox__label) {
-        color: var(--el-text-color-secondary);
-        font-size: 13px;
-        line-height: 1.5;
-        font-weight: 400;
-        padding-left: 6px;
-    }
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
 
     .inline-policy-link {
         color: var(--el-color-primary);
@@ -940,6 +888,49 @@ function togglePassword() {
                 color: var(--login-white-muted);
             }
         }
+    }
+}
+
+:global(.beian-dialog) {
+    border-radius: 12px;
+
+    .el-dialog__header {
+        margin-right: 0;
+        padding-bottom: 8px;
+    }
+
+    .el-dialog__body {
+        padding-top: 8px;
+    }
+}
+
+.beian-dialog-content {
+    display: grid;
+    gap: 12px;
+
+    p {
+        margin: 0;
+        color: var(--el-text-color-secondary);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+}
+
+.beian-record-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--el-border-color);
+    border-radius: 8px;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
+    font-size: 14px;
+    outline: none;
+
+    &:focus {
+        border-color: var(--el-color-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
     }
 }
 

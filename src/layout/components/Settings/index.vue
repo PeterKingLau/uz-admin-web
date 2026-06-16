@@ -93,6 +93,7 @@ import defaultSettings from '@/settings'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import useUserStore from '@/store/modules/user'
 import { handleThemeStyle } from '@/utils/theme'
 import darkImg from '@/assets/images/dark.svg'
 import lightImg from '@/assets/images/light.svg'
@@ -101,6 +102,7 @@ const { proxy } = getCurrentInstance()
 const appStore = useAppStore()
 const settingsStore = useSettingsStore()
 const permissionStore = usePermissionStore()
+const userStore = useUserStore()
 
 const showSettings = ref(false)
 const theme = ref(settingsStore.theme)
@@ -193,6 +195,7 @@ function resetSetting() {
 }
 
 function openSetting() {
+    if (userStore.admin !== true && !userStore.roleKeys.includes('admin')) return
     showSettings.value = true
 }
 

@@ -46,7 +46,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/portal/index.vue'),
         hidden: true,
         name: 'PortalHome',
-        meta: { title: '职场吧', platform: 'public' }
+        meta: { title: '测吧', platform: 'public' }
     },
     {
         path: '/user-agreement',
@@ -64,7 +64,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: '/h5/app-download',
         component: () => import('@/views/h5/appDownload/index.vue'),
         hidden: true,
-        meta: { title: '下载职场吧 App', platform: 'public' }
+        meta: { title: '下载测吧 App', platform: 'public' }
     },
     {
         path: '/h5/user-agreement',
@@ -121,14 +121,14 @@ export const constantRoutes: RouteRecordRaw[] = [
         hidden: true,
         component: () => import('@/views/client/home/index.vue'),
         name: 'ClientDiscover',
-        meta: { title: '职场吧', platform: 'client' }
+        meta: { title: '测吧', platform: 'client' }
     },
     {
         path: '/publish',
         hidden: true,
         component: () => import('@/views/client/publish/index.vue'),
         name: 'ClientPublish',
-        meta: { title: '职场吧', platform: 'client' }
+        meta: { title: '测吧', platform: 'client' }
     },
     {
         path: '/profile',

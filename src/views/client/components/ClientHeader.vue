@@ -2,8 +2,8 @@
     <header class="page-header">
         <div class="header-inner">
             <div class="brand" @click="$emit('brand-click')">
-                <img :src="brandLogo" alt="职场吧" class="brand-logo" />
-                <span class="brand-name">职场吧</span>
+                <img :src="brandLogo" alt="测吧" class="brand-logo" />
+                <span class="brand-name">测吧</span>
             </div>
             <div v-if="showSearch" class="search-container">
                 <div class="search-bar">

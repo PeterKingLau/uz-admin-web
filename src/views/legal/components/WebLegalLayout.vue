@@ -3,7 +3,7 @@
         <header class="web-legal-header">
             <router-link class="brand" :to="{ path: '/portal', query: $route.query }">
                 <img :src="brandLogo" alt="" />
-                <span>职场吧</span>
+                <span>测吧</span>
             </router-link>
             <nav class="legal-nav" aria-label="法务页面导航">
                 <router-link :to="{ path: '/portal', query: $route.query }">{{ navLabels.portal }}</router-link>

@@ -1,11 +1,10 @@
 {
-    "name": "uz-web",
+    "name": "ceba-web",
     "version": "1.0.0",
-    "description": "职场吧后台管理系统",
+    "description": "测吧后台管理系统",
     "author": "高榜",
     "license": "MIT",
     "type": "module",
-    "packageManager": "yarn@1.22.22",
     "scripts": {
         "dev": "vite --mode development",
         "build": "vite build --mode production",

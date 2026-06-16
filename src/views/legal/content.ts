@@ -17,8 +17,8 @@ const dateText: Record<SupportLocale, string> = {
 
 const serviceName: Record<SupportLocale, string> = {
     'zh-CN': platformContact.serviceName,
-    'zh-TW': '職場吧',
-    'en-US': 'ZhiChangBa'
+    'zh-TW': '測吧',
+    'en-US': 'CeBa'
 }
 
 const companyName: Record<SupportLocale, string> = {
@@ -51,7 +51,7 @@ function createPrivacyContent(locale: SupportLocale): LegalDocumentContent {
             title: 'Privacy Policy',
             documentTitle: `Privacy Policy - ${product}`,
             summary:
-                'This Privacy Policy explains how ZhiChangBa collects, uses, stores, shares, and protects personal information when providing content browsing, publishing, activity participation, creator profiles, interaction feedback, and operational services.',
+                'This Privacy Policy explains how CeBa collects, uses, stores, shares, and protects personal information when providing content browsing, publishing, activity participation, creator profiles, interaction feedback, and operational services.',
             metas: [
                 productMeta(locale),
                 { label: 'Effective date', value: dateText[locale] },
@@ -65,7 +65,7 @@ function createPrivacyContent(locale: SupportLocale): LegalDocumentContent {
                     title: 'Scope and Principles',
                     shortTitle: 'Scope',
                     paragraphs: [
-                        'This policy applies when you access or use ZhiChangBa web pages, mobile web pages, the app, content services, activity services, work display, creator profiles, and related operation management capabilities.',
+                        'This policy applies when you access or use CeBa web pages, mobile web pages, the app, content services, activity services, work display, creator profiles, and related operation management capabilities.',
                         'We process personal information under the principles of legality, legitimacy, necessity, good faith, specific purpose, minimum necessity, and transparency, and apply security measures appropriate to the processing activity.',
                         'If a specific feature provides separate privacy notices, authorization prompts, or third-party service rules, those notices form part of the personal information processing rules for that feature.'
                     ]
@@ -429,7 +429,7 @@ function createAgreementContent(locale: SupportLocale): LegalDocumentContent {
             title: 'User Agreement',
             documentTitle: `User Agreement - ${product}`,
             summary:
-                'This Agreement sets out the terms between you and ZhiChangBa regarding account registration, content publishing, activities, work display, creator profiles, interactions, and related services. Please read it carefully before using the services.',
+                'This Agreement sets out the terms between you and CeBa regarding account registration, content publishing, activities, work display, creator profiles, interactions, and related services. Please read it carefully before using the services.',
             metas: [
                 productMeta(locale),
                 { label: 'Effective date', value: dateText[locale] },
@@ -443,7 +443,7 @@ function createAgreementContent(locale: SupportLocale): LegalDocumentContent {
                     title: 'Scope of Agreement',
                     shortTitle: 'Scope',
                     paragraphs: [
-                        'This Agreement applies when you access, register, log in to, or use ZhiChangBa web pages, mobile web pages, the app, and related content services.',
+                        'This Agreement applies when you access, register, log in to, or use CeBa web pages, mobile web pages, the app, and related content services.',
                         'By using the services, you acknowledge that you have read, understood, and agreed to this Agreement. If you do not agree, please stop using the services.',
                         'This Agreement, together with the Privacy Policy, activity rules, publishing rules, management notices, and other rules published by the platform, constitutes the complete rules for your use of the services.'
                     ]
@@ -469,7 +469,7 @@ function createAgreementContent(locale: SupportLocale): LegalDocumentContent {
                     title: 'Platform Services',
                     shortTitle: 'Services',
                     paragraphs: [
-                        'ZhiChangBa may provide content browsing, publishing, work display, activities, creator profiles, interaction feedback, review workflows, and backend management services according to operation arrangements.',
+                        'CeBa may provide content browsing, publishing, work display, activities, creator profiles, interaction feedback, review workflows, and backend management services according to operation arrangements.',
                         'The platform may continue to optimize service functions and presentation, and may adjust specific functions, display rules, activity entries, or operation strategies based on business needs.'
                     ],
                     items: [
@@ -912,7 +912,7 @@ function createCampusEventSection(locale: SupportLocale): LegalSection {
             shortTitle: 'Events',
             paragraphs: [
                 'Campus event and activity information displayed on the platform, including registration periods, participation requirements, awards, schedules, and organizer information, may come from public channels, users, or third-party organizers.',
-                'Unless expressly stated, ZhiChangBa is not the organizer, sponsor, or guarantor of third-party events. Before participating, submitting works, providing personal materials, or paying fees, users should independently verify the organizer’s identity, rules, and risk information.',
+                'Unless expressly stated, CeBa is not the organizer, sponsor, or guarantor of third-party events. Before participating, submitting works, providing personal materials, or paying fees, users should independently verify the organizer’s identity, rules, and risk information.',
                 'Disputes arising from third-party events shall be handled by the relevant parties according to applicable rules and laws. The platform may provide necessary assistance within a reasonable scope.'
             ]
         }
@@ -926,7 +926,7 @@ function createCampusEventSection(locale: SupportLocale): LegalSection {
             shortTitle: '賽事活動',
             paragraphs: [
                 '平台展示的校園賽事及活動資訊，包括報名時間、參與條件、獎項設定、活動流程和主辦方資訊等，可能來源於公開渠道、使用者或第三方主辦方。',
-                '除非頁面明確標註，職場吧不作為第三方賽事或活動的主辦方、承辦方或保證方。使用者在參與活動、提交作品、提供個人資料或支付相關費用前，應自行核實主辦方身份、活動規則及風險資訊。',
+                '除非頁面明確標註，測吧不作為第三方賽事或活動的主辦方、承辦方或保證方。使用者在參與活動、提交作品、提供個人資料或支付相關費用前，應自行核實主辦方身份、活動規則及風險資訊。',
                 '因第三方賽事或活動產生的爭議，應由相關方依據活動規則和法律規定處理。平台可在合理範圍內提供必要協助。'
             ]
         }
@@ -939,7 +939,7 @@ function createCampusEventSection(locale: SupportLocale): LegalSection {
         shortTitle: '赛事活动',
         paragraphs: [
             '平台展示的校园赛事及活动信息，包括报名时间、参与条件、奖项设置、活动流程和主办方信息等，可能来源于公开渠道、用户或第三方主办方。',
-            '除非页面明确标注，职场吧不作为第三方赛事或活动的主办方、承办方或保证方。用户在参与活动、提交作品、提供个人资料或支付相关费用前，应自行核实主办方身份、活动规则及风险信息。',
+            '除非页面明确标注，测吧不作为第三方赛事或活动的主办方、承办方或保证方。用户在参与活动、提交作品、提供个人资料或支付相关费用前，应自行核实主办方身份、活动规则及风险信息。',
             '因第三方赛事或活动产生的争议，应由相关方依据活动规则和法律规定处理。平台可在合理范围内提供必要协助。'
         ]
     }
@@ -954,7 +954,7 @@ function enhanceAgreementContent(locale: SupportLocale, agreement: LegalDocument
                 return {
                     ...section,
                     paragraphs: [
-                        'ZhiChangBa is an interactive community focused on campus career planning, career assessments, and campus event information sharing. The platform provides career growth references and activity information through text, images, short videos, works, and related interactive features.',
+                        'CeBa is an interactive community focused on campus career planning, career assessments, and campus event information sharing. The platform provides career growth references and activity information through text, images, short videos, works, and related interactive features.',
                         'The platform may provide content browsing, publishing, work display, activities, creator profiles, interaction feedback, review workflows, and backend management services according to operation arrangements.'
                     ],
                     items: [
@@ -1017,10 +1017,10 @@ function enhanceAgreementContent(locale: SupportLocale, agreement: LegalDocument
 
         return {
             ...agreement,
-            title: 'ZhiChangBa User Service Agreement',
-            documentTitle: `ZhiChangBa User Service Agreement - ${product}`,
+            title: 'CeBa User Service Agreement',
+            documentTitle: `CeBa User Service Agreement - ${product}`,
             summary:
-                'This Agreement sets out the terms for using ZhiChangBa, an interactive community for campus career planning, career assessments, event information, content publishing, works display, creator profiles, and related services.',
+                'This Agreement sets out the terms for using CeBa, an interactive community for campus career planning, career assessments, event information, content publishing, works display, creator profiles, and related services.',
             sections: normalizeAgreementBadges(
                 insertAfterSection(insertAfterSection(sections, 'service', createAssessmentSection(locale)), 'content-rule', createCampusEventSection(locale))
             )
@@ -1033,7 +1033,7 @@ function enhanceAgreementContent(locale: SupportLocale, agreement: LegalDocument
                 return {
                     ...section,
                     paragraphs: [
-                        '職場吧是專注於校園職場規劃、職業測評及校園賽事資訊分享的互動社區。平台透過文字、圖片、短影片、作品展示及互動功能，為使用者提供職業成長參考與活動資訊。',
+                        '測吧是專注於校園職場規劃、職業測評及校園賽事資訊分享的互動社區。平台透過文字、圖片、短影片、作品展示及互動功能，為使用者提供職業成長參考與活動資訊。',
                         `${product}可根據營運安排提供內容瀏覽、內容發布、作品展示、活動服務、創作者主頁、互動回饋、審核流程和後台管理等服務。`
                     ],
                     items: [
@@ -1107,7 +1107,7 @@ function enhanceAgreementContent(locale: SupportLocale, agreement: LegalDocument
             return {
                 ...section,
                 paragraphs: [
-                    '职场吧是专注于校园职场规划、职业测评及校园赛事信息分享的互动社区。平台通过文字、图片、短视频、作品展示及互动功能，为用户提供职业成长参考与活动资讯。',
+                    '测吧是专注于校园职场规划、职业测评及校园赛事信息分享的互动社区。平台通过文字、图片、短视频、作品展示及互动功能，为用户提供职业成长参考与活动资讯。',
                     `${product}可根据运营安排提供内容浏览、内容发布、作品展示、活动服务、创作者主页、互动反馈、审核流程和后台管理等服务。`
                 ],
                 items: [

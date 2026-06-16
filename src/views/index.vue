@@ -241,7 +241,7 @@ import { AUDIT_STATUS, POST_TYPE } from '@/utils/enum'
 
 const settingsStore = useSettingsStore()
 const isDark = computed(() => settingsStore.isDark)
-const loading = ref(false)
+const loading = ref(true)
 const hasLoadedOnce = ref(false)
 const showSkeleton = computed(() => loading.value && !hasLoadedOnce.value)
 
