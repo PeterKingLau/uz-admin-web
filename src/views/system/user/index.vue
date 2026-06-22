@@ -1,6 +1,6 @@
 <template>
     <div class="app-container system-user">
-        <div ref="userLayoutRef" class="user-layout">
+        <div ref="userLayoutRef" class="user-layout" :style="userLayoutStyle">
             <aside class="dept-pane">
                 <div class="dept-wrapper">
                     <div class="head-container">
@@ -367,7 +367,7 @@ import { getConfigKey } from '@/api/system/config'
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from '@/api/system/user'
 import { useRouter } from 'vue-router'
 import { encodeRouteId } from '@/router/routeParams'
-import { ref, shallowRef, reactive, toRefs, watch, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { ref, shallowRef, reactive, toRefs, watch, onMounted, onBeforeUnmount, getCurrentInstance, computed } from 'vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -411,9 +411,14 @@ const columns = ref([
 ])
 
 const DEPT_PANE_WIDTH_KEY = 'system:user:deptPaneWidth'
+const DEFAULT_DEPT_PANE_WIDTH = 260
 const DEPT_PANE_MIN_WIDTH = 220
 const DEPT_PANE_MOBILE_MIN_WIDTH = 180
 const DEPT_PANE_MAX_WIDTH = 480
+const deptPaneWidth = ref(resolveStoredDeptPaneWidth())
+const userLayoutStyle = computed(() => ({
+    '--dept-pane-width': `${deptPaneWidth.value}px`
+}))
 let resizeStartX = 0
 let resizeStartWidth = 0
 let pendingDeptPaneWidth = 0
@@ -472,6 +477,12 @@ const data = reactive({
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+function resolveStoredDeptPaneWidth() {
+    if (typeof window === 'undefined') return DEFAULT_DEPT_PANE_WIDTH
+    const storedWidth = Number(window.localStorage.getItem(DEPT_PANE_WIDTH_KEY))
+    return Number.isFinite(storedWidth) && storedWidth > 0 ? storedWidth : DEFAULT_DEPT_PANE_WIDTH
+}
 
 const filterNode = (value, data) => {
     if (!value) return true
@@ -589,7 +600,7 @@ function clampDeptPaneWidth(width) {
 
 function setDeptPaneWidth(width, persist = false) {
     const nextWidth = clampDeptPaneWidth(width)
-    userLayoutRef.value?.style.setProperty('--dept-pane-width', `${nextWidth}px`)
+    deptPaneWidth.value = nextWidth
     if (persist && typeof window !== 'undefined') {
         window.localStorage.setItem(DEPT_PANE_WIDTH_KEY, String(nextWidth))
     }
@@ -812,7 +823,7 @@ onBeforeUnmount(() => {
     overflow: auto;
 
     .user-layout {
-        --dept-pane-width: 18%;
+        --dept-pane-width: 260px;
 
         height: 100%;
         min-width: 980px;

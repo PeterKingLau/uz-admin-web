@@ -233,53 +233,53 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
                 carouselAriaLabel: '首屏轮播切换',
                 slideAriaPrefix: '切换到',
                 boardAriaLabel: '平台能力概览',
-                imageAlt: '测吧内容与活动运营界面示意图'
+                imageAlt: '测吧职业测评与分析报告界面示意图'
             },
             sections: {
                 news: {
-                    title: '近期动态',
-                    desc: '展示活动招募、功能更新和创作者指南，帮助访客快速了解平台近期运营进展。',
+                    title: '测评动态',
+                    desc: '展示职业测评说明、报告解读和成长建议更新，帮助大学生快速了解测吧的测评体验。',
                     prevAriaLabel: '上一组资讯',
                     nextAriaLabel: '下一组资讯',
                     linkText: '查看相关入口'
                 },
                 capability: {
-                    title: '主要服务入口',
-                    desc: '按日常使用路径整理入口：用户浏览内容，作者发布作品，运营人员处理活动和后台待办。'
+                    title: '内容与测评服务',
+                    desc: '围绕免费职业性格测评、职业画像、情景化探索和报告解读，帮助用户更清楚地认识适合自己的方向。'
                 },
                 showcase: {
-                    title: '日常工作流',
-                    desc: '把内容提交、活动推进和后台处理放在同一套工作节奏里。',
+                    title: '测评体验流程',
+                    desc: '从免费开测到生成职业画像，再到解锁个性化分析报告，让职业探索过程更轻松、更有反馈。',
                     playState: '自动切换',
                     navAriaLabel: '平台能力导航'
                 },
                 metrics: {
-                    title: '运营数据概览',
-                    desc: '围绕内容沉淀、活动组织、作品提交、创作者维护和互动反馈，呈现平台当前的核心运营基础。'
+                    title: '职业画像维度',
+                    desc: '围绕性格倾向、能力偏好、兴趣动机、情景选择和成长建议，呈现更立体的个人职业画像。'
                 },
                 work: {
-                    title: '活动征集与投稿动态',
-                    desc: '适合小规模征集、评选和展示场景，重点呈现活动进度、投稿更新和近期互动反馈。',
-                    consoleButton: '进入运营控制台',
+                    title: '测评报告与成长路径',
+                    desc: '展示职业性格测评后的画像结果、方向建议和阶段性成长记录，让用户持续看见自己的变化。',
+                    consoleButton: '进入测评后台',
                     itemSeparator: '·'
                 },
                 solution: {
-                    title: '常见使用场景',
-                    desc: '围绕内容更新、活动征集、作者维护和后台协同，整理出几类常见用法。',
+                    title: '适用场景',
+                    desc: '面向大学生职业探索、就业指导、专业方向选择和自我认知提升，整理出更贴近实际使用的测评场景。',
                     linkText: '查看入口'
                 },
                 flow: {
-                    title: '接入步骤',
-                    desc: '从入口选择到资料维护，尽量保持简单、明确、便于执行。'
+                    title: '免费测评步骤',
+                    desc: '下载测吧即可免费进行职业性格测评，按引导完成题目后生成专属分析报告。'
                 },
                 partners: {
-                    title: '生态合作伙伴',
-                    desc: '连接内容机构、活动组织方、校园团队和服务伙伴，共同完善内容与活动运营生态。',
+                    title: '校园与职业发展合作',
+                    desc: '连接高校就业指导、职业发展课程、校园社团和服务伙伴，共同完善面向大学生的职业探索体验。',
                     ariaLabel: '合作伙伴展示'
                 },
                 bottomCta: {
-                    title: '从一个清晰入口开始运营测吧',
-                    desc: '先承接浏览、投稿和后台待办，再根据真实数据逐步扩展服务能力。',
+                    title: '点测吧，免费测',
+                    desc: '下载测吧，免费进行职业性格测评，解锁你的职业测评分析报告，让职业方向更明确。',
                     download: '下载 APP',
                     enter: '进入测吧',
                     contact: '联系合作'
@@ -287,14 +287,14 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
             },
             footer: {
                 brandName: '测吧',
-                intro: '用于承接测吧官网展示、客户端入口和运营后台入口。',
+                intro: '用于展示测吧职业测评系统、客户端下载入口和测评后台入口。',
                 copyright: 'Copyright © 2026 测吧. All Rights Reserved.',
                 icpText: '蜀ICP备2026006423号-1'
             },
             appDialog: {
                 closeAriaLabel: '关闭下载弹窗',
                 title: '测吧',
-                desc: '扫码下载 App，随时查看内容与活动进展',
+                desc: '扫码下载 App，免费完成职业性格测评并查看专属分析报告',
                 qrAriaLabel: 'APP 下载二维码',
                 currentVersion: '当前版本 v{version}',
                 latestVersion: '当前最新版本'
@@ -307,9 +307,9 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
         navItems: [
             { label: '首页', href: commonRoutes.hero },
             { label: '内容服务', href: commonRoutes.content },
-            { label: '赛事活动', href: commonRoutes.competition },
-            { label: '作品展示', href: commonRoutes.works },
-            { label: '社区互动', href: commonRoutes.solutions },
+            { label: '免费测评', href: commonRoutes.competition },
+            { label: '报告展示', href: commonRoutes.works },
+            { label: '成长建议', href: commonRoutes.solutions },
             { label: '合作伙伴', href: commonRoutes.partners },
             { label: '联系我们', href: commonRoutes.contact },
             { label: '关于平台', href: commonRoutes.about }
@@ -317,132 +317,132 @@ const portalData: Record<SupportLocale, Omit<PortalDataBundle, 'mockData'> & { u
         heroSlides: [
             {
                 key: 'overview',
-                topic: '首页',
-                title: '把内容、活动和用户入口整理清晰',
-                desc: '测吧承接内容浏览、活动投稿、作品展示和后台审核，让早期运营不再依赖分散表格和临时沟通。',
-                primaryText: '查看赛事',
+                topic: '首页数据',
+                title: '点测吧，免费测，解锁职业测评分析报告',
+                desc: '只要下载测吧，就能免费进行职业性格测评，基于多维度、情景化和体验优先的方式，构建属于你的职业画像。',
+                primaryText: '免费开测',
                 primaryHref: commonRoutes.competition,
-                secondaryText: '查看服务入口',
+                secondaryText: '查看报告',
                 secondaryHref: commonRoutes.content,
-                boardLabel: '运营工作台',
-                boardStatus: '概览视图',
+                boardLabel: '职业画像',
+                boardStatus: '免费测评',
                 tone: 'tone-blue',
                 sideCards: [
-                    { label: '活动链路', value: '征集、评选、结果公示' },
-                    { label: '创作沉淀', value: '主页、合集、互动记录' }
+                    { label: '核心原则', value: '社会性、实用性、具象化' },
+                    { label: '体验方向', value: '多样性、中国化、体验优先' }
                 ]
             },
             {
                 key: 'competition',
-                topic: '赛事活动',
-                title: '把活动流程拆成可跟进的节点',
-                desc: '从报名、投稿到评选和结果公布，每个阶段都能看到当前状态，方便运营人员及时处理。',
-                primaryText: '查看赛事',
+                topic: '查看赛事',
+                title: '上测吧测一测，职业方向更明确',
+                desc: '针对当代大学生职业探索需求，测吧以更贴近真实选择的情景题和测评活动，帮助你理解兴趣、性格与职业方向的关系。',
+                primaryText: '参与测评',
                 primaryHref: commonRoutes.competition,
-                secondaryText: '运营方案',
+                secondaryText: '了解流程',
                 secondaryHref: commonRoutes.solutions,
-                boardLabel: '活动进度',
-                boardStatus: '征集中',
+                boardLabel: '测评进度',
+                boardStatus: '进行中',
                 tone: 'tone-cyan',
                 sideCards: [
-                    { label: '阶段管理', value: '报名、评选、公示节奏' },
-                    { label: '复盘指标', value: '参与、浏览、有效互动' }
+                    { label: '探索方式', value: '情景题、兴趣题、性格题' },
+                    { label: '结果反馈', value: '职业倾向、优势短板、发展建议' }
                 ]
             },
             {
                 key: 'works',
                 topic: '作品展示',
-                title: '让投稿资料更容易查看和复盘',
-                desc: '作品封面、媒体资料、作者来源和互动记录集中展示，方便用户浏览，也方便后续推荐判断。',
-                primaryText: '作品展示',
+                title: '全面立体的个人职业画像',
+                desc: '测评报告会把性格倾向、能力偏好、兴趣动机和情景选择集中呈现，帮助你从多个角度理解自己。',
+                primaryText: '报告展示',
                 primaryHref: commonRoutes.works,
-                secondaryText: '进入发布',
+                secondaryText: '开始测评',
                 secondaryHref: commonRoutes.publish,
-                boardLabel: '投稿动态',
-                boardStatus: '持续更新',
+                boardLabel: '分析报告',
+                boardStatus: '持续生成',
                 tone: 'tone-indigo',
                 sideCards: [
-                    { label: '媒体资料', value: '封面、视频、图文信息' },
-                    { label: '展示状态', value: '审核、推荐、互动进展' }
+                    { label: '画像内容', value: '性格、能力、兴趣、动机' },
+                    { label: '报告价值', value: '方向参考、成长建议、行动提示' }
                 ]
             },
             {
                 key: 'content',
-                topic: '发现入口',
-                title: '让发现页保持可维护的更新节奏',
-                desc: '围绕标签、推荐位和主页内容整理信息，让用户能看到近期更新，也让编辑更容易维护栏目。',
+                topic: '进入发现',
+                title: '专属你的职业成长道路',
+                desc: '测吧基于你的测评结果，提供科学且有趣的个性化发展建议，让职业探索不再停留在模糊感觉里。',
                 primaryText: '进入发现',
                 primaryHref: commonRoutes.discover,
-                secondaryText: '接入指南',
+                secondaryText: '查看建议',
                 secondaryHref: commonRoutes.guide,
-                boardLabel: '发现页维护',
-                boardStatus: '更新中',
+                boardLabel: '成长建议',
+                boardStatus: '个性化',
                 tone: 'tone-violet',
                 sideCards: [
-                    { label: '更新节奏', value: '标签、专题、推荐位维护' },
-                    { label: '后台支撑', value: '审核、权限、基础数据' }
+                    { label: '建议形式', value: '方向、岗位、能力提升' },
+                    { label: '体验目标', value: '清晰、有趣、可行动' }
                 ]
             }
         ],
         capabilityModules: [
-            { title: '内容推荐', icon: 'mdi:compass-outline', desc: '承接发现页更新，让新内容、专题和标签入口更容易被用户看到。', points: ['推荐位维护', '标签聚合', '搜索浏览'], action: '进入发现', route: commonRoutes.discover },
-            { title: '赛事活动', icon: 'mdi:trophy-outline', desc: '适合征集、评选、投票和公示等活动，帮助运营人员掌握每个阶段。', points: ['活动排期', '投稿入口', '结果公示'], action: '进入控制台', route: commonRoutes.console },
-            { title: '作品展示', icon: 'mdi:image-multiple-outline', desc: '把投稿资料、作者来源、最近更新和互动反馈放在同一个展示面板里。', points: ['投稿动态', '媒体预览', '互动状态'], action: '查看方案', route: commonRoutes.works },
-            { title: '创作者中心', icon: 'mdi:account-star-outline', desc: '帮助创作者维护主页资料、归档作品，并持续接收用户反馈。', points: ['主页资料', '作品合集', '反馈沉淀'], action: '开始发布', route: commonRoutes.publish },
-            { title: '运营管理', icon: 'mdi:view-dashboard-outline', desc: '覆盖审核、权限、基础资料和活动配置，满足日常后台维护需要。', points: ['审核待办', '权限角色', '资料维护'], action: '管理端登录', route: commonRoutes.console }
+            { title: '内容服务', icon: 'mdi:compass-outline', desc: '围绕职业测评说明、报告解读、成长建议和职业探索内容，帮助用户在测评前后都能获得清晰信息。', points: ['测评说明', '报告解读', '成长内容'], action: '查看内容服务', route: commonRoutes.content },
+            { title: '多维职业画像', icon: 'mdi:account-details-outline', desc: '从性格、兴趣、能力偏好和情景选择等维度，构建立体的个人职业画像。', points: ['性格倾向', '能力偏好', '兴趣动机'], action: '查看画像', route: commonRoutes.works },
+            { title: '情景化探索', icon: 'mdi:map-search-outline', desc: '用更贴近大学生真实选择的情景任务，降低传统测评工具的抽象感。', points: ['场景题目', '具象选择', '体验优先'], action: '了解流程', route: commonRoutes.competition },
+            { title: '个性化分析报告', icon: 'mdi:file-chart-outline', desc: '生成专属职业测评分析报告，帮助用户理解优势、风险和可能的发展方向。', points: ['方向分析', '优势解读', '行动建议'], action: '报告展示', route: commonRoutes.works },
+            { title: '成长路径建议', icon: 'mdi:route-variant', desc: '结合测评结果给出可执行的成长建议，让职业探索逐步走向清晰。', points: ['岗位参考', '能力提升', '阶段规划'], action: '进入发现', route: commonRoutes.discover }
         ],
         capabilityShowcaseItems: [
-            { key: 'content', nav: '内容服务', icon: 'mdi:compass-outline', kicker: '内容流转', title: '从发布到推荐，减少内容流转成本', desc: '编辑、标签、媒体资料与审核结果放在同一流程里，方便小团队保持稳定更新。', points: ['图文与视频资料维护', '标签匹配和推荐位管理', '审核、上下架和日常巡检'], visualTitle: '发布协同台', visualStatus: '今日更新', tone: 'tone-blue', stats: [{ label: '入库稿件', value: '186' }, { label: '今日更新', value: '7' }, { label: '待处理', value: '12' }], lines: ['资料提交', '标签整理', '推荐位维护', '互动回看'] },
-            { key: 'event', nav: '赛事活动', icon: 'mdi:trophy-outline', kicker: '活动跟进', title: '活动进度、报名情况和结果公示同步推进', desc: '每场活动都能明确当前阶段、参与作品和后续动作，降低临时人工统计压力。', points: ['基础信息与时间节点', '投稿报名与评选记录', '结果公示和活动复盘'], visualTitle: '活动排期板', visualStatus: '征集中', tone: 'tone-cyan', stats: [{ label: '征集中', value: '6' }, { label: '报名作品', value: '54' }, { label: '今日互动', value: '32' }], lines: ['活动创建', '作品报名', '评选互动', '结果公示'] },
-            { key: 'works', nav: '作品展示', icon: 'mdi:image-multiple-outline', kicker: '作品管理', title: '每条投稿都有可追踪的展示状态', desc: '运营人员可以看到作品来源、最近更新和当前反馈，避免只依赖单一票数判断质量。', points: ['封面、视频和图文预览', '更新频率与互动状态', '作者主页和作品关联'], visualTitle: '投稿观察窗', visualStatus: '动态滚动', tone: 'tone-indigo', stats: [{ label: '展示作品', value: '86' }, { label: '视频作品', value: '18' }, { label: '待推荐', value: '9' }], lines: ['封面检查', '作品详情', '互动记录', '作者主页'] },
-            { key: 'creator', nav: '创作者生态', icon: 'mdi:account-star-outline', kicker: '作者主页', title: '把主页、合集和互动沉淀为作者资产', desc: '让创作者逐步积累主页内容、作品集合和用户反馈，不只是一次性提交作品。', points: ['个人主页资料展示', '合集和阶段性作品归档', '关注、收藏与评论反馈'], visualTitle: '作者成长视图', visualStatus: '持续积累', tone: 'tone-violet', stats: [{ label: '活跃作者', value: '58' }, { label: '内容合集', value: '24' }, { label: '回访率', value: '31%' }], lines: ['主页访问', '作品归档', '用户反馈', '合集维护'] },
-            { key: 'console', nav: '运营管理', icon: 'mdi:view-dashboard-outline', kicker: '后台协同', title: '让后台处理更像日常工作流', desc: '审核、活动配置、用户权限和基础数据维护放在稳定的管理端里，减少临时表格和人工传递。', points: ['审核任务与状态维护', '活动配置和作品处理', '用户、角色和权限治理'], visualTitle: '后台待办台', visualStatus: '有序处理', tone: 'tone-slate', stats: [{ label: '待办任务', value: '18' }, { label: '业务模块', value: '9' }, { label: '权限角色', value: '6' }], lines: ['任务进入', '审核流转', '权限校验', '资料维护'] }
+            { key: 'content', nav: '内容服务', icon: 'mdi:compass-outline', kicker: 'CONTENT SERVICE', title: '把测评说明、报告解读和成长内容组织清晰', desc: '内容服务承接测吧的职业探索知识、测评说明、报告解读和成长建议，让用户在开测前后都有内容可参考。', points: ['职业探索知识内容', '测评流程与报告说明', '成长建议与行动参考'], visualTitle: '内容服务台', visualStatus: '持续更新', tone: 'tone-blue', stats: [{ label: '内容专题', value: '36+' }, { label: '报告解读', value: '多类' }, { label: '成长建议', value: '200+' }], lines: ['测评说明', '报告解读', '方向参考', '成长内容'] },
+            { key: 'event', nav: '情景探索', icon: 'mdi:map-search-outline', kicker: 'SCENE TEST', title: '用情景化题目替代空泛判断', desc: '围绕学习、协作、决策和压力等真实场景设置题目，让用户在具体选择中理解自己的偏好。', points: ['具象化职业场景', '贴近大学生体验', '减少传统测评距离感'], visualTitle: '情景探索台', visualStatus: '沉浸体验', tone: 'tone-cyan', stats: [{ label: '情景任务', value: '120+' }, { label: '选择路径', value: '多样' }, { label: '反馈方式', value: '即时' }], lines: ['进入场景', '做出选择', '识别偏好', '汇总倾向'] },
+            { key: 'works', nav: '分析报告', icon: 'mdi:file-chart-outline', kicker: 'REPORT', title: '解锁你的职业测评分析报告', desc: '报告以职业画像为核心，呈现性格倾向、能力偏好、兴趣动机和发展建议，帮助用户获得更清晰的自我理解。', points: ['职业画像总览', '优势与风险解读', '个性化成长建议'], visualTitle: '分析报告', visualStatus: '专属生成', tone: 'tone-indigo', stats: [{ label: '画像标签', value: '60+' }, { label: '建议库', value: '200+' }, { label: '报告模块', value: '4' }], lines: ['画像汇总', '方向分析', '优势解读', '行动建议'] },
+            { key: 'creator', nav: '成长道路', icon: 'mdi:route-variant', kicker: 'GROWTH PATH', title: '专属你的职业成长道路', desc: '测吧把测评结果转化为更可执行的成长建议，帮助用户逐步确认职业方向、能力提升重点和下一步行动。', points: ['职业方向参考', '能力提升建议', '阶段性成长路径'], visualTitle: '成长路径', visualStatus: '持续更新', tone: 'tone-violet', stats: [{ label: '方向参考', value: '多类' }, { label: '能力建议', value: '个性化' }, { label: '行动提示', value: '可执行' }], lines: ['理解自己', '确认方向', '提升能力', '持续复盘'] },
+            { key: 'console', nav: '测评管理', icon: 'mdi:view-dashboard-outline', kicker: 'ADMIN', title: '让测评内容和报告配置更易维护', desc: '后台用于维护题库、报告规则、用户测评记录和基础资料，支撑测评系统稳定运行。', points: ['题库与维度维护', '报告规则配置', '用户测评记录'], visualTitle: '测评后台', visualStatus: '稳定管理', tone: 'tone-slate', stats: [{ label: '题库模块', value: '5' }, { label: '报告规则', value: '多套' }, { label: '数据记录', value: '可追踪' }], lines: ['题库维护', '维度配置', '报告生成', '记录回看'] }
         ],
         dataMetrics: [
-            { label: '内容沉淀', value: '620+', desc: '覆盖图文、视频、专题与活动相关内容', icon: 'mdi:file-document-outline' },
-            { label: '活动项目', value: '12', desc: '包含征集、评选、公示等运营活动', icon: 'mdi:trophy-outline' },
-            { label: '作品资料', value: '180+', desc: '沉淀可展示、可审核、可复盘的投稿作品', icon: 'mdi:image-multiple-outline' },
-            { label: '创作者主页', value: '86', desc: '已维护主页资料与作品归档的创作者', icon: 'mdi:account-star-outline' },
-            { label: '互动反馈', value: '1,800+', desc: '关注、收藏、评论等用户行为累计', icon: 'mdi:chart-line' }
+            { label: '测评维度', value: '6', desc: '围绕社会性、实用性、具象化、多样性、中国化和体验优先展开', icon: 'mdi:hexagon-multiple-outline' },
+            { label: '情景题库', value: '120+', desc: '覆盖学习、协作、选择、压力和职业兴趣等典型场景', icon: 'mdi:clipboard-text-outline' },
+            { label: '画像标签', value: '60+', desc: '用于描述性格倾向、能力偏好和兴趣动机', icon: 'mdi:tag-multiple-outline' },
+            { label: '分析报告', value: '4 章', desc: '从画像总览、优势解读、方向参考到成长建议逐步展开', icon: 'mdi:file-chart-outline' },
+            { label: '成长建议', value: '200+', desc: '沉淀可执行的职业探索、能力提升和行动提示', icon: 'mdi:chart-line' }
         ],
         solutionItems: [
-            { title: '发现页更新方案', desc: '适合需要保持栏目更新、专题沉淀和标签分发的内容团队。', points: ['资料入库', '栏目维护', '互动回看'], href: commonRoutes.content },
-            { title: '活动征集方案', desc: '支持从活动配置、投稿收集到结果发布的完整流程。', points: ['阶段设置', '投稿管理', '结果公示'], href: commonRoutes.competition },
-            { title: '创作者成长方案', desc: '围绕主页资料、作品合集和反馈记录，让作者成长过程可见。', points: ['主页展示', '作品归档', '反馈记录'], href: commonRoutes.content },
-            { title: '社区互动方案', desc: '连接发现页、圈子、评论与收藏，帮助早期用户形成回访习惯。', points: ['发现入口', '收藏点赞', '评论反馈'], href: commonRoutes.solutions },
-            { title: '后台协同方案', desc: '通过清晰的待办、权限和资料维护减少重复沟通。', points: ['用户管理', '审核流程', '权限治理'], href: commonRoutes.guide }
+            { title: '大学生职业探索', desc: '适合在专业选择、实习准备和求职前期进行自我认知梳理。', points: ['兴趣识别', '方向参考', '行动建议'], href: commonRoutes.content },
+            { title: '职业性格测评', desc: '帮助用户了解自己的沟通方式、决策偏好和适合的工作情境。', points: ['性格倾向', '协作偏好', '压力反应'], href: commonRoutes.competition },
+            { title: '测评报告解读', desc: '把抽象结果转成更易理解的职业画像和成长建议。', points: ['画像总览', '优势短板', '方向分析'], href: commonRoutes.works },
+            { title: '校园就业指导', desc: '为课程、社团和就业辅导提供更有趣的职业探索工具。', points: ['班级测评', '团体活动', '辅导参考'], href: commonRoutes.solutions },
+            { title: '测评后台管理', desc: '维护题库、维度、报告规则和用户测评记录，让系统长期可运营。', points: ['题库管理', '报告配置', '数据回看'], href: commonRoutes.guide }
         ],
         flowSteps: [
-            { title: '进入对应入口', desc: '普通用户进入客户端，运营人员进入管理端。' },
-            { title: '配置栏目或活动', desc: '整理基础资料，设置展示位置、时间节点和参与规则。' },
-            { title: '提交与审核', desc: '创作者提交图文或视频，后台完成审核和状态维护。' },
-            { title: '复盘更新节奏', desc: '根据浏览、互动和投稿情况调整后续推荐与活动安排。' }
+            { title: '下载测吧', desc: '通过 APP 入口进入测吧，开始你的职业探索。' },
+            { title: '免费开始测评', desc: '按照引导完成职业性格与情景化题目。' },
+            { title: '生成职业画像', desc: '系统汇总你的选择，形成多维度个人职业画像。' },
+            { title: '解锁分析报告', desc: '查看职业方向、优势解读和个性化成长建议。' }
         ],
         footerGroups: [],
         metrics: [
-            { label: '累计内容', value: '620+', trend: '本周新增 18' },
-            { label: '进行中赛事', value: '8', trend: '2 个即将截止' },
-            { label: '参赛作品', value: '180+', trend: '今日新增 6' },
-            { label: '创作者', value: '86', trend: '24 位近期活跃' }
+            { label: '测评维度', value: '6', trend: '覆盖核心职业探索原则' },
+            { label: '情景题库', value: '120+', trend: '持续补充大学生场景' },
+            { label: '画像标签', value: '60+', trend: '用于生成个人职业画像' },
+            { label: '成长建议', value: '200+', trend: '按结果个性化推荐' }
         ],
-        flow: ['推荐位与话题维护', '活动投稿审核', '作者主页回访'],
+        flow: ['免费职业性格测评', '生成个人职业画像', '解锁成长分析报告'],
         updates: [
-            { type: '赛事', title: '城市职业故事影像征集启动', desc: '面向职场创作者开放视频、图文投稿，入选作品将获得推荐位展示。', href: commonRoutes.competition },
-            { type: '推荐', title: '发现页新增兴趣标签聚合', desc: '根据关注、收藏和浏览行为整理入口，让用户更快找到相关话题。', href: commonRoutes.content },
-            { type: '公告', title: '审核工作台完成视觉统一', desc: '待办、状态和处理结果集中呈现，减少后台页面之间的切换。', href: commonRoutes.solutions },
-            { type: '指南', title: '视频封面截取指南更新', desc: '支持自动首帧和手动选帧，降低发布视频时的封面处理成本。', href: commonRoutes.guide },
-            { type: '活动', title: '创作者成长计划开放报名', desc: '围绕主页维护、作品归档和互动反馈，提供更清晰的成长路径。', href: commonRoutes.guide },
-            { type: '运营', title: '作品观察面板完成升级', desc: '新增更新时间、互动状态和展示进展，便于判断后续推荐优先级。', href: commonRoutes.works }
+            { type: '测评', title: '职业性格测评免费开放', desc: '下载测吧即可开始测评，完成后查看专属职业画像和分析报告。', href: commonRoutes.competition },
+            { type: '报告', title: '职业测评分析报告升级', desc: '新增优势解读、方向参考和成长建议，让报告更容易看懂、也更容易行动。', href: commonRoutes.works },
+            { type: '题库', title: '情景化题库持续补充', desc: '围绕大学生学习、协作、求职和选择场景，提升测评体验的真实感。', href: commonRoutes.content },
+            { type: '指南', title: '如何看懂你的职业画像', desc: '从性格倾向、能力偏好和兴趣动机三个角度理解测评结果。', href: commonRoutes.guide },
+            { type: '成长', title: '专属职业成长道路上线', desc: '基于测评结果推荐职业方向、能力提升重点和下一步行动。', href: commonRoutes.discover },
+            { type: '原则', title: '六大测评原则说明更新', desc: '围绕社会性、实用性、具象化、多样性、中国化和体验优先完善产品说明。', href: commonRoutes.solutions }
         ],
         works: [
-            { title: '城市职业故事影像', author: '创作者 A', competition: '职场影像季', score: '18 票', updateText: '刚刚更新', activityText: '有新评论' },
-            { title: '团队协作实践分享', author: '创作者 B', competition: '高效团队挑战', score: '16 票', updateText: '12 分钟前更新', activityText: '进入待推荐' },
-            { title: '岗位成长路线图', author: '创作者 C', competition: '成长经验征集', score: '15 票', updateText: '28 分钟前更新', activityText: '等待复审' },
-            { title: '我的第一份项目复盘', author: '创作者 D', competition: '新人实践计划', score: '13 票', updateText: '1 小时内更新', activityText: '封面已优化' },
-            { title: '职场效率工具清单', author: '创作者 E', competition: '内容创作周', score: '12 票', updateText: '今日新增互动', activityText: '作者已补充说明' },
-            { title: '新人入职观察日记', author: '创作者 F', competition: '社区共创活动', score: '11 票', updateText: '今日完成审核', activityText: '内容持续完善' }
+            { title: '职业性格分析报告', author: '测评用户 A', competition: '职业探索测评', score: '匹配度 92%', updateText: '刚刚生成', activityText: '已解锁建议' },
+            { title: '个人职业画像总览', author: '测评用户 B', competition: '多维画像分析', score: '画像完整', updateText: '12 分钟前更新', activityText: '补充情景结果' },
+            { title: '职业方向参考清单', author: '测评用户 C', competition: '方向探索计划', score: '3 类方向', updateText: '28 分钟前更新', activityText: '生成行动提示' },
+            { title: '能力提升建议卡', author: '测评用户 D', competition: '成长路径分析', score: '5 条建议', updateText: '1 小时内更新', activityText: '建议已细化' },
+            { title: '兴趣动机解读', author: '测评用户 E', competition: '兴趣偏好测评', score: '高匹配', updateText: '今日新增反馈', activityText: '报告已完善' },
+            { title: '大学生职业探索记录', author: '测评用户 F', competition: '校园职业测评', score: '持续追踪', updateText: '今日完成测评', activityText: '路径持续更新' }
         ],
-        partners: ['青蓝内容工坊', '星火活动中心', '知行校园社', '云舫运营服务', '森合创作者联盟', '启程赛事组委会', '北辰企业服务', '微光职业社群']
+        partners: ['青蓝职业发展中心', '星火校园成长营', '知行就业指导社', '云舫测评服务', '森合心理与职业研究', '启程职业探索营', '北辰高校服务', '微光成长社群']
     },
     'zh-TW': {} as any,
     'en-US': {} as any
@@ -464,39 +464,39 @@ portalData['zh-TW'] = {
             carouselAriaLabel: '首屏輪播切換',
             slideAriaPrefix: '切換到',
             boardAriaLabel: '平台能力概覽',
-            imageAlt: '測吧內容與活動營運介面示意圖'
+            imageAlt: '測吧職業測評與分析報告介面示意圖'
         },
         sections: {
             news: {
                 title: '近期動態',
-                desc: '展示活動招募、功能更新和創作者指南，協助訪客快速了解平台近期營運進展。',
+                desc: '展示職業測評說明、報告解讀和成長建議更新，協助大學生快速了解測吧的測評體驗。',
                 prevAriaLabel: '上一組資訊',
                 nextAriaLabel: '下一組資訊',
                 linkText: '查看相關入口'
             },
             capability: {
-                title: '主要服務入口',
-                desc: '按日常使用路徑整理入口：使用者瀏覽內容，作者發布作品，營運人員處理活動和後台待辦。'
+                    title: '內容與測評服務',
+                desc: '圍繞免費職業性格測評、職業畫像、情境化探索和報告解讀，幫助使用者更清楚地認識適合自己的方向。'
             },
             showcase: {
-                title: '日常工作流',
-                desc: '把內容提交、活動推進和後台處理放在同一套工作節奏裡。',
+                title: '測評體驗流程',
+                desc: '從免費開測到生成職業畫像，再到解鎖個人化分析報告，讓職業探索過程更輕鬆、更有回饋。',
                 playState: '自動切換',
                 navAriaLabel: '平台能力導覽'
             },
             metrics: {
-                title: '營運數據概覽',
-                desc: '圍繞內容沉澱、活動組織、作品提交、創作者維護和互動回饋，呈現平台目前的核心營運基礎。'
+                title: '職業畫像維度',
+                desc: '圍繞性格傾向、能力偏好、興趣動機、情境選擇和成長建議，呈現更立體的個人職業畫像。'
             },
             work: {
-                title: '活動徵集與投稿動態',
-                desc: '適合小規模徵集、評選和展示場景，重點呈現活動進度、投稿更新和近期互動回饋。',
-                consoleButton: '進入營運控制台',
+                title: '測評報告與成長路徑',
+                desc: '展示職業性格測評後的畫像結果、方向建議和階段性成長記錄，讓使用者持續看見自己的變化。',
+                consoleButton: '進入測評後台',
                 itemSeparator: '·'
             },
             solution: {
                 title: '常見使用場景',
-                desc: '圍繞內容更新、活動徵集、作者維護和後台協同，整理出幾類常見用法。',
+                desc: '面向大學生職業探索、就業指導、專業方向選擇和自我認知提升，整理出更貼近實際使用的測評場景。',
                 linkText: '查看入口'
             },
             flow: {
@@ -505,12 +505,12 @@ portalData['zh-TW'] = {
             },
             partners: {
                 title: '生態合作夥伴',
-                desc: '連接內容機構、活動組織方、校園團隊和服務夥伴，共同完善內容與活動營運生態。',
+                desc: '連接高校就業指導、職業發展課程、校園社團和服務夥伴，共同完善面向大學生的職業探索體驗。',
                 ariaLabel: '合作夥伴展示'
             },
             bottomCta: {
-                title: '從一個清晰入口開始營運測吧',
-                desc: '先承接瀏覽、投稿和後台待辦，再根據真實數據逐步擴展服務能力。',
+                title: '點測吧，免費測',
+                desc: '下載測吧，免費進行職業性格測評，解鎖你的職業測評分析報告，讓職業方向更明確。',
                 download: '下載 APP',
                 enter: '進入測吧',
                 contact: '聯絡合作'
@@ -518,7 +518,7 @@ portalData['zh-TW'] = {
         },
         footer: {
             brandName: '測吧',
-            intro: '用於承接測吧官網展示、客戶端入口和營運後台入口。',
+            intro: '用於展示測吧職業測評系統、客戶端下載入口和測評後台入口。',
             copyright: 'Copyright © 2026 測吧. All Rights Reserved.',
             icpText: '蜀ICP備2026006423號-1'
         },
@@ -546,10 +546,10 @@ portalData['zh-TW'] = {
         { label: '關於平台', href: commonRoutes.about }
     ],
     heroSlides: [
-        { ...portalData['zh-CN'].heroSlides[0], topic: '首頁', title: '把內容、活動和使用者入口整理清楚', desc: '測吧承接內容瀏覽、活動投稿、作品展示和後台審核，讓早期營運不再依賴分散表格和臨時溝通。', primaryText: '查看賽事', secondaryText: '查看服務入口', boardLabel: '營運工作台', boardStatus: '概覽視圖', sideCards: [{ label: '活動鏈路', value: '徵集、評選、結果公示' }, { label: '創作沉澱', value: '主頁、合集、互動記錄' }] },
-        { ...portalData['zh-CN'].heroSlides[1], topic: '賽事活動', title: '把活動流程拆成可跟進的節點', desc: '從報名、投稿到評選和結果公布，每個階段都能看到目前狀態，方便營運人員及時處理。', primaryText: '查看賽事', secondaryText: '營運方案', boardLabel: '活動進度', boardStatus: '徵集中', sideCards: [{ label: '階段管理', value: '報名、評選、公示節奏' }, { label: '復盤指標', value: '參與、瀏覽、有效互動' }] },
-        { ...portalData['zh-CN'].heroSlides[2], topic: '作品展示', title: '讓投稿資料更容易查看和復盤', desc: '作品封面、媒體資料、作者來源和互動記錄集中展示，方便使用者瀏覽，也方便後續推薦判斷。', primaryText: '作品展示', secondaryText: '進入發布', boardLabel: '投稿動態', boardStatus: '持續更新', sideCards: [{ label: '媒體資料', value: '封面、影片、圖文資訊' }, { label: '展示狀態', value: '審核、推薦、互動進展' }] },
-        { ...portalData['zh-CN'].heroSlides[3], topic: '發現入口', title: '讓發現頁保持可維護的更新節奏', desc: '圍繞標籤、推薦位和主頁內容整理資訊，讓使用者能看到近期更新，也讓編輯更容易維護欄目。', primaryText: '進入發現', secondaryText: '接入指南', boardLabel: '發現頁維護', boardStatus: '更新中', sideCards: [{ label: '更新節奏', value: '標籤、專題、推薦位維護' }, { label: '後台支撐', value: '審核、權限、基礎資料' }] }
+        { ...portalData['zh-CN'].heroSlides[0], topic: '首頁資料', title: '點測吧，免費測，解鎖職業測評分析報告', desc: '只要下載測吧，就能免費進行職業性格測評，基於多維度、情境化和體驗優先的方式，構建屬於你的職業畫像。', primaryText: '免費開測', secondaryText: '查看報告', boardLabel: '職業畫像', boardStatus: '免費測評', sideCards: [{ label: '核心原則', value: '社會性、實用性、具象化' }, { label: '體驗方向', value: '多樣性、中國化、體驗優先' }] },
+        { ...portalData['zh-CN'].heroSlides[1], topic: '查看賽事', title: '上測吧測一測，職業方向更明確', desc: '針對當代大學生職業探索需求，測吧以更貼近真實選擇的情境題和測評活動，幫助你理解興趣、性格與職業方向的關係。', primaryText: '參與測評', secondaryText: '了解流程', boardLabel: '測評進度', boardStatus: '進行中', sideCards: [{ label: '探索方式', value: '情境題、興趣題、性格題' }, { label: '結果回饋', value: '職業傾向、優勢短板、發展建議' }] },
+        { ...portalData['zh-CN'].heroSlides[2], topic: '作品展示', title: '全面立體的個人職業畫像', desc: '測評報告會把性格傾向、能力偏好、興趣動機和情境選擇集中呈現，幫助你從多個角度理解自己。', primaryText: '報告展示', secondaryText: '開始測評', boardLabel: '分析報告', boardStatus: '持續生成', sideCards: [{ label: '畫像內容', value: '性格、能力、興趣、動機' }, { label: '報告價值', value: '方向參考、成長建議、行動提示' }] },
+        { ...portalData['zh-CN'].heroSlides[3], topic: '進入發現', title: '讓發現頁保持可維護的更新節奏', desc: '圍繞標籤、推薦位和主頁內容整理資訊，讓使用者能看到近期更新，也讓編輯更容易維護欄目。', primaryText: '進入發現', secondaryText: '接入指南', boardLabel: '發現頁維護', boardStatus: '更新中', sideCards: [{ label: '更新節奏', value: '標籤、專題、推薦位維護' }, { label: '後台支撐', value: '審核、權限、基礎資料' }] }
     ],
     metrics: [
         { label: '累計內容', value: '620+', trend: '本週新增 18' },
@@ -557,8 +557,8 @@ portalData['zh-TW'] = {
         { label: '參賽作品', value: '180+', trend: '今日新增 6' },
         { label: '創作者', value: '86', trend: '24 位近期活躍' }
     ],
-    flow: ['推薦位與話題維護', '活動投稿審核', '作者主頁回訪'],
-    partners: ['青藍內容工坊', '星火活動中心', '知行校園社', '雲舫營運服務', '森合創作者聯盟', '啟程賽事組委會', '北辰企業服務', '微光職業社群']
+    flow: ['免費職業性格測評', '生成個人職業畫像', '解鎖成長分析報告'],
+    partners: ['青藍職業發展中心', '星火校園成長營', '知行就業指導社', '雲舫測評服務', '森合心理與職業研究', '啟程職業探索營', '北辰高校服務', '微光成長社群']
 }
 
 portalData['en-US'] = {
@@ -659,10 +659,10 @@ portalData['en-US'] = {
         { label: 'About', href: commonRoutes.about }
     ],
     heroSlides: [
-        { ...portalData['zh-CN'].heroSlides[0], topic: 'Home', title: 'Organize content, activities, and user entry points', desc: 'CeBa connects content browsing, activity submissions, work showcases, and operational review in one clear portal.', primaryText: 'View events', secondaryText: 'View services', boardLabel: 'Operations desk', boardStatus: 'Overview', sideCards: [{ label: 'Activity flow', value: 'Collection and results' }, { label: 'Creator assets', value: 'Profiles and records' }] },
-        { ...portalData['zh-CN'].heroSlides[1], topic: 'Events', title: 'Break activity operations into trackable stages', desc: 'From registration and submission to review and result publishing, each stage has a clear status for operators.', primaryText: 'View events', secondaryText: 'Use cases', boardLabel: 'Event progress', boardStatus: 'Collecting', sideCards: [{ label: 'Stage control', value: 'Registration and review' }, { label: 'Review metrics', value: 'Views and engagement' }] },
+        { ...portalData['zh-CN'].heroSlides[0], topic: 'Home Data', title: 'Organize content, activities, and user entry points', desc: 'CeBa connects content browsing, activity submissions, work showcases, and operational review in one clear portal.', primaryText: 'View events', secondaryText: 'View services', boardLabel: 'Operations desk', boardStatus: 'Overview', sideCards: [{ label: 'Activity flow', value: 'Collection and results' }, { label: 'Creator assets', value: 'Profiles and records' }] },
+        { ...portalData['zh-CN'].heroSlides[1], topic: 'View Events', title: 'Break activity operations into trackable stages', desc: 'From registration and submission to review and result publishing, each stage has a clear status for operators.', primaryText: 'View events', secondaryText: 'Use cases', boardLabel: 'Event progress', boardStatus: 'Collecting', sideCards: [{ label: 'Stage control', value: 'Registration and review' }, { label: 'Review metrics', value: 'Views and engagement' }] },
         { ...portalData['zh-CN'].heroSlides[2], topic: 'Works', title: 'Make submissions easier to view and review', desc: 'Covers, media assets, creator sources, and engagement records are presented together for browsing and follow-up recommendations.', primaryText: 'View works', secondaryText: 'Start publishing', boardLabel: 'Submission updates', boardStatus: 'Updating', sideCards: [{ label: 'Media assets', value: 'Covers and videos' }, { label: 'Display status', value: 'Review and engagement' }] },
-        { ...portalData['zh-CN'].heroSlides[3], topic: 'Discovery', title: 'Keep the discovery feed maintainable', desc: 'Tags, featured positions, and profile content are organized so users can see recent updates and editors can maintain sections efficiently.', primaryText: 'Open discovery', secondaryText: 'Guide', boardLabel: 'Discovery maintenance', boardStatus: 'Updating', sideCards: [{ label: 'Update rhythm', value: 'Tags and topics' }, { label: 'Admin support', value: 'Review and permissions' }] }
+        { ...portalData['zh-CN'].heroSlides[3], topic: 'Open Discovery', title: 'Keep the discovery feed maintainable', desc: 'Tags, featured positions, and profile content are organized so users can see recent updates and editors can maintain sections efficiently.', primaryText: 'Open discovery', secondaryText: 'Guide', boardLabel: 'Discovery maintenance', boardStatus: 'Updating', sideCards: [{ label: 'Update rhythm', value: 'Tags and topics' }, { label: 'Admin support', value: 'Review and permissions' }] }
     ],
     capabilityModules: [
         { title: 'Content Feed', icon: 'mdi:compass-outline', desc: 'Maintain discovery updates and make new content, topics, and tags easier to find.', points: ['Featured slots', 'Tag grouping', 'Search and browse'], action: 'Open discovery', route: commonRoutes.discover },
@@ -823,19 +823,19 @@ function createFooterGroups(locale: SupportLocale): PortalFooterGroup[] {
             ]
         },
         {
-            title: isEnglish ? 'Content' : isTraditional ? '內容服務' : '内容服务',
+            title: isEnglish ? 'Content Service' : isTraditional ? '內容服務' : '内容服务',
             items: [
-                { label: isEnglish ? 'Content Feed' : isTraditional ? '內容推薦' : '内容推荐', href: commonRoutes.content },
-                { label: isEnglish ? 'Publish' : isTraditional ? '內容發布' : '内容发布', href: commonRoutes.publish },
-                { label: isEnglish ? 'Creator Center' : isTraditional ? '創作者中心' : '创作者中心', href: commonRoutes.content }
+                { label: isEnglish ? 'Assessment Content' : isTraditional ? '測評內容' : '测评内容', href: commonRoutes.content },
+                { label: isEnglish ? 'Career Report' : isTraditional ? '分析報告' : '分析报告', href: commonRoutes.works },
+                { label: isEnglish ? 'Growth Advice' : isTraditional ? '成長建議' : '成长建议', href: commonRoutes.discover }
             ]
         },
         {
-            title: isEnglish ? 'Events' : isTraditional ? '賽事活動' : '赛事活动',
+            title: isEnglish ? 'Career Growth' : isTraditional ? '職業成長' : '职业成长',
             items: [
-                { label: isEnglish ? 'Events' : isTraditional ? '賽事活動' : '赛事活动', href: commonRoutes.competition },
-                { label: isEnglish ? 'Works' : isTraditional ? '作品展示' : '作品展示', href: commonRoutes.works },
-                { label: isEnglish ? 'Partners' : isTraditional ? '合作夥伴' : '合作伙伴', href: commonRoutes.partners }
+                { label: isEnglish ? 'Career Exploration' : isTraditional ? '職業探索' : '职业探索', href: commonRoutes.competition },
+                { label: isEnglish ? 'Personal Profile' : isTraditional ? '職業畫像' : '职业画像', href: commonRoutes.works },
+                { label: isEnglish ? 'Campus Partners' : isTraditional ? '校園合作' : '校园合作', href: commonRoutes.partners }
             ]
         },
         {

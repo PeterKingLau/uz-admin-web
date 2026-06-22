@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div ref="discoverPageRef" class="discover-page">
         <ClientHeader v-model:search-value="searchDraft" @brand-click="goDiscover" @search="handleSearch" />
 
@@ -21,31 +21,31 @@
 
                         <div class="sidebar-footer">
                             <div class="tips-card">
-                                <h3 class="tips-title">欢迎回来</h3>
+                                <h3 class="tips-title">专属你的职业成长道路</h3>
                                 <ul class="tips-list">
                                     <li>
                                         <div class="icon-wrapper">
                                             <Icon icon="mdi:briefcase-outline" />
                                         </div>
-                                        <span>刷到更懂你的职场干货</span>
+                                        <span>多维测评勾勒个人职业画像</span>
                                     </li>
                                     <li>
                                         <div class="icon-wrapper">
-                                            <Icon icon="mdi:chart-line" />
+                                            <Icon icon="mdi:map-search-outline" />
                                         </div>
-                                        <span>获取最新岗位动态与行业趋势</span>
+                                        <span>情景化探索适合你的发展方向</span>
                                     </li>
                                     <li>
                                         <div class="icon-wrapper">
-                                            <Icon icon="mdi:bookmark-outline" />
+                                            <Icon icon="mdi:lightbulb-on-outline" />
                                         </div>
-                                        <span>查看你收藏和点赞的实用笔记</span>
+                                        <span>获得科学且有趣的成长建议</span>
                                     </li>
                                     <li>
                                         <div class="icon-wrapper">
-                                            <Icon icon="mdi:account-group-outline" />
+                                            <Icon icon="mdi:school-outline" />
                                         </div>
-                                        <span>和同圈层用户高效交流、互助</span>
+                                        <span>为大学生职业探索提供支持</span>
                                     </li>
                                 </ul>
                             </div>
@@ -70,9 +70,6 @@
                         </div>
 
                         <div v-if="secondaryTagOptions.length" class="tab-row secondary-tabs" role="tablist" aria-label="二级标签">
-                            <button type="button" class="tab-item sub-tab" :class="{ active: activeSecondaryId === '' }" @click="handleSecondaryTagChange('')">
-                                全部
-                            </button>
                             <button
                                 v-for="tag in secondaryTagOptions"
                                 :key="tag.id"
@@ -215,6 +212,7 @@ const CLIENT_MEDIA_VIEWER_CACHE_KEY = 'client-media-viewer-payload'
 const RECOMMEND_LOAD_THROTTLE_MS = 900
 const RECOMMEND_EMPTY_COOLDOWN_MS = 5000
 const LOAD_MORE_SCROLL_THRESHOLD = 220
+const TAG_FETCH_CONCURRENCY = 3
 const query = ref<{ limit: number; lastId?: number; lastCreateTime?: string }>({
     limit: 10,
     lastId: undefined,
@@ -279,11 +277,9 @@ const secondaryTagOptions = computed(() =>
 )
 const activeRequestTagIds = computed(() => {
     if (!activePrimaryId.value) return isSearchMode.value ? [null] : ([] as Array<string | number | null>)
-    if (activeSecondaryId.value) return [activeSecondaryId.value]
-    const childIds = (activePrimaryTag.value?.children || [])
-        .filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
-        .map((item: any) => item.id)
-    return childIds.length ? childIds : [activePrimaryId.value]
+    if (!secondaryTagOptions.value.length) return [activePrimaryId.value]
+    const secondaryId = activeSecondaryId.value || String(secondaryTagOptions.value[0]?.id || '')
+    return secondaryId ? [secondaryId] : []
 })
 
 type TagFeedCursor = {
@@ -299,7 +295,10 @@ watch(
     topLevelTagOptions,
     groups => {
         const hasActivePrimary = groups.some((item: any) => String(item.id) === activePrimaryId.value)
-        if (!hasActivePrimary) activePrimaryId.value = ''
+        if (!hasActivePrimary) {
+            activePrimaryId.value = ''
+            activeSecondaryId.value = ''
+        }
     },
     { immediate: true }
 )
@@ -307,9 +306,12 @@ watch(
 watch(
     secondaryTagOptions,
     options => {
-        if (!activeSecondaryId.value) return
+        if (!options.length) {
+            activeSecondaryId.value = ''
+            return
+        }
         const hasActiveSecondary = options.some((item: any) => String(item.id) === activeSecondaryId.value)
-        if (!hasActiveSecondary) activeSecondaryId.value = ''
+        if (!hasActiveSecondary) activeSecondaryId.value = String(options[0].id)
     },
     { immediate: true }
 )
@@ -600,6 +602,7 @@ const fetchTagFeedBatch = async (tagId: string | number | null, requestId: numbe
 const fetchPrimaryTagFeed = async (isLoadMore: boolean, requestId: number, keyword = '', signal?: AbortSignal) => {
     if (!isLatestFeedRequest(requestId)) return
     const tagIds = activeRequestTagIds.value
+    const limit = query.value.limit
     if (!tagIds.length) {
         if (!isLatestFeedRequest(requestId)) return
         posts.value = []
@@ -609,18 +612,24 @@ const fetchPrimaryTagFeed = async (isLoadMore: boolean, requestId: number, keywo
 
     tagIds.forEach((tagId: string | number | null) => ensureTagFeedCursor(tagId))
     const seen = new Set((isLoadMore ? posts.value : []).map(item => String(getPostKey(item))))
-    const pendingTagIds = tagIds.filter((tagId: string | number | null) => {
+    let batch = takeFromTagBuffers(limit, seen)
+    let pendingTagIds = tagIds.filter((tagId: string | number | null) => {
         const cursor = ensureTagFeedCursor(tagId)
-        return !cursor.finished && cursor.buffer.length < query.value.limit
+        return !cursor.finished && cursor.buffer.length < limit
     })
 
-    if (pendingTagIds.length) {
-        await Promise.all(pendingTagIds.map((tagId: string | number | null) => fetchTagFeedBatch(tagId, requestId, keyword, signal)))
+    while (batch.length < limit && pendingTagIds.length) {
+        const chunk = pendingTagIds.splice(0, TAG_FETCH_CONCURRENCY)
+        await Promise.all(chunk.map((tagId: string | number | null) => fetchTagFeedBatch(tagId, requestId, keyword, signal)))
+        if (!isLatestFeedRequest(requestId)) return
+        batch = batch.concat(takeFromTagBuffers(limit - batch.length, seen))
+        pendingTagIds = pendingTagIds.filter((tagId: string | number | null) => {
+            const cursor = ensureTagFeedCursor(tagId)
+            return !cursor.finished && cursor.buffer.length < limit
+        })
     }
 
     if (!isLatestFeedRequest(requestId)) return
-    const batch = takeFromTagBuffers(query.value.limit, seen)
-
     posts.value = isLoadMore ? posts.value.concat(batch) : batch
     finished.value = tagIds.every((tagId: string | number | null) => {
         const cursor = ensureTagFeedCursor(tagId)
@@ -876,7 +885,9 @@ const handlePrimaryTagChange = (tagId?: string | number) => {
     if (activePrimaryId.value === nextPrimaryId) return
 
     activePrimaryId.value = nextPrimaryId
-    activeSecondaryId.value = ''
+    const nextPrimary = topLevelTagOptions.value.find((item: any) => String(item.id) === nextPrimaryId)
+    const firstSecondary = (nextPrimary?.children || []).find((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
+    activeSecondaryId.value = firstSecondary ? String(firstSecondary.id) : ''
     resetAndFetch(true)
 }
 
@@ -1207,15 +1218,10 @@ onBeforeUnmount(() => {
     scrollbar-width: none;
 }
 
-.sidebar-nav,
-.tips-card {
+.sidebar-nav {
     background: transparent;
-    border-radius: 0;
     border: 0;
     box-shadow: none;
-}
-
-.sidebar-nav {
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -1262,17 +1268,21 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-footer {
-    display: none;
+    display: block;
+    margin-top: auto;
 }
 
 .tips-card {
-    padding: 24px;
+    padding: 18px;
+    border: 1px solid color-mix(in srgb, var(--text-main) 8%, transparent);
+    border-radius: 8px;
+    background: var(--client-surface-muted);
 }
 
 .tips-title {
-    margin: 0 0 20px 0;
+    margin: 0 0 16px 0;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-main);
 }
 
@@ -1290,7 +1300,7 @@ onBeforeUnmount(() => {
     align-items: flex-start;
     gap: 12px;
     font-size: 13px;
-    color: var(--text-regular);
+    color: var(--text-main);
     line-height: 1.6;
 }
 
@@ -1298,7 +1308,8 @@ onBeforeUnmount(() => {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: var(--bg-color);
+    background: var(--client-active-bg);
+    color: var(--client-active-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1307,7 +1318,7 @@ onBeforeUnmount(() => {
 
 .icon-wrapper svg {
     font-size: 16px;
-    color: var(--text-minor);
+    color: currentColor;
 }
 
 .content-area {

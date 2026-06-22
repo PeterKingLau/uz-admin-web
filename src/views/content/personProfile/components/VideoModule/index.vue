@@ -49,6 +49,7 @@
                             @waiting="onWaiting"
                             @stalled="onWaiting"
                             @seeking="onWaiting"
+                            @error="onError"
                             @volumechange="onVolumeChange"
                             @ratechange="onRateChange"
                         ></video>
@@ -596,6 +597,7 @@ const {
     onPlaying,
     onPause,
     onWaiting,
+    onError,
     onVolumeChange,
     onRateChange,
     onMouseMove,
@@ -986,7 +988,7 @@ const seekRelative = delta => {
 const handleAudioProgressClick = event => {
     const target = event.currentTarget
     const max = Number(progressMax.value || 0)
-    if (!target || !max) return
+    if (!target || !max || !canSeekVideo.value) return
     const rect = target.getBoundingClientRect()
     if (!rect.width) return
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))

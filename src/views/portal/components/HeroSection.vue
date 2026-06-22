@@ -2,20 +2,21 @@
     <section id="hero" class="hero-section section-shell">
         <div class="hero-copy">
             <Transition name="portal-fade" mode="out-in">
-                <div :key="activeHeroSlide.key" class="hero-copy-slide">
-                    <span class="hero-topic">{{ activeHeroSlide.topic }}</span>
-                    <h1>{{ activeHeroSlide.title }}</h1>
-                    <p>{{ activeHeroSlide.desc }}</p>
+                <div :key="activeHeroSlide.key" class="hero-copy-slide" :aria-label="`${activeHeroSlide.topic}: ${activeHeroSlide.title}`">
+                    <img :src="activeHeroVisualImage" :alt="activeHeroSlide.title" />
                 </div>
             </Transition>
             <div class="hero-actions">
-                <button type="button" class="primary-action large" @click="$emit('goClient')">{{ ui.enter }}</button>
-                <a class="secondary-action large" :href="activeHeroSlide.primaryHref" @click.prevent="$emit('navigate', activeHeroSlide.primaryHref)">
-                    {{ activeHeroSlide.primaryText }}
-                </a>
-                <a class="ghost-action large" :href="activeHeroSlide.secondaryHref" @click.prevent="$emit('navigate', activeHeroSlide.secondaryHref)">
-                    {{ activeHeroSlide.secondaryText }}
-                </a>
+                <button
+                    v-for="(item, index) in heroActionItems"
+                    :key="item.route"
+                    type="button"
+                    class="ghost-action large hero-entry-action"
+                    :class="{ active: index === activeHeroIndex }"
+                    @click="handleHeroActionClick(index, item.route)"
+                >
+                    {{ item.label }}
+                </button>
             </div>
             <div class="hero-carousel-controls" :aria-label="ui.carouselAriaLabel">
                 <button
@@ -81,6 +82,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PortalHeroSlide, PortalMetric, PortalUiText } from '../data'
+import dashboardImage from '@/assets/images/portal-hero-dashboard.png'
 import heroImage from '@/assets/images/portal-hero-overview.jpg'
 import eventImage from '@/assets/images/portal-hero-event.jpg'
 import creatorImage from '@/assets/images/portal-hero-creator.jpg'
@@ -89,8 +91,10 @@ import metricsImage from '@/assets/images/portal-hero-metrics.jpg'
 
 defineOptions({ name: 'PortalHeroSection' })
 const boardImage = eventImage
-const heroImages = [heroImage, eventImage, creatorImage]
+const heroVisualImages = [dashboardImage, eventImage, creatorImage, metricsImage]
+const heroImages = [eventImage, stageImage, creatorImage, heroImage]
 const sideCardImages = [stageImage, metricsImage]
+const heroActionRoutes = ['#hero', '#competition', '#works', '/discover']
 const props = defineProps<{
     ui: PortalUiText['hero']
     heroSlides: PortalHeroSlide[]
@@ -99,10 +103,22 @@ const props = defineProps<{
     heroMetrics: PortalMetric[]
     heroFlow: string[]
 }>()
-const activeHeroImage = computed(() => heroImages[props.activeHeroIndex % heroImages.length])
-defineEmits<{
+const emit = defineEmits<{
     goClient: []
     navigate: [route: string]
     setHeroSlide: [index: number]
 }>()
+const heroActionItems = computed(() =>
+    props.heroSlides.map((slide, index) => ({
+        label: slide.topic,
+        route: heroActionRoutes[index] || slide.primaryHref || '#hero'
+    }))
+)
+const activeHeroVisualImage = computed(() => heroVisualImages[props.activeHeroIndex % heroVisualImages.length])
+const activeHeroImage = computed(() => heroImages[props.activeHeroIndex % heroImages.length])
+
+function handleHeroActionClick(index: number, route: string) {
+    emit('setHeroSlide', index)
+    emit('navigate', route)
+}
 </script>

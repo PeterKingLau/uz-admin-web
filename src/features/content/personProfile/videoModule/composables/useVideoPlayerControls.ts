@@ -46,14 +46,14 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const isVideoBuffering = ref(false)
     const hasRenderedFirstFrame = ref(false)
     const isPlayerUiReady = ref(false)
-    const showVideoBuffering = computed(() => isVideoBuffering.value && (!videoCoverOverlayVisible.value || hasRenderedFirstFrame.value))
+    const showVideoBuffering = computed(() => isVideoBuffering.value)
     const showPauseOverlay = computed(() => !isPlaying.value && !videoCoverOverlayVisible.value)
 
     const duration = ref(0)
     const currentTime = ref(0)
     const hasDuration = computed(() => Number.isFinite(duration.value) && duration.value > 0)
     const canSeekVideo = computed(() => hasDuration.value)
-    const canTogglePlayback = computed(() => Boolean(playerRef.value))
+    const canTogglePlayback = computed(() => Boolean(playerRef.value && playbackSrc.value))
     const playControlIcon = computed(() => {
         if (playIntent.value === 'play') return 'mdi:pause'
         if (playIntent.value === 'pause') return 'mdi:play'
@@ -64,7 +64,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
 
     const isDraggingProgress = ref(false)
     const progressDraft = ref(0)
-    const progressMax = computed(() => (hasDuration.value ? duration.value : 0))
+    const progressMax = computed(() => (hasDuration.value ? duration.value : 1))
     const progressShown = computed(() => {
         if (!hasDuration.value) return 0
         return isDraggingProgress.value ? progressDraft.value : currentTime.value
@@ -343,11 +343,23 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         const normalizedSrc = String(nextSrc || '').trim()
         const currentSyncId = ++sourceSyncId
         isUsingLocalCache.value = false
+        duration.value = 0
+        currentTime.value = 0
+        progressDraft.value = 0
+        progressHover.visible = false
+        isDraggingProgress.value = false
+        hasRenderedFirstFrame.value = false
 
         if (!normalizedSrc) {
             revokePlaybackObjectUrl()
             playbackSrc.value = ''
             return
+        }
+
+        if (visible.value) {
+            revealPlayerUi()
+            setBufferingState(true, true)
+            videoCoverOverlayVisible.value = Boolean(videoPosterUrl.value)
         }
 
         if (!canUseLocalCache(normalizedSrc)) {
@@ -434,6 +446,10 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
 
     const onProgressHover = (event: MouseEvent) => {
         if (isDraggingProgress.value) return
+        if (!canSeekVideo.value) {
+            progressHover.visible = false
+            return
+        }
         const el = progressContainerRef.value
         const max = progressMax.value
         if (!el || !max) {
@@ -678,6 +694,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const safePlay = async (el: HTMLVideoElement | null) => {
         if (!el?.play) return
         try {
+            revealPlayerUi()
             setBufferingState(true, true)
             scheduleInitialPlayFallback()
             const result = el.play()
@@ -694,7 +711,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
 
     const togglePlay = () => {
         const el = playerRef.value
-        if (!el) return
+        if (!el || !playbackSrc.value) return
         if (el.paused) {
             playIntent.value = 'play'
             safePlay(el)
@@ -721,14 +738,15 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         isPlaying.value = !el.paused
         syncPiPSupport()
         updateWatermarkAndFit()
+        revealPlayerUi()
     }
 
     const onLoadStart = () => {
         stallRecoveryAttempts = 0
         clearStallRecoveryTimer()
+        revealPlayerUi()
         setBufferingState(true, true)
         hasRenderedFirstFrame.value = false
-        isPlayerUiReady.value = false
     }
 
     const onLoadedData = () => {
@@ -794,6 +812,15 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
     const onWaiting = () => {
         setBufferingState(true)
         scheduleStallRecovery()
+    }
+
+    const onError = () => {
+        clearInitialPlayFallbackTimer()
+        clearStallRecoveryTimer()
+        playIntent.value = null
+        isPlaying.value = false
+        setBufferingState(false, true)
+        revealPlayerUi()
     }
 
     const onVolumeChange = () => {
@@ -996,9 +1023,9 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         document.addEventListener('fullscreenchange', handleResize)
         window.addEventListener('keydown', onKeydown)
         lockPageScroll()
+        revealPlayerUi()
         setBufferingState(true, true)
         hasRenderedFirstFrame.value = false
-        isPlayerUiReady.value = false
         el.playbackRate = Number(playbackRate.value || 1)
         el.volume = Math.min(1, Math.max(0, Number(volume.value)))
         el.preload = 'auto'
@@ -1155,6 +1182,7 @@ export function useVideoPlayerControls(options: UseVideoPlayerControlsOptions) {
         onPlaying,
         onPause,
         onWaiting,
+        onError,
         onVolumeChange,
         onRateChange,
         onMouseMove,
