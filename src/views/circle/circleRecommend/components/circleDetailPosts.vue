@@ -52,7 +52,7 @@ import { deleteComment, listCommentReplies, listTopComments } from '@/api/conten
 import useUserStore from '@/store/modules/user'
 import CircleCommentsDialog from './CircleCommentsDialog.vue'
 import CircleDetailPostCard from './CircleDetailPostCard.vue'
-import type { PostItem } from '@/types/circle'
+import type { PostItem } from '../types'
 
 defineProps<{
     postList: PostItem[]

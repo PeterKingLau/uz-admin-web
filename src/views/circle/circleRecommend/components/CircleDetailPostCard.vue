@@ -203,7 +203,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'ViewsCircleCircleRecommendComponentsCircleDetailPostCard' })
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import type { PostItem } from '@/types/circle'
+import type { PostItem } from '../types'
 
 const props = defineProps<{
     post: PostItem

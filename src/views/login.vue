@@ -1,99 +1,104 @@
 <template>
-    <div class="login">
-        <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
-            <div class="header-box">
-                <h3 class="title">欢迎回来</h3>
-                <p class="sub-title">请登录您的账户以继续</p>
+    <div class="login" :class="loginThemeClass">
+        <section class="login-visual" aria-hidden="true">
+            <div class="visual-content">
+                <h1>
+                    <span class="title-line-start">上测吧测一测</span>
+                    <span class="title-line-end">职业方向更明确</span>
+                </h1>
             </div>
+        </section>
 
-            <el-form-item class="login-type-item">
-                <div class="login-type-switch">
-                    <div class="switch-active-bar" :style="{ transform: loginForm.loginType === 'PASSWORD' ? 'translateX(0)' : 'translateX(100%)' }"></div>
-                    <div class="switch-item" :class="{ active: loginForm.loginType === 'PASSWORD' }" @click="loginForm.loginType = 'PASSWORD'">账号密码</div>
-                    <div class="switch-item" :class="{ active: loginForm.loginType === 'SMS' }" @click="loginForm.loginType = 'SMS'">短信验证码</div>
+        <section class="login-panel">
+            <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
+                <div class="header-box">
+                    <h3 class="title">欢迎回来</h3>
+                    <p class="sub-title">请登录您的账户以继续</p>
                 </div>
-            </el-form-item>
 
-            <el-form-item prop="username">
-                <el-input
-                    v-model="loginForm.username"
-                    type="text"
-                    autocomplete="off"
-                    :placeholder="usernamePlaceholder"
-                    :maxlength="usernameMaxlength"
-                    :inputmode="loginForm.loginType === 'SMS' ? 'numeric' : 'text'"
-                    @input="handleUsernameInput"
-                    @keyup.enter="handleLogin"
-                >
-                    <template #prefix>
-                        <Icon icon="mdi:account-outline" class="input-icon" />
-                    </template>
-                </el-input>
-            </el-form-item>
+                <el-form-item class="login-type-item">
+                    <div class="login-type-switch">
+                        <div class="switch-active-bar" :style="{ transform: loginForm.loginType === 'PASSWORD' ? 'translateX(0)' : 'translateX(100%)' }"></div>
+                        <div class="switch-item" :class="{ active: loginForm.loginType === 'PASSWORD' }" @click="loginForm.loginType = 'PASSWORD'">账号密码</div>
+                        <div class="switch-item" :class="{ active: loginForm.loginType === 'SMS' }" @click="loginForm.loginType = 'SMS'">短信验证码</div>
+                    </div>
+                </el-form-item>
 
-            <el-form-item v-if="loginForm.loginType === 'PASSWORD'" prop="password">
-                <el-input
-                    v-model="loginForm.password"
-                    :type="showPassword ? 'text' : 'password'"
-                    autocomplete="off"
-                    placeholder="请输入您的密码"
-                    @keyup.enter="handleLogin"
-                >
-                    <template #prefix>
-                        <Icon icon="mdi:lock-outline" class="input-icon" />
-                    </template>
-                    <template #suffix>
-                        <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="password-toggle" @click.stop="togglePassword" />
-                    </template>
-                </el-input>
-            </el-form-item>
-
-            <el-form-item v-if="loginForm.loginType === 'SMS'" prop="smsCode">
-                <div class="sms-input-group">
-                    <el-input v-model="loginForm.smsCode" maxlength="6" placeholder="6位验证码" @keyup.enter="handleLogin" class="sms-input">
+                <el-form-item prop="username">
+                    <el-input
+                        v-model="loginForm.username"
+                        type="text"
+                        autocomplete="off"
+                        :placeholder="usernamePlaceholder"
+                        :maxlength="usernameMaxlength"
+                        :inputmode="loginForm.loginType === 'SMS' ? 'numeric' : 'text'"
+                        @input="handleUsernameInput"
+                        @keyup.enter="handleLogin"
+                    >
                         <template #prefix>
-                            <Icon icon="mdi:message-text-outline" class="input-icon" />
+                            <Icon icon="mdi:account-outline" class="input-icon" />
                         </template>
                     </el-input>
-                    <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
-                        {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
-                    </el-button>
+                </el-form-item>
+
+                <el-form-item v-if="loginForm.loginType === 'PASSWORD'" prop="password">
+                    <el-input v-model="loginForm.password" :type="showPassword ? 'text' : 'password'" autocomplete="off" placeholder="请输入您的密码" @keyup.enter="handleLogin">
+                        <template #prefix>
+                            <Icon icon="mdi:lock-outline" class="input-icon" />
+                        </template>
+                        <template #suffix>
+                            <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="password-toggle" @click.stop="togglePassword" />
+                        </template>
+                    </el-input>
+                </el-form-item>
+
+                <el-form-item v-if="loginForm.loginType === 'SMS'" prop="smsCode">
+                    <div class="sms-input-group">
+                        <el-input v-model="loginForm.smsCode" maxlength="6" placeholder="6位验证码" @keyup.enter="handleLogin" class="sms-input">
+                            <template #prefix>
+                                <Icon icon="mdi:message-text-outline" class="input-icon" />
+                            </template>
+                        </el-input>
+                        <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
+                            {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
+                        </el-button>
+                    </div>
+                </el-form-item>
+
+                <div class="form-options">
+                    <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" label="记住我" />
+                    <router-link v-if="register" to="/register" class="register-link">注册新账号</router-link>
                 </div>
-            </el-form-item>
 
-            <div class="form-options">
-                <el-checkbox v-if="loginForm.loginType === 'PASSWORD'" v-model="loginForm.rememberMe" label="记住我" />
-                <router-link v-if="register" to="/register" class="register-link">注册新账号</router-link>
+                <div class="agreement-box">
+                    <span class="agreement-text">登录即表示您已阅读并同意</span>
+                    <router-link class="policy-link inline-policy-link" to="/user-agreement" target="_blank" rel="noopener noreferrer">《用户协议》</router-link>
+                    <span class="agreement-text">和</span>
+                    <router-link class="policy-link inline-policy-link" to="/privacy-policy" target="_blank" rel="noopener noreferrer">《隐私政策》</router-link>
+                </div>
+
+                <el-form-item style="margin-bottom: 0">
+                    <el-button :loading="loading" type="primary" class="login-btn" @click.prevent="handleLogin">
+                        {{ loading ? '登录中...' : '立即登录' }}
+                    </el-button>
+                </el-form-item>
+            </el-form>
+
+            <div class="el-login-footer">
+                <div class="copyright-info">
+                    <span>Copyright © 2026 All Rights Reserved.</span>
+                    <a
+                        class="beian-link"
+                        href="https://beian.miit.gov.cn/#/Integrated/recordQuery"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click.prevent="handleBeianLinkClick"
+                    >
+                        {{ beianRecordNumber }}
+                    </a>
+                </div>
             </div>
-
-            <div class="agreement-box">
-                <span class="agreement-text">登录即表示您已阅读并同意</span>
-                <router-link class="policy-link inline-policy-link" to="/user-agreement" target="_blank" rel="noopener noreferrer">《用户协议》</router-link>
-                <span class="agreement-text">和</span>
-                <router-link class="policy-link inline-policy-link" to="/privacy-policy" target="_blank" rel="noopener noreferrer">《隐私政策》</router-link>
-            </div>
-
-            <el-form-item style="margin-bottom: 0">
-                <el-button :loading="loading" type="primary" class="login-btn" @click.prevent="handleLogin">
-                    {{ loading ? '登录中...' : '立即登录' }}
-                </el-button>
-            </el-form-item>
-        </el-form>
-
-        <div class="el-login-footer">
-            <div class="copyright-info">
-                <span>Copyright © 2026 All Rights Reserved.</span>
-                <a
-                    class="beian-link"
-                    href="https://beian.miit.gov.cn/#/Integrated/recordQuery"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    @click.prevent="handleBeianLinkClick"
-                >
-                    {{ beianRecordNumber }}
-                </a>
-            </div>
-        </div>
+        </section>
 
         <el-dialog
             v-model="beianDialogVisible"
@@ -133,6 +138,7 @@ import { encryptRememberedPassword, decryptRememberedPassword } from '@/utils/re
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
 import { copyTextToClipboard } from '@/directive/common/copyText'
+import { isClientRoutePath } from '@/utils/routeAccess'
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -195,6 +201,7 @@ function handleUsernameInput(val) {
 const loading = ref(false)
 const register = ref(false)
 const redirect = ref()
+const LOGIN_THEME_QUERY_KEYS = ['theme', 'platform', 'mode', 'entry']
 const beianRecordNumber = '蜀ICP备2026006423号-1'
 const beianRecordUrl = 'https://beian.miit.gov.cn/#/Integrated/recordQuery'
 const beianDialogVisible = ref(false)
@@ -214,6 +221,33 @@ function resolveRememberMeDays() {
 }
 
 const rememberMeDays = resolveRememberMeDays()
+
+function normalizeQueryText(value) {
+    const raw = Array.isArray(value) ? value[0] : value
+    return String(raw || '')
+        .trim()
+        .toLowerCase()
+}
+
+function normalizeRedirectPath(value) {
+    const raw = Array.isArray(value) ? value[0] : value
+    const text = String(raw || '').trim()
+    if (!text) return ''
+    try {
+        return decodeURIComponent(text)
+    } catch {
+        return text
+    }
+}
+
+const loginTheme = computed(() => {
+    const query = route.query || {}
+    const explicitTheme = LOGIN_THEME_QUERY_KEYS.map(key => normalizeQueryText(query[key])).find(value => value === 'client' || value === 'admin')
+    if (explicitTheme) return explicitTheme
+    return isClientRoutePath(normalizeRedirectPath(redirect.value)) ? 'client' : 'admin'
+})
+
+const loginThemeClass = computed(() => `theme-${loginTheme.value}`)
 
 function parseStoredBoolean(value) {
     return value === 'true' || value === '1'
@@ -466,9 +500,13 @@ function togglePassword() {
 .login {
     --login-black: var(--el-color-black);
     --login-white: var(--el-color-white);
-    --login-primary: var(--el-color-primary);
-    --login-primary-soft: var(--el-color-primary-light-3);
-    --login-surface: color-mix(in srgb, var(--el-bg-color) 85%, transparent);
+    --login-primary: #2563eb;
+    --login-primary-soft: #3b82f6;
+    --login-button-text: var(--login-white);
+    --login-panel-bg: var(--el-bg-color);
+    --login-visual-side-overlay: linear-gradient(90deg, color-mix(in srgb, var(--login-black) 44%, transparent), color-mix(in srgb, var(--login-black) 10%, transparent));
+    --login-visual-bottom-overlay: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--login-black) 32%, transparent) 100%);
+    --login-surface: var(--el-bg-color);
     --login-surface-strong: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
     --login-surface-soft: color-mix(in srgb, var(--el-fill-color-light) 72%, var(--el-bg-color));
     --login-surface-muted: color-mix(in srgb, var(--el-fill-color-light) 84%, transparent);
@@ -480,65 +518,114 @@ function togglePassword() {
     --login-white-muted: color-mix(in srgb, var(--login-white) 80%, transparent);
     --login-white-faint: color-mix(in srgb, var(--login-white) 60%, transparent);
     --login-white-dim: color-mix(in srgb, var(--login-white) 40%, transparent);
-    --login-overlay-focus-x: 50%;
-    --login-overlay-shadow-x: 50%;
-    --login-accent-x: 50%;
-    --login-accent-y: 24%;
-    --login-accent-opacity: 0.18;
-    --login-air-x: 50%;
-    --login-air-opacity: 0.12;
-    --login-overlay:
-        radial-gradient(circle at var(--login-overlay-focus-x) 28%, color-mix(in srgb, var(--login-white) 14%, transparent) 0%, transparent 32%),
-        linear-gradient(
-            90deg,
-            color-mix(in srgb, var(--login-black) 10%, transparent) 0%,
-            color-mix(in srgb, var(--login-black) 18%, transparent) 35%,
-            color-mix(in srgb, var(--login-black) 34%, transparent) 100%
-        ),
-        radial-gradient(
-            circle at var(--login-overlay-shadow-x) 50%,
-            color-mix(in srgb, var(--login-black) 6%, transparent) 0%,
-            color-mix(in srgb, var(--login-black) 44%, transparent) 100%
-        );
     position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(400px, 0.72fr);
     box-sizing: border-box;
     width: 100%;
     min-height: 100vh;
-    padding: 32px clamp(24px, 6vw, 96px) 96px;
-    background-image: url('../assets/images/login-background.jpg');
+    background: var(--el-bg-color);
+    overflow: hidden;
+}
+
+.login.theme-admin {
+    --el-color-primary: #2563eb;
+    --el-color-primary-light-3: #60a5fa;
+    --el-color-primary-light-5: #93c5fd;
+    --el-color-primary-light-7: #bfdbfe;
+    --el-color-primary-light-8: #dbeafe;
+    --el-color-primary-light-9: #eff6ff;
+    --el-color-primary-dark-2: #1d4ed8;
+}
+
+.login.theme-client {
+    --login-primary: #d99a00;
+    --login-primary-soft: #f6c453;
+    --login-button-text: #4f3a00;
+    --login-panel-bg: #fffdf7;
+    --login-surface: #ffffff;
+    --login-visual-side-overlay: linear-gradient(90deg, rgba(74, 54, 0, 0.42), rgba(74, 54, 0, 0.08));
+    --login-visual-bottom-overlay: linear-gradient(180deg, transparent 0%, rgba(74, 54, 0, 0.28) 100%);
+    --el-color-primary: #d99a00;
+    --el-color-primary-light-3: #f0c04f;
+    --el-color-primary-light-5: #f6d887;
+    --el-color-primary-light-7: #fae9b8;
+    --el-color-primary-light-8: #fff2cf;
+    --el-color-primary-light-9: #fff8e6;
+    --el-color-primary-dark-2: #b8870d;
+}
+
+.login-visual {
+    position: relative;
+    min-height: 100vh;
+    padding: clamp(48px, 7vw, 92px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-image:
+        var(--login-visual-side-overlay),
+        url('../assets/images/login-background.jpg');
     background-size: cover;
     background-position: center;
-    background-attachment: fixed;
-    overflow: hidden;
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: var(--login-overlay);
-        z-index: 0;
-    }
 
     &::after {
         content: '';
         position: absolute;
         inset: 0;
-        background:
-            radial-gradient(ellipse 42% 58% at var(--login-air-x) 50%, color-mix(in srgb, var(--login-white) 18%, transparent) 0%, transparent 72%),
-            radial-gradient(
-                circle at var(--login-accent-x) var(--login-accent-y),
-                color-mix(in srgb, var(--login-primary) 24%, transparent) 0%,
-                color-mix(in srgb, var(--login-primary-soft) 12%, transparent) 18%,
-                transparent 48%
-            ),
-            radial-gradient(circle at calc(100% - var(--login-accent-x)) 78%, color-mix(in srgb, var(--login-white) 12%, transparent) 0%, transparent 34%);
-        opacity: calc((var(--login-accent-opacity) + var(--login-air-opacity)) * 0.5);
-        z-index: 0;
+        background: var(--login-visual-bottom-overlay);
         pointer-events: none;
     }
+}
+
+.visual-content {
+    position: relative;
+    z-index: 1;
+    width: min(76vw, 720px);
+    max-width: 100%;
+    margin-top: 0;
+    color: var(--login-white);
+    text-align: left;
+
+    h1 {
+        margin: 0;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        font-size: clamp(38px, 4.2vw, 62px);
+        line-height: 1.12;
+        font-weight: 800;
+        letter-spacing: 0;
+
+        span {
+            display: block;
+            width: max-content;
+            max-width: 100%;
+            white-space: nowrap;
+        }
+
+        .title-line-start {
+            justify-self: start;
+        }
+
+        .title-line-end {
+            justify-self: end;
+        }
+    }
+
+}
+
+.login-panel {
+    min-height: 100vh;
+    padding: 48px clamp(28px, 4vw, 56px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    background: var(--login-panel-bg);
+    overflow-y: auto;
 }
 
 :global(html, body, #app) {
@@ -565,17 +652,16 @@ function togglePassword() {
 
 .login-form {
     position: relative;
-    z-index: 10;
     flex-shrink: 0;
-    width: 420px;
+    width: 380px;
+    max-width: 100%;
     padding: 40px;
     background: var(--login-surface);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 24px;
+    border: 1px solid var(--login-border);
+    border-radius: 20px;
     box-shadow:
-        0 20px 40px var(--login-shadow),
-        0 1px 3px var(--login-white-soft) inset;
+        0 20px 42px var(--login-shadow),
+        0 1px 0 var(--login-white-soft) inset;
 }
 
 .header-box {
@@ -727,7 +813,7 @@ function togglePassword() {
 }
 
 :deep(.el-input__wrapper.is-focus) .input-icon {
-    color: var(--el-color-primary);
+    color: var(--login-primary);
 }
 
 .password-toggle {
@@ -773,7 +859,7 @@ function togglePassword() {
 
         &:hover:not(.is-disabled) {
             background: var(--login-primary);
-            color: var(--login-white);
+            color: var(--login-button-text);
             box-shadow: 0 4px 12px color-mix(in srgb, var(--login-primary) 20%, transparent);
         }
 
@@ -806,7 +892,7 @@ function togglePassword() {
     }
 
     .register-link {
-        color: var(--el-color-primary);
+        color: var(--login-primary);
         font-size: 13px;
         text-decoration: none;
         font-weight: 500;
@@ -826,7 +912,7 @@ function togglePassword() {
     text-align: center;
 
     .inline-policy-link {
-        color: var(--el-color-primary);
+        color: var(--login-primary);
         text-decoration: none;
         transition: opacity 0.2s;
 
@@ -844,6 +930,7 @@ function togglePassword() {
     border-radius: 12px;
     background: var(--login-primary);
     border: none;
+    color: var(--login-button-text);
     box-shadow: 0 8px 16px color-mix(in srgb, var(--login-primary) 30%, transparent);
     transition:
         background-color var(--app-motion-fast),
@@ -863,20 +950,19 @@ function togglePassword() {
 }
 
 .el-login-footer {
-    position: fixed;
-    bottom: 30px;
-    width: 100%;
+    width: 380px;
+    max-width: 100%;
+    margin-top: 28px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    z-index: 5;
 
     .copyright-info {
         display: flex;
         align-items: center;
         gap: 12px;
-        color: var(--login-white-faint);
+        color: var(--el-text-color-secondary);
         font-size: 12px;
 
         .beian-link {
@@ -885,7 +971,7 @@ function togglePassword() {
             transition: color 0.2s;
 
             &:hover {
-                color: var(--login-white-muted);
+                color: var(--login-primary);
             }
         }
     }
@@ -934,16 +1020,48 @@ function togglePassword() {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
     .login {
-        justify-content: center;
-        padding: 24px 20px 88px;
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+    }
+
+    .login-visual {
+        min-height: 260px;
+        padding: 36px 28px;
+    }
+
+    .login-panel {
+        min-height: auto;
+        padding: 32px 20px 40px;
+    }
+
+    .visual-content {
+        width: min(100%, 680px);
+
+        h1 {
+            font-size: 34px;
+        }
     }
 }
 
 @media (max-width: 480px) {
+    .login-visual {
+        min-height: 220px;
+        padding: 28px 20px;
+    }
+
+    .visual-content {
+        h1 {
+            grid-template-columns: 1fr;
+            gap: 8px;
+            font-size: 28px;
+        }
+
+    }
+
     .login-form {
-        width: calc(100% - 40px);
+        width: 100%;
         padding: 32px 24px;
     }
 
@@ -955,39 +1073,23 @@ function togglePassword() {
     }
 }
 
-html.dark {
-    .login::before {
-        background:
-            radial-gradient(circle at var(--login-overlay-focus-x) 26%, color-mix(in srgb, var(--login-white) 6%, transparent) 0%, transparent 24%),
-            linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--login-black) 18%, transparent) 0%,
-                color-mix(in srgb, var(--login-black) 32%, transparent) 38%,
-                color-mix(in srgb, var(--login-black) 58%, transparent) 100%
-            ),
-            radial-gradient(
-                circle at var(--login-overlay-shadow-x) 50%,
-                color-mix(in srgb, var(--login-black) 24%, transparent) 0%,
-                color-mix(in srgb, var(--login-black) 68%, transparent) 100%
-            );
+:global(html.dark) {
+    .login-panel {
+        background: var(--login-panel-bg, var(--el-bg-color-page));
     }
 
-    .login::after {
-        background:
-            radial-gradient(ellipse 42% 58% at var(--login-air-x) 50%, color-mix(in srgb, var(--login-white) 8%, transparent) 0%, transparent 70%),
-            radial-gradient(
-                circle at var(--login-accent-x) var(--login-accent-y),
-                color-mix(in srgb, var(--login-primary) 20%, transparent) 0%,
-                transparent 42%
-            ),
-            radial-gradient(circle at calc(100% - var(--login-accent-x)) 74%, color-mix(in srgb, var(--login-white) 5%, transparent) 0%, transparent 30%);
-        opacity: calc((var(--login-accent-opacity) + var(--login-air-opacity)) * 0.41);
+    .login.theme-client {
+        --login-panel-bg: #18140b;
+        --login-surface: #1f1a10;
+        --login-visual-side-overlay: linear-gradient(90deg, rgba(43, 31, 0, 0.58), rgba(43, 31, 0, 0.16));
+        --login-visual-bottom-overlay: linear-gradient(180deg, transparent 0%, rgba(43, 31, 0, 0.46) 100%);
     }
 
     .login-form {
-        background: color-mix(in srgb, var(--el-bg-color) 80%, transparent);
+        background: var(--login-surface, var(--el-bg-color-overlay));
+        border-color: var(--el-border-color-darker);
         box-shadow:
-            0 20px 40px color-mix(in srgb, var(--login-black) 40%, transparent),
+            0 20px 40px color-mix(in srgb, var(--login-black) 34%, transparent),
             0 1px 3px color-mix(in srgb, var(--login-white) 10%, transparent) inset;
     }
 

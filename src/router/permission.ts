@@ -9,6 +9,41 @@ import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
 import { getClientHomeRoute, isClientRoutePath, isMobileWebViewport } from '@/utils/routeAccess'
 
+type GuardRoute = {
+    path: string
+    fullPath: string
+    query?: Record<string, unknown>
+    meta?: Record<string, any>
+}
+
+const H5_APP_DOWNLOAD_PATH = '/h5/app-download'
+const LOGIN_PATH = '/login'
+const INDEX_PATH = '/index'
+const PUBLIC_PATHS = new Set([
+    '/',
+    '/portal',
+    LOGIN_PATH,
+    '/register',
+    '/user-agreement',
+    '/privacy-policy',
+    H5_APP_DOWNLOAD_PATH,
+    '/h5/user-agreement',
+    '/h5/privacy-policy'
+])
+const INDEX_PATHS = new Set(['/', INDEX_PATH])
+
+const ROUTE_SHELL_CLASS = {
+    auth: 'auth-route-shell',
+    client: 'client-route-shell',
+    portal: 'portal-route-shell',
+    admin: 'admin-route-shell'
+} as const
+const ROUTE_SHELL_CLASSES = Object.values(ROUTE_SHELL_CLASS)
+const ROUTE_PROGRESS_MIN_DURATION = 420
+
+let routeProgressStartTime = 0
+let routeProgressTimer: number | null = null
+
 NProgress.configure({
     showSpinner: false,
     easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -17,17 +52,39 @@ NProgress.configure({
     trickleSpeed: 180
 })
 
-const whiteList = ['/', '/portal', '/login', '/register', '/user-agreement', '/privacy-policy', '/h5/app-download', '/h5/user-agreement', '/h5/privacy-policy']
-const isIndexPath = (path: string) => path === '/' || path === '/index'
-const H5_APP_DOWNLOAD_PATH = '/h5/app-download'
-const AUTH_ROUTE_SHELL_CLASS = 'auth-route-shell'
-const CLIENT_ROUTE_SHELL_CLASS = 'client-route-shell'
-const PORTAL_ROUTE_SHELL_CLASS = 'portal-route-shell'
-const ADMIN_ROUTE_SHELL_CLASS = 'admin-route-shell'
-const ROUTE_SHELL_CLASSES = [AUTH_ROUTE_SHELL_CLASS, CLIENT_ROUTE_SHELL_CLASS, PORTAL_ROUTE_SHELL_CLASS, ADMIN_ROUTE_SHELL_CLASS]
-const ROUTE_PROGRESS_MIN_DURATION = 420
-let routeProgressStartTime = 0
-let routeProgressTimer: number | null = null
+const getRoutePlatform = (to: GuardRoute) =>
+    String(to.meta?.platform || '')
+        .trim()
+        .toLowerCase()
+
+const isPublicRoute = (to: GuardRoute) => PUBLIC_PATHS.has(to.path)
+
+const isIndexPath = (path: string) => INDEX_PATHS.has(path)
+
+const createClientHomeRedirect = () => {
+    const route = getClientHomeRoute()
+    return {
+        ...(typeof route === 'string' ? { path: route } : route),
+        replace: true
+    }
+}
+
+const createLoginRedirect = (to: GuardRoute) => ({
+    path: LOGIN_PATH,
+    query: { redirect: to.fullPath }
+})
+
+const getLoginRedirectPath = (redirect: unknown) => {
+    const value = Array.isArray(redirect) ? redirect[0] : redirect
+    if (typeof value === 'string' && value && value !== LOGIN_PATH) return value
+    return INDEX_PATH
+}
+
+const resolveErrorMessage = (error: unknown) => {
+    if (error instanceof Error && error.message) return error.message
+    if (typeof error === 'string' && error.trim()) return error
+    return '操作失败，请稍后重试'
+}
 
 const clearRouteProgressTimer = () => {
     if (!routeProgressTimer) return
@@ -44,6 +101,7 @@ const startRouteProgress = () => {
 const finishRouteProgress = () => {
     const elapsed = Date.now() - routeProgressStartTime
     const delay = Math.max(0, ROUTE_PROGRESS_MIN_DURATION - elapsed)
+
     clearRouteProgressTimer()
     routeProgressTimer = window.setTimeout(() => {
         NProgress.done()
@@ -51,124 +109,127 @@ const finishRouteProgress = () => {
     }, delay)
 }
 
-const getLoginRedirectPath = (redirect: unknown) => {
-    const value = Array.isArray(redirect) ? redirect[0] : redirect
-    if (typeof value === 'string' && value && value !== '/login') return value
-    return '/index'
-}
+const resolveRouteShellClass = (to: GuardRoute) => {
+    const platform = getRoutePlatform(to)
 
-const resolveRouteShellClass = (to: any) => {
-    const path = to.path || ''
-    const metaPlatform = String(to.meta?.platform || '')
-        .trim()
-        .toLowerCase()
-
-    if (path === '/login' || path === '/register') return AUTH_ROUTE_SHELL_CLASS
-    if (path === '/' || path === '/portal') return PORTAL_ROUTE_SHELL_CLASS
-    if (metaPlatform === 'client' || isClientRoutePath(path)) return CLIENT_ROUTE_SHELL_CLASS
-    if (metaPlatform === 'admin') return ADMIN_ROUTE_SHELL_CLASS
+    if (to.path === LOGIN_PATH || to.path === '/register') return ROUTE_SHELL_CLASS.auth
+    if (to.path === '/' || to.path === '/portal') return ROUTE_SHELL_CLASS.portal
+    if (platform === 'client' || isClientRoutePath(to.path)) return ROUTE_SHELL_CLASS.client
+    if (platform === 'admin') return ROUTE_SHELL_CLASS.admin
     return ''
 }
 
-const syncRouteShell = (to: any) => {
+const syncRouteShell = (to: GuardRoute) => {
     if (typeof document === 'undefined') return
+
     const activeClass = resolveRouteShellClass(to)
     ROUTE_SHELL_CLASSES.forEach(className => {
-        document.documentElement.classList.toggle(className, className === activeClass)
-        document.body?.classList.toggle(className, className === activeClass)
+        const isActive = className === activeClass
+        document.documentElement.classList.toggle(className, isActive)
+        document.body?.classList.toggle(className, isActive)
     })
 }
 
-const resolveContinueNavigation = (to: any) => {
+const prepareRouteUi = (to: GuardRoute) => {
+    syncRouteShell(to)
+    startRouteProgress()
+
+    if (to.meta?.title) {
+        useSettingsStore().setTitle(String(to.meta.title))
+    }
+    if (to.path === '/portal') {
+        useUserStore().logOut(false)
+    }
+}
+
+const resolveClientRouteIsolation = (to: GuardRoute) => {
+    const platform = getRoutePlatform(to)
+
+    if (platform === 'public') return null
+    if (isIndexPath(to.path)) return createClientHomeRedirect()
+    if (platform === 'admin' || !isClientRoutePath(to.path)) return createClientHomeRedirect()
+    return null
+}
+
+const resolvePostRouteRegistrationNavigation = (to: GuardRoute) => {
     const userStore = useUserStore()
     const clientRedirect = userStore.isCommonClient ? resolveClientRouteIsolation(to) : null
     return clientRedirect || { path: to.fullPath, replace: true }
 }
 
-const resolveClientRouteIsolation = (to: any) => {
-    const metaPlatform = String(to.meta?.platform || '')
-        .trim()
-        .toLowerCase()
-    if (metaPlatform === 'public') {
-        return null
-    }
-    if (isIndexPath(to.path)) {
-        return { path: '/discover', replace: true }
-    }
-    if (metaPlatform === 'admin' || !isClientRoutePath(to.path)) {
-        return { path: '/discover', replace: true }
-    }
-    return null
+const resolveAuthenticatedNavigation = (to: GuardRoute) => {
+    const userStore = useUserStore()
+    const clientRedirect = userStore.isCommonClient ? resolveClientRouteIsolation(to) : null
+    return clientRedirect || true
 }
 
-const shouldRedirectMobileClientRoute = (to: any) => {
-    const path = to.path || ''
-    const metaPlatform = String(to.meta?.platform || '')
-        .trim()
-        .toLowerCase()
+const shouldRedirectMobileClientRoute = (to: GuardRoute) => {
+    const platform = getRoutePlatform(to)
 
     if (!isMobileWebViewport()) return false
-    if (path === H5_APP_DOWNLOAD_PATH) return false
-    if (path === '/login' || path === '/register') return false
-    if (whiteList.includes(path)) return false
-    if (metaPlatform === 'public' || metaPlatform === 'admin') return false
-    return metaPlatform === 'client' || isClientRoutePath(path)
+    if (to.path === H5_APP_DOWNLOAD_PATH || to.path === LOGIN_PATH || to.path === '/register') return false
+    if (isPublicRoute(to)) return false
+    if (platform === 'public' || platform === 'admin') return false
+    return platform === 'client' || isClientRoutePath(to.path)
+}
+
+const addAccessRoutes = (routes: Array<{ path: string }>) => {
+    routes.forEach(route => {
+        if (!isHttp(route.path)) {
+            router.addRoute(route as any)
+        }
+    })
+}
+
+const logoutToPortal = async (error: unknown) => {
+    await useUserStore().logOut(false)
+    ElMessage.error(resolveErrorMessage(error))
+    return { path: '/' }
+}
+
+const loadUserAndRoutes = async (to: GuardRoute) => {
+    isRelogin.show = true
+    try {
+        await useUserStore().getInfo()
+    } catch (error) {
+        return logoutToPortal(error)
+    } finally {
+        isRelogin.show = false
+    }
+
+    try {
+        const accessRoutes = await usePermissionStore().generateRoutes()
+        addAccessRoutes(accessRoutes)
+        return resolvePostRouteRegistrationNavigation(to)
+    } catch (error) {
+        if (isClientRoutePath(to.path)) {
+            console.warn('Generate admin routes failed, continue client route navigation.')
+            return resolvePostRouteRegistrationNavigation(to)
+        }
+        return logoutToPortal(error)
+    }
 }
 
 router.beforeEach(async to => {
-    syncRouteShell(to)
-    startRouteProgress()
-    to.meta.title && useSettingsStore().setTitle(to.meta.title)
-    if (to.path === '/portal') {
-        useUserStore().logOut(false)
-    }
+    prepareRouteUi(to)
+
     if (shouldRedirectMobileClientRoute(to)) {
         return { path: H5_APP_DOWNLOAD_PATH, query: { redirect: to.fullPath }, replace: true }
     }
-    if (getToken()) {
-        if (to.path === '/login') {
-            return { path: getLoginRedirectPath(to.query?.redirect) }
-        }
 
-        if (useUserStore().roles.length === 0) {
-            isRelogin.show = true
-            try {
-                await useUserStore().getInfo()
-                isRelogin.show = false
-                try {
-                    const accessRoutes = await usePermissionStore().generateRoutes()
-                    accessRoutes.forEach(route => {
-                        if (!isHttp(route.path)) {
-                            router.addRoute(route)
-                        }
-                    })
-                    return resolveContinueNavigation(to)
-                } catch (err) {
-                    if (isClientRoutePath(to.path)) {
-                        console.warn('Generate admin routes failed, continue client route navigation.', err)
-                        return resolveContinueNavigation(to)
-                    }
-                    await useUserStore().logOut(false)
-                    ElMessage.error(err as any)
-                    return { path: '/' }
-                }
-            } catch (err) {
-                isRelogin.show = false
-                await useUserStore().logOut(false)
-                ElMessage.error(err as any)
-                return { path: '/' }
-            }
-        }
-
-        const clientRedirect = useUserStore().isCommonClient ? resolveClientRouteIsolation(to) : null
-        return clientRedirect || true
+    if (!getToken()) {
+        return isPublicRoute(to) ? true : createLoginRedirect(to)
     }
 
-    if (whiteList.indexOf(to.path) !== -1) {
-        return true
+    if (to.path === LOGIN_PATH) {
+        return { path: getLoginRedirectPath(to.query?.redirect) }
     }
 
-    return `/login?redirect=${to.fullPath}`
+    if (useUserStore().roles.length === 0) {
+        return loadUserAndRoutes(to)
+    }
+
+    return resolveAuthenticatedNavigation(to)
 })
 
 router.afterEach(() => {

@@ -1,7 +1,6 @@
 import { computed, type ComputedRef } from 'vue'
 import { ENUM_TAG_CONFIG } from '@/utils/enum'
 
-
 interface EnumConfig {
     label: string
     type: string

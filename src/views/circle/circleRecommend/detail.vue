@@ -83,7 +83,7 @@ import CircleDetailPosts from './components/circleDetailPosts.vue'
 import CircleDetailRightSidebar from './components/circleDetailRightSidebar.vue'
 import CircleMembersDialog from './components/circleMembersDialog.vue'
 import CirclePublishDialog from './components/circlePublishDialog.vue'
-import type { PostItem } from '@/types/circle'
+import type { PostItem } from './types'
 
 const route = useRoute()
 const router = useRouter()
