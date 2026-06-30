@@ -66,6 +66,7 @@ const loadPayload = () => {
     }
     const cacheKey = `${VIDEO_PLAYER_CACHE_KEY}:${postId}`
     const cached = proxy?.$cache?.session?.getJSON(cacheKey)
+    proxy?.$cache?.session?.remove?.(cacheKey)
     if (!cached || typeof cached !== 'object') {
         currentUserInfo.value = resolveFallbackUser()
         return false

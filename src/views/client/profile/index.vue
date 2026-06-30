@@ -162,6 +162,7 @@ import {
     getCommentId,
     getCommentReplyCount as resolveCommentReplyCount,
     getCommentUserId,
+    createMediaViewerPayloadPost,
     normalizeCommentList,
     parseMediaRaw,
     resolveFollowFlag,
@@ -966,7 +967,7 @@ const openPost = (post: any) => {
         if (postId == null || !images.length) return
         sessionCache.setJSON(`${CLIENT_MEDIA_VIEWER_CACHE_KEY}:${postId}`, {
             id: postId,
-            post: normalizePostFlags(post),
+            post: createMediaViewerPayloadPost(normalizePostFlags(post)),
             images,
             from: route.fullPath
         })

@@ -218,7 +218,7 @@ export function getTime(type: string): any {
 
 export function debounce(func: (...args: any[]) => void, wait: number, immediate: boolean): (...args: any[]) => void {
     let timeout: NodeJS.Timeout | null = null
-    let args: any[] = [] 
+    let args: any[] = []
     let context: any
     let timestamp: number
     let result: any
@@ -232,19 +232,24 @@ export function debounce(func: (...args: any[]) => void, wait: number, immediate
             timeout = null
             if (!immediate) {
                 result = func.apply(context, args)
-                if (!timeout) context = args = []
+                if (!timeout) {
+                    context = null
+                    args = []
+                }
             }
         }
     }
 
-    return function (this: any, ...args: any[]) {
+    return function (this: any, ...callArgs: any[]) {
         context = this
+        args = callArgs
         timestamp = +new Date()
         const callNow = immediate && !timeout
         if (!timeout) timeout = setTimeout(later, wait)
         if (callNow) {
             result = func.apply(context, args)
-            context = args = []
+            context = null
+            args = []
         }
 
         return result

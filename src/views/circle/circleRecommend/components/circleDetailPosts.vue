@@ -178,7 +178,7 @@ const handleShare = async (post: PostItem) => {
     const postId = post?.id
     const key = getPostKey(post)
     if (!postId || !key || isShareLoading(post)) return
-    let content = ''
+    let content: string
     try {
         const res = await proxy?.$modal?.prompt?.('请输入转发内容')
         content = String(res?.value ?? '').trim()

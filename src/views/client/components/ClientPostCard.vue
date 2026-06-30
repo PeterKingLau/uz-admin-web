@@ -1,5 +1,15 @@
 <template>
-    <article class="client-post-card" @click="$emit('click', post)">
+    <article class="client-post-card" :class="{ 'is-card-ready': isCardReady }" @click="$emit('click', post)">
+        <div v-if="!isCardReady" class="card-fill-skeleton" aria-hidden="true">
+            <div class="card-fill-cover">
+                <span></span>
+            </div>
+            <div class="card-fill-body">
+                <i class="wide"></i>
+                <i></i>
+                <b></b>
+            </div>
+        </div>
         <div class="cover-wrap">
             <div v-if="isTextPost" class="text-cover">
                 <Icon icon="mdi:format-quote-open" class="text-cover-quote" />
@@ -65,7 +75,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientComponentsClientPostCard' })
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { POST_TYPE } from '@/utils/enum'
 import { getClientUserProfile } from '@/api/client/profile'
@@ -91,6 +101,7 @@ defineEmits<{
 
 const coverFailed = ref(false)
 const coverLoading = ref(false)
+const contentReady = ref(false)
 const avatarFailed = ref(false)
 const authorResolving = ref(false)
 const authorResolveError = ref('')
@@ -148,6 +159,7 @@ const coverUrl = computed(() => {
         .filter(Boolean)
     return urls.find((url: string) => !isVideoUrl(url)) || urls[0] || ''
 })
+const isCardReady = computed(() => contentReady.value && (isTextPost.value || !coverUrl.value || coverFailed.value || !coverLoading.value))
 
 const handleCoverLoad = () => {
     coverLoading.value = false
@@ -156,6 +168,14 @@ const handleCoverLoad = () => {
 const handleCoverError = () => {
     coverFailed.value = true
     coverLoading.value = false
+}
+
+let contentReadyTimer: ReturnType<typeof setTimeout> | null = null
+
+const clearContentReadyTimer = () => {
+    if (!contentReadyTimer) return
+    clearTimeout(contentReadyTimer)
+    contentReadyTimer = null
 }
 
 const formatCount = (value: unknown) => {
@@ -245,18 +265,29 @@ const handleAuthorClick = async () => {
 watch(
     () => [props.post, coverUrl.value, isTextPost.value],
     () => {
+        clearContentReadyTimer()
+        contentReady.value = false
         coverFailed.value = false
         coverLoading.value = Boolean(coverUrl.value && !isTextPost.value)
         avatarFailed.value = false
         authorResolveError.value = ''
         authorResolving.value = false
+        contentReadyTimer = setTimeout(() => {
+            contentReady.value = true
+            contentReadyTimer = null
+        }, 90)
     },
     { immediate: true }
 )
+
+onBeforeUnmount(() => {
+    clearContentReadyTimer()
+})
 </script>
 
 <style scoped lang="scss">
 .client-post-card {
+    position: relative;
     border-radius: var(--client-feed-card-radius);
     overflow: visible;
     border: 1px solid transparent;
@@ -265,10 +296,126 @@ watch(
     box-shadow: none;
 }
 
+.client-post-card > .cover-wrap,
+.client-post-card > .card-content {
+    opacity: 0;
+    transition:
+        opacity 0.28s ease,
+        transform 0.28s ease;
+    transform: translateY(4px);
+}
+
+.client-post-card.is-card-ready > .cover-wrap,
+.client-post-card.is-card-ready > .card-content {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 .client-post-card:hover {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
+}
+
+.card-fill-skeleton {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    border-radius: var(--client-feed-card-radius);
+    background: transparent;
+    animation: card-fill-enter 0.2s ease both;
+}
+
+.card-fill-cover {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 1px solid var(--client-border-soft);
+    border-radius: var(--client-feed-card-radius);
+    background:
+        linear-gradient(90deg, var(--client-fill) 0 28%, transparent 28% 100%) 18px 18px / 68px 12px no-repeat,
+        linear-gradient(90deg, var(--client-surface-hover) 0 42%, transparent 42% 100%) 18px 38px / 96px 10px no-repeat,
+        linear-gradient(145deg, var(--client-fill) 0%, var(--client-surface-muted) 100%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-main) 3%, transparent);
+}
+
+.card-fill-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-110%);
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--client-surface-hover) 56%, transparent) 50%, transparent 100%);
+    animation: card-fill-sweep 1.25s ease-in-out infinite;
+}
+
+.card-fill-cover span {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    height: 48px;
+    border-radius: 10px;
+    background:
+        linear-gradient(90deg, var(--client-surface-hover) 0 46%, transparent 46% 100%) 12px 12px / 70% 8px no-repeat,
+        linear-gradient(90deg, var(--client-fill) 0 34%, transparent 34% 100%) 12px 29px / 52% 7px no-repeat,
+        color-mix(in srgb, var(--client-fill) 82%, var(--client-surface-muted));
+    box-shadow: none;
+}
+
+.card-fill-body {
+    padding: 10px 2px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-fill-body i,
+.card-fill-body b {
+    display: block;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--client-fill), var(--client-surface-hover), var(--client-fill));
+    background-size: 220% 100%;
+    animation: card-fill-text 1.18s ease-in-out infinite;
+}
+
+.card-fill-body i {
+    width: 58%;
+    height: 12px;
+}
+
+.card-fill-body i.wide {
+    width: 84%;
+}
+
+.card-fill-body b {
+    width: 42%;
+    height: 10px;
+    margin-top: 4px;
+}
+
+@keyframes card-fill-enter {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes card-fill-sweep {
+    100% {
+        transform: translateX(110%);
+    }
+}
+
+@keyframes card-fill-text {
+    0% {
+        background-position: 120% 50%;
+    }
+    100% {
+        background-position: -120% 50%;
+    }
 }
 
 .cover-wrap {
@@ -337,8 +484,9 @@ watch(
     padding: 18px;
     overflow: hidden;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 42%),
-        linear-gradient(135deg, var(--client-fill) 0%, var(--client-surface-hover) 100%);
+        linear-gradient(90deg, var(--client-fill) 0 30%, transparent 30% 100%) 18px 18px / 74px 12px no-repeat,
+        linear-gradient(90deg, var(--client-surface-hover) 0 44%, transparent 44% 100%) 18px 38px / 104px 10px no-repeat,
+        linear-gradient(135deg, var(--client-fill) 0%, var(--client-surface-muted) 100%);
 }
 
 .cover-skeleton::after {
@@ -346,7 +494,7 @@ watch(
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.42) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--client-surface-hover) 56%, transparent) 50%, transparent 100%);
     animation: skeletonSweep 1.35s ease-in-out infinite;
 }
 
@@ -355,7 +503,7 @@ watch(
     position: relative;
     z-index: 1;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.72);
+    background: var(--client-surface-hover);
 }
 
 .skeleton-mark {

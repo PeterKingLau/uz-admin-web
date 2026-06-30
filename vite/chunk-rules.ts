@@ -1,12 +1,12 @@
-export type ManualChunkRule = {
-    name: string
-    includes: string[]
-}
+type ChunkRule = readonly [name: string, tokens: readonly string[]]
 
-const manualChunkRules: ManualChunkRule[] = [
-    {
-        name: 'vendor-framework',
-        includes: [
+const NODE_MODULES_TOKEN = '/node_modules/'
+const DEFAULT_VENDOR_CHUNK = 'vendor-misc'
+
+const chunkRules = [
+    [
+        'vendor-framework',
+        [
             '/vue/',
             '/vue-router/',
             '/pinia/',
@@ -18,23 +18,20 @@ const manualChunkRules: ManualChunkRule[] = [
             '/normalize-wheel-es/',
             '/memoize-one/'
         ]
-    },
-    { name: 'vendor-echarts', includes: ['/echarts/', '/zrender/'] },
-    {
-        name: 'vendor-videojs',
-        includes: ['/video.js/', '/@videojs/', '/videojs-vtt.js/', '/m3u8-parser/', '/url-toolkit/', '/mpd-parser/', '/@xmldom/', '/mux.js/']
-    },
-    { name: 'vendor-cropper', includes: ['/vue-cropper/'] },
-    { name: 'vendor-mobile-ui', includes: ['/@varlet/ui/'] },
-    { name: 'vendor-dnd', includes: ['/sortablejs/', '/vue-draggable-plus/'] },
-    { name: 'vendor-builder', includes: ['/clipboard/', '/js-beautify/'] },
-    { name: 'vendor-auth', includes: ['/js-cookie/', '/pinia-plugin-persistedstate/'] },
-    { name: 'vendor-qrcode', includes: ['/vue3-next-qrcode/', '/qr-code-styling/', '/js-binary-schema-parser/', '/qrcode/'] },
-    { name: 'vendor-markdown-codemirror', includes: ['/codemirror/', '/@codemirror/', '/@lezer/', '/@marijn/', '/style-mod/', '/w3c-keyname/', '/crelt/'] },
-    { name: 'vendor-markdown-plugins', includes: ['/mermaid/', '/katex/', '/highlight.js/', '/medium-zoom/', '/jszip/'] },
-    {
-        name: 'vendor-markdown',
-        includes: [
+    ],
+    ['vendor-echarts', ['/echarts/', '/zrender/']],
+    ['vendor-videojs', ['/video.js/', '/@videojs/', '/videojs-vtt.js/', '/m3u8-parser/', '/url-toolkit/', '/mpd-parser/', '/@xmldom/', '/mux.js/']],
+    ['vendor-cropper', ['/vue-cropper/']],
+    ['vendor-mobile-ui', ['/@varlet/ui/']],
+    ['vendor-dnd', ['/sortablejs/', '/vue-draggable-plus/']],
+    ['vendor-builder', ['/clipboard/', '/js-beautify/']],
+    ['vendor-auth', ['/js-cookie/', '/pinia-plugin-persistedstate/']],
+    ['vendor-qrcode', ['/vue3-next-qrcode/', '/qr-code-styling/', '/js-binary-schema-parser/', '/qrcode/']],
+    ['vendor-markdown-codemirror', ['/codemirror/', '/@codemirror/', '/@lezer/', '/@marijn/', '/style-mod/', '/w3c-keyname/', '/crelt/']],
+    ['vendor-markdown-plugins', ['/mermaid/', '/katex/', '/highlight.js/', '/medium-zoom/', '/jszip/']],
+    [
+        'vendor-markdown',
+        [
             '/md-editor-v3/',
             '/markdown-it/',
             '/markdown-it-image-figures/',
@@ -45,26 +42,27 @@ const manualChunkRules: ManualChunkRule[] = [
             '/uc.micro/',
             '/xss/'
         ]
-    },
-    { name: 'vendor-prettier', includes: ['/prettier/'] },
-    { name: 'vendor-date', includes: ['/dayjs/'] },
-    { name: 'vendor-search', includes: ['/fuse.js/', '/pinyin-match/'] },
-    { name: 'vendor-mock', includes: ['/@faker-js/faker/'] },
-    {
-        name: 'vendor-lodash',
-        includes: ['/lodash/', '/lodash-es/', '/lodash-unified/', '/lodash.clonedeep/', '/lodash.isequal/', '/lodash.merge/', '/lodash.truncate/']
-    },
-    { name: 'vendor-iconify-mdi', includes: ['/@iconify-json/mdi/'] },
-    { name: 'vendor-iconify-ep', includes: ['/@iconify-json/ep/'] },
-    { name: 'vendor-iconify-extra', includes: ['/@iconify-json/material-symbols/', '/@iconify-json/simple-icons/'] },
-    { name: 'vendor-iconify-core', includes: ['/@iconify/'] },
-    { name: 'vendor-network', includes: ['/axios/', '/nprogress/', '/file-saver/'] },
-    { name: 'vendor-utils', includes: ['/@vueuse/core/', '/@zeronejs/utils/'] }
-]
+    ],
+    ['vendor-prettier', ['/prettier/']],
+    ['vendor-date', ['/dayjs/']],
+    ['vendor-search', ['/fuse.js/', '/pinyin-match/']],
+    ['vendor-mock', ['/@faker-js/faker/']],
+    ['vendor-lodash', ['/lodash/', '/lodash-es/', '/lodash-unified/', '/lodash.clonedeep/', '/lodash.isequal/', '/lodash.merge/', '/lodash.truncate/']],
+    ['vendor-iconify-mdi', ['/@iconify-json/mdi/']],
+    ['vendor-iconify-ep', ['/@iconify-json/ep/']],
+    ['vendor-iconify-extra', ['/@iconify-json/material-symbols/', '/@iconify-json/simple-icons/']],
+    ['vendor-iconify-core', ['/@iconify/']],
+    ['vendor-network', ['/axios/', '/nprogress/', '/file-saver/']],
+    ['vendor-utils', ['/@vueuse/core/', '/@zeronejs/utils/']]
+] as const satisfies readonly ChunkRule[]
+
+const chunkMatchers = chunkRules.flatMap(([name, tokens]) => tokens.map(token => [token, name] as const))
+
+const normalizeModuleId = (id: string) => id.replace(/\\/g, '/').replace(/[?#].*$/, '')
 
 export function manualChunks(id: string): string | undefined {
-    if (!id.includes('node_modules')) return undefined
-    const normalizedId = id.replace(/\\/g, '/')
-    const matched = manualChunkRules.find(rule => rule.includes.some(token => normalizedId.includes(token)))
-    return matched?.name || 'vendor-misc'
+    const normalizedId = normalizeModuleId(id)
+    if (!normalizedId.includes(NODE_MODULES_TOKEN)) return undefined
+
+    return chunkMatchers.find(([token]) => normalizedId.includes(token))?.[1] || DEFAULT_VENDOR_CHUNK
 }

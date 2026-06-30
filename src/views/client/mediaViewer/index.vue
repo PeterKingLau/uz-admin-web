@@ -88,7 +88,9 @@ const tags = computed(() => {
 
 function readPayload() {
     const postId = decodeRouteId(route.params.id)
-    const rawPayload = sessionStorage.getItem(`${CLIENT_MEDIA_VIEWER_CACHE_KEY}:${postId}`)
+    const cacheKey = `${CLIENT_MEDIA_VIEWER_CACHE_KEY}:${postId}`
+    const rawPayload = sessionStorage.getItem(cacheKey)
+    sessionStorage.removeItem(cacheKey)
     if (!rawPayload) return
     try {
         const payload = JSON.parse(rawPayload)

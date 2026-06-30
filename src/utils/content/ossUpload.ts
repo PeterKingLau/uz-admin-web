@@ -166,8 +166,8 @@ const sha1Bytes = (message: Uint8Array): Uint8Array => {
         let e = h4
 
         for (let i = 0; i < 80; i += 1) {
-            let f = 0
-            let k = 0
+            let f: number
+            let k: number
             if (i < 20) {
                 f = (b & c) | (~b & d)
                 k = 0x5a827999
@@ -727,7 +727,7 @@ export const uploadFilesToOssSettled = async (
     const parsedCredentialCount = Number(credentialFileCount)
     const requestCredentialCount = Number.isFinite(parsedCredentialCount) && parsedCredentialCount > 0 ? Math.floor(parsedCredentialCount) : files.length
 
-    let credentialList: unknown[] = []
+    let credentialList: unknown[]
     try {
         credentialList = await requestUploadCredentialList(toStringOrUndefined(postType), requestCredentialCount, credentialType)
         if (!credentialList.length) {

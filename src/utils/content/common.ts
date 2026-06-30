@@ -139,3 +139,20 @@ export const appendPreviewComment = (post: AnyRecord, comment: AnyRecord) => {
     }
     post.commentList = [comment]
 }
+
+export const createMediaViewerPayloadPost = (post: AnyRecord) => {
+    if (!post) return null
+    return {
+        id: post.id ?? post.postId ?? null,
+        postId: post.postId ?? post.id ?? null,
+        content: post.content ?? '',
+        nickName: post.nickName ?? post.authorName ?? post.userName ?? post.user?.nickName ?? post.author?.nickName ?? '',
+        userName: post.userName ?? post.username ?? post.user?.userName ?? post.author?.userName ?? '',
+        avatar: post.avatar ?? post.userAvatar ?? post.authorAvatar ?? post.user?.avatar ?? post.author?.avatar ?? '',
+        userAvatar: post.userAvatar ?? post.avatar ?? post.authorAvatar ?? post.user?.avatar ?? post.author?.avatar ?? '',
+        createTime: post.createTime ?? post.createDate ?? '',
+        createDate: post.createDate ?? post.createTime ?? '',
+        tags: Array.isArray(post.tags) ? post.tags : [],
+        tagStr: post.tagStr ?? ''
+    }
+}

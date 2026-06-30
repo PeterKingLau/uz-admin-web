@@ -180,12 +180,13 @@ const getBaseNameFromMediaUrl = (url: string) => {
         .split('#')[0]
     const rawName = clean.slice(clean.lastIndexOf('/') + 1)
     if (!rawName) return ''
-    let decoded = rawName
-    try {
-        decoded = decodeURIComponent(rawName)
-    } catch {
-        decoded = rawName
-    }
+    const decoded = (() => {
+        try {
+            return decodeURIComponent(rawName)
+        } catch {
+            return rawName
+        }
+    })()
     const normalized = decoded.replace(/^\d+_\d+_/, '')
     return getBaseName(normalized)
 }

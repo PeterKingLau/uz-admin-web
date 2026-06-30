@@ -377,12 +377,13 @@ const copyTextWithFallback = (text: string) => {
     document.body.appendChild(textarea)
     textarea.select()
 
-    let success = false
-    try {
-        success = document.execCommand('copy')
-    } catch {
-        success = false
-    }
+    const success = (() => {
+        try {
+            return document.execCommand('copy')
+        } catch {
+            return false
+        }
+    })()
 
     textarea.remove()
     return success

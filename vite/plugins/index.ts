@@ -7,16 +7,35 @@ import checker from 'vite-plugin-checker'
 
 interface ViteEnv {
     VITE_BUILD_COMPRESS?: string
+    VITE_DEV_CHECKER?: string
 }
+
+const SOURCE_FILE_RE = /\.[cm]?[jt]sx?$/
+const VUE_FILE_RE = /\.vue$/
+const NODE_MODULES_RE = /[/\\]node_modules[/\\]/
+const DIST_RE = /[/\\]dist[/\\]/
+const PUBLIC_RE = /[/\\]public[/\\]/
+const ESLINT_COMMAND = 'eslint "src/**/*.{js,ts,vue}" "vite/**/*.ts" vite.config.ts eslint.config.js'
+const STYLELINT_COMMAND = 'stylelint "src/**/*.vue" --allow-empty-input'
+
+const compressionAlgorithmMap = {
+    gzip: 'gzip',
+    gz: 'gzip',
+    brotli: 'brotliCompress',
+    br: 'brotliCompress',
+    brotlicompress: 'brotliCompress'
+} as const
+
+type CompressionAlgorithm = (typeof compressionAlgorithmMap)[keyof typeof compressionAlgorithmMap]
 
 export default function createVitePlugins(env: ViteEnv, isBuild = false): PluginOption[] {
     return [
-        ...createDevPlugins(isBuild),
+        ...createDevPlugins(env, isBuild),
         vue(),
         autoImport({
             imports: ['vue', 'vue-router', 'pinia'],
-            include: [/\.[jt]s$/, /\.vue$/],
-            exclude: [/[/\\]node_modules[/\\]/, /[/\\]dist[/\\]/, /[/\\]public[/\\]/],
+            include: [SOURCE_FILE_RE, VUE_FILE_RE],
+            exclude: [NODE_MODULES_RE, DIST_RE, PUBLIC_RE],
             dts: false,
             vueTemplate: false
         }),
@@ -31,17 +50,17 @@ export default function createVitePlugins(env: ViteEnv, isBuild = false): Plugin
     ]
 }
 
-function createDevPlugins(isBuild: boolean): PluginOption[] {
-    if (isBuild) return []
+function createDevPlugins(env: ViteEnv, isBuild: boolean): PluginOption[] {
+    if (isBuild || env.VITE_DEV_CHECKER === 'false') return []
 
     return [
         checker({
             vueTsc: true,
             eslint: {
-                lintCommand: 'eslint "src/**/*.{js,ts,vue}" "vite/**/*.ts" vite.config.ts eslint.config.js'
+                lintCommand: ESLINT_COMMAND
             },
             stylelint: {
-                lintCommand: 'stylelint "src/**/*.vue" --allow-empty-input'
+                lintCommand: STYLELINT_COMMAND
             },
             overlay: {
                 initialIsOpen: 'error',
@@ -51,18 +70,25 @@ function createDevPlugins(isBuild: boolean): PluginOption[] {
     ]
 }
 
+function parseCompressionAlgorithms(value?: string): CompressionAlgorithm[] {
+    const normalizedValue = String(value || '').trim().toLowerCase()
+    if (!normalizedValue || ['false', 'none', 'off', '0'].includes(normalizedValue)) return []
+    const rawAlgorithms = normalizedValue === 'true' ? ['gzip'] : normalizedValue.split(',')
+
+    return Array.from(
+        new Set(
+            rawAlgorithms
+                .map(type => type.trim().replace(/[-_]/g, ''))
+                .map(type => compressionAlgorithmMap[type as keyof typeof compressionAlgorithmMap])
+                .filter((type): type is CompressionAlgorithm => Boolean(type))
+        )
+    )
+}
+
 function createCompression(env: ViteEnv, isBuild: boolean): PluginOption[] {
-    if (!isBuild || !env.VITE_BUILD_COMPRESS) return []
+    if (!isBuild) return []
 
-    const algorithmMap = {
-        gzip: 'gzip',
-        brotli: 'brotliCompress'
-    } as const
-    const algorithms = env.VITE_BUILD_COMPRESS.split(',')
-        .map(type => String(type || '').trim().toLowerCase())
-        .map(type => algorithmMap[type as keyof typeof algorithmMap])
-        .filter((type): type is (typeof algorithmMap)[keyof typeof algorithmMap] => Boolean(type))
-
+    const algorithms = parseCompressionAlgorithms(env.VITE_BUILD_COMPRESS)
     if (!algorithms.length) return []
 
     return [

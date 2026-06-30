@@ -521,22 +521,22 @@ watch(
 )
 
 function handleBeforeUpload(file) {
-    let isImg = false
-    if (props.fileType.length) {
+    const isAllowedImageType = () => {
+        if (!props.fileType.length) return file.type.indexOf('image') > -1
         const types = props.fileType.map(type => String(type).toLowerCase())
         let fileExtension = ''
         if (file.name.lastIndexOf('.') > -1) {
             fileExtension = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()
         }
         const mime = String(file.type || '').toLowerCase()
-        isImg = types.some(type => {
+        return types.some(type => {
             if (mime.indexOf(type) > -1) return true
             if (fileExtension && fileExtension.indexOf(type) > -1) return true
             return false
         })
-    } else {
-        isImg = file.type.indexOf('image') > -1
     }
+
+    const isImg = isAllowedImageType()
     if (!isImg) {
         proxy.$modal.msgError(`格式错误，请上传 ${props.fileType.join('/')} 格式!`)
         return false

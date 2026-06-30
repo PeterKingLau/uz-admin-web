@@ -56,43 +56,54 @@
                 <section class="content-area">
                     <div class="tab-panel">
                         <div class="tab-row primary-tabs" role="tablist" aria-label="一级标签">
-                            <button type="button" class="tab-item" :class="{ active: activePrimaryId === '' }" @click="handlePrimaryTagChange('')">推荐</button>
+                            <button
+                                type="button"
+                                class="tab-item"
+                                :class="{ active: activePrimaryId === '', pending: isPrimaryTabPending('') }"
+                                @click="handlePrimaryTagChange('')"
+                            >
+                                <span>推荐</span>
+                            </button>
                             <button
                                 v-for="tag in topLevelTagOptions"
                                 :key="tag.id"
                                 type="button"
                                 class="tab-item"
-                                :class="{ active: activePrimaryId === String(tag.id) }"
+                                :class="{ active: activePrimaryId === String(tag.id), pending: isPrimaryTabPending(String(tag.id)) }"
                                 @click="handlePrimaryTagChange(String(tag.id))"
                             >
-                                {{ tag.name }}
-                            </button>
-                        </div>
-
-                        <div v-if="secondaryTagOptions.length" class="tab-row secondary-tabs" role="tablist" aria-label="二级标签">
-                            <button
-                                v-for="tag in secondaryTagOptions"
-                                :key="tag.id"
-                                type="button"
-                                class="tab-item sub-tab"
-                                :class="{ active: activeSecondaryId === String(tag.id) }"
-                                @click="handleSecondaryTagChange(String(tag.id))"
-                            >
-                                {{ tag.name }}
+                                <span>{{ tag.name }}</span>
                             </button>
                         </div>
                     </div>
 
-                    <main v-loading="loading" class="feed-wrap">
-                        <div v-if="posts.length" class="masonry-grid" :style="{ '--masonry-columns': String(columnCount) }">
-                            <div v-for="(column, colIndex) in masonryColumns" :key="`col-${colIndex}`" class="masonry-column">
-                                <ClientPostCard v-for="item in column" :key="getPostKey(item)" :post="item" @click="openPost" />
+                    <main v-loading="loading && !isPrimarySwitching" class="feed-wrap" :class="{ 'is-refreshing': isPrimarySwitching }">
+                        <div v-if="isPrimarySwitching" class="feed-refresh-indicator" aria-label="正在刷新分类">
+                            <span class="refresh-card-frame"></span>
+                            <span class="refresh-card-frame"></span>
+                            <span class="refresh-card-frame"></span>
+                        </div>
+                        <div v-if="hasFeedContent" class="masonry-grid" :style="{ '--masonry-columns': String(columnCount) }">
+                            <div v-for="(column, colIndex) in feedMasonryColumns" :key="`col-${colIndex}`" class="masonry-column">
+                                <template v-for="item in column" :key="item.key">
+                                    <ClientPostCard v-if="item.type === 'post'" :post="item.post" @click="openPost" />
+                                    <div v-else class="feed-card-skeleton" :style="{ '--skeleton-card-height': `${item.height}px` }" aria-hidden="true">
+                                        <div class="feed-card-skeleton-cover">
+                                            <span class="skeleton-shadow"></span>
+                                        </div>
+                                        <div class="feed-card-skeleton-body">
+                                            <span class="skeleton-text skeleton-text--wide"></span>
+                                            <span class="skeleton-text"></span>
+                                            <span class="skeleton-meta"></span>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
                         <el-empty v-else-if="!loading" :description="emptyDescription" :image-size="108" />
 
-                        <div v-if="posts.length" class="load-more">
+                        <div v-if="renderedPosts.length" class="load-more">
                             <div ref="loadMoreTriggerRef" class="load-more-trigger"></div>
                             <span class="load-more-status" :class="{ visible: Boolean(loadMoreStatusText) }">{{ loadMoreStatusText || '占位' }}</span>
                         </div>
@@ -100,6 +111,22 @@
                 </section>
             </div>
         </main>
+
+        <div v-if="showFeedActions" class="feed-floating-actions" aria-label="瀑布流快捷操作">
+            <button type="button" class="feed-floating-action" :disabled="isFeedAtTop" aria-label="滑至顶部" @click="scrollToFeedTop">
+                <Icon icon="mdi:arrow-up" />
+            </button>
+            <button
+                type="button"
+                class="feed-floating-action"
+                :class="{ spinning: isPrimarySwitching }"
+                :disabled="isFeedRefreshing"
+                aria-label="刷新当前标签内容"
+                @click="refreshActiveFeed"
+            >
+                <Icon icon="mdi:refresh" />
+            </button>
+        </div>
 
         <PostPreviewModal
             ref="previewModalRef"
@@ -161,6 +188,7 @@ import {
     getCommentId,
     getCommentReplyCount as resolveCommentReplyCount,
     getCommentUserId,
+    createMediaViewerPayloadPost,
     normalizeCommentList,
     parseMediaRaw,
     resolveMediaUrl as resolveCommonMediaUrl
@@ -171,6 +199,7 @@ const route = useRoute()
 const settingsStore = useSettingsStore()
 const userStore = useUserStore()
 const posts = ref<any[]>([])
+const renderedPosts = ref<any[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
 const finished = ref(false)
@@ -185,6 +214,7 @@ const replyTarget = ref<{ parent: Record<string, any>; replyTo: Record<string, a
 const discoverPageRef = ref<HTMLElement | null>(null)
 const searchDraft = ref('')
 const activeSearchKeyword = ref('')
+const isFeedAtTop = ref(true)
 
 const getInitialColumnCount = () => {
     if (typeof window === 'undefined') return 5
@@ -203,16 +233,28 @@ let scrollHandler: (() => void) | null = null
 let isDestroyed = false
 let recommendLoadTimer: ReturnType<typeof setTimeout> | null = null
 let recommendEmptyRetryTimer: ReturnType<typeof setTimeout> | null = null
+let primarySwitchTimer: ReturnType<typeof setTimeout> | null = null
+let loadMoreTimer: ReturnType<typeof setTimeout> | null = null
+let postRenderTimer: ReturnType<typeof setTimeout> | null = null
+let postRenderFrame: number | null = null
 let lastRecommendLoadAt = 0
 let lastRecommendEmptyAt = 0
+let lastLoadMoreAt = 0
+let lastKnownScrollTop = 0
 let feedRequestId = 0
 let feedAbortController: AbortController | null = null
 const CLIENT_HOME_SCROLL_CLASS = 'client-home-scroll-lock'
 const CLIENT_MEDIA_VIEWER_CACHE_KEY = 'client-media-viewer-payload'
+const CLIENT_PRIMARY_TAG_CACHE_KEY = 'client-home:primary-tag-options:v1'
 const RECOMMEND_LOAD_THROTTLE_MS = 900
 const RECOMMEND_EMPTY_COOLDOWN_MS = 5000
+const PRIMARY_SWITCH_DEBOUNCE_MS = 120
+const LOAD_MORE_THROTTLE_MS = 500
+const TAG_LOAD_MORE_REQUEST_LIMIT = 2
+const TAG_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const TAG_CACHE_REFRESH_COOLDOWN_MS = 30000
 const LOAD_MORE_SCROLL_THRESHOLD = 220
-const TAG_FETCH_CONCURRENCY = 3
+const POST_RENDER_FRAME_DELAY_MS = 54
 const query = ref<{ limit: number; lastId?: number; lastCreateTime?: string }>({
     limit: 10,
     lastId: undefined,
@@ -250,6 +292,15 @@ const getFeedRequestConfig = (signal?: AbortSignal) => ({
     skipPending: true
 })
 
+const waitForNextFrame = () =>
+    new Promise<void>(resolve => {
+        if (typeof window === 'undefined') {
+            resolve()
+            return
+        }
+        window.requestAnimationFrame(() => resolve())
+    })
+
 const sideNavItems = [
     { key: 'discover', label: '发现', icon: 'mdi:compass-outline' },
     { key: 'publish', label: '发布', icon: 'mdi:plus-box-outline' },
@@ -259,7 +310,8 @@ const primaryTagOptions = ref<any[]>([])
 const activeSideKey = ref('discover')
 const topLevelTagOptions = computed(() => primaryTagOptions.value.filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name))
 const activePrimaryId = ref('')
-const activeSecondaryId = ref('')
+const pendingPrimaryId = ref<string | null>(null)
+const isPrimarySwitching = computed(() => pendingPrimaryId.value !== null)
 const normalizedSearchKeyword = computed(() => activeSearchKeyword.value.trim())
 const isSearchMode = computed(() => Boolean(normalizedSearchKeyword.value))
 const isRecommendMode = computed(() => !activePrimaryId.value && !isSearchMode.value)
@@ -271,16 +323,16 @@ const loadMoreStatusText = computed(() => {
 })
 const emptyDescription = computed(() => (isSearchMode.value ? '没有找到相关内容' : '当前分类暂无内容'))
 
-const activePrimaryTag = computed(() => topLevelTagOptions.value.find((item: any) => String(item.id) === activePrimaryId.value) || null)
-const secondaryTagOptions = computed(() =>
-    (activePrimaryTag.value?.children || []).filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
-)
-const activeRequestTagIds = computed(() => {
-    if (!activePrimaryId.value) return isSearchMode.value ? [null] : ([] as Array<string | number | null>)
-    if (!secondaryTagOptions.value.length) return [activePrimaryId.value]
-    const secondaryId = activeSecondaryId.value || String(secondaryTagOptions.value[0]?.id || '')
-    return secondaryId ? [secondaryId] : []
-})
+const getPrimaryTagById = (primaryId: string) => topLevelTagOptions.value.find((item: any) => String(item.id) === primaryId) || null
+const getRequestTagIdsByPrimaryId = (primaryId: string, keyword = normalizedSearchKeyword.value) => {
+    if (!primaryId) return keyword ? [null] : ([] as Array<string | number | null>)
+    const primary = getPrimaryTagById(primaryId)
+    const childIds = (primary?.children || []).filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name).map((item: any) => item.id)
+    return childIds.length ? childIds : [primaryId]
+}
+const activeRequestTagIds = computed(() => getRequestTagIdsByPrimaryId(activePrimaryId.value))
+const isPrimaryTabPending = (primaryId: string) => pendingPrimaryId.value === primaryId
+const isFeedRefreshing = computed(() => isPrimarySwitching.value || loading.value || loadingMore.value)
 
 type TagFeedCursor = {
     lastId?: number
@@ -290,28 +342,18 @@ type TagFeedCursor = {
 }
 
 const tagFeedCursorMap = ref<Record<string, TagFeedCursor>>({})
+let tagFeedQueueIndex = 0
+let primaryTagRefreshPromise: Promise<any[]> | null = null
+let lastPrimaryTagRefreshAt = 0
 
 watch(
     topLevelTagOptions,
     groups => {
         const hasActivePrimary = groups.some((item: any) => String(item.id) === activePrimaryId.value)
-        if (!hasActivePrimary) {
-            activePrimaryId.value = ''
-            activeSecondaryId.value = ''
+        if (!hasActivePrimary) activePrimaryId.value = ''
+        if (pendingPrimaryId.value && !groups.some((item: any) => String(item.id) === pendingPrimaryId.value)) {
+            pendingPrimaryId.value = null
         }
-    },
-    { immediate: true }
-)
-
-watch(
-    secondaryTagOptions,
-    options => {
-        if (!options.length) {
-            activeSecondaryId.value = ''
-            return
-        }
-        const hasActiveSecondary = options.some((item: any) => String(item.id) === activeSecondaryId.value)
-        if (!hasActiveSecondary) activeSecondaryId.value = String(options[0].id)
     },
     { immediate: true }
 )
@@ -537,6 +579,7 @@ const resetTagFeedCursors = () => {
         cursor.buffer = []
     })
     tagFeedCursorMap.value = {}
+    tagFeedQueueIndex = 0
 }
 
 const ensureTagFeedCursor = (tagId: string | number | null) => {
@@ -599,42 +642,60 @@ const fetchTagFeedBatch = async (tagId: string | number | null, requestId: numbe
     cursor.finished = rows.length < limit
 }
 
-const fetchPrimaryTagFeed = async (isLoadMore: boolean, requestId: number, keyword = '', signal?: AbortSignal) => {
+const fetchPrimaryTagFeed = async (
+    isLoadMore: boolean,
+    requestId: number,
+    keyword = '',
+    signal?: AbortSignal,
+    requestTagIds: Array<string | number | null> = activeRequestTagIds.value,
+    maxTagRequests = requestTagIds.length,
+    commit = true
+) => {
     if (!isLatestFeedRequest(requestId)) return
-    const tagIds = activeRequestTagIds.value
+    const tagIds = requestTagIds
     const limit = query.value.limit
     if (!tagIds.length) {
         if (!isLatestFeedRequest(requestId)) return
-        posts.value = []
-        finished.value = true
-        return
+        if (commit) {
+            posts.value = []
+            finished.value = true
+        }
+        return { batch: [] as any[], finished: true }
     }
 
     tagIds.forEach((tagId: string | number | null) => ensureTagFeedCursor(tagId))
     const seen = new Set((isLoadMore ? posts.value : []).map(item => String(getPostKey(item))))
     let batch = takeFromTagBuffers(limit, seen)
-    let pendingTagIds = tagIds.filter((tagId: string | number | null) => {
-        const cursor = ensureTagFeedCursor(tagId)
-        return !cursor.finished && cursor.buffer.length < limit
-    })
+    let checkedTagCount = 0
+    const maxCheckedTagCount = Math.min(Math.max(1, maxTagRequests), tagIds.length)
 
-    while (batch.length < limit && pendingTagIds.length) {
-        const chunk = pendingTagIds.splice(0, TAG_FETCH_CONCURRENCY)
-        await Promise.all(chunk.map((tagId: string | number | null) => fetchTagFeedBatch(tagId, requestId, keyword, signal)))
+    while (batch.length < limit && checkedTagCount < maxCheckedTagCount) {
+        const tagId = tagIds[tagFeedQueueIndex % tagIds.length]
+        tagFeedQueueIndex = (tagFeedQueueIndex + 1) % tagIds.length
+        checkedTagCount += 1
+
+        const cursor = ensureTagFeedCursor(tagId)
+        if (cursor.finished) continue
+
+        await fetchTagFeedBatch(tagId, requestId, keyword, signal)
         if (!isLatestFeedRequest(requestId)) return
         batch = batch.concat(takeFromTagBuffers(limit - batch.length, seen))
-        pendingTagIds = pendingTagIds.filter((tagId: string | number | null) => {
-            const cursor = ensureTagFeedCursor(tagId)
-            return !cursor.finished && cursor.buffer.length < limit
-        })
     }
 
     if (!isLatestFeedRequest(requestId)) return
-    posts.value = isLoadMore ? posts.value.concat(batch) : batch
-    finished.value = tagIds.every((tagId: string | number | null) => {
+    const nextFinished = tagIds.every((tagId: string | number | null) => {
         const cursor = ensureTagFeedCursor(tagId)
         return cursor.finished && cursor.buffer.length === 0
     })
+    if (commit) {
+        if (!isLoadMore) {
+            posts.value = batch
+        } else if (batch.length) {
+            posts.value = posts.value.concat(batch)
+        }
+        finished.value = nextFinished
+    }
+    return { batch, finished: nextFinished }
 }
 
 const estimateCardHeight = (item: any) => {
@@ -645,10 +706,50 @@ const estimateCardHeight = (item: any) => {
     return 390 + textExtra
 }
 
-const masonryColumns = computed(() => {
+type FeedMasonryItem =
+    | {
+          type: 'post'
+          key: string
+          post: any
+          height: number
+      }
+    | {
+          type: 'skeleton'
+          key: string
+          height: number
+      }
+
+const getSkeletonCardHeight = (index: number) => {
+    const steps = [364, 408, 334, 386, 430]
+    return steps[index % steps.length]
+}
+
+const pendingRenderCount = computed(() => Math.max(0, posts.value.length - renderedPosts.value.length))
+const feedSkeletonCount = computed(() => {
+    if (pendingRenderCount.value) return Math.min(pendingRenderCount.value, columnCount.value * 2)
+    if (loading.value && !renderedPosts.value.length) return columnCount.value * 2
+    return 0
+})
+const hasFeedContent = computed(() => Boolean(renderedPosts.value.length || feedSkeletonCount.value))
+const showFeedActions = computed(() => Boolean(hasFeedContent.value || renderedPosts.value.length || posts.value.length))
+
+const feedMasonryColumns = computed(() => {
     const cols = Array.from({ length: Math.max(1, columnCount.value) }, () => [] as any[])
     const heights = Array.from({ length: Math.max(1, columnCount.value) }, () => 0)
-    posts.value.forEach(item => {
+    const postItems: FeedMasonryItem[] = renderedPosts.value.map(item => ({
+        type: 'post',
+        key: String(getPostKey(item)),
+        post: item,
+        height: estimateCardHeight(item)
+    }))
+    const skeletonItems: FeedMasonryItem[] = Array.from({ length: feedSkeletonCount.value }, (_, index) => ({
+        type: 'skeleton',
+        key: `feed-skeleton-${renderedPosts.value.length}-${index}`,
+        height: getSkeletonCardHeight(index)
+    }))
+    const items = postItems.concat(skeletonItems)
+
+    items.forEach(item => {
         let targetIndex = 0
         let minHeight = heights[0]
         for (let i = 1; i < heights.length; i += 1) {
@@ -658,7 +759,7 @@ const masonryColumns = computed(() => {
             }
         }
         cols[targetIndex].push(item)
-        heights[targetIndex] += estimateCardHeight(item)
+        heights[targetIndex] += item.height
     })
     return cols
 })
@@ -681,6 +782,80 @@ const clearRecommendEmptyRetryTimer = () => {
     if (!recommendEmptyRetryTimer) return
     clearTimeout(recommendEmptyRetryTimer)
     recommendEmptyRetryTimer = null
+}
+
+const clearPrimarySwitchTimer = () => {
+    if (!primarySwitchTimer) return
+    clearTimeout(primarySwitchTimer)
+    primarySwitchTimer = null
+}
+
+const clearLoadMoreTimer = () => {
+    if (!loadMoreTimer) return
+    clearTimeout(loadMoreTimer)
+    loadMoreTimer = null
+}
+
+const clearPostRenderSchedule = () => {
+    if (postRenderTimer) {
+        clearTimeout(postRenderTimer)
+        postRenderTimer = null
+    }
+    if (postRenderFrame !== null && typeof window !== 'undefined') {
+        window.cancelAnimationFrame(postRenderFrame)
+        postRenderFrame = null
+    }
+}
+
+const getPostRenderBatchSize = () => {
+    if (columnCount.value <= 2) return 4
+    if (columnCount.value <= 3) return 6
+    return 8
+}
+
+const isRenderedPostsPrefix = (nextPosts: any[]) => {
+    if (!renderedPosts.value.length) return true
+    if (renderedPosts.value.length > nextPosts.length) return false
+    return renderedPosts.value.every((item, index) => String(getPostKey(item)) === String(getPostKey(nextPosts[index])))
+}
+
+const renderNextPostBatch = () => {
+    postRenderFrame = null
+    if (isDestroyed) return
+    const targetPosts = posts.value
+    if (!targetPosts.length) {
+        renderedPosts.value = []
+        return
+    }
+
+    const nextLength = Math.min(targetPosts.length, renderedPosts.value.length + getPostRenderBatchSize())
+    renderedPosts.value = targetPosts.slice(0, nextLength)
+
+    if (nextLength >= targetPosts.length) return
+    postRenderTimer = setTimeout(() => {
+        postRenderTimer = null
+        if (typeof window === 'undefined') {
+            renderNextPostBatch()
+            return
+        }
+        postRenderFrame = window.requestAnimationFrame(renderNextPostBatch)
+    }, POST_RENDER_FRAME_DELAY_MS)
+}
+
+const schedulePostRendering = (nextPosts: any[]) => {
+    clearPostRenderSchedule()
+    if (!nextPosts.length) {
+        renderedPosts.value = []
+        return
+    }
+    if (!isRenderedPostsPrefix(nextPosts)) {
+        renderedPosts.value = []
+    }
+    if (typeof window === 'undefined') {
+        renderedPosts.value = nextPosts
+        return
+    }
+    postRenderFrame = window.requestAnimationFrame(renderNextPostBatch)
 }
 
 const resetRecommendCursor = () => {
@@ -711,13 +886,12 @@ const shouldTriggerLoadMoreByScroll = () => {
     return container.scrollTop + container.clientHeight >= container.scrollHeight - LOAD_MORE_SCROLL_THRESHOLD
 }
 
-const triggerLoadMore = () => {
-    if (finished.value) return
+const runLoadMore = () => {
+    if (finished.value || loading.value || loadingMore.value) return
     if (!isRecommendMode.value) {
         fetchList(true)
         return
     }
-    if (loading.value || loadingMore.value) return
     if (getRecommendEmptyCooldownRemaining() > 0) {
         scheduleRecommendEmptyRetry(getActiveFeedRequestId())
         return
@@ -739,9 +913,43 @@ const triggerLoadMore = () => {
     }, RECOMMEND_LOAD_THROTTLE_MS - elapsed)
 }
 
+const triggerLoadMore = () => {
+    if (finished.value || loading.value || loadingMore.value || isPrimarySwitching.value) return
+
+    const elapsed = Date.now() - lastLoadMoreAt
+    if (elapsed >= LOAD_MORE_THROTTLE_MS) {
+        lastLoadMoreAt = Date.now()
+        runLoadMore()
+        return
+    }
+
+    if (loadMoreTimer) return
+    loadMoreTimer = setTimeout(() => {
+        loadMoreTimer = null
+        if (finished.value || loading.value || loadingMore.value || isPrimarySwitching.value) return
+        lastLoadMoreAt = Date.now()
+        runLoadMore()
+    }, LOAD_MORE_THROTTLE_MS - elapsed)
+}
+
 const handleContainerScroll = () => {
+    const container = discoverPageRef.value
+    if (!container) return
+    const nextScrollTop = container.scrollTop
+    isFeedAtTop.value = nextScrollTop <= 8
+    const isScrollingDown = nextScrollTop > lastKnownScrollTop
+    lastKnownScrollTop = nextScrollTop
+    if (!isScrollingDown) return
     if (!shouldTriggerLoadMoreByScroll()) return
     triggerLoadMore()
+}
+
+const scrollToFeedTop = () => {
+    const container = discoverPageRef.value
+    if (!container) return
+    container.scrollTo({ top: 0, behavior: 'smooth' })
+    lastKnownScrollTop = 0
+    isFeedAtTop.value = true
 }
 
 const bindScrollListener = () => {
@@ -780,22 +988,83 @@ const setupLoadObserver = async () => {
             if (!entry?.isIntersecting) return
             triggerLoadMore()
         },
-        { root: discoverPageRef.value, rootMargin: '300px 0px 300px 0px', threshold: 0 }
+        { root: discoverPageRef.value, rootMargin: '120px 0px 120px 0px', threshold: 0 }
     )
     loadObserver.observe(target)
-    ensureLoadMoreIfNeeded()
 }
 
-const loadPrimaryTagTabs = async () => {
+const normalizePrimaryTagOptions = (rows: any[]) => rows.filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
+
+const readCachedPrimaryTagOptions = () => {
+    if (typeof window === 'undefined') return []
     try {
-        const res = await getInterestAll()
-        const list = (res as any)?.data || res || []
-        const rows = Array.isArray(list) ? list : []
-        primaryTagOptions.value = rows.filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
+        const raw = window.localStorage.getItem(CLIENT_PRIMARY_TAG_CACHE_KEY)
+        if (!raw) return []
+        const cache = JSON.parse(raw)
+        if (!cache || cache.expireAt < Date.now() || !Array.isArray(cache.list)) return []
+        return normalizePrimaryTagOptions(cache.list)
     } catch (error) {
         console.error(error)
-        primaryTagOptions.value = []
+        return []
     }
+}
+
+const writeCachedPrimaryTagOptions = (list: any[]) => {
+    if (typeof window === 'undefined' || !list.length) return
+    try {
+        window.localStorage.setItem(
+            CLIENT_PRIMARY_TAG_CACHE_KEY,
+            JSON.stringify({
+                expireAt: Date.now() + TAG_CACHE_TTL_MS,
+                list
+            })
+        )
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+const applyPrimaryTagOptions = (list: any[]) => {
+    primaryTagOptions.value = normalizePrimaryTagOptions(list)
+}
+
+const loadPrimaryTagTabs = async (force = false) => {
+    if (!force) {
+        const cachedList = readCachedPrimaryTagOptions()
+        if (cachedList.length) {
+            applyPrimaryTagOptions(cachedList)
+            return cachedList
+        }
+    }
+
+    if (primaryTagRefreshPromise) return primaryTagRefreshPromise
+
+    primaryTagRefreshPromise = (async () => {
+        const res = await getInterestAll()
+        const list = (res as any)?.data || res || []
+        const rows = normalizePrimaryTagOptions(Array.isArray(list) ? list : [])
+        applyPrimaryTagOptions(rows)
+        writeCachedPrimaryTagOptions(rows)
+        return rows
+    })()
+
+    try {
+        return await primaryTagRefreshPromise
+    } catch (error) {
+        console.error(error)
+        if (!primaryTagOptions.value.length) applyPrimaryTagOptions(readCachedPrimaryTagOptions())
+        return primaryTagOptions.value
+    } finally {
+        primaryTagRefreshPromise = null
+    }
+}
+
+const refreshPrimaryTagTabsAfterFeedMiss = (requestId: number) => {
+    if (!isLatestFeedRequest(requestId)) return
+    const now = Date.now()
+    if (now - lastPrimaryTagRefreshAt < TAG_CACHE_REFRESH_COOLDOWN_MS) return
+    lastPrimaryTagRefreshAt = now
+    void loadPrimaryTagTabs(true)
 }
 
 const fetchList = async (isLoadMore: boolean, requestId = getActiveFeedRequestId(), force = false) => {
@@ -816,9 +1085,19 @@ const fetchList = async (isLoadMore: boolean, requestId = getActiveFeedRequestId
             await fetchRecommendFeedPage(isLoadMore, requestId, signal)
             return
         }
-        await fetchPrimaryTagFeed(isLoadMore, requestId, keyword, signal)
+        await fetchPrimaryTagFeed(
+            isLoadMore,
+            requestId,
+            keyword,
+            signal,
+            activeRequestTagIds.value,
+            isLoadMore ? TAG_LOAD_MORE_REQUEST_LIMIT : activeRequestTagIds.value.length
+        )
     } catch (error) {
-        if (!isCanceledRequest(error) && isLatestFeedRequest(requestId)) console.error(error)
+        if (!isCanceledRequest(error) && isLatestFeedRequest(requestId)) {
+            console.error(error)
+            if (!shouldUseRecommend) refreshPrimaryTagTabsAfterFeedMiss(requestId)
+        }
     } finally {
         releaseFeedAbortSignal(signal)
         if (isLatestFeedRequest(requestId)) {
@@ -830,7 +1109,9 @@ const fetchList = async (isLoadMore: boolean, requestId = getActiveFeedRequestId
 
 const resetAndFetch = (keepVisible = true) => {
     abortFeedRequest()
+    clearPrimarySwitchTimer()
     const requestId = nextFeedRequestId()
+    pendingPrimaryId.value = null
     if (!keepVisible) posts.value = []
     loadingMore.value = false
     finished.value = false
@@ -838,8 +1119,11 @@ const resetAndFetch = (keepVisible = true) => {
     query.value.lastCreateTime = undefined
     clearRecommendLoadTimer()
     clearRecommendEmptyRetryTimer()
+    clearLoadMoreTimer()
     lastRecommendLoadAt = 0
     lastRecommendEmptyAt = 0
+    lastLoadMoreAt = 0
+    lastKnownScrollTop = discoverPageRef.value?.scrollTop || 0
     resetTagFeedCursors()
     fetchList(false, requestId, true)
 }
@@ -880,23 +1164,105 @@ const handleSideNavClick = (key: string) => {
     }
 }
 
-const handlePrimaryTagChange = (tagId?: string | number) => {
-    const nextPrimaryId = tagId === undefined || tagId === null || tagId === '' ? '' : String(tagId)
-    if (activePrimaryId.value === nextPrimaryId) return
+const runPrimaryTagSwitch = async (nextPrimaryId: string, requestId: number) => {
+    await nextTick()
+    await waitForNextFrame()
+    if (!isLatestFeedRequest(requestId)) return
 
-    activePrimaryId.value = nextPrimaryId
-    const nextPrimary = topLevelTagOptions.value.find((item: any) => String(item.id) === nextPrimaryId)
-    const firstSecondary = (nextPrimary?.children || []).find((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
-    activeSecondaryId.value = firstSecondary ? String(firstSecondary.id) : ''
-    resetAndFetch(true)
+    const keyword = normalizedSearchKeyword.value
+    const shouldUseRecommend = !nextPrimaryId && !keyword
+    const requestTagIds = getRequestTagIdsByPrimaryId(nextPrimaryId, keyword)
+    const signal = createFeedAbortSignal()
+
+    try {
+        if (shouldUseRecommend) {
+            await fetchRecommendFeedPage(false, requestId, signal)
+        } else {
+            let stagedResult = { batch: [] as any[], finished: false }
+            const maxAttempts = Math.max(1, requestTagIds.length)
+
+            for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+                const result = await fetchPrimaryTagFeed(false, requestId, keyword, signal, requestTagIds, 1, false)
+                if (!isLatestFeedRequest(requestId)) return
+                if (result) stagedResult = result
+                if (stagedResult.batch.length || stagedResult.finished) break
+                await waitForNextFrame()
+            }
+
+            if (!isLatestFeedRequest(requestId)) return
+            posts.value = stagedResult.batch
+            finished.value = stagedResult.finished
+        }
+
+        if (!isLatestFeedRequest(requestId)) return
+        activePrimaryId.value = nextPrimaryId
+    } catch (error) {
+        if (!isCanceledRequest(error) && isLatestFeedRequest(requestId)) {
+            console.error(error)
+            if (!shouldUseRecommend) refreshPrimaryTagTabsAfterFeedMiss(requestId)
+        }
+    } finally {
+        releaseFeedAbortSignal(signal)
+        if (isLatestFeedRequest(requestId)) {
+            loading.value = false
+            loadingMore.value = false
+            pendingPrimaryId.value = null
+        }
+    }
 }
 
-const handleSecondaryTagChange = (tagId?: string | number) => {
-    const nextSecondaryId = tagId === undefined || tagId === null || tagId === '' ? '' : String(tagId)
-    if (activeSecondaryId.value === nextSecondaryId) return
+const handlePrimaryTagChange = (tagId?: string | number) => {
+    const nextPrimaryId = tagId === undefined || tagId === null || tagId === '' ? '' : String(tagId)
+    if (pendingPrimaryId.value === nextPrimaryId) return
+    if (activePrimaryId.value === nextPrimaryId && !pendingPrimaryId.value) return
 
-    activeSecondaryId.value = nextSecondaryId
-    resetAndFetch(true)
+    abortFeedRequest()
+    clearPrimarySwitchTimer()
+    const requestId = nextFeedRequestId()
+    pendingPrimaryId.value = nextPrimaryId
+    loading.value = true
+    loadingMore.value = false
+    finished.value = false
+    query.value.lastId = undefined
+    query.value.lastCreateTime = undefined
+    clearRecommendLoadTimer()
+    clearRecommendEmptyRetryTimer()
+    clearLoadMoreTimer()
+    lastRecommendLoadAt = 0
+    lastRecommendEmptyAt = 0
+    lastLoadMoreAt = 0
+    lastKnownScrollTop = discoverPageRef.value?.scrollTop || 0
+    resetTagFeedCursors()
+
+    primarySwitchTimer = setTimeout(() => {
+        primarySwitchTimer = null
+        runPrimaryTagSwitch(nextPrimaryId, requestId)
+    }, PRIMARY_SWITCH_DEBOUNCE_MS)
+}
+
+const refreshActiveFeed = () => {
+    if (isFeedRefreshing.value) return
+
+    abortFeedRequest()
+    clearPrimarySwitchTimer()
+    clearRecommendLoadTimer()
+    clearRecommendEmptyRetryTimer()
+    clearLoadMoreTimer()
+
+    const requestId = nextFeedRequestId()
+    const nextPrimaryId = activePrimaryId.value
+    pendingPrimaryId.value = nextPrimaryId
+    loading.value = true
+    loadingMore.value = false
+    finished.value = false
+    query.value.lastId = undefined
+    query.value.lastCreateTime = undefined
+    lastRecommendLoadAt = 0
+    lastRecommendEmptyAt = 0
+    lastLoadMoreAt = 0
+    lastKnownScrollTop = discoverPageRef.value?.scrollTop || 0
+    resetTagFeedCursors()
+    runPrimaryTagSwitch(nextPrimaryId, requestId)
 }
 
 const normalizePostRows = (res: any) => {
@@ -986,7 +1352,7 @@ const openPost = (post: any) => {
         if (postId == null || !images.length) return
         sessionCache.setJSON(`${CLIENT_MEDIA_VIEWER_CACHE_KEY}:${postId}`, {
             id: postId,
-            post: normalizePostFlags(post),
+            post: createMediaViewerPayloadPost(normalizePostFlags(post)),
             images,
             from: route.fullPath
         })
@@ -1109,9 +1475,24 @@ onMounted(() => {
 })
 
 watch(
-    () => [posts.value.length, finished.value] as const,
-    async () => {
-        await setupLoadObserver()
+    () => posts.value,
+    nextPosts => {
+        schedulePostRendering(nextPosts)
+    },
+    { immediate: true }
+)
+
+watch(
+    () => [Boolean(renderedPosts.value.length), finished.value] as const,
+    async ([hasPosts, isFinished]) => {
+        if (!hasPosts || isFinished) {
+            if (loadObserver) {
+                loadObserver.disconnect()
+                loadObserver = null
+            }
+            return
+        }
+        if (!loadObserver) await setupLoadObserver()
     }
 )
 
@@ -1121,6 +1502,7 @@ onBeforeUnmount(() => {
     abortFeedRequest()
     closePreview()
     posts.value = []
+    renderedPosts.value = []
     primaryTagOptions.value = []
     resetTagFeedCursors()
     if (resizeHandler) {
@@ -1130,6 +1512,9 @@ onBeforeUnmount(() => {
     unbindScrollListener()
     clearRecommendLoadTimer()
     clearRecommendEmptyRetryTimer()
+    clearLoadMoreTimer()
+    clearPrimarySwitchTimer()
+    clearPostRenderSchedule()
     if (loadObserver) {
         loadObserver.disconnect()
         loadObserver = null
@@ -1297,11 +1682,18 @@ onBeforeUnmount(() => {
 
 .tips-list li {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
     font-size: 13px;
     color: var(--text-main);
-    line-height: 1.6;
+    line-height: 1.5;
+    min-height: 28px;
+}
+
+.tips-list li span {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
 }
 
 .icon-wrapper {
@@ -1322,9 +1714,11 @@ onBeforeUnmount(() => {
 }
 
 .content-area {
+    position: relative;
     flex: 1;
     min-width: 0;
     padding-top: 0;
+    padding-right: 56px;
 }
 
 .tab-panel {
@@ -1360,6 +1754,10 @@ onBeforeUnmount(() => {
 
 .tab-item {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     flex: 0 0 auto;
     border: 0;
     background: transparent;
@@ -1383,32 +1781,46 @@ onBeforeUnmount(() => {
     font-weight: 700;
 }
 
-.secondary-tabs {
-    gap: 10px;
-}
-
-.sub-tab {
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--client-border-soft);
-    border-radius: 999px;
-    color: var(--text-regular);
-    font-size: 14px;
-    background: var(--client-surface-muted);
-    transition:
-        background-color var(--app-motion-fast),
-        border-color var(--app-motion-fast),
-        color var(--app-motion-fast);
-}
-
-.sub-tab:hover {
-    background: var(--client-surface-hover);
-}
-
-.sub-tab.active {
-    border-color: color-mix(in srgb, var(--primary-color) 28%, transparent);
-    background: var(--client-active-bg);
+.tab-item.pending {
     color: var(--client-active-text);
+    font-weight: 700;
+    cursor: progress;
+}
+
+.tab-item.pending::after {
+    content: '';
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent 0%, var(--client-active-text) 35%, var(--client-active-text) 65%, transparent 100%);
+    background-size: 220% 100%;
+    animation: tab-refresh-sweep 1.05s ease-in-out infinite;
+}
+
+.tab-item.pending span {
+    animation: tab-refresh-pulse 1.05s ease-in-out infinite;
+}
+
+@keyframes tab-refresh-sweep {
+    0% {
+        background-position: 140% 50%;
+    }
+    100% {
+        background-position: -140% 50%;
+    }
+}
+
+@keyframes tab-refresh-pulse {
+    0%,
+    100% {
+        opacity: 0.72;
+    }
+    50% {
+        opacity: 1;
+    }
 }
 
 button:focus,
@@ -1418,9 +1830,152 @@ button:focus-visible {
 }
 
 .feed-wrap {
+    position: relative;
     flex: 1;
     min-height: 240px;
     scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.feed-floating-actions {
+    position: fixed;
+    right: max(12px, calc((100vw - var(--content-max-width)) / 2 + var(--page-x) + 8px));
+    bottom: 28px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.feed-floating-action {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--client-border-soft);
+    border-radius: 50%;
+    background: var(--client-surface);
+    color: var(--text-main);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--text-main) 10%, transparent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        color var(--app-motion-fast),
+        border-color var(--app-motion-fast),
+        background-color var(--app-motion-fast),
+        transform var(--app-motion-fast);
+}
+
+.feed-floating-action:hover:not(:disabled) {
+    color: var(--client-active-text);
+    border-color: color-mix(in srgb, var(--client-active-text) 34%, var(--client-border-soft));
+    background: var(--client-surface-hover);
+}
+
+.feed-floating-action:disabled {
+    cursor: default;
+    opacity: 0.42;
+    transform: none;
+}
+
+.feed-floating-action svg {
+    font-size: 20px;
+}
+
+.feed-floating-action.spinning svg {
+    animation: feed-action-spin 0.8s linear infinite;
+}
+
+@keyframes feed-action-spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.feed-wrap.is-refreshing .masonry-grid {
+    pointer-events: none;
+    animation: feed-card-pull-refresh 1.05s cubic-bezier(0.16, 0.76, 0.24, 1) forwards;
+}
+
+.feed-refresh-indicator {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    pointer-events: none;
+    opacity: 0;
+    animation: refresh-indicator-enter 0.22s ease forwards;
+}
+
+.refresh-card-frame {
+    width: 24px;
+    height: 16px;
+    border-radius: 6px;
+    background:
+        linear-gradient(90deg, var(--client-active-text) 0 30%, transparent 30% 100%) 6px 5px / 12px 2px no-repeat,
+        linear-gradient(90deg, color-mix(in srgb, var(--client-active-text) 58%, transparent) 0 54%, transparent 54% 100%) 6px 9px / 14px 2px no-repeat,
+        color-mix(in srgb, var(--client-active-text) 12%, var(--client-surface));
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--client-active-text) 14%, transparent);
+    opacity: 0.45;
+    transform: translateY(2px) scale(0.9);
+    animation: refresh-frame-swap 0.9s steps(1, end) infinite;
+}
+
+.refresh-card-frame:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.refresh-card-frame:nth-child(3) {
+    animation-delay: 0.6s;
+}
+
+@keyframes feed-card-pull-refresh {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    34% {
+        opacity: 0.92;
+        transform: translateY(16px);
+    }
+    68% {
+        opacity: 0.78;
+        transform: translateY(38px);
+    }
+    100% {
+        opacity: 0.86;
+        transform: translateY(26px);
+    }
+}
+
+@keyframes refresh-indicator-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes refresh-frame-swap {
+    0%,
+    32% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    33%,
+    100% {
+        opacity: 0.45;
+        transform: translateY(2px) scale(0.9);
+    }
 }
 
 .masonry-grid {
@@ -1434,6 +1989,109 @@ button:focus-visible {
     display: flex;
     flex-direction: column;
     row-gap: 26px;
+}
+
+.feed-card-skeleton {
+    --skeleton-card-height: 386px;
+
+    border-radius: var(--client-feed-card-radius);
+    overflow: visible;
+    background: transparent;
+    pointer-events: none;
+    animation: feed-skeleton-enter 0.28s ease both;
+}
+
+.feed-card-skeleton-cover {
+    position: relative;
+    height: var(--skeleton-card-height);
+    overflow: hidden;
+    border: 1px solid var(--client-border-soft);
+    border-radius: var(--client-feed-card-radius);
+    background:
+        linear-gradient(90deg, var(--client-fill) 0 28%, transparent 28% 100%) 18px 18px / 68px 12px no-repeat,
+        linear-gradient(90deg, var(--client-surface-hover) 0 42%, transparent 42% 100%) 18px 38px / 96px 10px no-repeat,
+        linear-gradient(145deg, var(--client-fill) 0%, var(--client-surface-muted) 100%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-main) 3%, transparent);
+}
+
+.feed-card-skeleton-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-110%);
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--client-surface-hover) 56%, transparent) 48%, transparent 100%);
+    animation: feed-skeleton-sweep 1.45s ease-in-out infinite;
+}
+
+.skeleton-shadow {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    height: 52px;
+    border-radius: 10px;
+    background:
+        linear-gradient(90deg, var(--client-surface-hover) 0 44%, transparent 44% 100%) 12px 12px / 72% 8px no-repeat,
+        linear-gradient(90deg, var(--client-fill) 0 34%, transparent 34% 100%) 12px 30px / 54% 7px no-repeat,
+        color-mix(in srgb, var(--client-fill) 82%, var(--client-surface-muted));
+    box-shadow: none;
+}
+
+.feed-card-skeleton-body {
+    padding: 10px 2px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skeleton-text,
+.skeleton-meta {
+    display: block;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--client-fill) 0%, var(--client-surface-hover) 44%, var(--client-fill) 88%);
+    background-size: 220% 100%;
+    animation: feed-skeleton-text 1.35s ease-in-out infinite;
+}
+
+.skeleton-text {
+    width: 62%;
+    height: 12px;
+}
+
+.skeleton-text--wide {
+    width: 86%;
+}
+
+.skeleton-meta {
+    width: 44%;
+    height: 10px;
+    margin-top: 4px;
+}
+
+@keyframes feed-skeleton-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes feed-skeleton-sweep {
+    100% {
+        transform: translateX(110%);
+    }
+}
+
+@keyframes feed-skeleton-text {
+    0% {
+        background-position: 120% 50%;
+    }
+    100% {
+        background-position: -120% 50%;
+    }
 }
 
 .post-card {
@@ -1654,6 +2312,7 @@ button:focus-visible {
 
     .content-area {
         padding-top: 0;
+        padding-right: 52px;
     }
 
     .tab-panel {
@@ -1670,6 +2329,10 @@ button:focus-visible {
 
     .main-inner {
         padding: 0 var(--page-x);
+    }
+
+    .content-area {
+        padding-right: 48px;
     }
 
     .tab-panel {
@@ -1689,10 +2352,15 @@ button:focus-visible {
         font-size: 15px;
     }
 
-    .sub-tab {
-        min-height: 30px;
-        padding: 0 11px;
-        font-size: 13px;
+    .feed-floating-actions {
+        right: 10px;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+        gap: 8px;
+    }
+
+    .feed-floating-action {
+        width: 38px;
+        height: 38px;
     }
 
     .masonry-grid {

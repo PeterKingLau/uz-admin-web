@@ -1,4 +1,4 @@
-import defaultSettings from '@/settings'
+import defaultSettings from '@/config/settings'
 import useSettingsStore from '@/store/modules/settings'
 import { isClientRoutePath } from '@/utils/routeAccess'
 

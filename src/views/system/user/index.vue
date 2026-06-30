@@ -47,15 +47,6 @@
             <section class="user-content-pane">
                 <div class="user-pane">
                     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" class="search-form modern-form">
-                        <el-form-item label="用户名称" prop="userName">
-                            <el-input
-                                v-model="queryParams.userName"
-                                placeholder="请输入用户名称"
-                                clearable
-                                class="search-input custom-input"
-                                @keyup.enter="handleQuery"
-                            />
-                        </el-form-item>
                         <el-form-item label="手机号码" prop="phonenumber">
                             <el-input
                                 v-model="queryParams.phonenumber"
@@ -126,31 +117,23 @@
                                 </template>
                             </el-table-column>
                             <el-table-column
-                                label="用户名称"
-                                align="center"
-                                key="userName"
-                                prop="userName"
-                                v-if="columns[1].visible"
-                                :show-overflow-tooltip="true"
-                            >
-                                <template #default="scope">
-                                    <span class="row-title">{{ scope.row.userName }}</span>
-                                </template>
-                            </el-table-column>
-                            <el-table-column
                                 label="用户昵称"
                                 align="center"
                                 key="nickName"
                                 prop="nickName"
-                                v-if="columns[2].visible"
+                                v-if="columns[1].visible"
                                 :show-overflow-tooltip="true"
-                            />
+                            >
+                                <template #default="scope">
+                                    <span class="row-title">{{ scope.row.nickName || '-' }}</span>
+                                </template>
+                            </el-table-column>
                             <el-table-column
                                 label="部门"
                                 align="center"
                                 key="deptName"
                                 prop="dept.deptName"
-                                v-if="columns[3].visible"
+                                v-if="columns[2].visible"
                                 :show-overflow-tooltip="true"
                             >
                                 <template #default="scope">
@@ -159,13 +142,23 @@
                                     </el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[4].visible" width="130" />
-                            <el-table-column label="状态" align="center" key="status" v-if="columns[5].visible" width="90">
+                            <el-table-column label="手机号码" align="center" key="phonenumber" prop="phonenumber" v-if="columns[3].visible" width="130">
                                 <template #default="scope">
-                                    <el-switch v-model="scope.row.status" active-value="0" inactive-value="1" @change="handleStatusChange(scope.row)" />
+                                    <span>{{ maskPhoneNumber(scope.row.phonenumber) }}</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[6].visible" width="160">
+                            <el-table-column label="状态" align="center" key="status" v-if="columns[4].visible" width="90">
+                                <template #default="scope">
+                                    <el-switch
+                                        v-model="scope.row.status"
+                                        active-value="0"
+                                        inactive-value="1"
+                                        :disabled="isAdminUser(scope.row)"
+                                        @change="handleStatusChange(scope.row)"
+                                    />
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[5].visible" width="160">
                                 <template #default="scope">
                                     <span class="time-cell">{{ parseTime(scope.row.createTime) }}</span>
                                 </template>
@@ -173,17 +166,17 @@
                             <el-table-column label="操作" align="center" width="160" fixed="right">
                                 <template #default="scope">
                                     <div class="action-group">
-                                        <el-tooltip content="修改" placement="top" v-if="scope.row.userId !== 1">
+                                        <el-tooltip content="修改" placement="top">
                                             <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['system:user:edit']" class="op-btn">
                                                 <Icon icon="ep:edit" />
                                             </el-button>
                                         </el-tooltip>
-                                        <el-tooltip content="删除" placement="top" v-if="scope.row.userId !== 1">
+                                        <el-tooltip content="删除" placement="top" v-if="!isAdminUser(scope.row)">
                                             <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['system:user:remove']" class="op-btn">
                                                 <Icon icon="ep:delete" />
                                             </el-button>
                                         </el-tooltip>
-                                        <el-tooltip content="重置密码" placement="top" v-if="scope.row.userId !== 1">
+                                        <el-tooltip content="重置密码" placement="top">
                                             <el-button
                                                 link
                                                 type="warning"
@@ -194,7 +187,7 @@
                                                 <Icon icon="ep:key" />
                                             </el-button>
                                         </el-tooltip>
-                                        <el-tooltip content="分配角色" placement="top" v-if="scope.row.userId !== 1">
+                                        <el-tooltip content="分配角色" placement="top">
                                             <el-button link type="success" @click="handleAuthRole(scope.row)" v-hasPermi="['system:user:edit']" class="op-btn">
                                                 <Icon icon="ep:user" />
                                             </el-button>
@@ -274,7 +267,7 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="状态">
-                            <el-radio-group v-model="form.status" class="custom-radio">
+                            <el-radio-group v-model="form.status" class="custom-radio" :disabled="isAdminUser(form)">
                                 <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value" border>{{ dict.label }}</el-radio>
                             </el-radio-group>
                         </el-form-item>
@@ -388,6 +381,7 @@ const deptName = ref('')
 const deptOptions = ref(undefined)
 const enabledDeptOptions = ref(undefined)
 const initPassword = ref(undefined)
+const adminLockedStatus = ref(undefined)
 const postOptions = ref([])
 const roleOptions = ref([])
 
@@ -402,12 +396,11 @@ const upload = reactive({
 
 const columns = ref([
     { key: 0, label: `用户编号`, visible: false },
-    { key: 1, label: `用户名称`, visible: true },
-    { key: 2, label: `用户昵称`, visible: true },
-    { key: 3, label: `部门`, visible: true },
-    { key: 4, label: `手机号码`, visible: true },
-    { key: 5, label: `状态`, visible: true },
-    { key: 6, label: `创建时间`, visible: true }
+    { key: 1, label: `用户昵称`, visible: true },
+    { key: 2, label: `部门`, visible: true },
+    { key: 3, label: `手机号码`, visible: true },
+    { key: 4, label: `状态`, visible: true },
+    { key: 5, label: `创建时间`, visible: true }
 ])
 
 const DEPT_PANE_WIDTH_KEY = 'system:user:deptPaneWidth'
@@ -429,7 +422,6 @@ const data = reactive({
     queryParams: {
         pageNum: 1,
         pageSize: 10,
-        userName: undefined,
         phonenumber: undefined,
         status: undefined,
         deptId: undefined
@@ -477,6 +469,20 @@ const data = reactive({
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+function maskPhoneNumber(value) {
+    const text = String(value || '').trim()
+    if (!text) return '-'
+    if (/^1[3-9]\d{9}$/.test(text)) {
+        return `${text.slice(0, 3)}****${text.slice(-4)}`
+    }
+    if (text.length <= 4) return text
+    return `${text.slice(0, Math.min(3, text.length - 4))}****${text.slice(-4)}`
+}
+
+function isAdminUser(row) {
+    return Number(row?.userId) === 1 || String(row?.userName || '').toLowerCase() === 'admin'
+}
 
 function resolveStoredDeptPaneWidth() {
     if (typeof window === 'undefined') return DEFAULT_DEPT_PANE_WIDTH
@@ -544,6 +550,11 @@ function resetQuery() {
 
 function handleDelete(row) {
     const userIds = row.userId || ids.value
+    const selectedUsers = row.userId ? [row] : userList.value.filter(item => ids.value.includes(item.userId))
+    if (selectedUsers.some(isAdminUser)) {
+        proxy.$modal.msgWarning('admin用户不允许删除')
+        return
+    }
     proxy.$modal
         .confirm('是否确认删除用户编号为"' + userIds + '"的数据项？')
         .then(function () {
@@ -567,6 +578,11 @@ function handleExport() {
 }
 
 function handleStatusChange(row) {
+    if (isAdminUser(row)) {
+        proxy.$modal.msgWarning('admin用户状态不允许修改')
+        getList()
+        return
+    }
     let text = row.status === '0' ? '启用' : '停用'
     proxy.$modal
         .confirm('确认要"' + text + '""' + row.userName + '"用户吗?')
@@ -688,7 +704,7 @@ function handleResetPwd(row) {
         })
         .then(({ value }) => {
             resetUserPwd(row.userId, value).then(response => {
-                proxy.$modal.msgSuccess('修改成功，新密码是：' + value)
+                proxy.$modal.msgSuccess('修改成功')
             })
         })
         .catch(() => {})
@@ -728,6 +744,7 @@ function submitFileForm() {
 }
 
 function reset() {
+    adminLockedStatus.value = undefined
     form.value = {
         userId: undefined,
         deptId: undefined,
@@ -770,6 +787,7 @@ function handleUpdate(row) {
         roleOptions.value = response.roles
         form.value.postIds = response.postIds
         form.value.roleIds = response.roleIds
+        adminLockedStatus.value = isAdminUser(form.value) ? form.value.status : undefined
         open.value = true
         title.value = '修改用户'
         form.value.password = ''
@@ -780,6 +798,9 @@ function submitForm() {
     proxy.$refs['userRef'].validate(valid => {
         if (valid) {
             if (form.value.userId != undefined) {
+                if (isAdminUser(form.value) && adminLockedStatus.value !== undefined) {
+                    form.value.status = adminLockedStatus.value
+                }
                 updateUser(form.value).then(response => {
                     proxy.$modal.msgSuccess('修改成功')
                     open.value = false

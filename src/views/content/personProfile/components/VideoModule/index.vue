@@ -431,7 +431,9 @@
 defineOptions({ name: 'ViewsContentPersonProfileComponentsVideoModule' })
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { decodeRouteId, encodeRouteId } from '@/router/routeParams'
 import { getImgUrl } from '@/utils/img'
+import { encodeClientUserId } from '@/utils/routeAccess'
 import useUserStore from '@/store/modules/user'
 import {
     buildContentParts,
@@ -896,10 +898,11 @@ const syncModalRouteQuery = open => {
     if (open) {
         if (postId == null || postId === '') return
         const normalizedId = String(postId)
-        if (String(currentQuery[MODAL_QUERY_ID_KEY] ?? '') === normalizedId) {
+        const currentModalId = decodeRouteId(currentQuery[MODAL_QUERY_ID_KEY])
+        if (currentModalId === normalizedId) {
             return
         }
-        nextQuery[MODAL_QUERY_ID_KEY] = normalizedId
+        nextQuery[MODAL_QUERY_ID_KEY] = encodeRouteId(normalizedId)
     } else {
         if (!(MODAL_QUERY_ID_KEY in nextQuery)) return
         delete nextQuery[MODAL_QUERY_ID_KEY]
@@ -948,7 +951,7 @@ const handleAvatarClick = () => {
         }
     }
 
-    router.push({ path: '/content/userProfile', query: { userId: targetUserIdText } })
+    router.push({ path: '/content/userProfile', query: { userId: encodeClientUserId(targetUserIdText) } })
 }
 
 const handleToggleFollow = () => {

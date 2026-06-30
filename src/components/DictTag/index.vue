@@ -26,14 +26,13 @@ defineOptions({ name: 'ComponentsDictTag' })
 const unmatchArray = ref([])
 
 const props = defineProps({
-    
     options: {
         type: Array,
         default: null
     },
-    
+
     value: [Number, String, Array],
-    
+
     showValue: {
         type: Boolean,
         default: true
@@ -51,18 +50,18 @@ const values = computed(() => {
 
 const unmatch = computed(() => {
     unmatchArray.value = []
-    
+
     if (props.value === null || typeof props.value === 'undefined' || props.value === '' || !Array.isArray(props.options) || props.options.length === 0)
         return false
-    
-    let unmatch = false 
+
+    let unmatch = false
     values.value.forEach(item => {
         if (!props.options.some(v => v.value === item)) {
             unmatchArray.value.push(item)
-            unmatch = true 
+            unmatch = true
         }
     })
-    return unmatch 
+    return unmatch
 })
 
 function handleArray(array) {

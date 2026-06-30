@@ -89,7 +89,7 @@
 <script setup>
 defineOptions({ name: 'LayoutComponentsSettings' })
 import { ref, getCurrentInstance } from 'vue'
-import defaultSettings from '@/settings'
+import defaultSettings from '@/config/settings'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'

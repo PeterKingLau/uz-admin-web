@@ -1,9 +1,9 @@
 <template>
     <div ref="switcherRef" class="locale-switcher" :class="{ 'is-compact': compact, 'is-open': open }">
         <button type="button" class="locale-trigger" :aria-expanded="open" aria-label="切换语言 / Switch language" @click="toggleOpen">
-            <Icon icon="mdi:translate" class="locale-icon" aria-hidden="true" />
+            <Icon icon="mdi:translate" class="locale-icon" :aria-hidden="true" />
             <span>{{ compact ? activeOption.shortLabel : activeOption.label }}</span>
-            <Icon icon="mdi:chevron-down" class="locale-arrow" aria-hidden="true" />
+            <Icon icon="mdi:chevron-down" class="locale-arrow" :aria-hidden="true" />
         </button>
 
         <Transition name="locale-menu">
@@ -19,7 +19,7 @@
                     @click="selectLocale(item.value)"
                 >
                     <span>{{ item.label }}</span>
-                    <Icon v-if="item.value === currentLocale" icon="mdi:check" aria-hidden="true" />
+                    <Icon v-if="item.value === currentLocale" icon="mdi:check" :aria-hidden="true" />
                 </button>
             </div>
         </Transition>

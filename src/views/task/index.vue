@@ -783,10 +783,13 @@ function normalizeLinesExpanded(text: string) {
     const splitInlineOptions = (line: string) => {
         const parts: string[] = []
         const re = /([A-F])[.\s、)）]\s*/gi
-        let match: RegExpExecArray | null = null
         const indices: { idx: number }[] = []
 
-        while ((match = re.exec(line)) !== null) indices.push({ idx: match.index })
+        while (true) {
+            const match = re.exec(line)
+            if (!match) break
+            indices.push({ idx: match.index })
+        }
         if (!indices.length) return [line]
 
         if (indices[0].idx > 0) {

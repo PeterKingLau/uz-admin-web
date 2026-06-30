@@ -202,6 +202,7 @@ import {
     toLocalDateTime
 } from '@/utils/content/common'
 import { CONTENT_LIST_REFRESH_EVENT, getContentListRefreshMark } from '@/utils/content/refreshSignal'
+import { encodeClientUserId } from '@/utils/routeAccess'
 import { usePageScrollLock } from '@/utils/scrollLock'
 
 const { proxy } = getCurrentInstance() || {}
@@ -925,7 +926,7 @@ async function handleDeleteConfirm(ids: Array<string | number>) {
 function handleViewProfile(post: any) {
     const userId = resolveProfileUserId(post)
     if (!userId) return
-    router.push({ path: '/content/userProfile', query: { userId: String(userId) } })
+    router.push({ path: '/content/userProfile', query: { userId: encodeClientUserId(userId) } })
 }
 
 function handlePreview(post: any) {
@@ -1323,7 +1324,7 @@ async function handlePreviewAction(type: 'like' | 'collect' | 'share') {
 
     if (type === 'share') {
         if (repostActionLoading.value) return
-        let content = ''
+        let content: string
         try {
             const res = await proxy?.$modal?.prompt?.('请输入转发内容')
             content = String((res as any)?.value ?? '').trim()

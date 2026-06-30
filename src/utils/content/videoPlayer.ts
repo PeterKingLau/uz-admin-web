@@ -33,6 +33,66 @@ type OpenVideoPlayerPreviewOptions = {
     route: RouteLike
 }
 
+const VIDEO_PLAYER_POST_FIELDS = [
+    'id',
+    'postId',
+    'postType',
+    'content',
+    'mediaUrls',
+    'files',
+    'mediaList',
+    'cover',
+    'coverUrl',
+    'thumbnail',
+    'poster',
+    'avatar',
+    'userAvatar',
+    'authorAvatar',
+    'nickName',
+    'authorName',
+    'userName',
+    'username',
+    'userId',
+    'targetUserId',
+    'authorId',
+    'createBy',
+    'createTime',
+    'createDate',
+    'tags',
+    'tagList',
+    'tagStr',
+    'tagNames',
+    'like',
+    'isLiked',
+    'liked',
+    'likeStatus',
+    'isLike',
+    'bookmark',
+    'isCollected',
+    'collected',
+    'collectStatus',
+    'isCollect',
+    'follow',
+    'isFollow',
+    'isFollowing',
+    'followed',
+    'followStatus',
+    'likeCount',
+    'commentCount',
+    'shareCount',
+    'bookmarkCount',
+    'collectCount',
+    'collectionId',
+    'collectionName'
+]
+
+function createVideoPlayerPayloadPost(post: Record<string, any>) {
+    return VIDEO_PLAYER_POST_FIELDS.reduce<Record<string, any>>((result, key) => {
+        if (post[key] !== undefined) result[key] = post[key]
+        return result
+    }, {})
+}
+
 export function buildCurrentUserPayload(userStore: UserStoreLike) {
     const currentUserId = userStore.id ?? userStore.userId ?? null
     return {
@@ -60,8 +120,7 @@ export function openVideoPlayerPreview(options: OpenVideoPlayerPreviewOptions): 
     cacheSession?.setJSON?.(cacheKey, {
         id: postId,
         src,
-        post: normalized,
-        userInfo: buildCurrentUserPayload(userStore),
+        post: createVideoPlayerPayloadPost(normalized),
         from
     })
 

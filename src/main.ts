@@ -5,26 +5,21 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import locale from 'element-plus/es/locale/lang/zh-cn'
 
-import '@/assets/styles/index.scss' 
+import '@/assets/styles/index.scss'
 
 import App from './App.vue'
 import store from './store'
 import router from './router'
-import directive from './directive' 
+import directive from './directive'
 import { i18n } from './locales'
 
-
-import plugins from './plugins' 
+import plugins from './plugins'
 import { download } from '@/utils/request'
 
-
-
-
-import './permission' 
+import './router/permission'
 
 import { useDict } from '@/utils/dict'
 import { parseTime, resetForm, addDateRange, handleTree } from '@/utils/utils'
-
 
 import Pagination from '@/components/Pagination/index.vue'
 import RightToolbar from '@/components/RightToolbar/index.vue'

@@ -9,75 +9,33 @@
         <title>测吧后台管理系统</title>
         <script>
             ;(() => {
-                const path = window.location.pathname || ''
-                const isClientPath =
-                    path === '/discover' ||
-                    path === '/publish' ||
-                    path === '/profile' ||
-                    path.startsWith('/profile/') ||
-                    path.startsWith('/content/video-player') ||
-                    path.startsWith('/content/userProfile') ||
-                    path.startsWith('/user/profile')
+                const clientRouteTitle = '测吧'
+                const clientRouteClass = 'client-route-shell'
+                const exactClientPaths = new Set(['/discover', '/publish', '/profile', '/content/userProfile', '/user/profile'])
+                const clientPathPrefixes = ['/profile/', '/content/video-player/', '/content/media-viewer/']
+                const normalizePath = value => value.replace(/\/+$/, '') || '/'
+                const currentPath = normalizePath(window.location.pathname || '/')
+                const isClientPath = exactClientPaths.has(currentPath) || clientPathPrefixes.some(prefix => currentPath.startsWith(prefix))
 
-                if (isClientPath) {
-                    document.documentElement.classList.add('client-route-shell')
-                    document.title = '测吧'
-                }
+                if (!isClientPath) return
+                document.documentElement.classList.add(clientRouteClass)
+                document.title = clientRouteTitle
             })()
         </script>
-        
-
-
-
 
         <style>
             html,
             body,
             #app {
                 height: 100%;
-                margin: 0px;
-                padding: 0px;
+                margin: 0;
+                padding: 0;
             }
 
             html.client-route-shell,
             html.client-route-shell body,
             html.client-route-shell #app {
                 background: #ffffff;
-            }
-
-            .chromeframe {
-                margin: 0.2em 0;
-                background: #ccc;
-                color: #000;
-                padding: 0.2em 0;
-            }
-
-            @-webkit-keyframes spin {
-                0% {
-                    -webkit-transform: rotate(0deg);
-                    -ms-transform: rotate(0deg);
-                    transform: rotate(0deg);
-                }
-
-                100% {
-                    -webkit-transform: rotate(360deg);
-                    -ms-transform: rotate(360deg);
-                    transform: rotate(360deg);
-                }
-            }
-
-            @keyframes spin {
-                0% {
-                    -webkit-transform: rotate(0deg);
-                    -ms-transform: rotate(0deg);
-                    transform: rotate(0deg);
-                }
-
-                100% {
-                    -webkit-transform: rotate(360deg);
-                    -ms-transform: rotate(360deg);
-                    transform: rotate(360deg);
-                }
             }
         </style>
     </head>

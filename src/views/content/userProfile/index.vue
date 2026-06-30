@@ -218,7 +218,7 @@ import PostPreviewModal from '@/views/content/personProfile/components/Modal/Pos
 import FollowDialog from '@/views/content/personProfile/components/Dialog/FollowDialog.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
-import { resolvePersonalRoute } from '@/utils/routeAccess'
+import { decodeClientUserId, encodeClientUserId, resolvePersonalRoute } from '@/utils/routeAccess'
 import { usePageScrollLock } from '@/utils/scrollLock'
 
 const route = useRoute()
@@ -304,9 +304,9 @@ const allowedPostTypes = [String(POST_TYPE.TEXT), String(POST_TYPE.IMAGE), Strin
 const allowedPostTypeSet = new Set(allowedPostTypes)
 
 const normalizeRouteParam = value => {
-    if (Array.isArray(value)) return value[0]
+    if (Array.isArray(value)) return normalizeRouteParam(value[0])
     if (value === null || value === undefined || value === '') return null
-    return String(value)
+    return decodeClientUserId(String(value))
 }
 
 const routeUserId = computed(() => normalizeRouteParam(route.query.userId ?? route.params?.userId))
@@ -1660,7 +1660,7 @@ const handlePreviewAction = async type => {
 
     if (type === 'share') {
         if (repostActionLoading.value) return
-        let content = ''
+        let content
         try {
             const promptResult = await proxy?.$modal?.prompt?.('请输入转发内容')
             content = String(promptResult?.value ?? '').trim()
@@ -1768,7 +1768,7 @@ const handleSelectFollowUser = item => {
         return
     }
     if (routeUserId.value != null && String(routeUserId.value) === targetUserIdText) return
-    router.push({ path: '/content/userProfile', query: { userId: targetUserIdText } })
+    router.push({ path: '/content/userProfile', query: { userId: encodeClientUserId(targetUserIdText) } })
 }
 
 const resetProfileLists = () => {

@@ -1,4 +1,4 @@
-import router from './router'
+import router from './index'
 import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import { getToken } from '@/utils/auth'
@@ -79,30 +79,26 @@ const syncRouteShell = (to: any) => {
     })
 }
 
-const continueNavigation = (to: any, next: any) => {
+const resolveContinueNavigation = (to: any) => {
     const userStore = useUserStore()
-    if (userStore.isCommonClient && handleClientRouteIsolation(to, next)) {
-        return
-    }
-    next({ path: to.fullPath, replace: true })
+    const clientRedirect = userStore.isCommonClient ? resolveClientRouteIsolation(to) : null
+    return clientRedirect || { path: to.fullPath, replace: true }
 }
 
-const handleClientRouteIsolation = (to: any, next: any) => {
+const resolveClientRouteIsolation = (to: any) => {
     const metaPlatform = String(to.meta?.platform || '')
         .trim()
         .toLowerCase()
     if (metaPlatform === 'public') {
-        return false
+        return null
     }
     if (isIndexPath(to.path)) {
-        next({ path: '/discover', replace: true })
-        return true
+        return { path: '/discover', replace: true }
     }
     if (metaPlatform === 'admin' || !isClientRoutePath(to.path)) {
-        next({ path: '/discover', replace: true })
-        return true
+        return { path: '/discover', replace: true }
     }
-    return false
+    return null
 }
 
 const shouldRedirectMobileClientRoute = (to: any) => {
@@ -119,7 +115,7 @@ const shouldRedirectMobileClientRoute = (to: any) => {
     return metaPlatform === 'client' || isClientRoutePath(path)
 }
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async to => {
     syncRouteShell(to)
     startRouteProgress()
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
@@ -127,69 +123,52 @@ router.beforeEach((to, _from, next) => {
         useUserStore().logOut(false)
     }
     if (shouldRedirectMobileClientRoute(to)) {
-        next({ path: H5_APP_DOWNLOAD_PATH, query: { redirect: to.fullPath }, replace: true })
-        finishRouteProgress()
-        return
+        return { path: H5_APP_DOWNLOAD_PATH, query: { redirect: to.fullPath }, replace: true }
     }
     if (getToken()) {
         if (to.path === '/login') {
-            next({ path: getLoginRedirectPath(to.query?.redirect) })
-            finishRouteProgress()
-        } else {
-            if (useUserStore().roles.length === 0) {
-                isRelogin.show = true
-                useUserStore()
-                    .getInfo()
-                    .then(() => {
-                        isRelogin.show = false
-                        usePermissionStore()
-                            .generateRoutes()
-                            .then(accessRoutes => {
-                                accessRoutes.forEach(route => {
-                                    if (!isHttp(route.path)) {
-                                        router.addRoute(route)
-                                    }
-                                })
-                                continueNavigation(to, next)
-                            })
-                            .catch(err => {
-                                if (isClientRoutePath(to.path)) {
-                                    console.warn('Generate admin routes failed, continue client route navigation.', err)
-                                    continueNavigation(to, next)
-                                    return
-                                }
-                                useUserStore()
-                                    .logOut(false)
-                                    .then(() => {
-                                        ElMessage.error(err)
-                                        next({ path: '/' })
-                                    })
-                            })
+            return { path: getLoginRedirectPath(to.query?.redirect) }
+        }
+
+        if (useUserStore().roles.length === 0) {
+            isRelogin.show = true
+            try {
+                await useUserStore().getInfo()
+                isRelogin.show = false
+                try {
+                    const accessRoutes = await usePermissionStore().generateRoutes()
+                    accessRoutes.forEach(route => {
+                        if (!isHttp(route.path)) {
+                            router.addRoute(route)
+                        }
                     })
-                    .catch(err => {
-                        useUserStore()
-                            .logOut(false)
-                            .then(() => {
-                                ElMessage.error(err)
-                                next({ path: '/' })
-                            })
-                    })
-            } else {
-                const userStore = useUserStore()
-                if (userStore.isCommonClient && handleClientRouteIsolation(to, next)) {
-                    return
+                    return resolveContinueNavigation(to)
+                } catch (err) {
+                    if (isClientRoutePath(to.path)) {
+                        console.warn('Generate admin routes failed, continue client route navigation.', err)
+                        return resolveContinueNavigation(to)
+                    }
+                    await useUserStore().logOut(false)
+                    ElMessage.error(err as any)
+                    return { path: '/' }
                 }
-                next()
+            } catch (err) {
+                isRelogin.show = false
+                await useUserStore().logOut(false)
+                ElMessage.error(err as any)
+                return { path: '/' }
             }
         }
-    } else {
-        if (whiteList.indexOf(to.path) !== -1) {
-            next()
-        } else {
-            next(`/login?redirect=${to.fullPath}`)
-            finishRouteProgress()
-        }
+
+        const clientRedirect = useUserStore().isCommonClient ? resolveClientRouteIsolation(to) : null
+        return clientRedirect || true
     }
+
+    if (whiteList.indexOf(to.path) !== -1) {
+        return true
+    }
+
+    return `/login?redirect=${to.fullPath}`
 })
 
 router.afterEach(() => {

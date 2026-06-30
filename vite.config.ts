@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import { resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import createVitePlugins from './vite/plugins'
 import { createObfuscatorPlugin } from './vite/plugins/obfuscator'
@@ -63,9 +64,31 @@ function resolveIntegerEnv(value: string | undefined, fallback: number): number 
     return Number.isFinite(normalizedValue) && normalizedValue >= 0 ? normalizedValue : fallback
 }
 
+function parseEnvFile(filePath: string): Partial<ViteRuntimeEnv> {
+    if (!existsSync(filePath)) return {}
+    return readFileSync(filePath, 'utf8')
+        .split(/\r?\n/)
+        .reduce<Record<string, string>>((acc, line) => {
+            const normalized = line.trim()
+            if (!normalized || normalized.startsWith('#')) return acc
+            const separatorIndex = normalized.indexOf('=')
+            if (separatorIndex < 0) return acc
+            const key = normalized.slice(0, separatorIndex).trim()
+            const value = normalized
+                .slice(separatorIndex + 1)
+                .trim()
+                .replace(/^['"]|['"]$/g, '')
+            if (key) acc[key] = value
+            return acc
+        }, {}) as Partial<ViteRuntimeEnv>
+}
+
 export default defineConfig(({ mode, command }) => {
-    const env = loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv
     const isBuild = command === 'build'
+    const env = {
+        ...(loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv),
+        ...(isBuild ? {} : parseEnvFile(resolve(projectRootDir, '.env.local')))
+    }
     const isProdBuild = isBuild && mode === 'production'
     const proxyTarget = resolveProxyTarget(env, mode)
     const proxyRewrite = resolveProxyRewrite(env, mode)
@@ -121,8 +144,8 @@ export default defineConfig(({ mode, command }) => {
         },
 
         optimizeDeps: {
-            include: ['vue', 'vue-router', 'pinia', 'axios', '@vueuse/core', '@iconify/vue'],
-            exclude: ['echarts', 'video.js', 'md-editor-v3', 'vue-cropper', 'qr-code-styling']
+            include: ['vue', 'vue-router', 'pinia', 'axios', '@vueuse/core', '@iconify/vue', 'qr-code-styling'],
+            exclude: ['echarts', 'video.js', 'md-editor-v3', 'vue-cropper']
         },
 
         build: {

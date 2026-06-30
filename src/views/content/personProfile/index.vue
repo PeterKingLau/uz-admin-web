@@ -173,7 +173,7 @@ import PostPreviewModal from './components/Modal/PostPreviewModal.vue'
 import FollowDialog from './components/Dialog/FollowDialog.vue'
 import defaultBg from '@/assets/images/bg_profile.jpeg'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
-import { resolvePersonalRoute } from '@/utils/routeAccess'
+import { encodeClientUserId, resolvePersonalRoute } from '@/utils/routeAccess'
 import { usePageScrollLock } from '@/utils/scrollLock'
 
 const route = useRoute()
@@ -1295,7 +1295,7 @@ const handlePreviewAction = async type => {
 
     if (type === 'share') {
         if (repostActionLoading.value) return
-        let content = ''
+        let content
         try {
             const promptResult = await proxy?.$modal?.prompt?.('请输入转发内容')
             content = String(promptResult?.value ?? '').trim()
@@ -1363,7 +1363,7 @@ const handleSelectFollowUser = item => {
     const selfUserId = queryParams.targetUserId ?? userStore.id
     followDialogVisible.value = false
     if (selfUserId != null && String(selfUserId) === targetUserIdText) return
-    router.push({ path: '/content/userProfile', query: { userId: targetUserIdText } })
+    router.push({ path: '/content/userProfile', query: { userId: encodeClientUserId(targetUserIdText) } })
 }
 
 onMounted(() => {

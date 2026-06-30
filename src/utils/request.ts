@@ -145,6 +145,47 @@ interface ExtendedInternalAxiosRequestConfig extends InternalAxiosRequestConfig 
 }
 
 const isAbsoluteHttpUrl = (url?: string): boolean => /^https?:\/\//i.test(String(url || '').trim())
+const REDACTED_TEXT = '[REDACTED]'
+const SENSITIVE_QUERY_KEYS = new Set(['access_token', 'authorization', 'auth', 'password', 'refresh_token', 'secret', 'token'])
+
+function redactSensitiveText(value: unknown): string {
+    return String(value ?? '')
+        .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, `Bearer ${REDACTED_TEXT}`)
+        .replace(/(authorization\s*[:=]\s*)[^\s,;&]+/gi, `$1${REDACTED_TEXT}`)
+        .replace(/((?:access_token|auth|password|refresh_token|secret|token)=)[^&#\s]+/gi, `$1${REDACTED_TEXT}`)
+}
+
+function sanitizeLogUrl(url?: string): string {
+    const rawUrl = String(url || '').trim()
+    if (!rawUrl) return ''
+
+    try {
+        const parsedUrl = new URL(rawUrl, 'http://app.local')
+        parsedUrl.searchParams.forEach((_value, key) => {
+            if (SENSITIVE_QUERY_KEYS.has(key.toLowerCase())) {
+                parsedUrl.searchParams.set(key, REDACTED_TEXT)
+            }
+        })
+        const nextUrl = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`
+        return isAbsoluteHttpUrl(rawUrl) ? parsedUrl.toString() : nextUrl
+    } catch {
+        return redactSensitiveText(rawUrl)
+    }
+}
+
+function createSafeErrorLog(error: any) {
+    const config = error?.config || {}
+    const response = error?.response || {}
+    return {
+        message: redactSensitiveText(error?.message || error),
+        code: error?.code,
+        method: String(config?.method || '').toUpperCase(),
+        url: sanitizeLogUrl(config?.url),
+        baseURL: sanitizeLogUrl(config?.baseURL),
+        status: response?.status,
+        responseCode: response?.data?.code
+    }
+}
 
 function stableStringify(value: unknown): string {
     if (value === undefined || value === null) return ''
@@ -257,7 +298,7 @@ function checkRepeatSubmit(config: ExtendedInternalAxiosRequestConfig): boolean 
 
     const requestSize = estimatePayloadSize(JSON.stringify(requestObj))
     if (requestSize >= REQUEST_SIZE_LIMIT) {
-        console.warn(`[${config.url}]: request payload too large, skip repeat-submit check`)
+        console.warn(`[${sanitizeLogUrl(config.url)}]: request payload too large, skip repeat-submit check`)
         return true
     }
 
@@ -271,7 +312,7 @@ function checkRepeatSubmit(config: ExtendedInternalAxiosRequestConfig): boolean 
     const isDuplicate = sessionObj.data === requestObj.data && sessionObj.url === requestObj.url && requestObj.time - sessionObj.time < REPEAT_SUBMIT_INTERVAL
     if (isDuplicate) {
         const message = 'Data is being processed, please do not resubmit'
-        console.warn(`[${sessionObj.url}]: ${message}`)
+        console.warn(`[${sanitizeLogUrl(sessionObj.url)}]: ${message}`)
         return false
     }
 
@@ -324,7 +365,7 @@ service.interceptors.request.use(
         return config
     },
     error => {
-        console.error('Request error:', error)
+        console.error('Request error:', createSafeErrorLog(error))
         return Promise.reject(error)
     }
 )
@@ -380,7 +421,7 @@ service.interceptors.response.use(
         }
 
         const code = res.data?.code ?? 200
-        const msg = errorCode[code] || res.data?.msg || errorCode['default']
+        const msg = redactSensitiveText(errorCode[code] || res.data?.msg || errorCode['default'])
 
         const errorHandler = ERROR_HANDLERS[code]
         if (errorHandler) {
@@ -402,9 +443,9 @@ service.interceptors.response.use(
 
         removePendingRequest(error?.config)
 
-        console.error('Response error:', error)
+        console.error('Response error:', createSafeErrorLog(error))
 
-        let message = error?.message || 'Unknown error'
+        let message = redactSensitiveText(error?.message || 'Unknown error')
         const ERROR_MESSAGES: Record<string, string> = {
             'Network Error': 'Network error',
             timeout: 'Request timeout'
@@ -477,13 +518,13 @@ export function download(url: string, params: Record<string, any>, filename: str
             } else {
                 const resText = await data.text()
                 const rspObj = JSON.parse(resText)
-                const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default']
+                const errMsg = redactSensitiveText(errorCode[rspObj.code] || rspObj.msg || errorCode['default'])
                 ElMessage.error(errMsg)
             }
         })
         .catch(err => {
             if (axios.isCancel(err)) return
-            console.error('Download error:', err)
+            console.error('Download error:', createSafeErrorLog(err))
             ElMessage.error('下载文件出现错误，请联系管理员')
         })
         .finally(() => {
