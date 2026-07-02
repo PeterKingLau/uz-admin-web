@@ -118,10 +118,8 @@
 
 <script setup>
 defineOptions({ name: 'ViewsClientLogin' })
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import Cookies from 'js-cookie'
-import { encryptRememberedPassword, decryptRememberedPassword } from '@/utils/rememberMeCrypto'
 import useUserStore from '@/store/modules/user'
 import { sendPhoneCode } from '@/api/login/login'
 import { copyTextToClipboard } from '@/directive/common/copyText'
@@ -138,8 +136,7 @@ const loginForm = ref({
     loginType: 'PASSWORD',
     username: '',
     password: '',
-    smsCode: '',
-    rememberMe: false
+    smsCode: ''
 })
 
 const activeRules = computed(() => {
@@ -195,20 +192,6 @@ const beianRecordUrl = 'https://beian.miit.gov.cn/#/Integrated/recordQuery'
 const beianDialogVisible = ref(false)
 const beianRecordInputRef = ref()
 const BEIAN_REDIRECT_DELAY_MS = 320
-const DAY_IN_MS = 24 * 60 * 60 * 1000
-const DEFAULT_REMEMBER_ME_DAYS = 30
-const MIN_REMEMBER_ME_DAYS = 1
-const MAX_REMEMBER_ME_DAYS = 365
-const appStoragePrefix = `${String(import.meta.env.VITE_APP_TITLE || 'ceba-web').trim() || 'ceba-web'}`
-const rememberedPasswordStorageKey = `${appStoragePrefix}:remembered-password`
-
-function resolveRememberMeDays() {
-    const rawDays = Number(import.meta.env.VITE_APP_REMEMBER_ME_DAYS || DEFAULT_REMEMBER_ME_DAYS)
-    if (!Number.isFinite(rawDays)) return DEFAULT_REMEMBER_ME_DAYS
-    return Math.min(MAX_REMEMBER_ME_DAYS, Math.max(MIN_REMEMBER_ME_DAYS, Math.round(rawDays)))
-}
-
-const rememberMeDays = resolveRememberMeDays()
 
 function normalizeRedirectPath(value) {
     const raw = Array.isArray(value) ? value[0] : value
@@ -264,75 +247,6 @@ function resolveLocalValidationMessage() {
     return ''
 }
 
-function parseStoredBoolean(value) {
-    return value === 'true' || value === '1'
-}
-
-function buildRememberedRecord(value) {
-    return JSON.stringify({
-        value: String(value ?? ''),
-        expiresAt: Date.now() + rememberMeDays * DAY_IN_MS
-    })
-}
-
-function getRememberedRecord(key) {
-    try {
-        const raw = localStorage.getItem(key)
-        if (!raw) return null
-        const parsed = JSON.parse(raw)
-        const expiresAt = Number(parsed?.expiresAt || 0)
-        if (!Number.isFinite(expiresAt) || expiresAt <= 0 || Date.now() >= expiresAt) {
-            localStorage.removeItem(key)
-            return null
-        }
-        return {
-            value: String(parsed?.value ?? ''),
-            expiresAt
-        }
-    } catch {
-        try {
-            localStorage.removeItem(key)
-        } catch {
-            return null
-        }
-        return null
-    }
-}
-
-function getRememberedPasswordCipher() {
-    return getRememberedRecord(rememberedPasswordStorageKey)?.value || ''
-}
-
-function setRememberedPasswordCipher(value) {
-    try {
-        localStorage.setItem(rememberedPasswordStorageKey, buildRememberedRecord(value))
-    } catch {
-        return
-    }
-}
-
-function removeRememberedPasswordCipher() {
-    try {
-        localStorage.removeItem(rememberedPasswordStorageKey)
-    } catch {
-        return
-    }
-}
-
-function clearRememberedLoginState() {
-    Cookies.remove('username')
-    Cookies.remove('password')
-    Cookies.remove('rememberMe')
-    removeRememberedPasswordCipher()
-}
-
-async function persistRememberedLoginState() {
-    Cookies.set('username', loginForm.value.username, { expires: rememberMeDays })
-    Cookies.set('rememberMe', 'true', { expires: rememberMeDays })
-    setRememberedPasswordCipher(await encryptRememberedPassword(loginForm.value.password))
-    Cookies.remove('password')
-}
-
 function handleBeianLinkClick() {
     if (copyTextToClipboard(beianRecordNumber)) {
         proxy?.$modal?.msgSuccess?.('备案号已复制')
@@ -367,7 +281,6 @@ watch(
         if (val === 'SMS') {
             loginForm.value.username = ''
             loginForm.value.password = ''
-            loginForm.value.rememberMe = false
         } else {
             loginForm.value.smsCode = ''
             smsCountdown.value = 0
@@ -416,48 +329,6 @@ onBeforeUnmount(() => {
     clearSmsCountdownTimer()
 })
 
-async function restoreRememberedLoginState() {
-    const username = Cookies.get('username')
-    const passwordCookie = Cookies.get('password')
-    const passwordCipher = getRememberedPasswordCipher()
-    const rememberMeEnabled = parseStoredBoolean(Cookies.get('rememberMe'))
-
-    if (passwordCookie) {
-        Cookies.remove('password')
-    }
-
-    if (!rememberMeEnabled) {
-        clearRememberedLoginState()
-        loginForm.value.rememberMe = false
-        loginForm.value.password = ''
-        return
-    }
-
-    if (!username || !passwordCipher) {
-        clearRememberedLoginState()
-        loginForm.value.rememberMe = false
-        loginForm.value.password = ''
-        return
-    }
-
-    loginForm.value.loginType = 'PASSWORD'
-    loginForm.value.rememberMe = true
-    loginForm.value.username = username ?? loginForm.value.username
-
-    try {
-        loginForm.value.password = await decryptRememberedPassword(passwordCipher)
-    } catch (error) {
-        console.warn('Failed to restore remembered password', error)
-        clearRememberedLoginState()
-        loginForm.value.rememberMe = false
-        loginForm.value.password = ''
-    }
-}
-
-onMounted(() => {
-    void restoreRememberedLoginState()
-})
-
 function handleLogin() {
     if (!agreementAccepted.value) {
         triggerAgreementShake()
@@ -493,17 +364,6 @@ function handleLogin() {
             userStore
                 .login(payload)
                 .then(async () => {
-                    try {
-                        if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.rememberMe) {
-                            await persistRememberedLoginState()
-                        } else {
-                            clearRememberedLoginState()
-                        }
-                    } catch (error) {
-                        clearRememberedLoginState()
-                        console.warn('Failed to persist remembered password', error)
-                    }
-
                     const query = route.query
                     const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
                         if (cur !== ROUTE_REDIRECT_QUERY_KEY) acc[cur] = query[cur]

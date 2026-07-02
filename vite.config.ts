@@ -25,6 +25,7 @@ interface ViteRuntimeEnv {
     VITE_BUILD_ANALYZE?: string
     VITE_PROXY_TARGET?: string
     VITE_PROXY_MODE?: ProxyMode
+    VITE_BUILD_HARDEN?: string
     VITE_DROP_CONSOLE?: string
     VITE_GENERATE_SOURCEMAP?: string
     VITE_ENABLE_OBFUSCATION?: string
@@ -89,16 +90,19 @@ export default defineConfig(({ mode, command }) => {
         ...(loadEnv(mode, projectRootDir, '') as ViteRuntimeEnv),
         ...(isBuild ? {} : parseEnvFile(resolve(projectRootDir, '.env.local')))
     }
+    const isAnalyzeBuild = isBuild && mode === 'analyze'
     const isProdBuild = isBuild && mode === 'production'
     const proxyTarget = resolveProxyTarget(env, mode)
     const proxyRewrite = resolveProxyRewrite(env, mode)
-    const useTerserMinify = isProdBuild && env.VITE_USE_TERSER === 'true'
-    const enableObfuscation = useTerserMinify && env.VITE_ENABLE_OBFUSCATION !== 'false'
-    const obscureBundleNames = isProdBuild && env.VITE_OBSCURE_BUNDLE_NAMES !== 'false'
-    const shouldDropConsole = isProdBuild && env.VITE_DROP_CONSOLE !== 'false'
-    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true' || (isBuild && !isProdBuild)
+    const buildOutDir = 'dist'
+    const shouldHardenBuild = isBuild && (isProdBuild || env.VITE_BUILD_HARDEN === 'true')
+    const useTerserMinify = shouldHardenBuild && env.VITE_USE_TERSER === 'true'
+    const enableBusinessChunkObfuscation = shouldHardenBuild && env.VITE_ENABLE_OBFUSCATION !== 'false'
+    const obscureBundleNames = shouldHardenBuild && env.VITE_OBSCURE_BUNDLE_NAMES !== 'false'
+    const shouldDropConsole = shouldHardenBuild && env.VITE_DROP_CONSOLE !== 'false'
+    const shouldGenerateSourceMap = env.VITE_GENERATE_SOURCEMAP === 'true'
     const shouldGenerateZip = isBuild && env.VITE_BUILD_ZIP === 'true'
-    const shouldAnalyzeBuild = isBuild && env.VITE_BUILD_ANALYZE === 'true'
+    const shouldAnalyzeBuild = isAnalyzeBuild || (isBuild && env.VITE_BUILD_ANALYZE === 'true')
     const assetsInlineLimit = resolveIntegerEnv(env.VITE_ASSETS_INLINE_LIMIT, 2048)
     const chunkSizeWarningLimit = resolveIntegerEnv(env.VITE_CHUNK_SIZE_WARNING_LIMIT, 1500)
 
@@ -106,11 +110,15 @@ export default defineConfig(({ mode, command }) => {
         base: '/',
         plugins: [
             ...createVitePlugins(env, isBuild),
-            isProdBuild && createObfuscatorPlugin(enableObfuscation),
-            shouldGenerateZip && zipPack({ outDir: 'dist', outFileName: 'dist.zip' }),
+            shouldHardenBuild && createObfuscatorPlugin(enableBusinessChunkObfuscation),
+            shouldGenerateZip &&
+                zipPack({
+                    outDir: buildOutDir,
+                    outFileName: 'dist.zip'
+                }),
             shouldAnalyzeBuild &&
                 visualizer({
-                    filename: 'dist/stats.html',
+                    filename: `${buildOutDir}/stats.html`,
                     template: 'treemap',
                     gzipSize: true,
                     brotliSize: true,
@@ -118,7 +126,7 @@ export default defineConfig(({ mode, command }) => {
                 }),
             shouldAnalyzeBuild &&
                 visualizer({
-                    filename: 'dist/stats.json',
+                    filename: `${buildOutDir}/stats.json`,
                     template: 'raw-data',
                     gzipSize: true,
                     brotliSize: true,
@@ -157,21 +165,21 @@ export default defineConfig(({ mode, command }) => {
                 polyfill: true
             },
             sourcemap: shouldGenerateSourceMap,
-            outDir: 'dist',
+            outDir: buildOutDir,
             assetsDir: 'assets',
             chunkSizeWarningLimit,
             reportCompressedSize: false,
             cssMinify: 'esbuild',
-            minify: isProdBuild && useTerserMinify ? 'terser' : 'esbuild',
+            minify: useTerserMinify ? 'terser' : 'esbuild',
             terserOptions: useTerserMinify
                 ? {
                       compress: {
-                          passes: enableObfuscation ? 2 : 1,
+                          passes: enableBusinessChunkObfuscation ? 2 : 1,
                           drop_console: shouldDropConsole,
                           drop_debugger: shouldDropConsole,
                           pure_funcs: shouldDropConsole ? ['console.log', 'console.info', 'console.debug', 'console.warn'] : []
                       },
-                      mangle: enableObfuscation
+                      mangle: enableBusinessChunkObfuscation
                           ? {
                                 safari10: true,
                                 toplevel: true

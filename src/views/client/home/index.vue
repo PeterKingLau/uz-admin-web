@@ -77,12 +77,18 @@
                         </div>
                     </div>
 
-                    <main v-loading="loading && !isPrimarySwitching" class="feed-wrap" :class="{ 'is-refreshing': isPrimarySwitching }">
+                    <main ref="feedWrapRef" v-loading="loading && !isPrimarySwitching" class="feed-wrap" :class="{ 'is-refreshing': isPrimarySwitching }">
                         <div v-if="isPrimarySwitching" class="feed-refresh-indicator" aria-label="正在刷新分类">
                             <span class="refresh-card-frame"></span>
                             <span class="refresh-card-frame"></span>
                             <span class="refresh-card-frame"></span>
                         </div>
+                        <div
+                            v-if="waterfallTopSpacerHeight"
+                            class="waterfall-window-spacer"
+                            :style="{ height: `${waterfallTopSpacerHeight}px` }"
+                            aria-hidden="true"
+                        ></div>
                         <Waterfall
                             v-if="hasFeedContent"
                             ref="waterfallRef"
@@ -102,14 +108,22 @@
                             :animation-cancel="true"
                         >
                             <template #default="{ item }">
-                                <ClientPostCard
-                                    class="masonry-item"
-                                    :post="item"
-                                    @click="openPost"
-                                    @media-load="handleCardMediaLoad"
-                                />
+                                <div v-waterfall-measure="item.__waterfallKey" class="masonry-item-measure" :data-waterfall-key="item.__waterfallKey">
+                                    <ClientPostCard
+                                        class="masonry-item"
+                                        :post="item"
+                                        @click="openPost"
+                                        @media-load="handleCardMediaLoad"
+                                    />
+                                </div>
                             </template>
                         </Waterfall>
+                        <div
+                            v-if="waterfallBottomSpacerHeight"
+                            class="waterfall-window-spacer"
+                            :style="{ height: `${waterfallBottomSpacerHeight}px` }"
+                            aria-hidden="true"
+                        ></div>
 
                         <el-empty v-else-if="!loading" :description="emptyDescription" :image-size="108" />
 
@@ -186,6 +200,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientHome' })
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import type { Directive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useIntersectionObserver } from '@vueuse/core'
 import { debounce } from 'lodash-es'
@@ -235,6 +250,7 @@ const repostActionLoading = ref(false)
 const replyStateMap = ref<Record<string, any>>({})
 const replyTarget = ref<{ parent: Record<string, any>; replyTo: Record<string, any> } | null>(null)
 const discoverPageRef = ref<HTMLElement | null>(null)
+const feedWrapRef = ref<HTMLElement | null>(null)
 const searchDraft = ref('')
 const activeSearchKeyword = ref('')
 const isFeedAtTop = ref(true)
@@ -261,6 +277,8 @@ let primarySwitchTimer: ReturnType<typeof setTimeout> | null = null
 let loadMoreTimer: ReturnType<typeof setTimeout> | null = null
 let postRenderTimer: ReturnType<typeof setTimeout> | null = null
 let postRenderFrame: number | null = null
+let waterfallWindowFrame: number | null = null
+let waterfallResizeObserver: ResizeObserver | null = null
 let lastRecommendLoadAt = 0
 let lastRecommendEmptyAt = 0
 let lastLoadMoreAt = 0
@@ -280,11 +298,25 @@ const TAG_CACHE_REFRESH_COOLDOWN_MS = 30000
 const LOAD_MORE_SCROLL_THRESHOLD = 220
 const POST_RENDER_FRAME_DELAY_MS = 54
 const WATERFALL_RENDER_DEBOUNCE_MS = 150
+const WATERFALL_WINDOW_ROWS = 12
+const WATERFALL_WINDOW_OVERSCAN_ROWS = 4
+const WATERFALL_WINDOW_ESTIMATED_ROW_HEIGHT = 430
+const WATERFALL_ITEM_SPACE = 20
 const query = ref<{ limit: number; lastId?: number; lastCreateTime?: string }>({
     limit: 10,
     lastId: undefined,
     lastCreateTime: undefined
 })
+const waterfallHeightVersion = ref(0)
+const waterfallMeasuredHeights = new Map<string, number>()
+const waterfallMeasureElements = new Map<string, HTMLElement>()
+
+type WaterfallLayoutItem = {
+    top: number
+    bottom: number
+    height: number
+    column: number
+}
 
 const nextFeedRequestId = () => {
     feedRequestId += 1
@@ -739,12 +771,68 @@ const waterfallBreakpoints = {
     1200: { rowPerView: 3 },
     768: { rowPerView: 2 }
 }
+const waterfallWindowStartIndex = ref(0)
+const waterfallWindowSize = computed(() => Math.max(columnCount.value * WATERFALL_WINDOW_ROWS, 24))
+const waterfallWindowEndIndex = computed(() => Math.min(renderedPosts.value.length, waterfallWindowStartIndex.value + waterfallWindowSize.value))
+const waterfallWindowPosts = computed(() => renderedPosts.value.slice(waterfallWindowStartIndex.value, waterfallWindowEndIndex.value))
 const waterfallItems = computed(() => {
-    return renderedPosts.value.map(item => ({
+    return waterfallWindowPosts.value.map(item => ({
         ...item,
         __waterfallKey: String(getPostKey(item)),
         __coverUrl: getCover(item)
     }))
+})
+
+const getWaterfallPostKey = (item: any) => String(getPostKey(item))
+
+const getWaterfallFallbackHeight = (item: any) => {
+    if (isTextPost(item)) return 360
+    if (isVideoPost(item)) return 430
+    return WATERFALL_WINDOW_ESTIMATED_ROW_HEIGHT
+}
+
+const getWaterfallMeasuredHeight = (item: any) => {
+    const key = getWaterfallPostKey(item)
+    const measured = waterfallMeasuredHeights.get(key)
+    return measured && Number.isFinite(measured) ? measured : getWaterfallFallbackHeight(item)
+}
+
+const getShortestColumnIndex = (columnHeights: number[]) => {
+    let targetIndex = 0
+    for (let index = 1; index < columnHeights.length; index += 1) {
+        if (columnHeights[index] < columnHeights[targetIndex]) targetIndex = index
+    }
+    return targetIndex
+}
+
+const waterfallLayout = computed(() => {
+    const heightVersion = waterfallHeightVersion.value
+    const columns = Math.max(1, columnCount.value)
+    const columnHeights = Array.from({ length: columns }, () => 0)
+    const items: WaterfallLayoutItem[] = renderedPosts.value.map(item => {
+        const column = getShortestColumnIndex(columnHeights)
+        const top = columnHeights[column]
+        const height = getWaterfallMeasuredHeight(item)
+        const bottom = top + height
+        columnHeights[column] = bottom + WATERFALL_ITEM_SPACE
+        return { top, bottom, height, column }
+    })
+    const totalHeight = Math.max(0, ...columnHeights.map(height => Math.max(0, height - WATERFALL_ITEM_SPACE)))
+    return { items, totalHeight, heightVersion }
+})
+
+const waterfallTopSpacerHeight = computed(() => {
+    if (!waterfallWindowStartIndex.value) return 0
+    const visibleMetrics = waterfallLayout.value.items.slice(waterfallWindowStartIndex.value, waterfallWindowEndIndex.value)
+    if (!visibleMetrics.length) return 0
+    return Math.max(0, Math.min(...visibleMetrics.map(item => item.top)))
+})
+
+const waterfallBottomSpacerHeight = computed(() => {
+    const visibleMetrics = waterfallLayout.value.items.slice(waterfallWindowStartIndex.value, waterfallWindowEndIndex.value)
+    if (!visibleMetrics.length) return 0
+    const windowBottom = Math.max(...visibleMetrics.map(item => item.bottom))
+    return Math.max(0, waterfallLayout.value.totalHeight - windowBottom)
 })
 
 const resolveColumnCount = () => {
@@ -753,6 +841,159 @@ const resolveColumnCount = () => {
     if (width <= 1200) return 3
     if (width <= 1440) return 4
     return 5
+}
+
+const getFeedOffsetTop = () => {
+    const container = discoverPageRef.value
+    const feed = feedWrapRef.value
+    if (!container || !feed) return 0
+    const containerRect = container.getBoundingClientRect()
+    const feedRect = feed.getBoundingClientRect()
+    return feedRect.top - containerRect.top + container.scrollTop
+}
+
+const alignWaterfallWindowStart = (value: number) => {
+    const columns = Math.max(1, columnCount.value)
+    return Math.floor(Math.max(0, value) / columns) * columns
+}
+
+const clampWaterfallWindowStart = () => {
+    const maxStart = Math.max(0, renderedPosts.value.length - waterfallWindowSize.value)
+    const nextStart = Math.min(alignWaterfallWindowStart(waterfallWindowStartIndex.value), alignWaterfallWindowStart(maxStart))
+    if (nextStart !== waterfallWindowStartIndex.value) {
+        waterfallWindowStartIndex.value = nextStart
+    }
+}
+
+const resetWaterfallWindow = () => {
+    if (waterfallWindowStartIndex.value !== 0) waterfallWindowStartIndex.value = 0
+}
+
+const updateWaterfallWindowByScroll = () => {
+    if (!renderedPosts.value.length || renderedPosts.value.length <= waterfallWindowSize.value) {
+        resetWaterfallWindow()
+        return
+    }
+
+    const container = discoverPageRef.value
+    if (!container) return
+    const relativeTop = Math.max(0, container.scrollTop - getFeedOffsetTop())
+    const layoutItems = waterfallLayout.value.items
+    const firstVisibleIndex = layoutItems.findIndex(item => item.bottom >= relativeTop)
+    const visibleIndex = firstVisibleIndex >= 0 ? firstVisibleIndex : Math.max(0, layoutItems.length - 1)
+    const overscanCount = Math.max(1, columnCount.value) * WATERFALL_WINDOW_OVERSCAN_ROWS
+    const maxStart = Math.max(0, renderedPosts.value.length - waterfallWindowSize.value)
+    const nextStart = Math.min(alignWaterfallWindowStart(visibleIndex - overscanCount), alignWaterfallWindowStart(maxStart))
+
+    if (nextStart === waterfallWindowStartIndex.value) return
+    waterfallWindowStartIndex.value = nextStart
+    debouncedRenderer()
+}
+
+const scheduleWaterfallWindowUpdate = () => {
+    if (typeof window === 'undefined') {
+        updateWaterfallWindowByScroll()
+        return
+    }
+    if (waterfallWindowFrame !== null) return
+    waterfallWindowFrame = window.requestAnimationFrame(() => {
+        waterfallWindowFrame = null
+        updateWaterfallWindowByScroll()
+    })
+}
+
+const cancelWaterfallWindowUpdate = () => {
+    if (waterfallWindowFrame === null || typeof window === 'undefined') return
+    window.cancelAnimationFrame(waterfallWindowFrame)
+    waterfallWindowFrame = null
+}
+
+const updateWaterfallMeasuredHeight = (key: string, height: number) => {
+    const nextHeight = Math.ceil(Number(height || 0))
+    if (!key || !Number.isFinite(nextHeight) || nextHeight <= 0) return
+    const previousHeight = waterfallMeasuredHeights.get(key)
+    if (previousHeight && Math.abs(previousHeight - nextHeight) <= 1) return
+    waterfallMeasuredHeights.set(key, nextHeight)
+    waterfallHeightVersion.value += 1
+    scheduleWaterfallWindowUpdate()
+    debouncedRenderer()
+}
+
+const measureWaterfallElement = (key: string, el: HTMLElement) => {
+    updateWaterfallMeasuredHeight(key, el.getBoundingClientRect().height)
+}
+
+const getWaterfallResizeObserver = () => {
+    if (typeof ResizeObserver === 'undefined') return null
+    if (!waterfallResizeObserver) {
+        waterfallResizeObserver = new ResizeObserver(entries => {
+            entries.forEach(entry => {
+                const target = entry.target as HTMLElement
+                const key = target.dataset.waterfallKey || ''
+                updateWaterfallMeasuredHeight(key, entry.contentRect.height)
+            })
+        })
+    }
+    return waterfallResizeObserver
+}
+
+const setWaterfallMeasureRef = (key: string, el: Element | null) => {
+    if (!key) return
+    const previousElement = waterfallMeasureElements.get(key)
+    const observer = getWaterfallResizeObserver()
+
+    if (previousElement && previousElement !== el) {
+        observer?.unobserve(previousElement)
+        waterfallMeasureElements.delete(key)
+    }
+
+    if (!(el instanceof HTMLElement)) return
+    if (previousElement === el) {
+        measureWaterfallElement(key, el)
+        return
+    }
+
+    el.dataset.waterfallKey = key
+    waterfallMeasureElements.set(key, el)
+    observer?.observe(el)
+    measureWaterfallElement(key, el)
+}
+
+const pruneWaterfallHeightCache = (nextPosts: any[]) => {
+    const nextKeys = new Set(nextPosts.map(item => getWaterfallPostKey(item)).filter(Boolean))
+    let changed = false
+    waterfallMeasuredHeights.forEach((_, key) => {
+        if (nextKeys.has(key)) return
+        waterfallMeasuredHeights.delete(key)
+        changed = true
+    })
+    if (changed) waterfallHeightVersion.value += 1
+}
+
+const clearWaterfallMeasurements = () => {
+    waterfallResizeObserver?.disconnect()
+    waterfallResizeObserver = null
+    waterfallMeasureElements.clear()
+    if (!waterfallMeasuredHeights.size) return
+    waterfallMeasuredHeights.clear()
+    waterfallHeightVersion.value += 1
+}
+
+const vWaterfallMeasure: Directive<HTMLElement, string> = {
+    mounted(el, binding) {
+        setWaterfallMeasureRef(String(binding.value || ''), el)
+    },
+    updated(el, binding) {
+        const nextKey = String(binding.value || '')
+        const previousKey = String(binding.oldValue || '')
+        if (previousKey && previousKey !== nextKey) {
+            setWaterfallMeasureRef(previousKey, null)
+        }
+        setWaterfallMeasureRef(nextKey, el)
+    },
+    beforeUnmount(el, binding) {
+        setWaterfallMeasureRef(String(binding.value || el.dataset.waterfallKey || ''), null)
+    }
 }
 
 const clearRecommendLoadTimer = () => {
@@ -808,11 +1049,14 @@ const renderNextPostBatch = () => {
     const targetPosts = posts.value
     if (!targetPosts.length) {
         renderedPosts.value = []
+        resetWaterfallWindow()
         return
     }
 
     const nextLength = Math.min(targetPosts.length, renderedPosts.value.length + getPostRenderBatchSize())
     renderedPosts.value = targetPosts.slice(0, nextLength)
+    clampWaterfallWindowStart()
+    debouncedRenderer()
 
     if (nextLength >= targetPosts.length) return
     postRenderTimer = setTimeout(() => {
@@ -827,15 +1071,19 @@ const renderNextPostBatch = () => {
 
 const schedulePostRendering = (nextPosts: any[]) => {
     clearPostRenderSchedule()
+    pruneWaterfallHeightCache(nextPosts)
     if (!nextPosts.length) {
         renderedPosts.value = []
+        resetWaterfallWindow()
         return
     }
     if (!isRenderedPostsPrefix(nextPosts)) {
         renderedPosts.value = []
+        resetWaterfallWindow()
     }
     if (typeof window === 'undefined') {
         renderedPosts.value = nextPosts
+        clampWaterfallWindowStart()
         return
     }
     postRenderFrame = window.requestAnimationFrame(renderNextPostBatch)
@@ -926,6 +1174,7 @@ const handleContainerScroll = () => {
     isFeedAtTop.value = nextScrollTop <= 8
     const isScrollingDown = nextScrollTop > lastKnownScrollTop
     lastKnownScrollTop = nextScrollTop
+    scheduleWaterfallWindowUpdate()
     if (!isScrollingDown) return
     if (!shouldTriggerLoadMoreByScroll()) return
     triggerLoadMore()
@@ -1113,6 +1362,7 @@ const resetAndFetch = (keepVisible = true) => {
     lastRecommendEmptyAt = 0
     lastLoadMoreAt = 0
     lastKnownScrollTop = discoverPageRef.value?.scrollTop || 0
+    resetWaterfallWindow()
     resetTagFeedCursors()
     fetchList(false, requestId, true)
 }
@@ -1221,6 +1471,7 @@ const handlePrimaryTagChange = (tagId?: string | number) => {
     lastRecommendEmptyAt = 0
     lastLoadMoreAt = 0
     lastKnownScrollTop = discoverPageRef.value?.scrollTop || 0
+    resetWaterfallWindow()
     resetTagFeedCursors()
 
     primarySwitchTimer = setTimeout(() => {
@@ -1250,6 +1501,7 @@ const refreshActiveFeed = () => {
     lastRecommendEmptyAt = 0
     lastLoadMoreAt = 0
     lastKnownScrollTop = discoverPageRef.value?.scrollTop || 0
+    resetWaterfallWindow()
     resetTagFeedCursors()
     runPrimaryTagSwitch(nextPrimaryId, requestId)
 }
@@ -1486,7 +1738,12 @@ onMounted(() => {
     columnCount.value = resolveColumnCount()
     resizeHandler = () => {
         const next = resolveColumnCount()
-        if (next !== columnCount.value) columnCount.value = next
+        if (next !== columnCount.value) {
+            columnCount.value = next
+            clampWaterfallWindowStart()
+            scheduleWaterfallWindowUpdate()
+            debouncedRenderer()
+        }
     }
     settingsStore.setTitle('测吧')
     document.title = '测吧'
@@ -1537,6 +1794,8 @@ onBeforeUnmount(() => {
     clearLoadMoreTimer()
     clearPrimarySwitchTimer()
     clearPostRenderSchedule()
+    cancelWaterfallWindowUpdate()
+    clearWaterfallMeasurements()
     debouncedRenderer.cancel()
     stopLoadObserver?.()
     stopLoadObserver = null
@@ -2077,6 +2336,15 @@ button:focus-visible {
 
 .masonry-grid {
     position: relative;
+    width: 100%;
+}
+
+.waterfall-window-spacer {
+    width: 100%;
+    pointer-events: none;
+}
+
+.masonry-item-measure {
     width: 100%;
 }
 

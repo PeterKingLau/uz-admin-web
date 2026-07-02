@@ -11,6 +11,7 @@
         "build": "vite build --mode production",
         "build:prod": "vite build --mode production",
         "build:staging": "vite build --mode staging",
+        "build:analyze": "vite build --mode analyze",
         "preview": "vite preview",
         "prepare": "husky",
         "typecheck": "vue-tsc --noEmit",
@@ -24,6 +25,7 @@
         "lint:fix": "yarn run -s lint:eslint:fix && yarn run -s lint:style:fix && yarn run -s format",
         "verify": "yarn run -s typecheck && yarn run -s lint",
         "clean:deps": "node scripts/clean-deps.mjs",
+        "clean:dist": "rimraf dist",
         "clean": "node scripts/clean-deps.mjs && yarn install"
     },
     "engines": {

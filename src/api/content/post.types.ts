@@ -1,10 +1,108 @@
 import type { OssCredentialType } from '@/utils/content/ossUpload'
 
+export type PostId = number | string
+
+export interface ContentPostAuthor {
+    id?: PostId
+    userId?: PostId
+    nickName?: string
+    userName?: string
+    avatar?: string
+    [key: string]: unknown
+}
+
+export interface ContentPostTag {
+    id?: PostId
+    tagId?: PostId
+    name?: string
+    tagName?: string
+    label?: string
+    [key: string]: unknown
+}
+
+export interface ContentPostItem {
+    id?: PostId
+    postId?: PostId
+    originalPostId?: PostId
+    postType?: string | number
+    content?: string
+    mediaUrls?: string | string[] | Array<Record<string, unknown>>
+    files?: string | string[] | Array<Record<string, unknown>>
+    cover?: string
+    coverUrl?: string
+    thumbnail?: string
+    poster?: string
+    image?: string
+    userId?: PostId
+    authorId?: PostId
+    targetUserId?: PostId
+    createBy?: PostId
+    nickName?: string
+    userName?: string
+    avatar?: string
+    userAvatar?: string
+    user?: ContentPostAuthor
+    author?: ContentPostAuthor
+    tags?: ContentPostTag[]
+    tagIds?: PostId[]
+    tagStr?: string
+    likeCount?: number
+    commentCount?: number
+    bookmarkCount?: number
+    collectCount?: number
+    repostCount?: number
+    shareCount?: number
+    isLiked?: boolean
+    like?: boolean
+    isCollected?: boolean
+    bookmark?: boolean
+    createTime?: string
+    createDate?: string
+    [key: string]: unknown
+}
+
+export interface ListPostResponse<T = ContentPostItem> {
+    rows?: T[]
+    list?: T[]
+    records?: T[]
+    items?: T[]
+    data?: T[] | {
+        rows?: T[]
+        list?: T[]
+        records?: T[]
+        items?: T[]
+        total?: number
+        count?: number
+        [key: string]: unknown
+    }
+    total?: number
+    count?: number
+    [key: string]: unknown
+}
+
+export interface PostActionResponse<T = unknown> {
+    code?: number
+    msg?: string
+    message?: string
+    data?: T
+    [key: string]: unknown
+}
+
+export interface TogglePostActionData {
+    active?: boolean
+    count?: number
+    [key: string]: unknown
+}
+
+export type TogglePostActionResponse = PostActionResponse<TogglePostActionData>
+export type CreatePostResponse = PostActionResponse<ContentPostItem>
+export type DeletePostResponse = PostActionResponse
+
 export interface CreatePostPayload {
     postType: string
     content: string
     mediaUrls: string[]
-    originalPostId: number | string
+    originalPostId: PostId
     tags: string
     circleId: string
     isQuestion: string
@@ -18,85 +116,85 @@ export interface AddPostPayload {
     files?: File[]
     coverFile?: File | null
     mediaUrls?: string | string[]
-    originalPostId?: number | string
-    circleId?: string | number
+    originalPostId?: PostId
+    circleId?: PostId
     isQuestion?: string | number | boolean
     ossType?: OssCredentialType | string
 }
 
 export interface UpdatePostTagPayload {
-    postId: number | string
+    postId: PostId
     tagStr: string
 }
 
 export interface LikePostPayload {
-    postId: number | string
-    targetUserId: number | string
+    postId: PostId
+    targetUserId: PostId
 }
 
 export interface BookmarkPostPayload {
-    postId: number | string
-    targetUserId: number | string
+    postId: PostId
+    targetUserId: PostId
 }
 
 export interface AddCommentPayload {
-    postId: number | string
+    postId: PostId
     content: string
-    targetUserId: number | string
-    parentCommentId?: number | string
-    replyUserId?: number | string
+    targetUserId: PostId
+    parentCommentId?: PostId
+    replyUserId?: PostId
 }
 
 export interface RepostPostPayload {
-    originalPostId: number | string
+    originalPostId: PostId
     content: string
 }
 
 export interface ListPostByAppParams {
-    tagId?: number | string
+    tagId?: PostId
     postType?: string
-    lastId?: number | string
+    lastId?: PostId
     lastCreateTime?: string
     limit?: number
     content?: string
-    targetUserId?: number | string
-    circleId?: number | string
+    targetUserId?: PostId
+    circleId?: PostId
     isQuestion?: number | string
     isCircle?: number | string
 }
 
 export interface RecommendFeedParams {
-    lastId?: number | string
+    lastId?: PostId
     lastCreateTime?: string
     limit?: number
     isQuestion?: number | string
-    circleId?: number | string
+    circleId?: PostId
     isCircle?: number | string
 }
 
 export interface ListPostByLikeParams {
-    lastId?: number | string
+    lastId?: PostId
     lastCreateTime?: string
     limit?: number
-    targetUserId?: number | string
+    targetUserId?: PostId
 }
 
 export interface ListPostByBookMarkParams {
-    lastId?: number | string
+    lastId?: PostId
     lastCreateTime?: string
     limit?: number
-    targetUserId?: number | string
+    targetUserId?: PostId
 }
 
 export interface DeletePostParams {
-    postIds: Array<string | number>
+    postIds: PostId[]
 }
 
 export interface PinPostManuallyParams {
-    postId?: number | string
+    postId?: PostId
     days?: number
 }
 
 export interface UnpinPostManuallyParams {
-    postId?: number | string
+    postId?: PostId
 }

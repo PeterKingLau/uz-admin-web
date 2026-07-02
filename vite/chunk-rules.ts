@@ -23,6 +23,7 @@ const chunkRules = [
     ['vendor-videojs', ['/video.js/', '/@videojs/', '/videojs-vtt.js/', '/m3u8-parser/', '/url-toolkit/', '/mpd-parser/', '/@xmldom/', '/mux.js/']],
     ['vendor-cropper', ['/vue-cropper/']],
     ['vendor-mobile-ui', ['/@varlet/ui/']],
+    ['vendor-waterfall', ['/vue-waterfall-plugin-next/']],
     ['vendor-dnd', ['/sortablejs/', '/vue-draggable-plus/']],
     ['vendor-builder', ['/clipboard/', '/js-beautify/']],
     ['vendor-auth', ['/js-cookie/', '/pinia-plugin-persistedstate/']],

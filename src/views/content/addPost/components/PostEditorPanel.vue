@@ -297,10 +297,9 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsContentAddPostComponentsPostEditorPanel' })
-import { computed, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
+import { computed, defineAsyncComponent, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import PinyinMatch from 'pinyin-match'
-import Editor from '@/components/Editor/index.vue'
 import FileUpload from '@/components/FileUpload/index.vue'
 import ImageUpload from '@/components/ImageUpload/index.vue'
 import { POST_TYPE } from '@/utils/enum'
@@ -357,6 +356,7 @@ const typeOptions: TypeOption[] = [
 ]
 
 const { proxy } = getCurrentInstance() || {}
+const Editor = defineAsyncComponent(() => import('@/components/Editor/index.vue'))
 const formRef = ref<FormInstance>()
 const normalTagCascaderRef = ref<any>()
 const normalTagCascaderVisible = ref(false)

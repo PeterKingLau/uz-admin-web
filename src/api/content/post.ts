@@ -7,15 +7,20 @@ import type {
     AddCommentPayload,
     AddPostPayload,
     BookmarkPostPayload,
+    CreatePostResponse,
     CreatePostPayload,
+    DeletePostResponse,
     DeletePostParams,
     LikePostPayload,
+    ListPostResponse,
     ListPostByAppParams,
     ListPostByBookMarkParams,
     ListPostByLikeParams,
+    PostActionResponse,
     RecommendFeedParams,
     PinPostManuallyParams,
     RepostPostPayload,
+    TogglePostActionResponse,
     UnpinPostManuallyParams,
     UpdatePostTagPayload
 } from './post.types'
@@ -24,15 +29,24 @@ export type {
     AddCommentPayload,
     AddPostPayload,
     BookmarkPostPayload,
+    ContentPostItem,
+    ContentPostTag,
+    ContentPostAuthor,
+    CreatePostResponse,
     CreatePostPayload,
+    DeletePostResponse,
     DeletePostParams,
     LikePostPayload,
+    ListPostResponse,
     ListPostByAppParams,
     ListPostByBookMarkParams,
     ListPostByLikeParams,
+    PostActionResponse,
+    PostId,
     RecommendFeedParams,
     PinPostManuallyParams,
     RepostPostPayload,
+    TogglePostActionResponse,
     UnpinPostManuallyParams,
     UpdatePostTagPayload
 } from './post.types'
@@ -60,7 +74,7 @@ const normalizeIsQuestion = (value: AddPostPayload['isQuestion']): string => {
 export { getPostUploadCredentials, uploadFilesToOss, uploadFilesToOssSettled }
 export type { OssCredentialType, OssUploadSettledResult, UploadCredentialParams }
 
-export async function addPost(data: AddPostPayload) {
+export async function addPost(data: AddPostPayload): Promise<CreatePostResponse> {
     const files = Array.isArray(data.files) ? data.files.filter(file => file instanceof File) : []
     const customCoverFile = data.coverFile instanceof File ? data.coverFile : null
     const customMediaUrls = normalizeMediaUrls(data.mediaUrls)
@@ -97,7 +111,7 @@ export async function addPost(data: AddPostPayload) {
         isQuestion: normalizeIsQuestion(data.isQuestion)
     }
 
-    return request({
+    return request<CreatePostResponse>({
         url: POST_CREATE_URL,
         method: 'post',
         data: payload,
@@ -105,47 +119,47 @@ export async function addPost(data: AddPostPayload) {
     })
 }
 
-export function updatePostTag(data: UpdatePostTagPayload) {
+export function updatePostTag(data: UpdatePostTagPayload): Promise<PostActionResponse> {
     const formData = new FormData()
 
     formData.append('postId', String(data.postId ?? ''))
     formData.append('tagStr', data.tagStr || '')
 
-    return request({
+    return request<PostActionResponse>({
         url: '/content/postInfo/updatePostTag',
         method: 'post',
         data: formData
     })
 }
 
-export function listPostByApp(params: ListPostByAppParams, config: RequestControlConfig = {}): Promise<any> {
-    return request({
+export function listPostByApp(params: ListPostByAppParams, config: RequestControlConfig = {}): Promise<ListPostResponse> {
+    return request<ListPostResponse>({
         ...config,
         url: '/content/postInfo/app/v1/listByApp',
         method: 'get',
         params
-    } as any) as unknown as Promise<any>
+    } as any)
 }
 
-export function listPostByLike(params: ListPostByLikeParams): Promise<any> {
-    return request({
+export function listPostByLike(params: ListPostByLikeParams): Promise<ListPostResponse> {
+    return request<ListPostResponse>({
         url: '/content/postInfo/app/v1/listByLike',
         method: 'get',
         params
-    }) as unknown as Promise<any>
+    })
 }
 
-export function listPostByBookMark(params: ListPostByBookMarkParams): Promise<any> {
-    return request({
+export function listPostByBookMark(params: ListPostByBookMarkParams): Promise<ListPostResponse> {
+    return request<ListPostResponse>({
         url: '/content/postInfo/app/v1/listByBookMark',
         method: 'get',
         params
-    }) as unknown as Promise<any>
+    })
 }
 
-export function listRecommendFeed(params: RecommendFeedParams, config: RequestControlConfig = {}): Promise<any> {
+export function listRecommendFeed(params: RecommendFeedParams, config: RequestControlConfig = {}): Promise<ListPostResponse> {
     const { headers, ...requestConfig } = config
-    return request({
+    return request<ListPostResponse>({
         ...requestConfig,
         url: '/content/postInfo/app/v1/feed/recommend',
         method: 'get',
@@ -154,63 +168,63 @@ export function listRecommendFeed(params: RecommendFeedParams, config: RequestCo
             ...getDeviceIdHeader(),
             ...(headers || {})
         }
-    } as any) as unknown as Promise<any>
+    } as any)
 }
 
-export function likePost(data: LikePostPayload): Promise<any> {
-    return request({
+export function likePost(data: LikePostPayload): Promise<TogglePostActionResponse> {
+    return request<TogglePostActionResponse>({
         url: '/content/postInfo/app/v1/likePost',
         method: 'post',
         data
-    }) as unknown as Promise<any>
+    })
 }
 
-export function bookmarkPost(data: BookmarkPostPayload): Promise<any> {
-    return request({
+export function bookmarkPost(data: BookmarkPostPayload): Promise<TogglePostActionResponse> {
+    return request<TogglePostActionResponse>({
         url: '/content/postInfo/app/v1/bookmarkPost',
         method: 'post',
         data
-    }) as unknown as Promise<any>
+    })
 }
 
-export function addComment(data: AddCommentPayload): Promise<any> {
-    return request({
+export function addComment(data: AddCommentPayload): Promise<PostActionResponse> {
+    return request<PostActionResponse>({
         url: '/content/postInfo/app/v1/addComment',
         method: 'post',
         data
-    }) as unknown as Promise<any>
+    })
 }
 
-export function repostPost(data: RepostPostPayload): Promise<any> {
+export function repostPost(data: RepostPostPayload): Promise<PostActionResponse> {
     const formData = new FormData()
     formData.append('originalPostId', String(data.originalPostId ?? ''))
     formData.append('content', String(data.content ?? ''))
-    return request({
+    return request<PostActionResponse>({
         url: '/content/postInfo/app/v1/repost',
         method: 'post',
         data: formData
-    }) as unknown as Promise<any>
+    })
 }
 
-export function deletePost(params: DeletePostParams) {
+export function deletePost(params: DeletePostParams): Promise<DeletePostResponse> {
     const postIds = Array.isArray(params.postIds) ? params.postIds : params.postIds ? [params.postIds] : []
     const idPath = postIds.join(',')
-    return request({
+    return request<DeletePostResponse>({
         url: `/content/postInfo/deletePost/${idPath}`,
         method: 'delete'
     })
 }
 
-export function pinPostManually(params: PinPostManuallyParams) {
-    return request({
+export function pinPostManually(params: PinPostManuallyParams): Promise<PostActionResponse> {
+    return request<PostActionResponse>({
         url: '/content/hotPost/pinPostManually',
         method: 'get',
         params
     })
 }
 
-export function unpinPostManually(params: UnpinPostManuallyParams) {
-    return request({
+export function unpinPostManually(params: UnpinPostManuallyParams): Promise<PostActionResponse> {
+    return request<PostActionResponse>({
         url: '/content/hotPost/unpinPostManually',
         method: 'get',
         params
