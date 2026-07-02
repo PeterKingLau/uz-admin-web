@@ -42,6 +42,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { platform: 'public' }
     },
     {
+        path: '/client-login',
+        component: () => import('@/views/client/login/index.vue'),
+        hidden: true,
+        meta: { platform: 'public' }
+    },
+    {
         path: '/portal',
         component: () => import('@/views/portal/index.vue'),
         hidden: true,

@@ -72,6 +72,7 @@ import portalPageBg from '@/assets/images/portal-page-bg.jpg'
 import { getNewVersion, parseNewVersion, type VersionItem } from '@/api/content/version'
 import { getImgUrl } from '@/utils/img'
 import { useRouteLocale } from '@/locales/useRouteLocale'
+import { decodeRouteRedirect, encodeRouteRedirect, ROUTE_REDIRECT_QUERY_KEY } from '@/router/routeParams'
 import { isMobileWebViewport } from '@/utils/routeAccess'
 import AppDownloadDialog from './components/AppDownloadDialog.vue'
 import BottomCta from './components/BottomCta.vue'
@@ -102,7 +103,7 @@ const latestAppVersionLoading = ref(false)
 const HERO_INTERVAL_MS = 5200
 const CAPABILITY_INTERVAL_MS = 5600
 const NEWS_INTERVAL_MS = 6400
-const ADMIN_CONSOLE_ROUTE = '/login?redirect=/index'
+const ADMIN_CONSOLE_ROUTE = `/login?${ROUTE_REDIRECT_QUERY_KEY}=${encodeURIComponent(encodeRouteRedirect('/index'))}`
 let heroTimer: number | null = null
 let capabilityTimer: number | null = null
 let newsTimer: number | null = null
@@ -183,7 +184,8 @@ function isAdminConsoleRoute(route: string) {
     if (normalizedRoute === ADMIN_CONSOLE_ROUTE) return true
     const [path, queryText = ''] = normalizedRoute.split('?')
     if (path !== '/login') return false
-    return new URLSearchParams(queryText).get('redirect') === '/index'
+    const query = new URLSearchParams(queryText)
+    return decodeRouteRedirect(query.get(ROUTE_REDIRECT_QUERY_KEY)) === '/index'
 }
 
 function updateHeaderScrollState() {

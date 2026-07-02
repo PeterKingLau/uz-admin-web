@@ -1,16 +1,6 @@
 <template>
-    <article class="client-post-card" :class="{ 'is-card-ready': isCardReady }" @click="$emit('click', post)">
-        <div v-if="!isCardReady" class="card-fill-skeleton" aria-hidden="true">
-            <div class="card-fill-cover">
-                <span></span>
-            </div>
-            <div class="card-fill-body">
-                <i class="wide"></i>
-                <i></i>
-                <b></b>
-            </div>
-        </div>
-        <div class="cover-wrap">
+    <article class="client-post-card post-card" :class="{ 'is-video-card': isVideoPost }" @click="$emit('click', post)">
+        <div class="cover-wrap image-wrapper">
             <div v-if="isTextPost" class="text-cover">
                 <Icon icon="mdi:format-quote-open" class="text-cover-quote" />
                 <div class="text-wrap">
@@ -26,9 +16,10 @@
                     <div class="skeleton-line"></div>
                 </div>
                 <img
+                    ref="coverImageRef"
                     :src="coverUrl"
                     alt=""
-                    class="cover-image"
+                    class="cover-image post-image"
                     :class="{ loaded: !coverLoading }"
                     loading="lazy"
                     @load="handleCoverLoad"
@@ -75,11 +66,11 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientComponentsClientPostCard' })
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { POST_TYPE } from '@/utils/enum'
 import { getClientUserProfile } from '@/api/client/profile'
-import { parseMediaRaw, resolveMediaUrl as resolveCommonMediaUrl } from '@/utils/content/common'
+import { parseMediaRaw, resolveMediaUrl as resolveCommonMediaUrl, stripHtmlToText } from '@/utils/content/common'
 import { getClientUserProfileRoute } from '@/utils/routeAccess'
 import useUserStore from '@/store/modules/user'
 
@@ -95,13 +86,14 @@ const props = withDefaults(
     }
 )
 
-defineEmits<{
+const emit = defineEmits<{
     (e: 'click', post: Record<string, any>): void
+    (e: 'media-load'): void
 }>()
 
+const coverImageRef = ref<HTMLImageElement | null>(null)
 const coverFailed = ref(false)
 const coverLoading = ref(false)
-const contentReady = ref(false)
 const avatarFailed = ref(false)
 const authorResolving = ref(false)
 const authorResolveError = ref('')
@@ -112,7 +104,7 @@ const resolveMediaUrl = (url?: string) => resolveCommonMediaUrl(String(url || ''
 const postType = computed(() => String(props.post?.postType ?? ''))
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
 const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
-const contentText = computed(() => String(props.post?.content || '').trim() || '分享了一条内容')
+const contentText = computed(() => stripHtmlToText(props.post?.content) || '分享了一条内容')
 const authorName = computed(() => String(props.post?.nickName || props.post?.userName || '用户'))
 const authorAvatar = computed(() => resolveMediaUrl(props.post?.avatar || props.post?.userAvatar))
 const normalizeLookupValue = (value: unknown) => {
@@ -159,23 +151,16 @@ const coverUrl = computed(() => {
         .filter(Boolean)
     return urls.find((url: string) => !isVideoUrl(url)) || urls[0] || ''
 })
-const isCardReady = computed(() => contentReady.value && (isTextPost.value || !coverUrl.value || coverFailed.value || !coverLoading.value))
 
 const handleCoverLoad = () => {
     coverLoading.value = false
+    emit('media-load')
 }
 
 const handleCoverError = () => {
     coverFailed.value = true
     coverLoading.value = false
-}
-
-let contentReadyTimer: ReturnType<typeof setTimeout> | null = null
-
-const clearContentReadyTimer = () => {
-    if (!contentReadyTimer) return
-    clearTimeout(contentReadyTimer)
-    contentReadyTimer = null
+    emit('media-load')
 }
 
 const formatCount = (value: unknown) => {
@@ -264,174 +249,64 @@ const handleAuthorClick = async () => {
 
 watch(
     () => [props.post, coverUrl.value, isTextPost.value],
-    () => {
-        clearContentReadyTimer()
-        contentReady.value = false
+    async () => {
         coverFailed.value = false
         coverLoading.value = Boolean(coverUrl.value && !isTextPost.value)
         avatarFailed.value = false
         authorResolveError.value = ''
         authorResolving.value = false
-        contentReadyTimer = setTimeout(() => {
-            contentReady.value = true
-            contentReadyTimer = null
-        }, 90)
+        await nextTick()
+        const image = coverImageRef.value
+        if (coverLoading.value && image?.complete && image.naturalWidth > 0) {
+            handleCoverLoad()
+        }
     },
     { immediate: true }
 )
-
-onBeforeUnmount(() => {
-    clearContentReadyTimer()
-})
 </script>
 
 <style scoped lang="scss">
 .client-post-card {
     position: relative;
     border-radius: var(--client-feed-card-radius);
-    overflow: visible;
-    border: 1px solid transparent;
-    background: transparent;
+    overflow: hidden;
+    border: 1px solid var(--client-feed-card-border);
+    background: var(--client-surface);
     cursor: pointer;
-    box-shadow: none;
-}
-
-.client-post-card > .cover-wrap,
-.client-post-card > .card-content {
-    opacity: 0;
-    transition:
-        opacity 0.28s ease,
-        transform 0.28s ease;
-    transform: translateY(4px);
-}
-
-.client-post-card.is-card-ready > .cover-wrap,
-.client-post-card.is-card-ready > .card-content {
-    opacity: 1;
     transform: translateY(0);
+    box-shadow: 0 0 0 rgba(15, 23, 42, 0);
+    transition:
+        border-color 200ms ease,
+        background-color 200ms ease,
+        box-shadow 200ms ease,
+        transform 200ms ease;
 }
 
 .client-post-card:hover {
-    border-color: transparent;
-    background: transparent;
-    box-shadow: none;
-}
-
-.card-fill-skeleton {
-    position: absolute;
-    inset: 0;
-    z-index: 4;
-    pointer-events: none;
-    border-radius: var(--client-feed-card-radius);
-    background: transparent;
-    animation: card-fill-enter 0.2s ease both;
-}
-
-.card-fill-cover {
-    position: relative;
-    aspect-ratio: 3 / 4;
-    overflow: hidden;
-    border: 1px solid var(--client-border-soft);
-    border-radius: var(--client-feed-card-radius);
-    background:
-        linear-gradient(90deg, var(--client-fill) 0 28%, transparent 28% 100%) 18px 18px / 68px 12px no-repeat,
-        linear-gradient(90deg, var(--client-surface-hover) 0 42%, transparent 42% 100%) 18px 38px / 96px 10px no-repeat,
-        linear-gradient(145deg, var(--client-fill) 0%, var(--client-surface-muted) 100%);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-main) 3%, transparent);
-}
-
-.card-fill-cover::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    transform: translateX(-110%);
-    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--client-surface-hover) 56%, transparent) 50%, transparent 100%);
-    animation: card-fill-sweep 1.25s ease-in-out infinite;
-}
-
-.card-fill-cover span {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    height: 48px;
-    border-radius: 10px;
-    background:
-        linear-gradient(90deg, var(--client-surface-hover) 0 46%, transparent 46% 100%) 12px 12px / 70% 8px no-repeat,
-        linear-gradient(90deg, var(--client-fill) 0 34%, transparent 34% 100%) 12px 29px / 52% 7px no-repeat,
-        color-mix(in srgb, var(--client-fill) 82%, var(--client-surface-muted));
-    box-shadow: none;
-}
-
-.card-fill-body {
-    padding: 10px 2px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.card-fill-body i,
-.card-fill-body b {
-    display: block;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--client-fill), var(--client-surface-hover), var(--client-fill));
-    background-size: 220% 100%;
-    animation: card-fill-text 1.18s ease-in-out infinite;
-}
-
-.card-fill-body i {
-    width: 58%;
-    height: 12px;
-}
-
-.card-fill-body i.wide {
-    width: 84%;
-}
-
-.card-fill-body b {
-    width: 42%;
-    height: 10px;
-    margin-top: 4px;
-}
-
-@keyframes card-fill-enter {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
-}
-
-@keyframes card-fill-sweep {
-    100% {
-        transform: translateX(110%);
-    }
-}
-
-@keyframes card-fill-text {
-    0% {
-        background-position: 120% 50%;
-    }
-    100% {
-        background-position: -120% 50%;
-    }
+    border-color: var(--primary-color);
+    background: var(--client-surface);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .cover-wrap {
     position: relative;
     aspect-ratio: 3 / 4;
-    background: var(--client-fill);
+    background: #f1f5f9;
     overflow: hidden;
-    border: 1px solid var(--client-border-soft);
-    border-radius: var(--client-feed-card-radius);
+    border: 0;
+    border-bottom: 1px solid var(--client-border-soft);
+    border-radius: 0;
 }
 
 .cover-wrap::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: var(--client-media-mask);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30%;
+    background: linear-gradient(0deg, rgba(15, 23, 42, 0.24) 0%, rgba(15, 23, 42, 0.08) 56%, rgba(15, 23, 42, 0) 100%);
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--app-motion-normal);
@@ -447,11 +322,18 @@ onBeforeUnmount(() => {
     display: block;
     object-fit: cover;
     opacity: 0;
-    transition: opacity var(--app-motion-normal);
+    transform: scale(1);
+    transition:
+        opacity var(--app-motion-normal),
+        transform 260ms ease;
 }
 
 .cover-image.loaded {
     opacity: 1;
+}
+
+.client-post-card:hover .cover-image {
+    transform: scale(1.03);
 }
 
 .cover-empty {
@@ -470,7 +352,7 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: var(--client-fill);
+    background: #f1f5f9;
 }
 
 .cover-skeleton {
@@ -600,27 +482,45 @@ onBeforeUnmount(() => {
 
 .video-badge {
     position: absolute;
-    right: 8px;
     top: 8px;
-    width: 24px;
-    height: 24px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    color: var(--client-on-overlay);
-    background: var(--client-overlay);
-    z-index: 1;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: none;
+    z-index: 2;
+    transition:
+        transform var(--client-feed-card-transition),
+        background-color var(--client-feed-card-transition);
+}
+
+.client-post-card:hover .video-badge {
+    transform: scale(1.04);
+    background: rgba(0, 0, 0, 0.32);
+}
+
+.video-badge svg {
+    font-size: 16px;
 }
 
 .card-content {
-    padding: 10px 2px 0;
-    background: transparent;
+    padding: 12px;
+    background: var(--client-surface);
+    display: flex;
+    flex-direction: column;
 }
 
 .content-text {
     margin: 0;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
     line-height: 1.5;
     color: var(--text-main);
     display: -webkit-box;
@@ -628,10 +528,16 @@ onBeforeUnmount(() => {
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    transition: color 200ms ease;
+}
+
+.client-post-card:hover .content-text {
+    color: var(--primary-color);
 }
 
 .meta-row {
-    margin-top: 9px;
+    margin-top: 8px;
+    min-height: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -639,6 +545,7 @@ onBeforeUnmount(() => {
 }
 
 .user-core {
+    flex: 1 1 auto;
     min-width: 0;
     display: inline-flex;
     align-items: center;
@@ -710,20 +617,22 @@ onBeforeUnmount(() => {
     white-space: nowrap;
     font-size: 12px;
     color: var(--text-regular);
-    max-width: 120px;
+    max-width: min(120px, 100%);
 }
 
 .actions {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    justify-content: flex-end;
+    gap: 8px;
     margin-left: auto;
     color: var(--text-minor);
 }
 
 .actions.is-compact {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
 }
 
 .actions span {
@@ -737,11 +646,11 @@ onBeforeUnmount(() => {
 
 @media screen and (max-width: 768px) {
     .card-content {
-        padding: 9px 0 0;
+        padding: 10px 12px 12px;
     }
 
     .content-text {
-        font-size: 14px;
+        font-size: 15px;
     }
 
     .text-cover {

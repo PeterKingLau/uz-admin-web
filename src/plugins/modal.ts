@@ -203,6 +203,118 @@ html.dark .modern-notification {
     box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2) inset !important;
 }
 
+.client-message-box {
+    --client-primary: #14b8a6;
+    --client-primary-dark: #0f766e;
+    --client-primary-light: #ccfbf1;
+
+    width: min(420px, calc(100vw - 48px)) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 20px !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12) !important;
+}
+
+.client-message-box .el-message-box__header {
+    min-height: 28px !important;
+    padding-bottom: 14px !important;
+}
+
+.client-message-box .el-message-box__title {
+    color: #0f172a !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+}
+
+.client-message-box .el-message-box__headerbtn {
+    color: #94a3b8 !important;
+}
+
+.client-message-box .el-message-box__headerbtn:hover {
+    background: var(--client-primary-light) !important;
+    color: var(--client-primary) !important;
+}
+
+.client-message-box .el-message-box__content {
+    padding-bottom: 22px !important;
+}
+
+.client-message-box .el-message-box__container {
+    gap: 10px !important;
+}
+
+.client-message-box .el-message-box__status {
+    color: var(--client-primary) !important;
+    font-size: 20px !important;
+}
+
+.client-message-box .el-message-box__message {
+    color: #475569 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+.client-message-box .el-message-box__input {
+    padding-top: 12px !important;
+}
+
+.client-message-box .el-input__wrapper {
+    height: 38px !important;
+    padding: 0 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    transition:
+        border-color 200ms ease,
+        background-color 200ms ease !important;
+}
+
+.client-message-box .el-input__wrapper:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+}
+
+.client-message-box .el-input__wrapper.is-focus {
+    border-color: var(--client-primary) !important;
+    box-shadow: none !important;
+}
+
+.client-message-box .el-message-box__btns {
+    gap: 12px !important;
+    padding-top: 2px !important;
+}
+
+.client-message-box .el-button {
+    min-width: 80px !important;
+    height: 36px !important;
+    padding: 0 22px !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+}
+
+.client-message-box .el-button--primary {
+    border-color: var(--client-primary) !important;
+    background: var(--client-primary) !important;
+    color: #ffffff !important;
+}
+
+.client-message-box .el-button--primary:hover,
+.client-message-box .el-button--primary:focus {
+    border-color: var(--client-primary-dark) !important;
+    background: var(--client-primary-dark) !important;
+    box-shadow: none !important;
+}
+
+.client-message-box .el-button:not(.el-button--primary):hover,
+.client-message-box .el-button:not(.el-button--primary):focus {
+    border-color: var(--client-primary) !important;
+    background: color-mix(in srgb, var(--client-primary-light) 56%, #ffffff) !important;
+    color: var(--client-primary) !important;
+}
+
 html.dark .modern-message-box {
     background-color: var(--el-bg-color-overlay) !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4) !important;
@@ -266,8 +378,8 @@ function createBoxOptions(extra: AnyObj = {}) {
         lockScroll: true,
         closeOnClickModal: false,
         closeOnPressEscape: true,
-        customClass: normalizeCustomClass(extra.customClass),
-        ...extra
+        ...extra,
+        customClass: normalizeCustomClass(extra.customClass)
     } as AnyObj
 }
 

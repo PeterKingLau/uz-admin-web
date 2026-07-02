@@ -42,13 +42,23 @@
 
                 <el-form-item v-if="!isBatchVideoMode" prop="content" class="custom-labeled-item">
                     <div class="field-heading">正文内容</div>
-                    <div class="input-wrapper">
+                    <div class="input-wrapper" :class="{ 'is-rich-editor': isTextPostType }">
                         <transition name="el-fade-in-linear">
                             <el-button v-if="String(props.form.content || '').trim()" class="clear-content-btn" circle @click="clearContent">
                                 <Icon icon="mdi:close" />
                             </el-button>
                         </transition>
+                        <Editor
+                            v-if="isTextPostType"
+                            v-model="props.form.content"
+                            mode="textarea"
+                            :min-height="240"
+                            type="text"
+                            class="post-rich-editor"
+                            @update:model-value="emit('content-input')"
+                        />
                         <el-input
+                            v-else
                             v-model="props.form.content"
                             type="textarea"
                             :rows="8"
@@ -290,6 +300,7 @@ defineOptions({ name: 'ViewsContentAddPostComponentsPostEditorPanel' })
 import { computed, ref, shallowRef, watch, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import PinyinMatch from 'pinyin-match'
+import Editor from '@/components/Editor/index.vue'
 import FileUpload from '@/components/FileUpload/index.vue'
 import ImageUpload from '@/components/ImageUpload/index.vue'
 import { POST_TYPE } from '@/utils/enum'
@@ -340,7 +351,7 @@ const emit = defineEmits<{
 }>()
 
 const typeOptions: TypeOption[] = [
-    { label: POST_TYPE.TEXT, icon: 'mdi:format-text', text: '纯文字', desc: '记录心情与想法' },
+    { label: POST_TYPE.TEXT, icon: 'mdi:format-text', text: '文本', desc: '记录心情与想法' },
     { label: POST_TYPE.IMAGE, icon: 'mdi:image-outline', text: '图文', desc: '分享美好图片' },
     { label: POST_TYPE.VIDEO, icon: 'mdi:video-outline', text: '视频', desc: '记录动态影像' }
 ]
@@ -399,6 +410,7 @@ const imagePreviewList = computed(() =>
 )
 const primaryImagePreview = computed(() => imagePreviewList.value[0] || '')
 const secondaryImagePreviewList = computed(() => imagePreviewList.value.slice(1))
+const isTextPostType = computed(() => props.form.postType === POST_TYPE.TEXT)
 const isBatchVideoMode = computed(() => props.form.postType === POST_TYPE.VIDEO && videoUrlList.value.length > 1)
 const videoBatchErrorSet = computed(() => new Set((props.videoBatchErrorIndexes || []).map(index => Number(index))))
 const videoBatchTagErrorSet = computed(() => new Set((props.videoBatchTagErrorIndexes || []).map(index => Number(index))))
@@ -1076,8 +1088,38 @@ defineExpose({
     }
 }
 
+.input-wrapper.is-rich-editor {
+    .clear-content-btn {
+        top: 58px;
+        right: 16px;
+    }
+}
+
+.post-rich-editor {
+    :deep(.editor-container) {
+        border-radius: var(--app-card-radius);
+        border-color: var(--el-border-color-lighter);
+        background-color: var(--el-fill-color-light);
+    }
+
+    :deep(.editor-container.is-textarea-mode .md-editor-toolbar-wrapper) {
+        border-bottom-color: var(--el-border-color-lighter);
+        background: var(--el-fill-color-light);
+    }
+
+    :deep(.editor-container.is-textarea-mode .md-editor-input-wrapper) {
+        background: var(--el-bg-color);
+    }
+
+    :deep(.editor-container.is-textarea-mode .cm-editor .cm-content[contenteditable='true']) {
+        min-height: 240px;
+        padding: 18px 56px 18px 20px;
+    }
+}
+
 .post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner),
-.post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner:focus) {
+.post-form :deep(.el-form-item.is-error .custom-textarea .el-textarea__inner:focus),
+.post-form :deep(.el-form-item.is-error .post-rich-editor .editor-container) {
     box-shadow:
         0 0 0 2px var(--el-color-danger),
         0 4px 12px rgba(var(--el-color-danger-rgb), 0.1);

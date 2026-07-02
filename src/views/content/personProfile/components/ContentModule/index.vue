@@ -206,7 +206,7 @@
                             </div>
 
                             <div class="title-box">
-                                {{ item.content || '分享生活' }}
+                                {{ getDisplayContent(item) }}
                             </div>
                         </div>
                     </div>
@@ -359,6 +359,7 @@ import LoadingState from '@/components/LoadingState/index.vue'
 import { POST_TYPE } from '@/utils/enum'
 import { getImgUrl } from '@/utils/img'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
+import { stripHtmlToText } from '@/utils/content/common'
 import { deletePost } from '@/api/content/post'
 import { addCollection, addPostToCollection, deleteCollections, getPostByCollection, listMyCollections, updateCollection } from '@/api/content/collection'
 
@@ -513,7 +514,8 @@ const resolvePostId = (item: any) => {
     return Number.isFinite(num) ? num : null
 }
 const resolvePostKey = (item: any) => resolvePostId(item) ?? JSON.stringify(item)
-const getTextContent = (item: any) => toTrimmed(item?.content) || '暂无文字'
+const getTextContent = (item: any) => stripHtmlToText(item?.content) || '暂无文字'
+const getDisplayContent = (item: any) => stripHtmlToText(item?.content) || '分享生活'
 const getTextCover = (item: any) => {
     const content = getTextContent(item)
     const seed = String(resolvePostId(item) ?? '')

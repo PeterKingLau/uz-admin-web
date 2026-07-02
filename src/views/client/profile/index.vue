@@ -72,7 +72,10 @@
                             :no-more="noMore"
                             :empty-text="emptyText"
                             :empty-icon="emptyIcon"
+                            :show-delete="canDeleteWorks"
+                            :deleting-ids="deletingPostIds"
                             @preview="openPost"
+                            @delete="handleDeletePost"
                             @load-more="loadMore"
                         />
                     </div>
@@ -94,7 +97,7 @@
             :follow-loading="false"
             :like-loading="false"
             :bookmark-loading="false"
-            :repost-loading="false"
+            :repost-loading="repostActionLoading"
             :is-author-self="isSelfProfile"
             v-model:commentDraft="commentDraft"
             :comment-placeholder="commentPlaceholder"
@@ -115,6 +118,7 @@
             @toggle-replies="toggleCommentReplies"
             @load-replies="loadCommentReplies"
             @delete-comment="noop"
+            @view-comment-profile="handleViewCommentProfile"
             @follow="noop"
         />
 
@@ -139,10 +143,11 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientProfile' })
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getClientUserProfile } from '@/api/client/profile'
-import { addComment, likePost, listPostByApp, listPostByBookMark, listPostByLike } from '@/api/content/post'
+import { addComment, deletePost, likePost, listPostByApp, listPostByBookMark, listPostByLike, repostPost } from '@/api/content/post'
 import { listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { listFollowers, listFollowing, selectFollowNum, toggleFollowUser } from '@/api/content/userFollow'
 import ClientHeader from '@/views/client/components/ClientHeader.vue'
@@ -166,7 +171,8 @@ import {
     normalizeCommentList,
     parseMediaRaw,
     resolveFollowFlag,
-    resolveMediaUrl as resolveCommonMediaUrl
+    resolveMediaUrl as resolveCommonMediaUrl,
+    stripHtmlToText
 } from '@/utils/content/common'
 import { decodeClientUserId, getClientUserProfileRoute } from '@/utils/routeAccess'
 import defaultAvatar from '@/assets/images/profile.jpg'
@@ -177,6 +183,7 @@ type FollowTabKey = 'following' | 'followers'
 
 const router = useRouter()
 const route = useRoute()
+const { proxy } = getCurrentInstance() || {}
 const settingsStore = useSettingsStore()
 const userStore = useUserStore()
 
@@ -208,8 +215,10 @@ const previewModalRef = ref<{ focusInput?: () => void } | null>(null)
 const commentDraft = ref('')
 const isActionInputFocused = ref(false)
 const previewCommentsLoading = ref(false)
+const repostActionLoading = ref(false)
 const replyStateMap = ref<Record<string, any>>({})
 const replyTarget = ref<{ parent: Record<string, any>; replyTo: Record<string, any> } | null>(null)
+const deletingPostIds = ref<Array<string | number>>([])
 const editDialogVisible = ref(false)
 const profileFollowLoading = ref(false)
 const followDialogVisible = ref(false)
@@ -231,6 +240,7 @@ const currentUserId = computed(() => String(userStore.id || '').trim())
 const profileUserId = computed(() => String(hasRouteUserId.value ? routeUserId.value : currentUserId.value || '').trim())
 const isSelfProfile = computed(() => !hasRouteUserId.value || String(routeUserId.value) === currentUserId.value)
 const activeSideKey = computed(() => (isSelfProfile.value ? 'profile' : ''))
+const canDeleteWorks = computed(() => isSelfProfile.value && activeTab.value === 'works')
 
 const sideNavItems = [
     { key: 'discover', label: '发现', icon: 'mdi:compass-outline' },
@@ -332,7 +342,7 @@ const getType = (item: any) => String(item?.postType ?? '')
 const isTextPost = (item: any) => getType(item) === POST_TYPE.TEXT
 const isVideoPost = (item: any) => getType(item) === POST_TYPE.VIDEO
 const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
-const getContent = (item: any) => String(item?.content || '').trim() || '分享了一条内容'
+const getContent = (item: any) => stripHtmlToText(item?.content) || '分享了一条内容'
 
 const getTextCover = (item: any) => {
     const content = getContent(item)
@@ -668,6 +678,17 @@ const handleSelectFollowUser = (item: Record<string, any>) => {
     router.push(getClientUserProfileRoute(targetUserId))
 }
 
+const handleViewCommentProfile = (comment: Record<string, any>) => {
+    const targetUserId = getCommentUserId(comment)
+    if (targetUserId == null || targetUserId === '') return
+    closePreview()
+    if (isSameUser(targetUserId, currentUserId.value)) {
+        router.push('/profile')
+        return
+    }
+    router.push(getClientUserProfileRoute(targetUserId))
+}
+
 const getPreviewPostId = (post: any) => post?.postId ?? post?.id ?? null
 const getPreviewTargetUserId = (post: any) =>
     post?.targetUserId ?? post?.userId ?? post?.authorId ?? post?.createBy ?? post?.user?.id ?? post?.author?.id ?? resolveProfileUserId()
@@ -896,6 +917,40 @@ const loadMore = () => {
     loadPosts(true)
 }
 
+const handleDeletePost = async (post: Record<string, any>) => {
+    if (!canDeleteWorks.value) return
+    const postId = getPreviewPostId(post)
+    if (!postId || deletingPostIds.value.some(id => String(id) === String(postId))) return
+
+    try {
+        await ElMessageBox.confirm('确认删除这条作品吗？删除后不可恢复。', '删除作品', {
+            type: 'warning',
+            confirmButtonText: '删除',
+            cancelButtonText: '取消',
+            lockScroll: true
+        })
+    } catch {
+        return
+    }
+
+    deletingPostIds.value = [...deletingPostIds.value, postId]
+    try {
+        await deletePost({ postIds: [postId] })
+        postList.value = postList.value.filter(item => String(getPreviewPostId(item)) !== String(postId))
+        totalMap.value = {
+            ...totalMap.value,
+            works: Math.max(0, Number(totalMap.value.works || 0) - 1)
+        }
+        if (previewPost.value && String(getPreviewPostId(previewPost.value)) === String(postId)) closePreview()
+        ElMessage.success('删除成功')
+        if (postList.value.length < query.value.limit && !noMore.value) loadPosts(true)
+    } catch {
+        ElMessage.error('删除失败，请稍后重试')
+    } finally {
+        deletingPostIds.value = deletingPostIds.value.filter(id => String(id) !== String(postId))
+    }
+}
+
 const goDiscover = () => {
     router.push('/discover')
 }
@@ -1048,7 +1103,31 @@ const submitPreviewComment = () => {
 
 const handlePreviewAction = async (type: 'like' | 'collect' | 'share') => {
     const post = previewPost.value
-    if (!post || type !== 'like') return
+    if (!post) return
+    if (type === 'share') {
+        const postId = getPreviewPostId(post)
+        if (!postId || repostActionLoading.value) return
+        let content: string
+        try {
+            const res = await proxy?.$modal?.prompt?.('请输入转发内容', { customClass: 'client-message-box' })
+            content = String((res as any)?.value ?? '').trim()
+        } catch {
+            return
+        }
+        if (!content) return
+        repostActionLoading.value = true
+        try {
+            await repostPost({ originalPostId: postId, content })
+            post.repostCount = Number(post.repostCount || 0) + 1
+            if (post.shareCount != null) post.shareCount = Number(post.shareCount || 0) + 1
+        } catch (error) {
+            logIfNotCanceled(error)
+        } finally {
+            repostActionLoading.value = false
+        }
+        return
+    }
+    if (type !== 'like') return
     const postId = post?.postId ?? post?.id
     const targetUserId = post?.userId ?? post?.authorId ?? resolveProfileUserId()
     if (!postId || !targetUserId) return
@@ -1180,8 +1259,21 @@ onMounted(() => {
     flex-direction: column;
     justify-content: space-between;
     gap: 16px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--client-border-soft);
+    border-radius: 16px;
+    background: var(--client-surface);
+    box-shadow: var(--client-shadow-soft);
     overflow-y: auto;
+    -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+.sidebar-sticky-container::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 .sidebar-nav,
@@ -1196,37 +1288,63 @@ onMounted(() => {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 14px;
     min-height: 48px;
-    padding: 0 18px;
+    padding: 0 16px 0 18px;
     border: none;
     background: transparent;
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text-regular);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 500;
     cursor: pointer;
     text-align: left;
     transition:
-        background-color var(--app-motion-fast),
-        color var(--app-motion-fast);
+        background-color var(--client-feed-card-transition),
+        color var(--client-feed-card-transition),
+        transform var(--client-feed-card-transition),
+        font-weight var(--client-feed-card-transition);
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--primary-color);
+    opacity: 0;
+    transform: scaleY(0.5);
+    transform-origin: center;
+    transition:
+        opacity var(--client-feed-card-transition),
+        transform var(--client-feed-card-transition);
 }
 
 .nav-item:hover {
-    background: var(--bg-color);
+    background: var(--primary-light);
     color: var(--text-main);
+    transform: translateY(-1px) scaleY(1.01);
 }
 
 .nav-item.active {
-    background: var(--client-active-bg);
+    background: transparent;
     color: var(--client-active-text);
     font-weight: 700;
+}
+
+.nav-item.active::before {
+    opacity: 1;
+    transform: scaleY(1);
 }
 
 .nav-item.active .nav-icon {
@@ -1242,14 +1360,14 @@ onMounted(() => {
 }
 
 .tips-card {
-    padding: 24px;
+    padding: 0;
 }
 
 .tips-title {
-    margin: 0 0 16px 0;
+    margin: 0 0 14px 54px;
     font-size: 15px;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--text-minor);
 }
 
 .tips-list {
@@ -1264,17 +1382,19 @@ onMounted(() => {
 .tips-list li {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 14px;
+    padding-left: 18px;
     font-size: 13px;
-    color: var(--text-regular);
+    color: var(--text-minor);
     line-height: 1.6;
 }
 
 .icon-wrapper {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: var(--bg-color);
+    width: 22px;
+    height: 22px;
+    border-radius: 0;
+    background: transparent;
+    color: color-mix(in srgb, var(--primary-color) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1282,8 +1402,8 @@ onMounted(() => {
 }
 
 .icon-wrapper svg {
-    font-size: 14px;
-    color: var(--text-minor);
+    font-size: 15px;
+    color: currentColor;
 }
 
 .content-area {
@@ -1326,21 +1446,41 @@ button:focus-visible {
         max-height: none;
         flex-direction: row;
         align-items: stretch;
-        overflow: visible;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .sidebar-sticky-container::-webkit-scrollbar {
+        display: none;
     }
 
     .sidebar-nav {
         flex: 1;
         flex-direction: row;
-        justify-content: center;
+        justify-content: flex-start;
         padding: 0;
         width: 100%;
+        min-width: max-content;
     }
 
     .nav-item {
-        flex: 1;
+        flex: 0 0 auto;
         justify-content: center;
         text-align: center;
+    }
+
+    .nav-item::before {
+        left: 50%;
+        top: auto;
+        bottom: 3px;
+        width: 18px;
+        height: 3px;
+        transform: translateX(-50%) scaleX(0.55);
+    }
+
+    .nav-item.active::before {
+        transform: translateX(-50%) scaleX(1);
     }
 
     .sidebar-footer {

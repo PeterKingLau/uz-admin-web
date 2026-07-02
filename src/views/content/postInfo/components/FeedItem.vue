@@ -94,8 +94,8 @@
         </div>
 
         <div class="card-bottom">
-            <div class="content-text" :class="{ 'is-empty': !post.content }">
-                {{ post.content || '暂无正文内容' }}
+            <div class="content-text" :class="{ 'is-empty': !contentText }">
+                {{ contentText || '暂无正文内容' }}
             </div>
 
             <div class="card-footer">
@@ -128,7 +128,7 @@
 defineOptions({ name: 'ViewsContentPostInfoComponentsFeedItem' })
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
-import { parseMediaRaw, parseMediaUrls, resolveMediaUrl as resolveCommonMediaUrl } from '@/utils/content/common'
+import { parseMediaRaw, parseMediaUrls, resolveMediaUrl as resolveCommonMediaUrl, stripHtmlToText } from '@/utils/content/common'
 
 const props = defineProps<{
     post: any
@@ -165,7 +165,8 @@ const isOriginalMissing = computed(() => {
 const postType = computed(() => String(props.post?.postType ?? ''))
 const isVideoPost = computed(() => postType.value === POST_TYPE.VIDEO)
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
-const textCoverText = computed(() => String(props.post?.content ?? '').trim() || '暂无文字')
+const contentText = computed(() => stripHtmlToText(props.post?.content) || '')
+const textCoverText = computed(() => contentText.value || '暂无文字')
 
 const TYPE_CONFIG: Record<string, { text: string; icon: string }> = {
     [POST_TYPE.TEXT]: { text: '文字', icon: 'mdi:format-text' },

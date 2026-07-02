@@ -1,5 +1,5 @@
 <template>
-    <div class="login">
+    <div class="login theme-client">
         <section class="login-visual" aria-hidden="true">
             <div class="visual-content">
                 <h1>
@@ -10,7 +10,7 @@
         </section>
 
         <section class="login-panel">
-            <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" class="login-form animate-in">
+            <el-form ref="loginRef" :model="loginForm" :rules="activeRules" :validate-on-rule-change="false" :show-message="false" class="login-form animate-in">
                 <div class="header-box">
                     <h3 class="title">欢迎回来</h3>
                     <p class="sub-title">请登录您的账户以继续</p>
@@ -33,18 +33,11 @@
                         :inputmode="loginForm.loginType === 'SMS' ? 'numeric' : 'text'"
                         @input="handleUsernameInput"
                         @keyup.enter="handleLogin"
-                    >
-                        <template #prefix>
-                            <Icon icon="mdi:account-outline" class="input-icon" />
-                        </template>
-                    </el-input>
+                    />
                 </el-form-item>
 
                 <el-form-item v-if="loginForm.loginType === 'PASSWORD'" prop="password">
                     <el-input v-model="loginForm.password" :type="showPassword ? 'text' : 'password'" autocomplete="off" placeholder="请输入您的密码" @keyup.enter="handleLogin">
-                        <template #prefix>
-                            <Icon icon="mdi:lock-outline" class="input-icon" />
-                        </template>
                         <template #suffix>
                             <Icon :icon="showPassword ? 'mdi:eye-off' : 'mdi:eye'" class="password-toggle" @click.stop="togglePassword" />
                         </template>
@@ -53,11 +46,7 @@
 
                 <el-form-item v-if="loginForm.loginType === 'SMS'" prop="smsCode">
                     <div class="sms-input-group">
-                        <el-input v-model="loginForm.smsCode" maxlength="6" placeholder="6位验证码" @keyup.enter="handleLogin" class="sms-input">
-                            <template #prefix>
-                                <Icon icon="mdi:message-text-outline" class="input-icon" />
-                            </template>
-                        </el-input>
+                        <el-input v-model="loginForm.smsCode" maxlength="6" placeholder="6位验证码" @keyup.enter="handleLogin" class="sms-input" />
                         <el-button class="sms-btn" type="primary" plain :disabled="smsSending || smsCountdown > 0" @click="sendSms">
                             {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
                         </el-button>
@@ -128,7 +117,7 @@
 </template>
 
 <script setup>
-defineOptions({ name: 'ViewsLogin' })
+defineOptions({ name: 'ViewsClientLogin' })
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Cookies from 'js-cookie'
@@ -234,8 +223,8 @@ function normalizeRedirectPath(value) {
 
 function resolveSafeRedirectPath(value) {
     const path = normalizeRedirectPath(value)
-    if (path && path.startsWith('/') && path !== '/login') return path
-    return '/index'
+    if (path && path.startsWith('/') && path !== '/login' && path !== '/client-login') return path
+    return '/discover'
 }
 
 function triggerAgreementShake() {
@@ -246,6 +235,33 @@ function triggerAgreementShake() {
             agreementShake.value = false
         }, 420)
     })
+}
+
+function resolveLoginValidationMessage(fields) {
+    if (fields instanceof Error && fields.message) return fields.message
+    if (typeof fields === 'string' && fields.trim()) return fields
+    const firstField = Object.values(fields || {})[0]
+    const firstError = Array.isArray(firstField) ? firstField[0] : firstField
+    return firstError?.message || '请完善登录信息'
+}
+
+function showTopError(message) {
+    proxy?.$modal?.msgError?.(String(message || '请完善登录信息'))
+}
+
+function showLoginValidationError(fields) {
+    showTopError(resolveLoginValidationMessage(fields))
+}
+
+function resolveLocalValidationMessage() {
+    if (!loginForm.value.username) return usernamePlaceholder.value
+    if (loginForm.value.loginType === 'PASSWORD' && !loginForm.value.password) return '请输入您的密码'
+    if (loginForm.value.loginType === 'SMS') {
+        if (!/^1[3-9]\d{9}$/.test(loginForm.value.username)) return '请输入正确的手机号'
+        if (!loginForm.value.smsCode) return '请输入短信验证码'
+        if (!/^\d{4,6}$/.test(loginForm.value.smsCode)) return '验证码格式不正确'
+    }
+    return ''
 }
 
 function parseStoredBoolean(value) {
@@ -445,6 +461,7 @@ onMounted(() => {
 function handleLogin() {
     if (!agreementAccepted.value) {
         triggerAgreementShake()
+        showTopError('请先阅读并同意用户协议和隐私政策')
         return
     }
 
@@ -453,44 +470,56 @@ function handleLogin() {
         loginForm.value.smsCode = (loginForm.value.smsCode || '').trim()
     }
 
-    loginRef.value.validate(async valid => {
-        if (!valid) return
-        loading.value = true
+    const localValidationMessage = resolveLocalValidationMessage()
+    if (localValidationMessage) {
+        const validateTask = loginRef.value?.validate?.()
+        if (validateTask?.catch) void validateTask.catch(() => undefined)
+        showTopError(localValidationMessage)
+        return
+    }
 
-        const payload = {
-            loginType: loginForm.value.loginType,
-            username: loginForm.value.username,
-            ...(loginForm.value.loginType === 'PASSWORD' && { password: loginForm.value.password }),
-            ...(loginForm.value.loginType === 'SMS' && { smsCode: loginForm.value.smsCode })
-        }
+    loginRef.value
+        .validate()
+        .then(() => {
+            loading.value = true
 
-        userStore
-            .login(payload)
-            .then(async () => {
-                try {
-                    if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.rememberMe) {
-                        await persistRememberedLoginState()
-                    } else {
+            const payload = {
+                loginType: loginForm.value.loginType,
+                username: loginForm.value.username,
+                ...(loginForm.value.loginType === 'PASSWORD' && { password: loginForm.value.password }),
+                ...(loginForm.value.loginType === 'SMS' && { smsCode: loginForm.value.smsCode })
+            }
+
+            userStore
+                .login(payload)
+                .then(async () => {
+                    try {
+                        if (loginForm.value.loginType === 'PASSWORD' && loginForm.value.rememberMe) {
+                            await persistRememberedLoginState()
+                        } else {
+                            clearRememberedLoginState()
+                        }
+                    } catch (error) {
                         clearRememberedLoginState()
+                        console.warn('Failed to persist remembered password', error)
                     }
-                } catch (error) {
-                    clearRememberedLoginState()
-                    console.warn('Failed to persist remembered password', error)
-                }
 
-                const query = route.query
-                const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
-                    if (cur !== ROUTE_REDIRECT_QUERY_KEY) acc[cur] = query[cur]
-                    return acc
-                }, {})
-                await router.push({ path: resolveSafeRedirectPath(redirect.value), query: otherQueryParams })
-            })
-            .catch(error => {
-                loading.value = false
-                console.error('Login or redirect failed:', error)
-                proxy?.$modal?.msgError?.(error?.message || '登录失败，请检查账号信息或稍后重试')
-            })
-    })
+                    const query = route.query
+                    const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
+                        if (cur !== ROUTE_REDIRECT_QUERY_KEY) acc[cur] = query[cur]
+                        return acc
+                    }, {})
+                    await router.push({ path: resolveSafeRedirectPath(redirect.value), query: otherQueryParams })
+                })
+                .catch(error => {
+                    loading.value = false
+                    console.error('Login or redirect failed:', error)
+                    proxy?.$modal?.msgError?.(error?.message || '登录失败，请检查账号信息或稍后重试')
+                })
+        })
+        .catch(fields => {
+            showLoginValidationError(fields)
+        })
 }
 
 const showPassword = ref(false)
@@ -532,6 +561,23 @@ function togglePassword() {
     overflow: hidden;
 }
 
+.login.theme-client {
+    --login-primary: #14b8a6;
+    --login-primary-soft: #2dd4bf;
+    --login-button-text: #ffffff;
+    --login-panel-bg: #ffffff;
+    --login-surface: #ffffff;
+    --login-visual-side-overlay: linear-gradient(90deg, rgba(15, 23, 42, 0.42), rgba(15, 118, 110, 0.1));
+    --login-visual-bottom-overlay: linear-gradient(180deg, transparent 0%, rgba(15, 118, 110, 0.22) 100%);
+    --el-color-primary: #14b8a6;
+    --el-color-primary-light-3: #5eead4;
+    --el-color-primary-light-5: #99f6e4;
+    --el-color-primary-light-7: #ccfbf1;
+    --el-color-primary-light-8: #e0fdf8;
+    --el-color-primary-light-9: #f0fdfa;
+    --el-color-primary-dark-2: #0f766e;
+}
+
 .login-visual {
     position: relative;
     min-height: 100vh;
@@ -542,7 +588,7 @@ function togglePassword() {
     overflow: hidden;
     background-image:
         var(--login-visual-side-overlay),
-        url('../assets/images/login-background.jpg');
+        url('@/assets/images/client-login-background.png');
     background-size: cover;
     background-position: center;
 
@@ -561,8 +607,9 @@ function togglePassword() {
     width: min(76vw, 720px);
     max-width: 100%;
     margin-top: 0;
-    color: var(--login-white);
+    color: #ffffff;
     text-align: left;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
     h1 {
         margin: 0;
@@ -594,8 +641,9 @@ function togglePassword() {
 }
 
 .login-panel {
+    position: relative;
     min-height: 100vh;
-    padding: 48px clamp(28px, 4vw, 56px);
+    padding: 48px clamp(28px, 4vw, 56px) 104px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -630,7 +678,7 @@ function togglePassword() {
 .login-form {
     position: relative;
     flex-shrink: 0;
-    width: 360px;
+    width: min(100%, 360px);
     max-width: 100%;
     padding: 0;
     background: transparent;
@@ -641,7 +689,7 @@ function togglePassword() {
 
 .header-box {
     text-align: left;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
 
     .title {
         margin: 0;
@@ -652,7 +700,7 @@ function togglePassword() {
     }
 
     .sub-title {
-        margin: 10px 0 0;
+        margin: 8px 0 0;
         font-size: 14px;
         color: var(--el-text-color-secondary);
     }
@@ -678,6 +726,7 @@ function togglePassword() {
         justify-content: center;
         align-items: center;
         min-height: 30px;
+        padding-bottom: 2px;
         font-size: 14px;
         color: var(--el-text-color-secondary);
         cursor: pointer;
@@ -689,14 +738,14 @@ function togglePassword() {
         &::after {
             content: '';
             position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 2px;
-            border-radius: 999px;
+            left: 50%;
+            bottom: -4px;
+            width: 16px;
+            height: 3px;
+            border-radius: 3px;
             background: var(--login-primary);
             opacity: 0;
-            transform: scaleX(0.56);
+            transform: translateX(-50%) scaleX(0.65);
             transition:
                 opacity 200ms ease,
                 transform 200ms ease;
@@ -712,18 +761,22 @@ function togglePassword() {
 
             &::after {
                 opacity: 1;
-                transform: scaleX(1);
+                transform: translateX(-50%) scaleX(1);
             }
         }
     }
 }
 
 :deep(.el-form-item) {
-    margin-bottom: 18px;
+    margin-bottom: 20px;
+}
+
+:deep(.el-form-item__error) {
+    display: none;
 }
 
 :deep(.login-type-item) {
-    margin-bottom: 26px;
+    margin-bottom: 24px;
 }
 
 :deep(.el-input__wrapper) {
@@ -749,6 +802,13 @@ function togglePassword() {
     }
 }
 
+:deep(.el-form-item.is-error .el-input__wrapper),
+:deep(.el-form-item.is-error .el-input__wrapper:hover),
+:deep(.el-form-item.is-error .el-input__wrapper.is-focus) {
+    border-color: #f43f5e;
+    box-shadow: none !important;
+}
+
 :deep(.el-input__inner) {
     height: 48px;
     font-size: 15px;
@@ -761,45 +821,19 @@ function togglePassword() {
     }
 }
 
-:deep(.el-input__prefix),
 :deep(.el-input__suffix) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-}
-
-:deep(.el-input__prefix) {
-    margin-right: 8px;
-}
-
-:deep(.el-input__suffix) {
     margin-left: 8px;
 }
 
-:deep(.el-input__prefix-inner),
 :deep(.el-input__suffix-inner) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-}
-
-.input-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-    line-height: 1;
-    color: var(--el-text-color-placeholder);
-    margin-right: 0;
-    transition: color 0.3s;
-}
-
-:deep(.el-input__wrapper.is-focus) .input-icon {
-    color: var(--login-primary);
 }
 
 .password-toggle {
@@ -871,27 +905,33 @@ function togglePassword() {
 }
 
 .agreement-confirm {
-    margin: 22px 0 18px;
+    margin: 20px 0 18px;
     color: var(--el-text-color-secondary);
     font-size: 13px;
     line-height: 1.6;
     text-align: left;
 
     :deep(.el-checkbox) {
+        display: inline-flex;
+        align-items: center;
         height: auto;
-        align-items: flex-start;
+        min-height: 22px;
         white-space: normal;
     }
 
     :deep(.el-checkbox__input) {
-        margin-top: 2px;
+        flex-shrink: 0;
+        margin-top: 0;
     }
 
     :deep(.el-checkbox__label) {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
         padding-left: 8px;
         color: var(--el-text-color-secondary);
         font-size: 13px;
-        line-height: 1.6;
+        line-height: 1.5;
     }
 
     :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
@@ -956,20 +996,26 @@ function togglePassword() {
 }
 
 .el-login-footer {
-    width: 360px;
+    position: absolute;
+    left: 50%;
+    bottom: 32px;
+    width: min(calc(100% - 56px), 360px);
     max-width: 100%;
-    margin-top: 28px;
+    margin-top: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
+    transform: translateX(-50%);
     gap: 12px;
 
     .copyright-info {
         display: flex;
         align-items: center;
+        justify-content: flex-start;
         gap: 12px;
         color: var(--el-text-color-secondary);
         font-size: 12px;
+        text-align: left;
 
         .beian-link {
             color: inherit;
@@ -1042,6 +1088,13 @@ function togglePassword() {
         padding: 32px 20px 40px;
     }
 
+    .el-login-footer {
+        position: static;
+        width: min(100%, 360px);
+        margin-top: 28px;
+        transform: none;
+    }
+
     .visual-content {
         width: min(100%, 680px);
 
@@ -1074,6 +1127,7 @@ function togglePassword() {
     .el-login-footer {
         .copyright-info {
             flex-direction: column;
+            align-items: flex-start;
             gap: 6px;
         }
     }
@@ -1082,6 +1136,20 @@ function togglePassword() {
 :global(html.dark) {
     .login-panel {
         background: var(--login-panel-bg, var(--el-bg-color-page));
+    }
+
+    .login.theme-client {
+        --login-panel-bg: #0f172a;
+        --login-surface: #111827;
+        --login-visual-side-overlay: linear-gradient(90deg, rgba(15, 23, 42, 0.62), rgba(15, 118, 110, 0.18));
+        --login-visual-bottom-overlay: linear-gradient(180deg, transparent 0%, rgba(15, 118, 110, 0.34) 100%);
+        --el-color-primary: #2dd4bf;
+        --el-color-primary-light-3: #5eead4;
+        --el-color-primary-light-5: #0f766e;
+        --el-color-primary-light-7: #115e59;
+        --el-color-primary-light-8: #134e4a;
+        --el-color-primary-light-9: #0f2f32;
+        --el-color-primary-dark-2: #99f6e4;
     }
 
     .login-type-switch {

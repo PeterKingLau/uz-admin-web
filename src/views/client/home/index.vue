@@ -83,29 +83,43 @@
                             <span class="refresh-card-frame"></span>
                             <span class="refresh-card-frame"></span>
                         </div>
-                        <div v-if="hasFeedContent" class="masonry-grid" :style="{ '--masonry-columns': String(columnCount) }">
-                            <div v-for="(column, colIndex) in feedMasonryColumns" :key="`col-${colIndex}`" class="masonry-column">
-                                <template v-for="item in column" :key="item.key">
-                                    <ClientPostCard v-if="item.type === 'post'" :post="item.post" @click="openPost" />
-                                    <div v-else class="feed-card-skeleton" :style="{ '--skeleton-card-height': `${item.height}px` }" aria-hidden="true">
-                                        <div class="feed-card-skeleton-cover">
-                                            <span class="skeleton-shadow"></span>
-                                        </div>
-                                        <div class="feed-card-skeleton-body">
-                                            <span class="skeleton-text skeleton-text--wide"></span>
-                                            <span class="skeleton-text"></span>
-                                            <span class="skeleton-meta"></span>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
+                        <Waterfall
+                            v-if="hasFeedContent"
+                            ref="waterfallRef"
+                            class="masonry-grid"
+                            :list="waterfallItems"
+                            row-key="__waterfallKey"
+                            img-selector="__coverUrl"
+                            :width="260"
+                            :breakpoints="waterfallBreakpoints"
+                            :gutter="20"
+                            :space="20"
+                            :has-around-gutter="false"
+                            :delay="150"
+                            align="left"
+                            background-color="transparent"
+                            :lazyload="false"
+                            :animation-cancel="true"
+                        >
+                            <template #default="{ item }">
+                                <ClientPostCard
+                                    class="masonry-item"
+                                    :post="item"
+                                    @click="openPost"
+                                    @media-load="handleCardMediaLoad"
+                                />
+                            </template>
+                        </Waterfall>
 
                         <el-empty v-else-if="!loading" :description="emptyDescription" :image-size="108" />
 
-                        <div v-if="renderedPosts.length" class="load-more">
+                        <div v-if="renderedPosts.length || loadingMore || finished" class="load-more">
                             <div ref="loadMoreTriggerRef" class="load-more-trigger"></div>
-                            <span class="load-more-status" :class="{ visible: Boolean(loadMoreStatusText) }">{{ loadMoreStatusText || '占位' }}</span>
+                            <div v-if="loadingMore" class="load-more-loading" role="status" aria-live="polite">
+                                <span class="load-more-spinner"></span>
+                                <span>正在发现更多...</span>
+                            </div>
+                            <div v-else-if="finished" class="load-more-finished">没有更多内容了</div>
                         </div>
                     </main>
                 </section>
@@ -142,7 +156,7 @@
             :follow-loading="false"
             :like-loading="false"
             :bookmark-loading="false"
-            :repost-loading="false"
+            :repost-loading="repostActionLoading"
             :is-author-self="true"
             v-model:commentDraft="commentDraft"
             :comment-placeholder="commentPlaceholder"
@@ -163,6 +177,7 @@
             @toggle-replies="toggleCommentReplies"
             @load-replies="loadCommentReplies"
             @delete-comment="noop"
+            @view-comment-profile="handleViewCommentProfile"
             @follow="noop"
         />
     </div>
@@ -170,9 +185,13 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientHome' })
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { addComment, likePost, listPostByApp, listRecommendFeed } from '@/api/content/post'
+import { useIntersectionObserver } from '@vueuse/core'
+import { debounce } from 'lodash-es'
+import { Waterfall } from 'vue-waterfall-plugin-next'
+import 'vue-waterfall-plugin-next/dist/style.css'
+import { addComment, likePost, listPostByApp, listRecommendFeed, repostPost } from '@/api/content/post'
 import { listCommentReplies, listTopComments } from '@/api/content/postComment'
 import { getInterestAll } from '@/api/content/interest'
 import useSettingsStore from '@/store/modules/settings'
@@ -182,6 +201,7 @@ import ClientPostCard from '@/views/client/components/ClientPostCard.vue'
 import PostPreviewModal from '@/views/content/personProfile/components/Modal/PostPreviewModal.vue'
 import { POST_TYPE } from '@/utils/enum'
 import { encodeRouteId } from '@/router/routeParams'
+import { getClientUserProfileRoute } from '@/utils/routeAccess'
 import { buildTextCoverDataUrl } from '@/utils/textCover'
 import { openVideoPlayerPreview } from '@/utils/content/videoPlayer'
 import {
@@ -191,11 +211,13 @@ import {
     createMediaViewerPayloadPost,
     normalizeCommentList,
     parseMediaRaw,
-    resolveMediaUrl as resolveCommonMediaUrl
+    resolveMediaUrl as resolveCommonMediaUrl,
+    stripHtmlToText
 } from '@/utils/content/common'
 
 const router = useRouter()
 const route = useRoute()
+const { proxy } = getCurrentInstance() || {}
 const settingsStore = useSettingsStore()
 const userStore = useUserStore()
 const posts = ref<any[]>([])
@@ -209,6 +231,7 @@ const previewModalRef = ref<{ focusInput?: () => void } | null>(null)
 const commentDraft = ref('')
 const isActionInputFocused = ref(false)
 const previewCommentsLoading = ref(false)
+const repostActionLoading = ref(false)
 const replyStateMap = ref<Record<string, any>>({})
 const replyTarget = ref<{ parent: Record<string, any>; replyTo: Record<string, any> } | null>(null)
 const discoverPageRef = ref<HTMLElement | null>(null)
@@ -227,7 +250,8 @@ const getInitialColumnCount = () => {
 
 const columnCount = ref(getInitialColumnCount())
 const loadMoreTriggerRef = ref<HTMLElement | null>(null)
-let loadObserver: IntersectionObserver | null = null
+const waterfallRef = ref<{ renderer?: () => void } | null>(null)
+let stopLoadObserver: (() => void) | null = null
 let resizeHandler: (() => void) | null = null
 let scrollHandler: (() => void) | null = null
 let isDestroyed = false
@@ -255,6 +279,7 @@ const TAG_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const TAG_CACHE_REFRESH_COOLDOWN_MS = 30000
 const LOAD_MORE_SCROLL_THRESHOLD = 220
 const POST_RENDER_FRAME_DELAY_MS = 54
+const WATERFALL_RENDER_DEBOUNCE_MS = 150
 const query = ref<{ limit: number; lastId?: number; lastCreateTime?: string }>({
     limit: 10,
     lastId: undefined,
@@ -301,6 +326,20 @@ const waitForNextFrame = () =>
         window.requestAnimationFrame(() => resolve())
     })
 
+// 图片会在同一批渲染中集中触发 load，这里把多次 renderer 合并为最后一次执行，
+// 避免 vue-waterfall-plugin-next 反复计算布局造成连续 Reflow。
+const debouncedRenderer = debounce(
+    () => {
+        if (isDestroyed) return
+        void nextTick(() => {
+            if (isDestroyed) return
+            waterfallRef.value?.renderer?.()
+        })
+    },
+    WATERFALL_RENDER_DEBOUNCE_MS,
+    { leading: false, trailing: true }
+)
+
 const sideNavItems = [
     { key: 'discover', label: '发现', icon: 'mdi:compass-outline' },
     { key: 'publish', label: '发布', icon: 'mdi:plus-box-outline' },
@@ -316,11 +355,6 @@ const normalizedSearchKeyword = computed(() => activeSearchKeyword.value.trim())
 const isSearchMode = computed(() => Boolean(normalizedSearchKeyword.value))
 const isRecommendMode = computed(() => !activePrimaryId.value && !isSearchMode.value)
 
-const loadMoreStatusText = computed(() => {
-    if (loadingMore.value) return '正在加载更多...'
-    if (finished.value) return '已全部加载'
-    return ''
-})
 const emptyDescription = computed(() => (isSearchMode.value ? '没有找到相关内容' : '当前分类暂无内容'))
 
 const getPrimaryTagById = (primaryId: string) => topLevelTagOptions.value.find((item: any) => String(item.id) === primaryId) || null
@@ -365,7 +399,7 @@ const isTextPost = (item: any) => getType(item) === POST_TYPE.TEXT
 const isVideoPost = (item: any) => getType(item) === POST_TYPE.VIDEO
 const isH5Viewport = computed(() => columnCount.value <= 2)
 const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(url || '')
-const getContent = (item: any) => String(item?.content || '').trim() || '分享了一条内容'
+const getContent = (item: any) => stripHtmlToText(item?.content) || '分享了一条内容'
 const getNick = (item: any) => String(item?.nickName || item?.userName || '用户')
 
 const getTextCover = (item: any) => {
@@ -698,70 +732,19 @@ const fetchPrimaryTagFeed = async (
     return { batch, finished: nextFinished }
 }
 
-const estimateCardHeight = (item: any) => {
-    const contentLen = Math.min(String(item?.content || '').length, 80)
-    const textExtra = Math.ceil(contentLen / 20) * 18
-    if (isTextPost(item)) return 360 + textExtra
-    if (isVideoPost(item)) return 430 + textExtra
-    return 390 + textExtra
-}
-
-type FeedMasonryItem =
-    | {
-          type: 'post'
-          key: string
-          post: any
-          height: number
-      }
-    | {
-          type: 'skeleton'
-          key: string
-          height: number
-      }
-
-const getSkeletonCardHeight = (index: number) => {
-    const steps = [364, 408, 334, 386, 430]
-    return steps[index % steps.length]
-}
-
-const pendingRenderCount = computed(() => Math.max(0, posts.value.length - renderedPosts.value.length))
-const feedSkeletonCount = computed(() => {
-    if (pendingRenderCount.value) return Math.min(pendingRenderCount.value, columnCount.value * 2)
-    if (loading.value && !renderedPosts.value.length) return columnCount.value * 2
-    return 0
-})
-const hasFeedContent = computed(() => Boolean(renderedPosts.value.length || feedSkeletonCount.value))
+const hasFeedContent = computed(() => Boolean(renderedPosts.value.length))
 const showFeedActions = computed(() => Boolean(hasFeedContent.value || renderedPosts.value.length || posts.value.length))
-
-const feedMasonryColumns = computed(() => {
-    const cols = Array.from({ length: Math.max(1, columnCount.value) }, () => [] as any[])
-    const heights = Array.from({ length: Math.max(1, columnCount.value) }, () => 0)
-    const postItems: FeedMasonryItem[] = renderedPosts.value.map(item => ({
-        type: 'post',
-        key: String(getPostKey(item)),
-        post: item,
-        height: estimateCardHeight(item)
+const waterfallBreakpoints = {
+    1440: { rowPerView: 4 },
+    1200: { rowPerView: 3 },
+    768: { rowPerView: 2 }
+}
+const waterfallItems = computed(() => {
+    return renderedPosts.value.map(item => ({
+        ...item,
+        __waterfallKey: String(getPostKey(item)),
+        __coverUrl: getCover(item)
     }))
-    const skeletonItems: FeedMasonryItem[] = Array.from({ length: feedSkeletonCount.value }, (_, index) => ({
-        type: 'skeleton',
-        key: `feed-skeleton-${renderedPosts.value.length}-${index}`,
-        height: getSkeletonCardHeight(index)
-    }))
-    const items = postItems.concat(skeletonItems)
-
-    items.forEach(item => {
-        let targetIndex = 0
-        let minHeight = heights[0]
-        for (let i = 1; i < heights.length; i += 1) {
-            if (heights[i] < minHeight) {
-                minHeight = heights[i]
-                targetIndex = i
-            }
-        }
-        cols[targetIndex].push(item)
-        heights[targetIndex] += item.height
-    })
-    return cols
 })
 
 const resolveColumnCount = () => {
@@ -856,6 +839,10 @@ const schedulePostRendering = (nextPosts: any[]) => {
         return
     }
     postRenderFrame = window.requestAnimationFrame(renderNextPostBatch)
+}
+
+const handleCardMediaLoad = () => {
+    debouncedRenderer()
 }
 
 const resetRecommendCursor = () => {
@@ -973,24 +960,26 @@ const ensureLoadMoreIfNeeded = async () => {
 }
 
 const setupLoadObserver = async () => {
-    if (loadObserver) {
-        loadObserver.disconnect()
-        loadObserver = null
-    }
+    stopLoadObserver?.()
+    stopLoadObserver = null
     if (isDestroyed) return
     await nextTick()
     if (isDestroyed) return
     const target = loadMoreTriggerRef.value
     if (!target || (!isRecommendMode.value && finished.value)) return
-    loadObserver = new IntersectionObserver(
-        entries => {
-            const entry = entries[0]
+    const { stop } = useIntersectionObserver(
+        loadMoreTriggerRef,
+        ([entry]) => {
             if (!entry?.isIntersecting) return
             triggerLoadMore()
         },
-        { root: discoverPageRef.value, rootMargin: '120px 0px 120px 0px', threshold: 0 }
+        {
+            root: discoverPageRef,
+            rootMargin: '160px 0px 160px 0px',
+            threshold: 0
+        }
     )
-    loadObserver.observe(target)
+    stopLoadObserver = stop
 }
 
 const normalizePrimaryTagOptions = (rows: any[]) => rows.filter((item: any) => item?.id !== undefined && item?.id !== null && item?.name)
@@ -1374,6 +1363,18 @@ const closePreview = () => {
     replyTarget.value = null
 }
 
+const handleViewCommentProfile = (comment: Record<string, any>) => {
+    const targetUserId = getCommentUserId(comment)
+    const normalizedTargetUserId = String(targetUserId ?? '').trim()
+    if (!normalizedTargetUserId) return
+    closePreview()
+    if (normalizedTargetUserId === String(userStore.id || '').trim()) {
+        router.push('/profile')
+        return
+    }
+    router.push(getClientUserProfileRoute(normalizedTargetUserId))
+}
+
 const focusCommentInput = () => {
     isActionInputFocused.value = true
     nextTick(() => previewModalRef.value?.focusInput?.())
@@ -1434,6 +1435,29 @@ const submitPreviewComment = () => {
 const handlePreviewAction = async (type: 'like' | 'collect' | 'share') => {
     const post = previewPost.value
     if (!post) return
+    if (type === 'share') {
+        const postId = getPreviewPostId(post)
+        if (!postId || repostActionLoading.value) return
+        let content: string
+        try {
+            const res = await proxy?.$modal?.prompt?.('请输入转发内容', { customClass: 'client-message-box' })
+            content = String((res as any)?.value ?? '').trim()
+        } catch {
+            return
+        }
+        if (!content) return
+        repostActionLoading.value = true
+        try {
+            await repostPost({ originalPostId: postId, content })
+            post.repostCount = Number(post.repostCount || 0) + 1
+            if (post.shareCount != null) post.shareCount = Number(post.shareCount || 0) + 1
+        } catch (error) {
+            console.error(error)
+        } finally {
+            repostActionLoading.value = false
+        }
+        return
+    }
     if (type !== 'like') return
     const postId = post?.postId ?? post?.id
     const targetUserId = post?.userId ?? post?.authorId
@@ -1486,13 +1510,11 @@ watch(
     () => [Boolean(renderedPosts.value.length), finished.value] as const,
     async ([hasPosts, isFinished]) => {
         if (!hasPosts || isFinished) {
-            if (loadObserver) {
-                loadObserver.disconnect()
-                loadObserver = null
-            }
+            stopLoadObserver?.()
+            stopLoadObserver = null
             return
         }
-        if (!loadObserver) await setupLoadObserver()
+        if (!stopLoadObserver) await setupLoadObserver()
     }
 )
 
@@ -1515,10 +1537,9 @@ onBeforeUnmount(() => {
     clearLoadMoreTimer()
     clearPrimarySwitchTimer()
     clearPostRenderSchedule()
-    if (loadObserver) {
-        loadObserver.disconnect()
-        loadObserver = null
-    }
+    debouncedRenderer.cancel()
+    stopLoadObserver?.()
+    stopLoadObserver = null
     document.documentElement.classList.remove(CLIENT_HOME_SCROLL_CLASS)
     document.body.classList.remove(CLIENT_HOME_SCROLL_CLASS)
 })
@@ -1533,7 +1554,7 @@ onBeforeUnmount(() => {
     --page-x: 32px;
 
     height: 100svh;
-    background-color: var(--client-surface);
+    background-color: var(--bg-color);
     font-family:
         'PingFang SC',
         -apple-system,
@@ -1554,6 +1575,7 @@ onBeforeUnmount(() => {
 .discover-page::-webkit-scrollbar {
     width: 0;
     height: 0;
+    display: none;
 }
 
 :global(html.client-home-scroll-lock),
@@ -1599,8 +1621,24 @@ onBeforeUnmount(() => {
     flex-direction: column;
     justify-content: space-between;
     gap: 16px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--client-border-soft);
+    border-radius: 16px;
+    background: var(--client-surface);
+    box-shadow: var(--client-shadow-soft);
     overflow-y: auto;
+    -ms-overflow-style: none;
     scrollbar-width: none;
+    transition:
+        border-color var(--client-feed-card-transition),
+        box-shadow var(--client-feed-card-transition);
+}
+
+.sidebar-sticky-container::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 .sidebar-nav {
@@ -1610,38 +1648,64 @@ onBeforeUnmount(() => {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 14px;
     min-height: 48px;
-    padding: 0 18px;
+    padding: 0 16px 0 18px;
     border: none;
     background: transparent;
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text-regular);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 500;
     cursor: pointer;
     text-align: left;
     transition:
         background-color var(--client-feed-card-transition),
-        color var(--client-feed-card-transition);
+        color var(--client-feed-card-transition),
+        transform var(--client-feed-card-transition),
+        font-weight var(--client-feed-card-transition);
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--primary-color);
+    opacity: 0;
+    transform: scaleY(0.5);
+    transform-origin: center;
+    transition:
+        opacity var(--client-feed-card-transition),
+        transform var(--client-feed-card-transition);
 }
 
 .nav-item:hover {
-    background: var(--bg-color);
+    background: var(--primary-light);
     color: var(--text-main);
+    transform: translateY(-1px) scaleY(1.01);
 }
 
 .nav-item.active {
-    background: var(--client-active-bg);
+    background: transparent;
     color: var(--client-active-text);
     font-weight: 700;
     box-shadow: none;
+}
+
+.nav-item.active::before {
+    opacity: 1;
+    transform: scaleY(1);
 }
 
 .nav-item.active .nav-icon {
@@ -1658,17 +1722,18 @@ onBeforeUnmount(() => {
 }
 
 .tips-card {
-    padding: 18px;
-    border: 1px solid color-mix(in srgb, var(--text-main) 8%, transparent);
-    border-radius: 8px;
-    background: var(--client-surface-muted);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .tips-title {
-    margin: 0 0 16px 0;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-main);
+    margin: 0 0 14px 54px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-minor);
 }
 
 .tips-list {
@@ -1683,9 +1748,10 @@ onBeforeUnmount(() => {
 .tips-list li {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    padding-left: 18px;
     font-size: 13px;
-    color: var(--text-main);
+    color: var(--text-minor);
     line-height: 1.5;
     min-height: 28px;
 }
@@ -1697,11 +1763,11 @@ onBeforeUnmount(() => {
 }
 
 .icon-wrapper {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--client-active-bg);
-    color: var(--client-active-text);
+    width: 22px;
+    height: 22px;
+    border-radius: 0;
+    background: transparent;
+    color: color-mix(in srgb, var(--primary-color) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1709,7 +1775,7 @@ onBeforeUnmount(() => {
 }
 
 .icon-wrapper svg {
-    font-size: 16px;
+    font-size: 15px;
     color: currentColor;
 }
 
@@ -1724,19 +1790,20 @@ onBeforeUnmount(() => {
 .tab-panel {
     position: relative;
     z-index: 1;
-    background: var(--client-surface);
-    margin-bottom: 18px;
+    background: transparent;
+    margin: 0 0 18px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .tab-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: flex-start;
+    gap: 22px;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1745,10 +1812,13 @@ onBeforeUnmount(() => {
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
     padding: 0;
+    -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
 .tab-row::-webkit-scrollbar {
+    width: 0;
+    height: 0;
     display: none;
 }
 
@@ -1761,24 +1831,48 @@ onBeforeUnmount(() => {
     flex: 0 0 auto;
     border: 0;
     background: transparent;
-    min-height: 36px;
-    padding: 0 16px;
-    border-radius: 8px;
+    min-height: 40px;
+    padding: 0 2px 10px;
+    border-radius: 0;
     color: var(--text-regular);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
-    transition: color var(--client-feed-card-transition);
+    transition:
+        color var(--client-feed-card-transition),
+        transform var(--client-feed-card-transition);
+}
+
+.tab-item::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 3px;
+    width: 18px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--primary-color);
+    opacity: 0;
+    transform: translateX(-50%) scaleX(0.55);
+    transition:
+        opacity var(--client-feed-card-transition),
+        transform var(--client-feed-card-transition);
 }
 
 .tab-item:hover {
-    color: var(--text-main);
+    color: var(--primary-color);
+    transform: translateY(-1px);
 }
 
 .tab-item.active {
     color: var(--client-active-text);
     font-weight: 700;
+}
+
+.tab-item.active::after {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
 }
 
 .tab-item.pending {
@@ -1793,10 +1887,13 @@ onBeforeUnmount(() => {
     left: 16px;
     right: 16px;
     bottom: 3px;
+    width: auto;
     height: 2px;
     border-radius: 999px;
     background: linear-gradient(90deg, transparent 0%, var(--client-active-text) 35%, var(--client-active-text) 65%, transparent 100%);
     background-size: 220% 100%;
+    opacity: 1;
+    transform: none;
     animation: tab-refresh-sweep 1.05s ease-in-out infinite;
 }
 
@@ -1979,99 +2076,19 @@ button:focus-visible {
 }
 
 .masonry-grid {
-    --masonry-columns: 5;
-    display: grid;
-    grid-template-columns: repeat(var(--masonry-columns), minmax(0, 1fr));
-    column-gap: 28px;
-}
-
-.masonry-column {
-    display: flex;
-    flex-direction: column;
-    row-gap: 26px;
-}
-
-.feed-card-skeleton {
-    --skeleton-card-height: 386px;
-
-    border-radius: var(--client-feed-card-radius);
-    overflow: visible;
-    background: transparent;
-    pointer-events: none;
-    animation: feed-skeleton-enter 0.28s ease both;
-}
-
-.feed-card-skeleton-cover {
     position: relative;
-    height: var(--skeleton-card-height);
-    overflow: hidden;
-    border: 1px solid var(--client-border-soft);
-    border-radius: var(--client-feed-card-radius);
-    background:
-        linear-gradient(90deg, var(--client-fill) 0 28%, transparent 28% 100%) 18px 18px / 68px 12px no-repeat,
-        linear-gradient(90deg, var(--client-surface-hover) 0 42%, transparent 42% 100%) 18px 38px / 96px 10px no-repeat,
-        linear-gradient(145deg, var(--client-fill) 0%, var(--client-surface-muted) 100%);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-main) 3%, transparent);
+    width: 100%;
 }
 
-.feed-card-skeleton-cover::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    transform: translateX(-110%);
-    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--client-surface-hover) 56%, transparent) 48%, transparent 100%);
-    animation: feed-skeleton-sweep 1.45s ease-in-out infinite;
+.masonry-item {
+    width: 100%;
+    animation: masonry-card-enter 260ms ease both;
 }
 
-.skeleton-shadow {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    height: 52px;
-    border-radius: 10px;
-    background:
-        linear-gradient(90deg, var(--client-surface-hover) 0 44%, transparent 44% 100%) 12px 12px / 72% 8px no-repeat,
-        linear-gradient(90deg, var(--client-fill) 0 34%, transparent 34% 100%) 12px 30px / 54% 7px no-repeat,
-        color-mix(in srgb, var(--client-fill) 82%, var(--client-surface-muted));
-    box-shadow: none;
-}
-
-.feed-card-skeleton-body {
-    padding: 10px 2px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.skeleton-text,
-.skeleton-meta {
-    display: block;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--client-fill) 0%, var(--client-surface-hover) 44%, var(--client-fill) 88%);
-    background-size: 220% 100%;
-    animation: feed-skeleton-text 1.35s ease-in-out infinite;
-}
-
-.skeleton-text {
-    width: 62%;
-    height: 12px;
-}
-
-.skeleton-text--wide {
-    width: 86%;
-}
-
-.skeleton-meta {
-    width: 44%;
-    height: 10px;
-    margin-top: 4px;
-}
-
-@keyframes feed-skeleton-enter {
+@keyframes masonry-card-enter {
     0% {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(12px);
     }
     100% {
         opacity: 1;
@@ -2079,188 +2096,58 @@ button:focus-visible {
     }
 }
 
-@keyframes feed-skeleton-sweep {
-    100% {
-        transform: translateX(110%);
-    }
-}
-
-@keyframes feed-skeleton-text {
-    0% {
-        background-position: 120% 50%;
-    }
-    100% {
-        background-position: -120% 50%;
-    }
-}
-
-.post-card {
-    border-radius: var(--client-feed-card-radius);
-    overflow: hidden;
-    border: 1px solid var(--client-feed-card-border);
-    background: var(--client-surface);
-    cursor: pointer;
-    box-shadow: var(--client-feed-card-shadow);
-}
-
-.post-card:hover {
-    border-color: var(--client-feed-card-border);
-    background: var(--client-surface);
-    box-shadow: var(--client-feed-card-shadow);
-}
-
-.cover-wrap {
-    position: relative;
-    aspect-ratio: 3 / 4;
-    background: var(--client-fill);
-    overflow: hidden;
-}
-
-.cover-wrap::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: color-mix(in srgb, var(--text-main) 5%, transparent);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--client-feed-card-transition);
-}
-
-.post-card:hover .cover-wrap::after {
-    opacity: 1;
-}
-
-.cover-image {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-.cover-image :deep(img) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.cover-empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-minor);
-    background: var(--client-fill);
-}
-
-.text-cover {
-    width: 100%;
-    height: 100%;
-    padding: 24px;
-    display: flex;
-    align-items: center;
-    background-size: cover;
-    background-position: center;
-}
-
-.text-cover span {
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.6;
-    color: #ffffff;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    display: -webkit-box;
-    -webkit-line-clamp: 5;
-    line-clamp: 5;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.video-badge {
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    color: #ffffff;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.card-content {
-    padding: 16px;
-    background: var(--client-surface);
-}
-
-.content-text {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.5;
-    font-weight: 500;
-    color: var(--text-main);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.user-row {
-    margin-top: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.user-core {
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.user-core .name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-    color: var(--text-regular);
-    max-width: 110px;
-}
-
-.meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    color: var(--text-minor);
-}
-
 .load-more {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 40px;
-    padding: 24px 0 32px;
+    min-height: 52px;
+    padding: 28px 0 36px;
     color: var(--text-minor);
     font-size: 13px;
 }
 
-.load-more-status {
-    min-height: 20px;
-    line-height: 20px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
+.load-more-loading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 13px;
 }
 
-.load-more-status.visible {
-    opacity: 1;
-    visibility: visible;
+.load-more-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--client-primary, #14b8a6) 18%, transparent);
+    border-top-color: var(--client-primary, #14b8a6);
+    animation: load-more-spin 780ms linear infinite;
+}
+
+.load-more-finished {
+    width: min(320px, 72%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.load-more-finished::before,
+.load-more-finished::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+@keyframes load-more-spin {
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .load-more-trigger {
@@ -2285,25 +2172,45 @@ button:focus-visible {
         max-height: none;
         flex-direction: row;
         align-items: stretch;
-        overflow: visible;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .sidebar-sticky-container::-webkit-scrollbar {
+        display: none;
     }
 
     .sidebar-nav {
         flex: 1;
         flex-direction: row;
-        justify-content: center;
+        justify-content: flex-start;
         border-radius: 0;
         padding: 0;
+        min-width: max-content;
     }
 
     .nav-item {
-        flex: 1;
+        flex: 0 0 auto;
         justify-content: center;
         text-align: center;
     }
 
+    .nav-item::before {
+        left: 50%;
+        top: auto;
+        bottom: 3px;
+        width: 18px;
+        height: 3px;
+        transform: translateX(-50%) scaleX(0.55);
+    }
+
     .nav-item:hover {
-        background: var(--bg-color);
+        background: var(--primary-light);
+    }
+
+    .nav-item.active::before {
+        transform: translateX(-50%) scaleX(1);
     }
 
     .sidebar-footer {
@@ -2348,7 +2255,7 @@ button:focus-visible {
 
     .tab-item {
         min-height: 34px;
-        padding: 0 12px;
+        padding: 0 2px 9px;
         font-size: 15px;
     }
 
@@ -2363,12 +2270,5 @@ button:focus-visible {
         height: 38px;
     }
 
-    .masonry-grid {
-        column-gap: 16px;
-    }
-
-    .masonry-column {
-        row-gap: 16px;
-    }
 }
 </style>

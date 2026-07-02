@@ -28,6 +28,10 @@ const message = '找不到网页！'
 
 <style lang="scss" scoped>
 .wscn-http404-container {
+    --error-primary: #14b8a6;
+    --error-primary-hover: #0f766e;
+    --error-bg: #f8fafc;
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -35,7 +39,7 @@ const message = '找不到网页！'
     min-height: 100vh;
     padding: 20px;
     box-sizing: border-box;
-    background-color: var(--el-bg-color-page);
+    background-color: var(--error-bg);
 }
 
 .wscn-http404 {
@@ -177,7 +181,7 @@ const message = '找不到网页！'
             font-size: 32px;
             font-weight: bold;
             line-height: 40px;
-            color: var(--el-color-primary);
+            color: var(--error-primary);
             opacity: 0;
             margin-bottom: 20px;
             animation-name: slideUp;
@@ -211,7 +215,7 @@ const message = '找不到网页！'
             display: inline-block;
             width: 110px;
             height: 36px;
-            background: var(--el-color-primary);
+            background: var(--error-primary);
             border-radius: 100px;
             text-align: center;
             color: #ffffff;
@@ -226,7 +230,7 @@ const message = '找不到网页！'
             transition: background-color 0.3s;
 
             &:hover {
-                background-color: var(--el-color-primary-light-3);
+                background-color: var(--error-primary-hover);
             }
         }
         @keyframes slideUp {
@@ -240,6 +244,12 @@ const message = '找不到网页！'
             }
         }
     }
+}
+
+:global(html.dark) .wscn-http404-container {
+    --error-primary: #2dd4bf;
+    --error-primary-hover: #5eead4;
+    --error-bg: #0f172a;
 }
 
 @media (max-width: 992px) {

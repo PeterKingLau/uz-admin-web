@@ -1,5 +1,6 @@
 import { platformContact } from '@/config/contact'
 import { normalizeLocale, type SupportLocale } from '@/locales'
+import { encodeRouteRedirect, ROUTE_REDIRECT_QUERY_KEY } from '@/router/routeParams'
 
 export interface PortalMetric {
     label: string
@@ -204,7 +205,7 @@ function formatRecentDate(daysAgo: number) {
 const commonRoutes = {
     discover: '/discover',
     publish: '/publish',
-    console: '/login?redirect=/index',
+    console: `/login?${ROUTE_REDIRECT_QUERY_KEY}=${encodeURIComponent(encodeRouteRedirect('/index'))}`,
     content: '#content-service',
     competition: '#competition',
     works: '#works',

@@ -60,7 +60,7 @@ import '@varlet/ui/es/result/style'
 import '@varlet/ui/es/swipe/style'
 import '@varlet/ui/es/swipe-item/style'
 import { decodeRouteId } from '@/router/routeParams'
-import { resolveMediaUrl } from '@/utils/content/common'
+import { resolveMediaUrl, stripHtmlToText } from '@/utils/content/common'
 
 defineOptions({ name: 'ViewsClientMediaViewer' })
 
@@ -75,7 +75,7 @@ const fromPath = ref('')
 
 const authorName = computed(() => String(post.value?.nickName || post.value?.userName || '用户'))
 const authorAvatar = computed(() => resolveMediaUrl(String(post.value?.avatar || post.value?.userAvatar || '')))
-const contentText = computed(() => String(post.value?.content || '').trim() || '分享了一条内容')
+const contentText = computed(() => stripHtmlToText(post.value?.content) || '分享了一条内容')
 const createTimeText = computed(() => String(post.value?.createTime || post.value?.createDate || ''))
 const tags = computed(() => {
     const value = post.value?.tags

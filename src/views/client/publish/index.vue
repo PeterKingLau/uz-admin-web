@@ -12,458 +12,437 @@
             @go-discover="goDiscover"
         />
 
-        <main v-else class="page-main">
-            <div class="main-inner">
-                <aside class="left-sidebar">
-                    <div class="sidebar-sticky-container">
-                        <nav class="sidebar-nav">
-                            <button
-                                v-for="item in sideNavItems"
-                                :key="item.key"
-                                class="nav-item"
-                                :class="{ active: item.key === 'publish' }"
-                                @click="handleSideNavClick(item.key)"
-                            >
-                                <Icon :icon="item.icon" class="nav-icon" />
-                                <span class="nav-label">{{ item.label }}</span>
-                            </button>
-                        </nav>
+        <main v-else class="publish-main">
+            <section class="composer-canvas" aria-label="内容发布">
+                <input v-model="title" class="title-input" maxlength="80" type="text" placeholder="写下一个清晰的标题" />
 
-                        <div class="sidebar-footer">
-                            <div class="tips-card">
-                                <h3 class="tips-title">创作指南</h3>
-                                <ul class="tips-list">
-                                    <li>
-                                        <div class="icon-wrapper">
-                                            <Icon icon="mdi:movie-open-plus-outline" />
-                                        </div>
-                                        <span>支持发布图文、视频和文字动态，记录你的职场时刻</span>
-                                    </li>
-                                    <li>
-                                        <div class="icon-wrapper">
-                                            <Icon icon="mdi:pound" />
-                                        </div>
-                                        <span>添加准确的话题标签，让更多同圈层用户看到你的内容</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+                <textarea
+                    v-model="content"
+                    class="body-input"
+                    maxlength="2000"
+                    rows="8"
+                    placeholder="分享你的观察、经验或一个正在发生的想法..."
+                ></textarea>
+
+                <div v-if="selectedTopics.length" class="topic-panel">
+                    <div v-if="selectedTopics.length" class="topic-list">
+                        <button v-for="tag in selectedTopics" :key="tag.id" type="button" class="topic-chip" @click="removeTopic(tag.id)">
+                            <span># {{ tag.name }}</span>
+                            <Icon icon="mdi:close" />
+                        </button>
                     </div>
-                </aside>
+                </div>
 
-                <section class="content-area">
-                    <div class="publish-workspace">
-                        <div class="publish-status-bar" aria-label="发布检查">
-                            <div v-for="item in publishStatusItems" :key="item.label" class="publish-status-item">
-                                <span>{{ item.label }}</span>
-                                <strong :class="{ ready: item.ready }">{{ item.value }}</strong>
-                            </div>
+                <div v-if="mediaList.length" class="media-grid">
+                    <div v-for="item in mediaList" :key="item.id" class="media-thumb">
+                        <img v-if="item.type === 'image'" :src="item.previewUrl" alt="" />
+                        <video v-else :src="item.previewUrl" muted playsinline preload="metadata"></video>
+
+                        <div v-if="item.type === 'video'" class="video-mark">
+                            <Icon icon="mdi:play" />
                         </div>
 
-                        <div class="publish-editor-shell">
-                            <ClientPostEditorPanel
-                                ref="editorRef"
-                                :form="form"
-                                :rules="rules"
-                                v-model:image-urls="imageUrls"
-                                v-model:video-urls="videoUrls"
-                                v-model:video-batch-contents="videoBatchContents"
-                                v-model:video-batch-tag-ids="videoBatchTagIds"
-                                v-model:batch-preview-index="batchPreviewIndex"
-                                v-model:selected-tag-ids="selectedTagIds"
-                                :video-batch-error-indexes="videoBatchErrorIndexes"
-                                :video-batch-tag-error-indexes="videoBatchTagErrorIndexes"
-                                :interest-tree="interestTree"
-                                :interest-loading="interestLoading"
-                                :submitting="submitting"
-                                @video-cover-change="handleVideoCoverChange"
-                                @change-post-type="handleTypeChange"
-                                @content-input="handleContentInput"
-                                @submit="handleSubmit"
-                                @reset="handleReset"
-                            />
+                        <div v-if="item.status === 'uploading'" class="upload-mask">
+                            <span class="upload-spinner"></span>
                         </div>
+
+                        <button type="button" class="remove-media" aria-label="移除素材" @click="removeMedia(item.id)">
+                            <Icon icon="mdi:close" />
+                        </button>
                     </div>
-                </section>
-            </div>
+                </div>
+
+                <footer class="action-bar">
+                    <div class="tool-group">
+                        <el-popover
+                            v-model:visible="topicPopoverVisible"
+                            placement="top-start"
+                            trigger="click"
+                            :width="320"
+                            :show-arrow="false"
+                            popper-class="client-topic-popover"
+                            @show="handleTopicPopoverShow"
+                        >
+                            <div class="topic-popover-panel">
+                                <input v-model="topicSearch" class="topic-popover-search" type="text" maxlength="24" placeholder="搜索话题..." />
+
+                                <div class="topic-category-tabs" role="tablist" aria-label="话题分类">
+                                    <button
+                                        v-for="category in topicCategoryTabs"
+                                        :key="category.id"
+                                        type="button"
+                                        class="topic-category-tab"
+                                        :class="{ active: activeTopicCategoryId === category.id }"
+                                        @click="activeTopicCategoryId = category.id"
+                                    >
+                                        {{ category.name }}
+                                    </button>
+                                </div>
+
+                                <div class="topic-tag-grid">
+                                    <button v-for="tag in filteredTopicOptions" :key="tag.id" type="button" class="topic-option" @click="selectTopic(tag)">
+                                        # {{ tag.name }}
+                                    </button>
+                                    <span v-if="topicLoading" class="topic-empty">话题加载中...</span>
+                                    <span v-else-if="!filteredTopicOptions.length" class="topic-empty">暂无可选话题</span>
+                                </div>
+                            </div>
+                            <template #reference>
+                                <button type="button" class="tool-btn" :class="{ active: topicPopoverVisible }">
+                                    <Icon icon="mdi:pound" />
+                                    <span>话题</span>
+                                </button>
+                            </template>
+                        </el-popover>
+                        <button type="button" class="tool-btn" :disabled="!canChooseImage" @click="imageInputRef?.click()">
+                            <Icon icon="mdi:image-outline" />
+                            <span>图片</span>
+                        </button>
+                        <button type="button" class="tool-btn" :disabled="!canChooseVideo" @click="videoInputRef?.click()">
+                            <Icon icon="mdi:video-outline" />
+                            <span>视频</span>
+                        </button>
+                    </div>
+
+                    <button type="button" class="publish-btn" :class="{ 'is-disabled': !canPublish }" :disabled="!canPublish" @click="handlePublish">
+                        {{ submitButtonText }}
+                    </button>
+                </footer>
+            </section>
+
+            <input ref="imageInputRef" class="file-input" type="file" accept="image/*" multiple @change="handleImageSelect" />
+            <input ref="videoInputRef" class="file-input" type="file" accept="video/*" @change="handleVideoSelect" />
         </main>
     </div>
 </template>
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsClientPublish' })
-import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import type { FormRules } from 'element-plus'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import brandLogo from '@/assets/logo/logo.png'
-import { addPost } from '@/api/content/post'
 import { getInterestAll } from '@/api/content/interest'
+import { addPost } from '@/api/content/post'
 import { getNewVersion, parseNewVersion, type VersionItem } from '@/api/content/version'
 import ClientHeader from '@/views/client/components/ClientHeader.vue'
-import ClientPostEditorPanel from '@/views/client/publish/components/ClientPostEditorPanel.vue'
 import PublishAppDownloadPrompt from '@/views/client/publish/components/PublishAppDownloadPrompt.vue'
 import useSettingsStore from '@/store/modules/settings'
 import { POST_TYPE } from '@/utils/enum'
 import { markContentListRefreshNeeded } from '@/utils/content/refreshSignal'
 import { getImgUrl } from '@/utils/img'
 
-interface PostEditorExpose {
-    validateForm: () => Promise<boolean>
-    validateField: (field: string) => void
-    clearValidate: (fields?: string | string[]) => void
-    resetFields: () => void
-    clearUploaders: () => void
-    getVideoRawFiles: () => File[]
-    getVideoCoverFile: () => File | null
-    isUploading: () => boolean
+type MediaType = 'image' | 'video'
+type UploadStatus = 'uploading' | 'success'
+
+interface MediaItem {
+    id: string
+    type: MediaType
+    file: File
+    name: string
+    previewUrl: string
+    status: UploadStatus
+    url: string
+    timer: ReturnType<typeof setTimeout> | null
+}
+
+interface TopicOption {
+    id: number | string
+    name: string
+    categoryId: string
+    categoryName?: string
+}
+
+interface TopicCategory {
+    id: string
+    name: string
 }
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
 const { proxy } = getCurrentInstance() || {}
 
-const sideNavItems = [
-    { key: 'discover', label: '发现', icon: 'mdi:compass-outline' },
-    { key: 'publish', label: '发布', icon: 'mdi:plus-box-outline' },
-    { key: 'profile', label: '主页', icon: 'mdi:account-circle-outline' }
-]
-
-const initialForm = {
-    postType: POST_TYPE.TEXT,
-    content: '',
-    tagStr: ''
-}
-
-const form = reactive({ ...initialForm })
-const editorRef = ref<PostEditorExpose>()
-const imageUrls = ref('')
-const videoUrls = ref('')
-const videoBatchContents = ref<string[]>([])
-const videoBatchErrorIndexes = ref<number[]>([])
-const videoBatchTagIds = ref<Array<Array<number | string>>>([])
-const videoBatchTagErrorIndexes = ref<number[]>([])
-const batchPreviewIndex = ref(0)
-const videoCoverPreviewUrl = ref('')
+const title = ref('')
+const content = ref('')
+const topicSearch = ref('')
+const topicOptions = ref<TopicOption[]>([])
+const topicCategories = ref<TopicCategory[]>([])
+const topicLoading = ref(false)
+const selectedTopicIds = ref<Array<number | string>>([])
+const topicPopoverVisible = ref(false)
+const activeTopicCategoryId = ref('all')
+const mediaList = ref<MediaItem[]>([])
 const submitting = ref(false)
-const interestTree = ref<any[]>([])
-const interestLoading = ref(false)
-const selectedTagIds = ref<Array<number | string>>([])
-const suppressTagValidate = ref(false)
-const videoAutoDescription = ref('')
-const isVideoContentAutoFilled = ref(false)
+const imageInputRef = ref<HTMLInputElement | null>(null)
+const videoInputRef = ref<HTMLInputElement | null>(null)
 const isMobileViewport = ref(false)
 const latestAppVersion = ref<VersionItem | null>(null)
 const latestAppVersionLoading = ref(false)
 const MOBILE_PUBLISH_QUERY = '(max-width: 768px)'
 let mobileMediaQuery: MediaQueryList | null = null
 
-const normalizeMediaUrls = (value: unknown): string[] => {
-    if (Array.isArray(value)) {
-        return value
-            .map(item => (typeof item === 'string' ? item : String((item as any)?.url || (item as any)?.name || '')))
-            .map(item => item.trim())
-            .filter(Boolean)
-    }
-    const text = String(value || '').trim()
-    if (!text) return []
-    return text
-        .split(',')
-        .map(item => item.trim())
-        .filter(Boolean)
-}
-
-const imageMediaUrls = computed(() => normalizeMediaUrls(imageUrls.value))
-const videoMediaUrls = computed(() => normalizeMediaUrls(videoUrls.value))
-const isBatchVideoMode = computed(() => form.postType === POST_TYPE.VIDEO && videoMediaUrls.value.length > 1)
-const currentMediaUrls = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return imageMediaUrls.value
-    if (form.postType === POST_TYPE.VIDEO) return videoMediaUrls.value
-    return []
+const hasImage = computed(() => mediaList.value.some(item => item.type === 'image'))
+const hasVideo = computed(() => mediaList.value.some(item => item.type === 'video'))
+const isUploading = computed(() => mediaList.value.some(item => item.status === 'uploading'))
+const hasContent = computed(() => Boolean(title.value.trim() || content.value.trim()))
+const postType = computed(() => {
+    if (hasVideo.value) return POST_TYPE.VIDEO
+    if (hasImage.value) return POST_TYPE.IMAGE
+    return POST_TYPE.TEXT
+})
+const canChooseImage = computed(() => !hasVideo.value && mediaList.value.length < 9)
+const canChooseVideo = computed(() => !hasImage.value && !hasVideo.value)
+const canPublish = computed(() => hasContent.value && !isUploading.value && !submitting.value)
+const submitButtonText = computed(() => {
+    if (isUploading.value) return '处理中...'
+    if (submitting.value) return '发布中...'
+    return '发布'
 })
 const showMobileDownloadPrompt = computed(() => isMobileViewport.value)
 const appDownloadUrl = computed(() => {
     const rawUrl = String(latestAppVersion.value?.downloadUrl || '').trim()
     return rawUrl ? getImgUrl(rawUrl) : ''
 })
-const currentPostTypeText = computed(() => {
-    if (form.postType === POST_TYPE.IMAGE) return '图文内容'
-    if (form.postType === POST_TYPE.VIDEO) return isBatchVideoMode.value ? '批量视频' : '视频内容'
-    return '文字内容'
+const selectedTopics = computed(() => {
+    const selectedIds = new Set(selectedTopicIds.value.map(id => String(id)))
+    return topicOptions.value.filter(item => selectedIds.has(String(item.id)))
 })
-const contentLength = computed(() => String(form.content || '').trim().length)
-const batchContentDoneCount = computed(() => videoBatchContents.value.filter(item => String(item || '').trim()).length)
-const batchTopicDoneCount = computed(() => videoBatchTagIds.value.filter(ids => Array.isArray(ids) && ids.length > 0).length)
-const topicCount = computed(() => (isBatchVideoMode.value ? batchTopicDoneCount.value : selectedTagIds.value.length))
-const publishStatusItems = computed(() => {
-    const mediaCount = currentMediaUrls.value.length
-    const batchTotal = videoMediaUrls.value.length
-    const contentValue = isBatchVideoMode.value
-        ? `${batchContentDoneCount.value}/${batchTotal || 0}`
-        : contentLength.value
-          ? `${contentLength.value} 字`
-          : '未填写'
-    const mediaValue = form.postType === POST_TYPE.TEXT ? '无需素材' : mediaCount ? `${mediaCount} 个` : '未上传'
-    const topicValue = isBatchVideoMode.value ? `${batchTopicDoneCount.value}/${batchTotal || 0}` : topicCount.value ? `${topicCount.value} 个` : '未选择'
-
-    return [
-        { label: '类型', value: currentPostTypeText.value, ready: true },
-        {
-            label: '正文',
-            value: contentValue,
-            ready: isBatchVideoMode.value ? batchTotal > 0 && batchContentDoneCount.value === batchTotal : contentLength.value > 0
-        },
-        { label: '素材', value: mediaValue, ready: form.postType === POST_TYPE.TEXT || mediaCount > 0 },
-        { label: '话题', value: topicValue, ready: topicCount.value > 0 }
-    ]
+const topicCategoryTabs = computed(() => [{ id: 'all', name: '全部' }, ...topicCategories.value])
+const filteredTopicOptions = computed(() => {
+    const selectedIds = new Set(selectedTopicIds.value.map(id => String(id)))
+    const keyword = normalizeTopicKeyword(topicSearch.value)
+    return topicOptions.value
+        .filter(item => !selectedIds.has(String(item.id)))
+        .filter(item => activeTopicCategoryId.value === 'all' || item.categoryId === activeTopicCategoryId.value)
+        .filter(item => {
+            if (!keyword) return true
+            return normalizeTopicKeyword(item.name).includes(keyword)
+        })
 })
-
-const getBaseName = (name: string) => name.replace(/\.[^/.]+$/, '').trim()
-const getBaseNameFromMediaUrl = (url: string) => {
-    const clean = String(url || '')
-        .split('?')[0]
-        .split('#')[0]
-    const rawName = clean.slice(clean.lastIndexOf('/') + 1)
-    if (!rawName) return ''
-    try {
-        return getBaseName(decodeURIComponent(rawName).replace(/^\d+_\d+_/, ''))
-    } catch {
-        return getBaseName(rawName.replace(/^\d+_\d+_/, ''))
-    }
-}
-
-const getVideoTitleFromRawFile = (): string => {
-    const rawFiles = editorRef.value?.getVideoRawFiles() || []
-    const firstFile = rawFiles.find(file => file instanceof File)
-    return firstFile ? getBaseName(firstFile.name || '') : ''
-}
-
-const resolveVideoAutoDescription = (urls: string[]): string => {
-    const fromFileName = getVideoTitleFromRawFile()
-    if (fromFileName) return fromFileName
-    const firstUrl = String(urls?.[0] || '').trim()
-    if (!firstUrl) return ''
-    return getBaseNameFromMediaUrl(firstUrl)
-}
-
-const buildVideoQueueMap = <T,>(urls: string[], values: T[]) => {
-    const map = new Map<string, T[]>()
-    urls.forEach((url, index) => {
-        const key = String(url || '').trim()
-        if (!key) return
-        const queue = map.get(key) || []
-        queue.push(values[index])
-        map.set(key, queue)
-    })
-    return map
-}
-
-const takeVideoFromQueue = <T,>(map: Map<string, T[]>, url: string): T | undefined => {
-    const key = String(url || '').trim()
-    if (!key) return undefined
-    const queue = map.get(key)
-    if (!queue?.length) return undefined
-    return queue.shift()
-}
-
-const syncVideoBatchContents = (nextUrls: string[], prevUrls: string[] = []) => {
-    if (nextUrls.length <= 1) {
-        if (videoBatchContents.value.length) videoBatchContents.value = []
-        if (videoBatchErrorIndexes.value.length) videoBatchErrorIndexes.value = []
-        if (videoBatchTagIds.value.length) videoBatchTagIds.value = []
-        if (videoBatchTagErrorIndexes.value.length) videoBatchTagErrorIndexes.value = []
-        return
-    }
-
-    const sourceUrls = prevUrls.length ? prevUrls : nextUrls
-    const contentQueueMap = buildVideoQueueMap(
-        sourceUrls,
-        videoBatchContents.value.map(item => String(item || ''))
-    )
-    const tagQueueMap = buildVideoQueueMap(
-        sourceUrls,
-        videoBatchTagIds.value.map(ids => (Array.isArray(ids) ? [...ids] : []))
-    )
-    const nextContentList = nextUrls.map((url, index) => {
-        const matched = takeVideoFromQueue(contentQueueMap, url)
-        if (matched !== undefined) return matched
-        if (!prevUrls.length) return String(videoBatchContents.value[index] || '')
-        return ''
-    })
-    const nextTagList = nextUrls.map((url, index) => {
-        const matched = takeVideoFromQueue(tagQueueMap, url)
-        if (matched !== undefined) return Array.isArray(matched) ? matched : []
-        if (!prevUrls.length) {
-            const byIndex = videoBatchTagIds.value[index]
-            return Array.isArray(byIndex) ? [...byIndex] : []
-        }
-        return []
-    })
-    videoBatchContents.value = nextContentList
-    videoBatchTagIds.value = nextTagList
-    videoBatchErrorIndexes.value = videoBatchErrorIndexes.value.filter(index => index >= 0 && index < nextContentList.length)
-    videoBatchTagErrorIndexes.value = videoBatchTagErrorIndexes.value.filter(index => index >= 0 && index < nextTagList.length)
-}
-
-const buildSubmitContent = (): string => {
-    const manualContent = String(form.content || '').trim()
-    if (manualContent) return manualContent
-    if (form.postType === POST_TYPE.VIDEO) return videoAutoDescription.value.trim()
-    return ''
-}
-
-const rules: FormRules = {
-    postType: [{ required: true, message: '请选择发布类型', trigger: 'change' }],
-    tagStr: [
-        {
-            validator: (_rule, value, callback) => {
-                if (isBatchVideoMode.value) callback()
-                else if (!String(value || '').trim()) callback(new Error('请至少选择一个话题标签'))
-                else callback()
-            },
-            trigger: 'change'
-        }
-    ],
-    content: [
-        {
-            validator: (_rule, value, callback) => {
-                if (form.postType === POST_TYPE.TEXT && !String(value || '').trim()) callback(new Error('纯文字模式下正文不能为空'))
-                else callback()
-            },
-            trigger: ['blur', 'change']
-        }
-    ],
-    files: [
-        {
-            validator: (_rule, _value, callback) => {
-                if (form.postType !== POST_TYPE.TEXT && !currentMediaUrls.value.length) callback(new Error('请上传素材文件'))
-                else callback()
-            },
-            trigger: 'change'
-        }
-    ]
-}
 
 const goDiscover = () => {
     router.push('/discover')
 }
 
-const handleSideNavClick = (key: string) => {
-    if (key === 'discover') router.push('/discover')
-    if (key === 'profile') router.push('/profile')
-}
+const normalizeTopicKeyword = (value: unknown) =>
+    String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^#/, '')
+        .replace(/\s+/g, '')
 
-const handleTypeChange = async (nextType: string) => {
-    form.postType = nextType
-    imageUrls.value = ''
-    videoUrls.value = ''
-    videoBatchContents.value = []
-    videoBatchErrorIndexes.value = []
-    videoBatchTagIds.value = []
-    videoBatchTagErrorIndexes.value = []
-    batchPreviewIndex.value = 0
-    videoCoverPreviewUrl.value = ''
-    editorRef.value?.clearUploaders()
-    videoAutoDescription.value = ''
-    isVideoContentAutoFilled.value = false
-    await nextTick()
-    editorRef.value?.clearValidate()
-}
+const normalizeTopicData = (source: unknown): { categories: TopicCategory[]; options: TopicOption[] } => {
+    const groups = Array.isArray(source) ? source : []
+    const categories: TopicCategory[] = []
+    const options: TopicOption[] = []
+    const seenCategories = new Set<string>()
 
-const handleVideoCoverChange = (url: string) => {
-    videoCoverPreviewUrl.value = String(url || '')
-}
-
-watch(
-    () => selectedTagIds.value.slice(),
-    ids => {
-        if (isBatchVideoMode.value) return
-        const nextTagStr = ids.join(',')
-        if (form.tagStr === nextTagStr) return
-        form.tagStr = nextTagStr
-        if (suppressTagValidate.value) return
-        nextTick(() => editorRef.value?.validateField('tagStr'))
+    const pushCategory = (category: TopicCategory) => {
+        if (!category.name || seenCategories.has(category.id)) return
+        seenCategories.add(category.id)
+        categories.push(category)
     }
-)
 
-watch(
-    () => currentMediaUrls.value.length,
-    len => {
-        if (form.postType === POST_TYPE.TEXT) return
-        if (len > 0) nextTick(() => editorRef.value?.clearValidate(['files']))
-        else nextTick(() => editorRef.value?.validateField('files'))
-    }
-)
+    const walk = (node: any, fallbackCategory: TopicCategory, path: string) => {
+        const children = Array.isArray(node?.children) ? node.children : []
+        const id = node?.id
+        const name = String(node?.name || node?.label || '').trim()
+        const hasChildren = children.length > 0
 
-watch(
-    () => videoUrls.value,
-    (nextVal, prevVal) => {
-        if (form.postType !== POST_TYPE.VIDEO) return
-
-        const nextList = normalizeMediaUrls(nextVal)
-        const prevList = normalizeMediaUrls(prevVal)
-        const previousAutoDescription = videoAutoDescription.value
-        syncVideoBatchContents(nextList, prevList)
-        if (nextList.length <= 1) batchPreviewIndex.value = 0
-        else if (batchPreviewIndex.value >= nextList.length) batchPreviewIndex.value = nextList.length - 1
-        const nextAutoDescription = nextList.length > 1 ? '' : resolveVideoAutoDescription(nextList)
-        videoAutoDescription.value = nextAutoDescription
-
-        if (nextList.length <= 1) {
-            const currentContent = String(form.content || '').trim()
-            const previousAuto = previousAutoDescription.trim()
-            const shouldAutoFill = !currentContent || isVideoContentAutoFilled.value || currentContent === previousAuto
-            if (shouldAutoFill) {
-                form.content = nextAutoDescription.trim()
-                isVideoContentAutoFilled.value = Boolean(nextAutoDescription.trim())
-            }
-        } else {
-            isVideoContentAutoFilled.value = false
+        if (hasChildren) {
+            const category = name
+                ? {
+                      id: String(id ?? `category-${path}`),
+                      name
+                  }
+                : fallbackCategory
+            if (name) pushCategory(category)
+            children.forEach((child: any, index: number) => walk(child, category, `${path}-${index}`))
+            return
         }
 
-        if (!nextList.length) {
-            videoBatchErrorIndexes.value = []
-            videoBatchTagErrorIndexes.value = []
-            nextTick(() => editorRef.value?.clearValidate(['content']))
-        }
-    }
-)
-
-watch(
-    () => videoBatchContents.value.slice(),
-    list => {
-        if (!videoBatchErrorIndexes.value.length) return
-        const nextErrors = videoBatchErrorIndexes.value.filter(index => !String(list[index] || '').trim())
-        if (nextErrors.length !== videoBatchErrorIndexes.value.length) videoBatchErrorIndexes.value = nextErrors
-    }
-)
-
-watch(
-    () => videoBatchTagIds.value.map(ids => (Array.isArray(ids) ? ids.join(',') : '')).join('|'),
-    () => {
-        if (!videoBatchTagErrorIndexes.value.length) return
-        const nextErrors = videoBatchTagErrorIndexes.value.filter(index => {
-            const ids = videoBatchTagIds.value[index]
-            return !Array.isArray(ids) || ids.length === 0
+        if (id === undefined || id === null || !name) return
+        options.push({
+            id,
+            name,
+            categoryId: fallbackCategory.id,
+            categoryName: fallbackCategory.name
         })
-        if (nextErrors.length !== videoBatchTagErrorIndexes.value.length) videoBatchTagErrorIndexes.value = nextErrors
     }
-)
 
-watch(showMobileDownloadPrompt, value => {
-    if (value) {
-        void loadLatestAppVersion()
-    } else if (!interestTree.value.length) {
-        void loadInterest()
+    groups.forEach((group: any, index) => {
+        walk(group, { id: 'uncategorized', name: '未分类' }, String(index))
+    })
+
+    const seen = new Set<string>()
+    const uniqueOptions = options.filter(item => {
+        const key = String(item.id)
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
+    const usedCategoryIds = new Set(uniqueOptions.map(item => item.categoryId))
+    const visibleCategories = categories.filter(item => usedCategoryIds.has(item.id))
+    if (usedCategoryIds.has('uncategorized') && !visibleCategories.some(item => item.id === 'uncategorized')) {
+        visibleCategories.push({ id: 'uncategorized', name: '未分类' })
     }
-})
 
-const loadInterest = async () => {
-    interestLoading.value = true
+    return {
+        categories: visibleCategories,
+        options: uniqueOptions
+    }
+}
+
+async function loadTopicOptions() {
+    if (topicLoading.value || topicOptions.value.length) return
+    topicLoading.value = true
     try {
-        const res = await getInterestAll()
-        interestTree.value = (res as any)?.data || res || []
+        const response = await getInterestAll()
+        const topicData = normalizeTopicData((response as any)?.data || response || [])
+        topicCategories.value = topicData.categories
+        topicOptions.value = topicData.options
+    } catch {
+        proxy?.$modal?.msgError?.('话题加载失败，请稍后重试')
     } finally {
-        interestLoading.value = false
+        topicLoading.value = false
+    }
+}
+
+const handleTopicPopoverShow = () => {
+    void loadTopicOptions()
+}
+
+const selectTopic = (topic: TopicOption) => {
+    if (selectedTopicIds.value.some(id => String(id) === String(topic.id))) return
+    selectedTopicIds.value = [...selectedTopicIds.value, topic.id]
+    topicSearch.value = ''
+}
+
+const removeTopic = (id: number | string) => {
+    selectedTopicIds.value = selectedTopicIds.value.filter(item => String(item) !== String(id))
+}
+
+const resetFileInput = (input: HTMLInputElement | null) => {
+    if (input) input.value = ''
+}
+
+const createMockUrl = (file: File) => {
+    const safeName = encodeURIComponent(file.name || `media-${Date.now()}`)
+    return `/mock/oss/posts/${Date.now()}-${safeName}`
+}
+
+const createMediaItem = (file: File, type: MediaType): MediaItem => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const item: MediaItem = {
+        id,
+        type,
+        file,
+        name: file.name || (type === 'image' ? 'image' : 'video'),
+        previewUrl: URL.createObjectURL(file),
+        status: 'uploading',
+        url: '',
+        timer: null
+    }
+
+    item.timer = setTimeout(() => {
+        const target = mediaList.value.find(media => media.id === id)
+        if (!target) return
+        target.status = 'success'
+        target.url = createMockUrl(file)
+        target.timer = null
+    }, 2000)
+
+    return item
+}
+
+const handleImageSelect = (event: Event) => {
+    if (!canChooseImage.value) {
+        proxy?.$modal?.msgWarning?.('已选择视频时不能再添加图片')
+        resetFileInput(event.target as HTMLInputElement)
+        return
+    }
+
+    const files = Array.from((event.target as HTMLInputElement).files || []).filter(file => file.type.startsWith('image/'))
+    const restCount = Math.max(0, 9 - mediaList.value.length)
+    const selected = files.slice(0, restCount)
+    if (selected.length) {
+        mediaList.value.push(...selected.map(file => createMediaItem(file, 'image')))
+    }
+    resetFileInput(event.target as HTMLInputElement)
+}
+
+const handleVideoSelect = (event: Event) => {
+    if (!canChooseVideo.value) {
+        proxy?.$modal?.msgWarning?.('图片和视频不能同时发布')
+        resetFileInput(event.target as HTMLInputElement)
+        return
+    }
+
+    const file = Array.from((event.target as HTMLInputElement).files || []).find(item => item.type.startsWith('video/'))
+    if (file) mediaList.value.push(createMediaItem(file, 'video'))
+    resetFileInput(event.target as HTMLInputElement)
+}
+
+const removeMedia = (id: string) => {
+    const target = mediaList.value.find(item => item.id === id)
+    if (!target) return
+    if (target.timer) clearTimeout(target.timer)
+    URL.revokeObjectURL(target.previewUrl)
+    mediaList.value = mediaList.value.filter(item => item.id !== id)
+}
+
+const clearMedia = () => {
+    mediaList.value.forEach(item => {
+        if (item.timer) clearTimeout(item.timer)
+        URL.revokeObjectURL(item.previewUrl)
+    })
+    mediaList.value = []
+}
+
+const resetComposer = () => {
+    title.value = ''
+    content.value = ''
+    topicSearch.value = ''
+    selectedTopicIds.value = []
+    topicPopoverVisible.value = false
+    activeTopicCategoryId.value = 'all'
+    clearMedia()
+}
+
+const buildSubmitContent = () => [title.value.trim(), content.value.trim()].filter(Boolean).join('\n\n')
+
+const resolveSubmitErrorMessage = (error: unknown) => {
+    const message = String((error as any)?.message || '').trim()
+    if (!message) return '发布失败，请稍后重试'
+    if (message.toLowerCase().includes('timeout')) return '请求超时，请稍后重试'
+    return message
+}
+
+const handlePublish = async () => {
+    if (isUploading.value) return
+    if (!hasContent.value) {
+        proxy?.$modal?.msgWarning?.('请先写点内容')
+        return
+    }
+
+    submitting.value = true
+    try {
+        await addPost({
+            postType: postType.value,
+            content: buildSubmitContent(),
+            mediaUrls: mediaList.value.map(item => item.url).filter(Boolean),
+            originalPostId: 0,
+            tags: selectedTopicIds.value.join(','),
+            circleId: '',
+            isQuestion: '0'
+        })
+        markContentListRefreshNeeded()
+        proxy?.$modal?.msgSuccess?.('发布成功')
+        resetComposer()
+    } catch (error) {
+        console.error(error)
+        proxy?.$modal?.msgError?.(resolveSubmitErrorMessage(error))
+    } finally {
+        submitting.value = false
     }
 }
 
@@ -478,9 +457,7 @@ async function loadLatestAppVersion(silent = true) {
         }
     } catch (error) {
         console.error(error)
-        if (!silent) {
-            proxy?.$modal?.msgError?.('获取最新版本失败，请稍后重试')
-        }
+        if (!silent) proxy?.$modal?.msgError?.('获取最新版本失败，请稍后重试')
     } finally {
         latestAppVersionLoading.value = false
     }
@@ -511,216 +488,31 @@ function unbindMobileViewport() {
     mobileMediaQuery = null
 }
 
-const handleContentInput = () => {
-    if (form.postType === POST_TYPE.VIDEO && !isBatchVideoMode.value) {
-        isVideoContentAutoFilled.value = String(form.content || '').trim() === videoAutoDescription.value.trim()
-    }
-    if (form.postType === POST_TYPE.TEXT) nextTick(() => editorRef.value?.validateField('content'))
-    else nextTick(() => editorRef.value?.clearValidate(['content']))
-}
-
-const resolveSubmitErrorMessage = (error: unknown, fallback = '发布失败，请重试') => {
-    const message = String((error as any)?.message || '').trim()
-    if (!message) return fallback
-    if (message.toLowerCase().includes('timeout')) return '请求超时，请稍后重试'
-    return message
-}
-
-const handleSubmit = async () => {
-    if (editorRef.value?.isUploading?.()) {
-        proxy?.$modal?.msgWarning?.('素材上传中，请稍后再发布')
-        return
-    }
-
-    const ok = (await editorRef.value?.validateForm()) ?? false
-    if (!ok) return
-
-    const mediaUrls = currentMediaUrls.value
-    if (form.postType !== POST_TYPE.TEXT && mediaUrls.length === 0) {
-        proxy?.$modal?.msgError(form.postType === POST_TYPE.IMAGE ? '请至少上传一张图片' : '请上传视频')
-        return
-    }
-
-    const isBatchVideoPost = form.postType === POST_TYPE.VIDEO && mediaUrls.length > 1
-    const batchContents = mediaUrls.map((_, index) => String(videoBatchContents.value[index] || '').trim())
-    const batchTagStrList = mediaUrls.map((_, index) => {
-        const ids = videoBatchTagIds.value[index]
-        if (!Array.isArray(ids)) return ''
-        return ids
-            .map(id => String(id || '').trim())
-            .filter(Boolean)
-            .join(',')
-    })
-
-    const emptyContentIndexes = isBatchVideoPost
-        ? batchContents
-              .map((content, index) => ({ content, index }))
-              .filter(item => !item.content)
-              .map(item => item.index)
-        : []
-    const emptyTagIndexes = isBatchVideoPost
-        ? batchTagStrList
-              .map((tagStr, index) => ({ tagStr, index }))
-              .filter(item => !item.tagStr)
-              .map(item => item.index)
-        : []
-
-    if (emptyContentIndexes.length > 0 || emptyTagIndexes.length > 0) {
-        videoBatchErrorIndexes.value = emptyContentIndexes
-        videoBatchTagErrorIndexes.value = emptyTagIndexes
-        if (emptyContentIndexes.length > 0) {
-            const previewIndexes = emptyContentIndexes.slice(0, 6).map(index => index + 1)
-            const suffix = emptyContentIndexes.length > 6 ? ' 等' : ''
-            proxy?.$modal?.msgError(`请填写第 ${previewIndexes.join('、')} 条视频的正文${suffix}`)
-        } else {
-            const previewIndexes = emptyTagIndexes.slice(0, 6).map(index => index + 1)
-            const suffix = emptyTagIndexes.length > 6 ? ' 等' : ''
-            proxy?.$modal?.msgError(`请为第 ${previewIndexes.join('、')} 条视频选择标签${suffix}`)
-        }
-        return
-    }
-
-    videoBatchErrorIndexes.value = []
-    videoBatchTagErrorIndexes.value = []
-
-    try {
-        await proxy?.$modal?.confirm(isBatchVideoPost ? `确认批量发布这 ${mediaUrls.length} 条视频动态吗？` : '确认发布这条内容吗？')
-    } catch {
-        return
-    }
-
-    submitting.value = true
-    try {
-        const videoFiles = form.postType === POST_TYPE.VIDEO ? editorRef.value?.getVideoRawFiles() || [] : []
-
-        if (isBatchVideoPost) {
-            let successCount = 0
-            const failedIndexes: number[] = []
-            let firstErrorMessage = ''
-
-            for (let index = 0; index < mediaUrls.length; index += 1) {
-                const mediaUrl = String(mediaUrls[index] || '').trim()
-                if (!mediaUrl) {
-                    failedIndexes.push(index + 1)
-                    continue
-                }
-
-                const currentFile = videoFiles[index]
-                const files = currentFile instanceof File ? [currentFile] : []
-
-                try {
-                    await addPost({
-                        postType: form.postType,
-                        content: batchContents[index],
-                        mediaUrls: [mediaUrl],
-                        files,
-                        coverFile: null,
-                        originalPostId: 0,
-                        tags: batchTagStrList[index],
-                        circleId: '',
-                        isQuestion: '0'
-                    })
-                    successCount += 1
-                } catch (error) {
-                    if (!firstErrorMessage) firstErrorMessage = resolveSubmitErrorMessage(error)
-                    console.error(error)
-                    failedIndexes.push(index + 1)
-                }
-            }
-
-            if (!failedIndexes.length) {
-                markContentListRefreshNeeded()
-                proxy?.$modal?.msgSuccess?.(`批量发布成功，共 ${successCount} 条`)
-                await handleReset()
-                return
-            }
-
-            if (successCount > 0) {
-                markContentListRefreshNeeded()
-                proxy?.$modal?.msgWarning?.(`批量发布完成：成功 ${successCount} 条，失败 ${failedIndexes.length} 条（第 ${failedIndexes.join('、')} 条）`)
-                return
-            }
-
-            proxy?.$modal?.msgError?.(firstErrorMessage || '批量发布失败，请重试')
-            return
-        }
-
-        const videoCoverFile = form.postType === POST_TYPE.VIDEO ? editorRef.value?.getVideoCoverFile?.() || null : null
-        await addPost({
-            postType: form.postType,
-            content: buildSubmitContent(),
-            mediaUrls,
-            files: videoFiles,
-            coverFile: videoCoverFile,
-            originalPostId: 0,
-            tags: form.tagStr,
-            circleId: '',
-            isQuestion: '0'
-        })
-
-        markContentListRefreshNeeded()
-        proxy?.$modal?.msgSuccess?.('发布成功')
-        await handleReset()
-    } catch (error) {
-        console.error(error)
-        proxy?.$modal?.msgError?.(resolveSubmitErrorMessage(error))
-    } finally {
-        submitting.value = false
-    }
-}
-
-const handleReset = async () => {
-    suppressTagValidate.value = true
-    imageUrls.value = ''
-    videoUrls.value = ''
-    videoBatchContents.value = []
-    videoBatchErrorIndexes.value = []
-    videoBatchTagIds.value = []
-    videoBatchTagErrorIndexes.value = []
-    batchPreviewIndex.value = 0
-    videoCoverPreviewUrl.value = ''
-    editorRef.value?.clearUploaders()
-    selectedTagIds.value = []
-    videoAutoDescription.value = ''
-    isVideoContentAutoFilled.value = false
-
-    editorRef.value?.resetFields()
-    Object.assign(form, initialForm)
-
-    await nextTick()
-    editorRef.value?.clearValidate()
-
-    await nextTick()
-    suppressTagValidate.value = false
-}
-
 onMounted(() => {
     settingsStore.setTitle('测吧')
     document.title = '测吧'
     bindMobileViewport()
-    if (showMobileDownloadPrompt.value) {
-        void loadLatestAppVersion()
-    } else {
-        void loadInterest()
-    }
+    if (showMobileDownloadPrompt.value) void loadLatestAppVersion()
+    else void loadTopicOptions()
 })
 
 onBeforeUnmount(() => {
     unbindMobileViewport()
+    clearMedia()
     submitting.value = false
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .client-publish-page {
     --header-height: 64px;
-    --sidebar-width: 244px;
-    --layout-gap: 32px;
-    --content-max-width: 1760px;
-    --page-x: 32px;
+    --content-max-width: 1120px;
+    --client-primary: var(--primary-color, #14b8a6);
+    --client-primary-light: var(--primary-light, #ccfbf1);
 
     min-height: 100vh;
-    background-color: var(--bg-color);
+    background: var(--bg-color);
+    color: var(--text-main);
     font-family:
         'PingFang SC',
         -apple-system,
@@ -730,281 +522,413 @@ onBeforeUnmount(() => {
         'Helvetica Neue',
         Arial,
         sans-serif;
-    color: var(--text-main);
 }
 
-.page-main {
-    padding-top: calc(var(--header-height) + 24px);
-    padding-bottom: 40px;
+.publish-main {
+    min-height: 100vh;
+    padding: calc(var(--header-height) + 40px) 24px 56px;
     display: flex;
     justify-content: center;
 }
 
-.main-inner {
+.composer-canvas {
+    width: min(100%, 680px);
+    min-height: 520px;
+    padding: 40px 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.title-input,
+.body-input {
     width: 100%;
-    max-width: var(--content-max-width);
-    padding: 0 var(--page-x);
-    display: flex;
-    align-items: flex-start;
-    gap: var(--layout-gap);
-}
-
-.left-sidebar {
-    width: var(--sidebar-width);
-    flex-shrink: 0;
-    background: transparent;
-    padding: 0;
-    margin-bottom: 0;
     border: 0;
-    border-left: 0;
-    border-radius: 0;
-    line-height: normal;
-    font-size: inherit;
-    color: inherit;
-}
-
-.sidebar-sticky-container {
-    position: fixed;
-    left: max(var(--page-x), calc((100vw - var(--content-max-width)) / 2 + var(--page-x)));
-    top: calc(var(--header-height) + 24px);
-    width: var(--sidebar-width);
-    max-height: calc(100vh - var(--header-height) - var(--layout-gap) - 32px);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 16px;
-    overflow-y: auto;
-    scrollbar-width: none;
-}
-
-.sidebar-nav,
-.tips-card {
+    outline: 0;
     background: transparent;
-    border-radius: 0;
-    border: 0;
-    box-shadow: none;
+    color: #0f172a;
+    font: inherit;
 }
 
-.sidebar-nav {
+.title-input {
+    margin-bottom: 12px;
     padding: 0;
-    display: flex;
-    flex-direction: column;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.body-input {
+    flex: 1;
+    min-height: 220px;
+    padding: 0 0 20px;
+    resize: none;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.title-input::placeholder,
+.body-input::placeholder {
+    color: #94a3b8;
+}
+
+.topic-panel {
+    padding-bottom: 16px;
+    display: grid;
     gap: 10px;
 }
 
-.nav-item {
+.topic-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.topic-chip {
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition:
+        border-color 180ms ease,
+        color 180ms ease;
+}
+
+.topic-chip:hover {
+    border-color: var(--client-primary);
+    color: var(--client-primary);
+}
+
+:global(.client-topic-popover.el-popper) {
+    padding: 0 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden;
+}
+
+.topic-popover-panel {
+    padding: 14px;
+    display: grid;
+    gap: 12px;
+    background: #ffffff;
+    text-align: left;
+}
+
+.topic-popover-search {
+    width: 100%;
+    height: 32px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    outline: 0;
+    background: #f8fafc;
+    color: #0f172a;
+    font: inherit;
+    font-size: 13px;
+}
+
+.topic-popover-search::placeholder {
+    color: #94a3b8;
+}
+
+.topic-category-tabs {
     display: flex;
     align-items: center;
     gap: 14px;
-    min-height: 48px;
-    padding: 0 18px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    color: var(--text-regular);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: left;
-    transition:
-        background-color var(--app-motion-fast),
-        color var(--app-motion-fast);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
 }
 
-.nav-item:hover {
-    background: var(--bg-color);
-    color: var(--text-main);
-}
-
-.nav-item.active {
-    background: var(--client-active-bg);
-    color: var(--client-active-text);
-    font-weight: 700;
-}
-
-.nav-item.active .nav-icon {
-    color: var(--client-active-text);
-}
-
-.nav-icon {
-    font-size: 22px;
-}
-
-.sidebar-footer {
+.topic-category-tabs::-webkit-scrollbar {
     display: none;
 }
 
-.tips-card {
-    padding: 24px;
-}
-
-.tips-title {
-    margin: 0 0 16px 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-main);
-}
-
-.tips-list {
-    list-style: none;
-    margin: 0;
+.topic-category-tab {
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.tips-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    flex: 0 0 auto;
     font-size: 13px;
-    color: var(--text-regular);
-    line-height: 1.6;
+    line-height: 24px;
+    cursor: pointer;
+    transition:
+        color 200ms ease,
+        font-weight 200ms ease;
 }
 
-.icon-wrapper {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: var(--bg-color);
+.topic-category-tab:hover,
+.topic-category-tab.active {
+    color: var(--client-primary);
+    font-weight: 600;
+}
+
+.topic-tag-grid {
+    max-height: 240px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+    overflow-y: auto;
+    scrollbar-color: #cbd5e1 transparent;
+    scrollbar-width: thin;
+}
+
+.topic-tag-grid::-webkit-scrollbar {
+    width: 4px;
+}
+
+.topic-tag-grid::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #cbd5e1;
+}
+
+.topic-tag-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.topic-option {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    font-size: 13px;
+    cursor: pointer;
+    transition:
+        background-color 200ms ease,
+        color 200ms ease;
+}
+
+.topic-option:hover {
+    background: var(--client-primary-light);
+    color: var(--client-primary);
+}
+
+.topic-empty {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.media-grid {
+    padding-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 100px);
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.media-thumb {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+
+.media-thumb img,
+.media-thumb video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.video-mark {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-mask {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.36);
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 }
 
-.icon-wrapper svg {
-    font-size: 14px;
-    color: var(--text-minor);
+.upload-spinner {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
-.content-area {
-    flex: 1;
+.remove-media {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.action-bar {
+    margin-top: auto;
+    margin-right: -32px;
+    margin-bottom: -24px;
+    margin-left: -32px;
+    min-height: 58px;
+    padding: 10px 32px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
     min-width: 0;
 }
 
-.publish-workspace {
-    flex-direction: column;
-    display: flex;
-    gap: 18px;
-    max-width: 1120px;
-}
-
-.publish-status-bar {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0;
-    border-bottom: 1px solid var(--client-border-soft);
-}
-
-.publish-status-item {
-    min-width: 0;
-    padding: 0 18px 16px;
-    border-left: 1px solid var(--client-border-soft);
-    display: flex;
-    flex-direction: column;
+.tool-btn {
+    height: 34px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
     gap: 6px;
-}
-
-.publish-status-item:first-child {
-    padding-left: 0;
-    border-left: 0;
-}
-
-.publish-status-item span {
-    color: var(--text-minor);
-    font-size: 12px;
-    line-height: 1.2;
-}
-
-.publish-status-item strong {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--text-regular);
     font-size: 14px;
-    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background-color 200ms ease,
+        color 200ms ease;
 }
 
-.publish-status-item strong.ready {
-    color: var(--client-active-text);
+.tool-btn:hover:not(:disabled),
+.tool-btn.active {
+    background: var(--client-primary-light);
+    color: var(--client-primary);
 }
 
-.publish-editor-shell {
-    min-height: calc(100vh - var(--header-height) - 110px);
+.tool-btn:disabled {
+    cursor: not-allowed;
+    color: #cbd5e1;
 }
 
-@media screen and (max-width: 1024px) {
-    .main-inner {
-        flex-direction: column;
-    }
+.publish-btn {
+    height: 34px;
+    min-width: 76px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--client-primary);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 200ms ease,
+        color 200ms ease;
+}
 
-    .left-sidebar {
-        width: 100%;
-    }
+.publish-btn:hover:not(:disabled) {
+    background: #0f766e;
+}
 
-    .sidebar-sticky-container {
-        position: relative;
-        left: auto;
-        top: 0;
-        width: auto;
-        max-height: none;
-        flex-direction: row;
-        align-items: stretch;
-        overflow: visible;
-    }
+.publish-btn.is-disabled,
+.publish-btn:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
 
-    .sidebar-nav {
-        flex: 1;
-        flex-direction: row;
-        justify-content: center;
-        padding: 0;
-    }
+.file-input {
+    display: none;
+}
 
-    .nav-item {
-        flex: 1;
-        justify-content: center;
-    }
-
-    .sidebar-footer {
-        display: none;
-    }
-
-    .publish-editor-shell {
-        min-height: auto;
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
     }
 }
 
 @media screen and (max-width: 768px) {
     .client-publish-page {
-        --layout-gap: 16px;
         --header-height: 56px;
-        --page-x: 16px;
     }
 
-    .main-inner {
-        padding: 0 var(--page-x);
+    .publish-main {
+        padding: calc(var(--header-height) + 20px) 12px 32px;
     }
 
-    .nav-item {
-        padding: 10px;
-        font-size: 15px;
+    .composer-canvas {
+        padding: 28px 20px 20px;
     }
 
-    .publish-status-bar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        row-gap: 14px;
+    .title-input {
+        margin-bottom: 10px;
+        padding: 0;
+        font-size: 20px;
     }
 
-    .publish-status-item {
-        padding: 0 12px 12px;
+    .body-input {
+        padding: 0 0 18px;
     }
 
-    .publish-status-item:nth-child(odd) {
+    .topic-panel,
+    .media-grid {
         padding-left: 0;
-        border-left: 0;
+        padding-right: 0;
+    }
+
+    .action-bar {
+        margin-right: -20px;
+        margin-bottom: -20px;
+        margin-left: -20px;
+        padding: 10px 20px;
+    }
+
+    .tool-group {
+        gap: 14px;
+    }
+
+    .tool-btn span {
+        display: none;
     }
 }
 </style>

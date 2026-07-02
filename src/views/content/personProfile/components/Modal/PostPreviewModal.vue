@@ -81,7 +81,7 @@
 
                         <div class="detail-scroll-area">
                             <div class="detail-content">
-                                <div v-if="post.content" class="detail-text">{{ post.content }}</div>
+                                <div v-if="hasDetailContent" class="detail-text detail-title" v-html="safeDetailContent"></div>
                                 <div v-else class="detail-text empty">暂无正文内容</div>
                             </div>
 
@@ -90,8 +90,8 @@
                             </div>
 
                             <div class="detail-meta">
-                                <span>发布于 {{ formatRelativeTime(post.createTime) || '-' }}</span>
-                                <span>评论 {{ post.commentCount ?? 0 }}</span>
+                                <span class="detail-date">发布于 {{ formatPostCreateDate(post) || '-' }}</span>
+                                <span class="detail-comment-total">评论 {{ post.commentCount ?? 0 }}</span>
                             </div>
 
                             <el-divider class="detail-divider" />
@@ -101,7 +101,15 @@
                                 <LoadingState v-if="commentsLoading" class="comment-loading" size="small" />
                                 <div v-else-if="comments.length" class="comment-list">
                                     <div v-for="item in comments" :key="item.id || item.commentId || item._id" class="comment-item">
-                                        <el-avatar :size="28" :src="resolveAvatar(item.avatar)" />
+                                        <button
+                                            type="button"
+                                            class="comment-avatar-btn"
+                                            :disabled="!resolveCommentProfileUserId(item)"
+                                            :aria-label="`查看${resolveCommentUser(item)}的个人主页`"
+                                            @click.stop="handleCommentProfileClick(item)"
+                                        >
+                                            <el-avatar :size="28" :src="resolveAvatar(item.avatar)" />
+                                        </button>
                                         <div class="comment-body">
                                             <div class="comment-user">{{ resolveCommentUser(item) }}</div>
                                             <div class="comment-text">{{ resolveCommentText(item) || '-' }}</div>
@@ -139,7 +147,15 @@
                                                         :key="reply.id || reply.commentId || reply._id"
                                                         class="reply-item"
                                                     >
-                                                        <el-avatar :size="24" :src="resolveAvatar(reply.avatar)" />
+                                                        <button
+                                                            type="button"
+                                                            class="reply-avatar-btn"
+                                                            :disabled="!resolveCommentProfileUserId(reply)"
+                                                            :aria-label="`查看${resolveCommentUser(reply)}的个人主页`"
+                                                            @click.stop="handleCommentProfileClick(reply)"
+                                                        >
+                                                            <el-avatar :size="24" :src="resolveAvatar(reply.avatar)" />
+                                                        </button>
                                                         <div class="reply-body">
                                                             <div class="reply-user">{{ resolveCommentUser(reply) }}</div>
                                                             <div class="reply-text">{{ resolveCommentText(reply) || '-' }}</div>
@@ -170,28 +186,29 @@
                                     </div>
                                 </div>
                                 <div v-else class="comment-empty">
-                                    <Icon icon="mdi:sofa-outline" />
-                                    <span>还没有评论，来说点什么</span>
+                                    <Icon icon="mdi:message-reply-text-outline" />
+                                    <span>第一个留下你的看法吧～</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="detail-actions action-bar" :class="{ 'is-input-expanded': isActionInputExpanded }">
+                        <div class="detail-actions action-bar" :class="{ 'is-composing': isComposerActive }">
                             <div class="action-input">
                                 <el-input
                                     ref="commentInputRef"
                                     v-model="commentDraftValue"
                                     class="action-input-inner"
-                                    :type="isActionInputExpanded ? 'textarea' : 'text'"
-                                    :autosize="isActionInputExpanded ? { minRows: 1, maxRows: 6 } : false"
                                     maxlength="200"
                                     :placeholder="commentPlaceholder"
                                     @keydown.enter.exact.prevent="handleSubmit"
-                                    @focus="emit('focus-comment')"
+                                    @focus="handleInputFocus"
+                                    @blur="handleInputBlur"
                                 />
                             </div>
 
-                            <div class="action-icons" :class="{ hidden: isActionInputExpanded }">
+                            <button type="button" class="action-send" :disabled="!canSubmit" @mousedown.prevent @click="handleSubmit">发送</button>
+
+                            <div class="action-icons">
                                 <button
                                     type="button"
                                     class="action-icon like"
@@ -216,7 +233,7 @@
                                     <span class="num">{{ post?.bookmarkCount ?? 0 }}</span>
                                 </button>
 
-                                <button type="button" class="action-icon comment" @click="emit('focus-comment')" aria-label="评论">
+                                <button type="button" class="action-icon comment" @click="focusInput" aria-label="评论">
                                     <Icon icon="mdi:comment-outline" />
                                     <span class="num">{{ post?.commentCount ?? 0 }}</span>
                                 </button>
@@ -234,14 +251,6 @@
                                 </button>
                             </div>
 
-                            <div v-if="isActionInputExpanded" class="action-toolbar">
-                                <div class="action-buttons">
-                                    <el-button type="primary" size="small" class="action-send" :disabled="!canSubmit" @mousedown.prevent @click="handleSubmit">
-                                        发送
-                                    </el-button>
-                                    <el-button size="small" class="action-cancel" @mousedown.prevent @click="handleCancel">取消</el-button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -257,6 +266,7 @@ import LoadingState from '@/components/LoadingState/index.vue'
 import { usePageScrollLock } from '@/utils/scrollLock'
 import VideoPreviewPane from './VideoPreviewPane.vue'
 import { POST_TYPE } from '@/utils/enum'
+import { getCommentUserId, sanitizeRichTextHtml, stripHtmlToText } from '@/utils/content/common'
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -295,6 +305,7 @@ const emit = defineEmits([
     'toggle-replies',
     'load-replies',
     'delete-comment',
+    'view-comment-profile',
     'focus-comment',
     'blur-comment',
     'submit-comment'
@@ -313,12 +324,17 @@ const commentDraftValue = computed({
 const pageScrollLock = usePageScrollLock()
 const commentInputRef = ref<any | null>(null)
 const imageViewerVisible = ref(false)
+const isFocused = ref(false)
 const canSubmit = computed(() => Boolean(commentDraftValue.value?.trim()))
+const isComposerActive = computed(() => isFocused.value || canSubmit.value || props.isActionInputExpanded)
 const currentMediaIndex = ref(0)
 const displayMediaIndex = computed(() => Math.min(currentMediaIndex.value + 1, Math.max(props.mediaList?.length || 1, 1)))
 const postType = computed(() => String(props.post?.postType ?? ''))
 const isTextPost = computed(() => postType.value === POST_TYPE.TEXT)
-const textPreviewText = computed(() => String(props.post?.content ?? '').trim() || '暂无正文内容')
+const detailText = computed(() => stripHtmlToText(props.post?.content))
+const hasDetailContent = computed(() => Boolean(detailText.value))
+const safeDetailContent = computed(() => sanitizeRichTextHtml(props.post?.content))
+const textPreviewText = computed(() => detailText.value || '暂无正文内容')
 const isVideoUrl = (url: string) => /\.(mp4|mov|m3u8|mkv|webm|ogg|ogv|avi|wmv|flv)(\?|#|$)/i.test(String(url || ''))
 const imagePreviewList = computed<string[]>(() =>
     ((props.mediaList || []) as unknown[]).map((url: unknown) => String(url || '')).filter((url: string) => Boolean(url) && !isVideoUrl(url))
@@ -334,6 +350,17 @@ const videoPosterUrl = computed(() => {
 })
 const IMAGE_VIEWER_LOCK_CLASS = 'el-image-viewer-parent--hidden'
 let imageViewerRepairTimer: ReturnType<typeof setTimeout> | null = null
+
+const formatDateOnly = (value: unknown) => {
+    const raw = String(value || '').trim()
+    if (!raw) return ''
+    const date = new Date(raw.replace(/-/g, '/'))
+    if (Number.isNaN(date.getTime())) return raw.slice(0, 10)
+    const pad = (item: number) => String(item).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+const formatPostCreateDate = (post: Record<string, any> | null | undefined) => formatDateOnly(post?.createTime || post?.createDate || post?.createdAt || post?.time)
 
 const clearImageViewerRepairTimer = () => {
     if (!imageViewerRepairTimer) return
@@ -389,6 +416,7 @@ const handleImagePreviewClose = () => {
 }
 
 const handleClose = () => {
+    isFocused.value = false
     imageViewerVisible.value = false
     clearImageViewerRepairTimer()
     cleanupImageViewerLockArtifacts()
@@ -400,15 +428,19 @@ const focusInput = () => {
     commentInputRef.value?.focus?.()
 }
 
+const handleInputFocus = () => {
+    isFocused.value = true
+    emit('focus-comment')
+}
+
+const handleInputBlur = () => {
+    isFocused.value = false
+    if (!canSubmit.value) emit('blur-comment')
+}
+
 const handleSubmit = () => {
     if (!canSubmit.value) return
     emit('submit-comment')
-}
-
-const handleCancel = () => {
-    commentDraftValue.value = ''
-    emit('blur-comment')
-    commentInputRef.value?.blur?.()
 }
 
 const handleCarouselChange = (index: number) => {
@@ -425,6 +457,13 @@ const resolveCommentText = (item: CommentItem) =>
 
 const resolveCommentTime = (item: CommentItem) => item?.createTime || item?.createDate || item?.createdAt || item?.time || item?.timestamp || ''
 
+const resolveCommentProfileUserId = (item: CommentItem) => getCommentUserId(item)
+
+const handleCommentProfileClick = (item: CommentItem) => {
+    if (!resolveCommentProfileUserId(item)) return
+    emit('view-comment-profile', item)
+}
+
 watch(
     () => props.mediaList,
     () => {
@@ -438,6 +477,7 @@ watch(
     (value, oldValue) => {
         pageScrollLock.setLocked(Boolean(value))
         if (!value && oldValue) {
+            isFocused.value = false
             imageViewerVisible.value = false
             clearImageViewerRepairTimer()
             cleanupImageViewerLockArtifacts()
@@ -539,12 +579,12 @@ defineExpose({ focusInput })
 .preview-close {
     position: fixed;
     top: 24px;
-    left: 24px;
+    right: 24px;
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(20, 20, 20, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(15, 23, 42, 0.32);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     color: #ffffff;
@@ -560,12 +600,12 @@ defineExpose({ focusInput })
 }
 
 .preview-close:hover {
-    background: rgba(20, 20, 20, 0.6);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(15, 23, 42, 0.48);
+    border-color: rgba(255, 255, 255, 0.34);
 }
 
 .preview-close:active {
-    background: rgba(20, 20, 20, 0.72);
+    background: rgba(15, 23, 42, 0.58);
 }
 
 .post-preview-body {
@@ -742,8 +782,8 @@ defineExpose({ focusInput })
 .preview-detail-pane {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: 22px;
-    padding: 28px 30px 24px;
+    gap: 0;
+    padding: 0;
     overflow: hidden;
     min-height: 0;
     background: var(--el-bg-color);
@@ -752,7 +792,7 @@ defineExpose({ focusInput })
 .detail-scroll-area {
     min-height: 0;
     overflow: hidden;
-    padding-right: 0;
+    padding: 0 30px;
     display: flex;
     flex-direction: column;
 }
@@ -762,7 +802,7 @@ defineExpose({ focusInput })
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding-bottom: 0;
+    padding: 28px 30px 18px;
 }
 
 .follow-btn {
@@ -826,18 +866,89 @@ defineExpose({ focusInput })
 }
 
 .detail-content {
-    font-size: 15px;
-    line-height: 1.8;
+    font-size: 18px;
+    line-height: 1.5;
     color: var(--el-text-color-primary);
-    white-space: pre-wrap;
+    white-space: normal;
     text-align: left;
-    margin-top: 6px;
+    margin-top: 0;
 }
 
 .detail-text {
     margin: 0;
-    font-weight: 400;
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    letter-spacing: 0;
+    word-break: break-word;
+
+    :deep(p),
+    :deep(blockquote),
+    :deep(ul),
+    :deep(ol) {
+        margin: 0 0 12px;
+    }
+
+    :deep(p:last-child),
+    :deep(blockquote:last-child),
+    :deep(ul:last-child),
+    :deep(ol:last-child) {
+        margin-bottom: 0;
+    }
+
+    :deep(strong),
+    :deep(b) {
+        font-weight: 700;
+    }
+
+    :deep(h1),
+    :deep(h2),
+    :deep(h3),
+    :deep(h4),
+    :deep(h5),
+    :deep(h6) {
+        margin: 0 0 12px;
+        color: var(--el-text-color-primary);
+        line-height: 1.35;
+        font-weight: 700;
+    }
+
+    :deep(h1) {
+        font-size: 22px;
+    }
+
+    :deep(h2) {
+        font-size: 20px;
+    }
+
+    :deep(h3),
+    :deep(h4),
+    :deep(h5),
+    :deep(h6) {
+        font-size: 17px;
+    }
+
+    :deep(ul),
+    :deep(ol) {
+        padding-left: 22px;
+    }
+
+    :deep(blockquote) {
+        padding: 10px 12px;
+        border-left: 3px solid var(--el-color-primary);
+        border-radius: 0 8px 8px 0;
+        background: var(--el-fill-color-light);
+        color: var(--el-text-color-regular);
+    }
+
+    :deep(a) {
+        color: var(--el-color-primary);
+        text-decoration: none;
+    }
+}
+
+.detail-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 .detail-text.empty {
@@ -848,35 +959,35 @@ defineExpose({ focusInput })
 .detail-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 18px;
+    gap: 8px;
+    margin-top: 16px;
 }
 
 .detail-tag {
     font-size: 13px;
-    padding: 6px 14px;
-    border-radius: 12px;
-    color: var(--el-color-primary);
-    background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--client-primary, #14b8a6);
+    background: rgba(20, 184, 166, 0.08);
+    border: 0;
     white-space: nowrap;
     transition:
         background-color var(--app-motion-fast),
-        border-color var(--app-motion-fast),
         color var(--app-motion-fast);
     cursor: pointer;
 }
 
 .detail-tag:hover {
-    background: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+    background: rgba(20, 184, 166, 0.13);
 }
 
 .detail-meta {
     display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin-top: 24px;
+    justify-content: flex-start;
+    gap: 16px;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 16px;
 }
 
 .detail-divider {
@@ -919,6 +1030,43 @@ defineExpose({ focusInput })
     display: flex;
     gap: 12px;
     animation: itemFadeIn 0.4s ease forwards;
+}
+
+.comment-avatar-btn,
+.reply-avatar-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    height: max-content;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition:
+        opacity var(--app-motion-fast),
+        transform var(--app-motion-fast);
+}
+
+.comment-avatar-btn:hover,
+.reply-avatar-btn:hover {
+    transform: translateY(-1px);
+}
+
+.comment-avatar-btn:disabled,
+.reply-avatar-btn:disabled {
+    cursor: default;
+    opacity: 1;
+    transform: none;
+}
+
+.comment-avatar-btn:focus-visible,
+.reply-avatar-btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--el-color-primary) 38%, transparent);
+    outline-offset: 2px;
 }
 
 .comment-body {
@@ -1069,19 +1217,24 @@ defineExpose({ focusInput })
 }
 
 .comment-empty {
-    margin-top: 32px;
+    margin-top: 36px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     font-size: 13px;
-    color: var(--el-text-color-placeholder);
+    color: #94a3b8;
 }
 
 .comment-empty :deep(svg) {
-    font-size: 32px;
-    opacity: 0.5;
+    width: 38px;
+    height: 38px;
+    padding: 9px;
+    border-radius: 999px;
+    box-sizing: border-box;
+    color: var(--client-primary, #14b8a6);
+    background: rgba(20, 184, 166, 0.08);
 }
 
 .comment-loading {
@@ -1091,152 +1244,113 @@ defineExpose({ focusInput })
 }
 
 .detail-actions.action-bar {
+    --bottom-bar-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: 24px;
-    background: color-mix(in srgb, var(--el-bg-color) 80%, transparent);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--el-border-color-light);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-    transition:
-        background-color var(--app-motion-normal),
-        border-color var(--app-motion-normal),
-        box-shadow var(--app-motion-normal);
+    height: 60px;
+    gap: 0;
+    padding: 10px 30px;
+    box-sizing: border-box;
+    border-radius: 0;
+    background: var(--el-bg-color);
+    border-top: 1px solid #f1f5f9;
+    box-shadow: none;
+    transition: var(--bottom-bar-transition);
 }
 
-.detail-actions.action-bar.is-input-expanded {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 14px;
-    padding: 16px;
+.detail-actions.action-bar.is-composing .action-icons {
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .action-input {
     flex: 1;
     min-width: 0;
+    transition: var(--bottom-bar-transition);
 }
 
 .action-input :deep(.el-input__wrapper) {
-    border-radius: 999px;
-    background: var(--el-fill-color);
-    box-shadow: none;
-    border: 1px solid transparent;
-    padding: 0 18px;
     height: 40px;
-    transition:
-        background-color var(--app-motion-fast),
-        border-color var(--app-motion-fast),
-        box-shadow var(--app-motion-fast);
+    padding: 0 16px;
+    border: 0;
+    border-radius: 20px;
+    background: #f1f5f9;
+    box-shadow: none;
+    transition: var(--bottom-bar-transition);
 }
 
 .action-input :deep(.el-input__wrapper:hover) {
-    background: var(--el-fill-color-darker);
+    background: #e2e8f0;
 }
 
 .action-input :deep(.el-input__wrapper.is-focus) {
-    background: var(--el-bg-color);
-    border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+    background: #f8fafc;
+    box-shadow: none;
 }
 
 .action-input :deep(.el-input__inner) {
     font-size: 14px;
-}
-
-.action-input :deep(.el-textarea__inner) {
-    border-radius: 16px;
-    background: var(--el-fill-color);
-    border: 1px solid transparent;
-    font-size: 14px;
-    padding: 12px 16px;
-    min-height: 80px;
-    resize: none;
-    transition:
-        background-color var(--app-motion-fast),
-        border-color var(--app-motion-fast),
-        box-shadow var(--app-motion-fast);
-}
-
-.action-input :deep(.el-textarea__inner:focus) {
-    background: var(--el-bg-color);
-    border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
+    color: #334155;
 }
 
 .action-icons {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-}
-
-.action-icons.hidden {
-    display: none;
-}
-
-.action-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    animation: itemFadeIn 0.3s ease forwards;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 10px;
+    flex: 0 0 auto;
+    gap: 16px;
+    max-width: 260px;
+    margin-left: 18px;
+    overflow: hidden;
+    opacity: 1;
+    white-space: nowrap;
+    transition: var(--bottom-bar-transition);
 }
 
 .action-send {
-    border-radius: 999px;
-    padding: 0 20px;
-    height: 34px;
+    flex: 0 0 auto;
+    max-width: 0;
+    height: 40px;
+    margin-left: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 20px;
+    background: var(--client-primary, #14b8a6);
+    color: #ffffff;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.5px;
-    background: var(--el-color-primary);
-    border: none;
-    color: var(--el-color-white);
-    box-shadow: 0 8px 16px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
-    transition:
-        background-color var(--app-motion-fast),
-        box-shadow var(--app-motion-fast),
-        opacity var(--app-motion-fast);
+    opacity: 0;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--bottom-bar-transition);
 }
 
-.action-send:hover:not(:disabled) {
-    opacity: 0.94;
-    background: var(--el-color-primary-dark-2);
+.detail-actions.action-bar.is-composing .action-send {
+    max-width: 96px;
+    margin-left: 12px;
+    padding: 6px 18px;
+    opacity: 1;
 }
 
-.action-cancel {
-    border-radius: 999px;
-    padding: 0 16px;
-    height: 34px;
-    background: transparent;
-    border: 1px solid var(--el-border-color-darker);
-    color: var(--el-text-color-regular);
-    transition:
-        background-color var(--app-motion-fast),
-        border-color var(--app-motion-fast),
-        color var(--app-motion-fast);
+.detail-actions.action-bar.is-composing .action-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.action-cancel:hover {
-    background: var(--el-fill-color);
-    color: var(--el-text-color-primary);
-    border-color: var(--el-text-color-primary);
+.detail-actions.action-bar.is-composing .action-send:hover:not(:disabled) {
+    background: #0f766e;
 }
 
 .action-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 38px;
-    padding: 0 12px;
-    border-radius: 12px;
+    gap: 4px;
+    height: 40px;
+    padding: 0;
+    border-radius: 8px;
     border: none;
     background: transparent;
     color: var(--el-text-color-regular);
@@ -1249,20 +1363,20 @@ defineExpose({ focusInput })
 }
 
 .action-icon :deep(svg) {
-    font-size: 20px;
+    font-size: 21px;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .action-icon .num {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     line-height: 1;
-    color: var(--el-text-color-regular);
+    color: #334155;
 }
 
 .action-icon:hover {
-    background: var(--el-fill-color);
-    color: var(--el-text-color-primary);
+    background: transparent;
+    color: var(--client-primary, #14b8a6);
 }
 
 .action-icon:active :deep(svg) {
@@ -1309,7 +1423,7 @@ defineExpose({ focusInput })
 
     .preview-close {
         top: 16px;
-        left: 16px;
+        right: 16px;
         width: 36px;
         height: 36px;
         background: rgba(0, 0, 0, 0.4);
@@ -1359,20 +1473,25 @@ defineExpose({ focusInput })
 
     .preview-detail-pane {
         gap: 16px;
-        padding: 20px 20px 24px;
+        padding: 0;
         height: auto;
+    }
+
+    .detail-header {
+        padding: 20px;
+    }
+
+    .detail-scroll-area {
+        padding: 0 20px;
     }
 
     .detail-actions.action-bar {
         position: sticky;
         bottom: 0;
-        margin: 0 -20px -24px;
+        margin: 0;
         border-radius: 0;
         padding: 12px 20px 24px;
-        border-top: 1px solid var(--el-border-color-light);
-        border-bottom: none;
-        border-left: none;
-        border-right: none;
+        border-top: 1px solid #f1f5f9;
     }
 
     .action-icon .num {

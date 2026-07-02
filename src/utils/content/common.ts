@@ -7,6 +7,100 @@ const toTrimmedString = (value: unknown) => String(value ?? '').trim()
 
 const getMediaCandidate = (value: AnyRecord) => value?.url || value?.src || value?.path || value?.fileUrl || ''
 
+const HTML_TAG_RE = /<\/?[a-z][\s\S]*>/i
+const ALLOWED_RICH_TEXT_TAGS = new Set([
+    'p',
+    'br',
+    'strong',
+    'b',
+    'em',
+    'i',
+    's',
+    'strike',
+    'del',
+    'u',
+    'a',
+    'blockquote',
+    'ul',
+    'ol',
+    'li',
+    'code',
+    'pre',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
+    'hr'
+])
+const SELF_CLOSING_RICH_TEXT_TAGS = new Set(['br', 'hr'])
+
+export const isRichTextContent = (value: unknown) => HTML_TAG_RE.test(String(value || ''))
+
+export const escapeHtml = (value: unknown) =>
+    String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+
+const isSafeLink = (value: string) => /^(https?:|mailto:|tel:|#|\/)/i.test(value)
+
+const sanitizeRichTextNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.textContent || '')
+    if (node.nodeType !== Node.ELEMENT_NODE) return ''
+
+    const element = node as HTMLElement
+    const tag = element.tagName.toLowerCase()
+    const children = Array.from(element.childNodes).map(sanitizeRichTextNode).join('')
+    if (!ALLOWED_RICH_TEXT_TAGS.has(tag)) return children
+
+    const attrs: string[] = []
+    if (tag === 'a') {
+        const href = String(element.getAttribute('href') || '').trim()
+        if (href && isSafeLink(href)) {
+            attrs.push(`href="${escapeHtml(href)}"`)
+            attrs.push('target="_blank"')
+            attrs.push('rel="noopener noreferrer"')
+        }
+    }
+
+    if (SELF_CLOSING_RICH_TEXT_TAGS.has(tag)) return `<${tag}${attrs.length ? ` ${attrs.join(' ')}` : ''}>`
+    return `<${tag}${attrs.length ? ` ${attrs.join(' ')}` : ''}>${children}</${tag}>`
+}
+
+export const sanitizeRichTextHtml = (value: unknown) => {
+    const source = String(value || '').trim()
+    if (!source) return ''
+    if (!isRichTextContent(source)) return escapeHtml(source).replace(/\n/g, '<br>')
+    if (typeof DOMParser === 'undefined' || typeof Node === 'undefined') {
+        return escapeHtml(source.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+    }
+
+    const doc = new DOMParser().parseFromString(source, 'text/html')
+    return Array.from(doc.body.childNodes).map(sanitizeRichTextNode).join('').trim()
+}
+
+export const stripHtmlToText = (value: unknown) => {
+    const source = String(value || '').trim()
+    if (!source) return ''
+    if (!isRichTextContent(source)) return source
+    if (typeof DOMParser === 'undefined') {
+        return source.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    }
+
+    const doc = new DOMParser().parseFromString(source, 'text/html')
+    return String(doc.body.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export const resolveMediaUrl = (url: unknown, resolver?: (raw: string) => string) => {
     const raw = toTrimmedString(url)
     if (!raw) return ''
@@ -70,7 +164,17 @@ export const formatRelativeTime = (time: unknown) => {
 
 export const getCommentId = (comment: AnyRecord) => comment?.id ?? comment?.commentId ?? comment?._id ?? null
 
-export const getCommentUserId = (comment: AnyRecord) => comment?.userId ?? comment?.user?.id ?? comment?.authorId ?? comment?.createBy ?? null
+export const getCommentUserId = (comment: AnyRecord) =>
+    comment?.userId ??
+    comment?.commentUserId ??
+    comment?.fromUserId ??
+    comment?.authorId ??
+    comment?.createBy ??
+    comment?.user?.userId ??
+    comment?.user?.id ??
+    comment?.author?.userId ??
+    comment?.author?.id ??
+    null
 
 export const getCommentReplyCount = (comment: AnyRecord) => {
     const value = comment?.replyCount ?? comment?.replyNum ?? comment?.replyCnt ?? 0

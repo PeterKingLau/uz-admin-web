@@ -75,6 +75,7 @@ import { useRouter } from 'vue-router'
 import brandLogo from '@/assets/logo/logo.png'
 import defaultAvatar from '@/assets/images/profile.jpg'
 import useUserStore from '@/store/modules/user'
+import { encodeRouteRedirect, ROUTE_REDIRECT_QUERY_KEY } from '@/router/routeParams'
 import { getAdminHomeRoute, getClientSelfProfileRoute } from '@/utils/routeAccess'
 
 const props = withDefaults(
@@ -148,10 +149,18 @@ const handleCommand = (command: string | number | object) => {
             break
         case 'logout':
             proxy?.$modal
-                ?.confirm?.('确认退出当前账号吗？')
+                ?.confirm?.('确认退出当前账号吗？', {
+                    type: 'info',
+                    customClass: 'client-logout-message-box'
+                })
                 .then(() => {
                     userStore.logOut().then(() => {
-                        router.push('/login')
+                        router.push({
+                            path: '/client-login',
+                            query: {
+                                [ROUTE_REDIRECT_QUERY_KEY]: encodeRouteRedirect('/discover')
+                            }
+                        })
                     })
                 })
                 .catch(() => {})
@@ -427,19 +436,21 @@ onMounted(() => {
     background: transparent;
     color: var(--text-main);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition:
+        color 200ms ease,
+        border-color 200ms ease;
 }
 
 .user-entry:hover {
-    background: color-mix(in srgb, var(--text-main) 4%, transparent);
-    border-color: color-mix(in srgb, var(--text-main) 6%, transparent);
+    background: transparent;
+    border-color: transparent;
 }
 
 .user-entry:focus,
 .user-entry:focus-visible {
     outline: none;
-    border-color: color-mix(in srgb, var(--primary-color) 40%, transparent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 10%, transparent);
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .user-avatar {
@@ -461,18 +472,19 @@ onMounted(() => {
     white-space: nowrap;
     font-size: 14px;
     font-weight: 600;
+    transition: color 200ms ease;
 }
 
 .user-caret {
     font-size: 12px;
     color: var(--text-minor);
     flex-shrink: 0;
-    transition: transform 0.3s ease;
+    transition: color 200ms ease;
 }
 
+.user-entry:hover .user-name,
 .user-entry:hover .user-caret {
-    transform: translateY(2px);
-    color: var(--text-main);
+    color: var(--client-primary, var(--primary-color));
 }
 
 @media screen and (max-width: 1024px) {
@@ -558,12 +570,15 @@ onMounted(() => {
 
 <style lang="scss">
 .client-header-dropdown {
-    border-radius: 12px !important;
-    padding: 8px !important;
+    --client-primary: #14b8a6;
+    --client-primary-light: #ccfbf1;
+
+    border-radius: 8px !important;
+    padding: 6px !important;
     min-width: 160px;
-    background: var(--el-bg-color-overlay) !important;
-    border: 1px solid var(--el-border-color-lighter) !important;
-    box-shadow: 0 4px 20px color-mix(in srgb, var(--el-color-black) 8%, transparent) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 
     .el-dropdown-menu {
         padding: 0;
@@ -574,13 +589,15 @@ onMounted(() => {
     .el-dropdown-menu__item {
         display: flex;
         align-items: center;
+        justify-content: flex-start;
         gap: 10px;
-        border-radius: 8px;
-        padding: 10px 16px;
+        border-radius: 6px;
+        padding: 9px 12px;
         font-size: 14px;
-        font-weight: 400;
-        color: var(--el-text-color-regular);
+        font-weight: 500;
+        color: #475569;
         line-height: 1;
+        text-align: left;
         transition:
             background-color var(--app-motion-fast),
             color var(--app-motion-fast);
@@ -588,7 +605,7 @@ onMounted(() => {
 
     .el-dropdown-menu__item--divided {
         margin-top: 6px;
-        border-top-color: var(--el-border-color-extra-light);
+        border-top-color: #e2e8f0;
     }
 
     .el-dropdown-menu__item--divided::before {
@@ -597,26 +614,59 @@ onMounted(() => {
 
     .dropdown-icon {
         font-size: 16px;
-        color: var(--el-text-color-secondary);
+        color: #94a3b8;
         transition: color var(--app-motion-fast);
     }
 
-    .el-dropdown-menu__item:hover {
-        background-color: var(--el-fill-color-light);
-        color: var(--el-color-primary);
+    .el-dropdown-menu__item:not(.is-disabled):hover,
+    .el-dropdown-menu__item:not(.is-disabled):focus {
+        background-color: var(--client-primary-light);
+        color: var(--client-primary);
 
         .dropdown-icon {
-            color: var(--el-color-primary);
+            color: var(--client-primary);
         }
     }
 
-    .logout-item:hover {
-        background-color: var(--el-color-danger-light-9);
-        color: var(--el-color-danger);
+    .el-popper__arrow::before {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+    }
+}
 
-        .dropdown-icon {
-            color: var(--el-color-danger);
-        }
+.client-logout-message-box {
+    --client-primary: #14b8a6;
+    --client-primary-dark: #0f766e;
+    --client-primary-light: #ccfbf1;
+
+    .el-message-box__status {
+        color: var(--client-primary) !important;
+    }
+
+    .el-message-box__headerbtn:hover {
+        background: var(--client-primary-light) !important;
+        color: var(--client-primary) !important;
+    }
+
+    .el-button--primary {
+        border-color: var(--client-primary) !important;
+        background: var(--client-primary) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2) !important;
+    }
+
+    .el-button--primary:hover,
+    .el-button--primary:focus {
+        border-color: var(--client-primary-dark) !important;
+        background: var(--client-primary-dark) !important;
+        box-shadow: 0 6px 16px rgba(20, 184, 166, 0.24) !important;
+    }
+
+    .el-button:not(.el-button--primary):hover,
+    .el-button:not(.el-button--primary):focus {
+        border-color: var(--client-primary) !important;
+        color: var(--client-primary) !important;
+        background: color-mix(in srgb, var(--client-primary-light) 56%, #ffffff) !important;
     }
 }
 </style>

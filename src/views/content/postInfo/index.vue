@@ -199,6 +199,7 @@ import {
     resolveMediaUrl as resolveCommonMediaUrl,
     resolvePreviewFollowState,
     setPreviewFollowState,
+    stripHtmlToText,
     toLocalDateTime
 } from '@/utils/content/common'
 import { CONTENT_LIST_REFRESH_EVENT, getContentListRefreshMark } from '@/utils/content/refreshSignal'
@@ -304,6 +305,11 @@ const lastHandledRefreshMark = ref(0)
 const isViewActive = ref(false)
 let windowScrollBound = false
 let refreshRetryTimer: ReturnType<typeof setTimeout> | null = null
+let loadMoreTimer: ReturnType<typeof setTimeout> | null = null
+let lastLoadMoreAt = 0
+let feedRequestVersion = 0
+const LOAD_MORE_THROTTLE_MS = 700
+const LOAD_MORE_RENDER_CHUNK_SIZE = 4
 
 const selectedCount = computed(() => selectedIds.value.size)
 const isAdminUser = computed(() => (userStore as any).admin === true)
@@ -336,7 +342,7 @@ const previewMediaList = computed(() => {
     if (!post) return []
     const type = String(post?.postType ?? '')
     if (type === POST_TYPE.TEXT) {
-        const content = String(post?.content ?? '').trim() || '暂无文字'
+        const content = stripHtmlToText(post?.content) || '暂无文字'
         const seed = String(post?.id ?? post?.postId ?? content)
         return [buildTextCoverDataUrl(content, seed)]
     }
@@ -591,6 +597,64 @@ const unbindWindowScroll = () => {
     windowScrollBound = false
 }
 
+const nextFeedRequestVersion = () => {
+    feedRequestVersion += 1
+    return feedRequestVersion
+}
+
+const getCurrentFeedRequestVersion = () => feedRequestVersion || nextFeedRequestVersion()
+
+const isCurrentFeedRequestVersion = (requestVersion: number) => requestVersion === feedRequestVersion
+
+const clearScheduledLoadMore = () => {
+    if (!loadMoreTimer) return
+    clearTimeout(loadMoreTimer)
+    loadMoreTimer = null
+}
+
+const waitForRenderFrame = () =>
+    new Promise<void>(resolve => {
+        if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+            setTimeout(resolve, 0)
+            return
+        }
+        window.requestAnimationFrame(() => resolve())
+    })
+
+async function appendPostsInChunks(records: any[], requestVersion: number) {
+    if (!records.length) return true
+    for (let index = 0; index < records.length; index += LOAD_MORE_RENDER_CHUNK_SIZE) {
+        if (!isCurrentFeedRequestVersion(requestVersion)) return false
+        postList.value = postList.value.concat(records.slice(index, index + LOAD_MORE_RENDER_CHUNK_SIZE))
+        if (index + LOAD_MORE_RENDER_CHUNK_SIZE < records.length) {
+            await waitForRenderFrame()
+        }
+    }
+    return true
+}
+
+const canRequestMorePosts = () => !finished.value && !loading.value && !loadingMore.value && !silentRefreshing.value
+
+function runLoadMoreRequest() {
+    if (!canRequestMorePosts()) return
+    lastLoadMoreAt = Date.now()
+    void fetchList(true, { requestVersion: getCurrentFeedRequestVersion() })
+}
+
+function scheduleLoadMoreRequest() {
+    if (!canRequestMorePosts()) return
+    const remaining = LOAD_MORE_THROTTLE_MS - (Date.now() - lastLoadMoreAt)
+    if (remaining <= 0) {
+        runLoadMoreRequest()
+        return
+    }
+    if (loadMoreTimer) return
+    loadMoreTimer = setTimeout(() => {
+        loadMoreTimer = null
+        runLoadMoreRequest()
+    }, remaining)
+}
+
 async function loadTags() {
     if (loadingTags.value) return
     loadingTags.value = true
@@ -701,8 +765,9 @@ async function handleUnpin(post: any) {
     }
 }
 
-async function fetchList(isLoadMore = false, options: { silent?: boolean } = {}) {
-    const { silent = false } = options
+async function fetchList(isLoadMore = false, options: { silent?: boolean; requestVersion?: number } = {}) {
+    const { silent = false, requestVersion = getCurrentFeedRequestVersion() } = options
+    if (!isCurrentFeedRequestVersion(requestVersion)) return
     if (loading.value || loadingMore.value || silentRefreshing.value) return
     const useVisibleLoading = !isLoadMore && (!silent || postList.value.length === 0)
     if (isLoadMore) loadingMore.value = true
@@ -724,6 +789,7 @@ async function fetchList(isLoadMore = false, options: { silent?: boolean } = {})
         }
 
         const res = await listPostByApp(params)
+        if (!isCurrentFeedRequestVersion(requestVersion)) return
         const list = (res as any)?.rows || (res as any)?.data || res || []
         const records = Array.isArray(list) ? list : []
         const resTotal = (res as any)?.total ?? (res as any)?.data?.total ?? (res as any)?.count
@@ -756,11 +822,12 @@ async function fetchList(isLoadMore = false, options: { silent?: boolean } = {})
                 return true
             })
 
-            postList.value = postList.value.concat(uniqueRecords)
             if (uniqueRecords.length === 0) {
                 finished.value = true
                 return
             }
+            const appended = await appendPostsInChunks(uniqueRecords, requestVersion)
+            if (!appended) return
         }
 
         if (records.length > 0) {
@@ -788,21 +855,29 @@ async function fetchList(isLoadMore = false, options: { silent?: boolean } = {})
         console.error(e)
         ;(proxy as any)?.$modal?.msgError?.('获取内容列表失败')
     } finally {
-        loading.value = false
-        loadingMore.value = false
-        silentRefreshing.value = false
+        if (isCurrentFeedRequestVersion(requestVersion)) {
+            loading.value = false
+            loadingMore.value = false
+            silentRefreshing.value = false
+        }
     }
 }
 
 async function refreshList(options: { silent?: boolean; preserveTotal?: boolean } = {}) {
     const { silent = false, preserveTotal = silent } = options
+    const requestVersion = nextFeedRequestVersion()
+    clearScheduledLoadMore()
+    loading.value = false
+    loadingMore.value = false
+    silentRefreshing.value = false
+    lastLoadMoreAt = 0
     hasUserScrolledAfterQuery.value = false
     finished.value = false
     queryParams.lastId = undefined
     queryParams.lastCreateTime = undefined
     selectedIds.value.clear()
     if (!preserveTotal) totalCount.value = null
-    await fetchList(false, { silent })
+    await fetchList(false, { silent, requestVersion })
 }
 
 function handleQuery() {
@@ -854,10 +929,9 @@ async function resetQuery() {
     }
 }
 
-function loadMore(payload?: { source?: 'auto' | 'manual' }) {
+function loadMore(payload?: { source?: 'auto' | 'manual' | 'prefill' }) {
     if (payload?.source === 'auto' && !hasUserScrolledAfterQuery.value) return
-    if (finished.value) return
-    fetchList(true)
+    scheduleLoadMoreRequest()
 }
 
 function handleSelect(payload: { id: string | number; checked: boolean }) {
@@ -1246,7 +1320,7 @@ async function handleQRCode(post: any) {
         return
     }
     const postId = getPreviewPostId(post)
-    const titleSeed = String(post?.title || post?.content || '').trim()
+    const titleSeed = String(post?.title || stripHtmlToText(post?.content) || '').trim()
     qrcodeText.value = text
     qrcodeTitle.value = titleSeed ? `二维码 - ${titleSeed}` : '内容二维码'
     qrcodeDescription.value = text
@@ -1486,6 +1560,7 @@ onActivated(() => {
 onDeactivated(() => {
     isViewActive.value = false
     clearRefreshRetryTimer()
+    clearScheduledLoadMore()
     unbindWindowScroll()
 })
 
@@ -1496,6 +1571,7 @@ watch([previewVisible, videoPreviewVisible], ([previewOpen, videoOpen]) => {
 onBeforeUnmount(() => {
     isViewActive.value = false
     clearRefreshRetryTimer()
+    clearScheduledLoadMore()
     window.removeEventListener(CONTENT_LIST_REFRESH_EVENT, handleContentListRefresh as EventListener)
     unbindWindowScroll()
     pageScrollLock.setLocked(false)

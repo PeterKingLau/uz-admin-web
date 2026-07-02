@@ -9,14 +9,20 @@
         </div>
 
         <div v-else-if="items.length" class="content-grid">
-            <ClientPostCard
-                v-for="item in items"
-                :key="getPostKey(item)"
-                :post="item"
-                :show-author="false"
-                show-comment-count
-                @click="$emit('preview', item)"
-            />
+            <div v-for="item in items" :key="getPostKey(item)" class="content-grid-item">
+                <ClientPostCard :post="item" :show-author="false" show-comment-count @click="$emit('preview', item)" />
+                <button
+                    v-if="showDelete"
+                    type="button"
+                    class="delete-post-btn"
+                    :class="{ 'is-deleting': isDeleting(item) }"
+                    :disabled="isDeleting(item)"
+                    aria-label="删除作品"
+                    @click.stop="$emit('delete', item)"
+                >
+                    <Icon :icon="isDeleting(item) ? 'mdi:loading' : 'mdi:trash-can-outline'" />
+                </button>
+            </div>
         </div>
 
         <ProfileEmpty v-else :text="emptyText" :icon="emptyIcon" />
@@ -45,14 +51,19 @@ const props = defineProps<{
     noMore: boolean
     emptyText: string
     emptyIcon?: string
+    showDelete?: boolean
+    deletingIds?: Array<string | number>
 }>()
 
 const emit = defineEmits<{
     (e: 'preview', item: Record<string, any>): void
+    (e: 'delete', item: Record<string, any>): void
     (e: 'load-more'): void
 }>()
 
 const getPostKey = (item: Record<string, any>) => item?.id ?? item?.postId ?? `${item?.createTime || ''}-${item?.content || ''}`
+const getPostId = (item: Record<string, any>) => item?.postId ?? item?.id
+const isDeleting = (item: Record<string, any>) => props.deletingIds?.some(id => String(id) === String(getPostId(item))) ?? false
 
 const loadTriggerRef = ref<HTMLElement | null>(null)
 const loadPending = ref(false)
@@ -124,6 +135,52 @@ watch(
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
+}
+
+.content-grid-item {
+    position: relative;
+    min-width: 0;
+}
+
+.delete-post-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(226, 232, 240, 0.78);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition:
+        background-color 200ms ease,
+        border-color 200ms ease,
+        color 200ms ease;
+}
+
+.delete-post-btn:hover:not(:disabled) {
+    border-color: rgba(239, 68, 68, 0.24);
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.delete-post-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.delete-post-btn :deep(svg) {
+    font-size: 16px;
+}
+
+.delete-post-btn.is-deleting :deep(svg) {
+    animation: spin 0.8s linear infinite;
 }
 
 .skeleton-card {
@@ -205,6 +262,12 @@ button:focus-visible {
 
     100% {
         background-position: -100% 0;
+    }
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
     }
 }
 

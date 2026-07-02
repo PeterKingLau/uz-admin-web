@@ -54,6 +54,7 @@ import useUserStore from '@/store/modules/user'
 import defaultAvatar from '@/assets/images/default-avatar.svg'
 import { getImgUrl } from '@/utils/img'
 import { markContentListRefreshNeeded } from '@/utils/content/refreshSignal'
+import { stripHtmlToText } from '@/utils/content/common'
 import { logSubmitError, resolveSubmitErrorMessage } from '@/utils/submitError'
 import CreatePageShell from '@/components/CreatePageShell/index.vue'
 import PostEditorPanel from './components/PostEditorPanel.vue'
@@ -97,6 +98,7 @@ const selectedTagIds = ref<Array<number | string>>([])
 const suppressTagValidate = ref(false)
 const videoAutoDescription = ref('')
 const isVideoContentAutoFilled = ref(false)
+const hasTriedSubmit = ref(false)
 
 const currentTime = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
@@ -293,7 +295,7 @@ const previewContent = computed(() => {
 })
 
 const previewContentTitle = computed(() => {
-    const content = previewContent.value
+    const content = stripHtmlToText(previewContent.value)
     if (!content) return ''
     return content.length > 20 ? `${content.slice(0, 20)}...` : content
 })
@@ -310,7 +312,7 @@ const previewContentPlaceholder = computed(() => {
 
 const buildSubmitContent = (): string => {
     const manualContent = String(form.content || '').trim()
-    if (manualContent) return manualContent
+    if (stripHtmlToText(manualContent)) return manualContent
     if (form.postType === POST_TYPE.VIDEO) return videoDisplayContent.value
     return ''
 }
@@ -330,7 +332,7 @@ const rules = {
     content: [
         {
             validator: (_rule: any, value: string, callback: any) => {
-                if (form.postType === POST_TYPE.TEXT && (!value || !value.trim())) callback(new Error('纯文字模式下，正文不能为空'))
+                if (form.postType === POST_TYPE.TEXT && !stripHtmlToText(value)) callback(new Error('文本模式下，正文不能为空'))
                 else callback()
             },
             trigger: ['blur', 'change']
@@ -349,6 +351,7 @@ const rules = {
 
 const handleTypeChange = async (nextType: string) => {
     form.postType = nextType
+    hasTriedSubmit.value = false
     imageUrls.value = ''
     videoUrls.value = ''
     videoBatchContents.value = []
@@ -467,8 +470,15 @@ function handleContentInput() {
     if (form.postType === POST_TYPE.VIDEO && !isBatchVideoMode.value) {
         isVideoContentAutoFilled.value = String(form.content || '').trim() === videoDisplayContent.value
     }
-    if (form.postType === POST_TYPE.TEXT) nextTick(() => editorRef.value?.validateField('content'))
-    else nextTick(() => editorRef.value?.clearValidate(['content']))
+    if (form.postType !== POST_TYPE.TEXT) {
+        nextTick(() => editorRef.value?.clearValidate(['content']))
+        return
+    }
+    if (stripHtmlToText(form.content)) {
+        nextTick(() => editorRef.value?.clearValidate(['content']))
+        return
+    }
+    if (hasTriedSubmit.value) nextTick(() => editorRef.value?.validateField('content'))
 }
 
 async function handleSubmit() {
@@ -477,6 +487,7 @@ async function handleSubmit() {
         return
     }
 
+    hasTriedSubmit.value = true
     const ok = (await editorRef.value?.validateForm()) ?? false
     if (!ok) return
 
@@ -618,6 +629,7 @@ async function handleSubmit() {
 
 async function handleReset() {
     suppressTagValidate.value = true
+    hasTriedSubmit.value = false
     imageUrls.value = ''
     videoUrls.value = ''
     videoBatchContents.value = []

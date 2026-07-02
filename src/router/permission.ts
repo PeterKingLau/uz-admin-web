@@ -7,6 +7,7 @@ import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { decodeRouteRedirect, encodeRouteRedirect, ROUTE_REDIRECT_QUERY_KEY } from '@/router/routeParams'
 import { getClientHomeRoute, isClientRoutePath, isMobileWebViewport } from '@/utils/routeAccess'
 
 type GuardRoute = {
@@ -18,11 +19,13 @@ type GuardRoute = {
 
 const H5_APP_DOWNLOAD_PATH = '/h5/app-download'
 const LOGIN_PATH = '/login'
+const CLIENT_LOGIN_PATH = '/client-login'
 const INDEX_PATH = '/index'
 const PUBLIC_PATHS = new Set([
     '/',
     '/portal',
     LOGIN_PATH,
+    CLIENT_LOGIN_PATH,
     '/register',
     '/user-agreement',
     '/privacy-policy',
@@ -69,15 +72,19 @@ const createClientHomeRedirect = () => {
     }
 }
 
-const createLoginRedirect = (to: GuardRoute) => ({
-    path: LOGIN_PATH,
-    query: { redirect: to.fullPath }
-})
+const createLoginRedirect = (to: GuardRoute) => {
+    const isClientTarget = getRoutePlatform(to) === 'client' || isClientRoutePath(to.path)
+    return {
+        path: isClientTarget ? CLIENT_LOGIN_PATH : LOGIN_PATH,
+        query: { [ROUTE_REDIRECT_QUERY_KEY]: encodeRouteRedirect(to.fullPath) }
+    }
+}
 
-const getLoginRedirectPath = (redirect: unknown) => {
-    const value = Array.isArray(redirect) ? redirect[0] : redirect
-    if (typeof value === 'string' && value && value !== LOGIN_PATH) return value
-    return INDEX_PATH
+const getLoginRedirectPath = (state: unknown, fallbackPath = INDEX_PATH) => {
+    const value = Array.isArray(state) ? state[0] : state
+    const decodedValue = decodeRouteRedirect(value)
+    if (decodedValue.startsWith('/') && decodedValue !== LOGIN_PATH && decodedValue !== CLIENT_LOGIN_PATH) return decodedValue
+    return fallbackPath
 }
 
 const resolveErrorMessage = (error: unknown) => {
@@ -112,7 +119,7 @@ const finishRouteProgress = () => {
 const resolveRouteShellClass = (to: GuardRoute) => {
     const platform = getRoutePlatform(to)
 
-    if (to.path === LOGIN_PATH || to.path === '/register') return ROUTE_SHELL_CLASS.auth
+    if (to.path === LOGIN_PATH || to.path === CLIENT_LOGIN_PATH || to.path === '/register') return ROUTE_SHELL_CLASS.auth
     if (to.path === '/' || to.path === '/portal') return ROUTE_SHELL_CLASS.portal
     if (platform === 'client' || isClientRoutePath(to.path)) return ROUTE_SHELL_CLASS.client
     if (platform === 'admin') return ROUTE_SHELL_CLASS.admin
@@ -167,7 +174,7 @@ const shouldRedirectMobileClientRoute = (to: GuardRoute) => {
     const platform = getRoutePlatform(to)
 
     if (!isMobileWebViewport()) return false
-    if (to.path === H5_APP_DOWNLOAD_PATH || to.path === LOGIN_PATH || to.path === '/register') return false
+    if (to.path === H5_APP_DOWNLOAD_PATH || to.path === LOGIN_PATH || to.path === CLIENT_LOGIN_PATH || to.path === '/register') return false
     if (isPublicRoute(to)) return false
     if (platform === 'public' || platform === 'admin') return false
     return platform === 'client' || isClientRoutePath(to.path)
@@ -214,15 +221,15 @@ router.beforeEach(async to => {
     prepareRouteUi(to)
 
     if (shouldRedirectMobileClientRoute(to)) {
-        return { path: H5_APP_DOWNLOAD_PATH, query: { redirect: to.fullPath }, replace: true }
+        return { path: H5_APP_DOWNLOAD_PATH, query: { [ROUTE_REDIRECT_QUERY_KEY]: encodeRouteRedirect(to.fullPath) }, replace: true }
     }
 
     if (!getToken()) {
         return isPublicRoute(to) ? true : createLoginRedirect(to)
     }
 
-    if (to.path === LOGIN_PATH) {
-        return { path: getLoginRedirectPath(to.query?.redirect) }
+    if (to.path === LOGIN_PATH || to.path === CLIENT_LOGIN_PATH) {
+        return { path: getLoginRedirectPath(to.query?.[ROUTE_REDIRECT_QUERY_KEY], to.path === CLIENT_LOGIN_PATH ? '/discover' : INDEX_PATH) }
     }
 
     if (useUserStore().roles.length === 0) {

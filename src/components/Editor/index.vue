@@ -74,7 +74,23 @@ const placeholder = computed(() => (isTextareaMode.value ? '请输入正文内�
 const footers = computed(() => (isTextareaMode.value ? [] : ['markdownTotal']))
 const toolbars = computed(() =>
     isTextareaMode.value
-        ? ['bold', 'underline', 'italic', 'strikeThrough', '-', 'link', 'image', '=', 'revoke', 'next']
+        ? [
+              'bold',
+              'underline',
+              'italic',
+              'strikeThrough',
+              '-',
+              'title',
+              'quote',
+              'unorderedList',
+              'orderedList',
+              '-',
+              'link',
+              ...(props.type === 'url' ? ['image'] : []),
+              '=',
+              'revoke',
+              'next'
+          ]
         : [
               'bold',
               'underline',

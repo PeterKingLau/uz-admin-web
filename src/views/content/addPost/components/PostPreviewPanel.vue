@@ -101,8 +101,9 @@
                             </h1>
                         </transition>
 
-                        <p class="post-text" :class="{ placeholder: !props.previewContent }">
-                            {{ props.previewContent || props.previewContentPlaceholder }}
+                        <div v-if="hasPreviewContent" class="post-text post-rich-text" v-html="safePreviewContent"></div>
+                        <p v-else class="post-text placeholder">
+                            {{ props.previewContentPlaceholder }}
                         </p>
 
                         <transition name="tags-slide">
@@ -156,8 +157,9 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'ViewsContentAddPostComponentsPostPreviewPanel' })
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { POST_TYPE } from '@/utils/enum'
+import { sanitizeRichTextHtml, stripHtmlToText } from '@/utils/content/common'
 
 interface TagItem {
     id: number | string
@@ -182,6 +184,8 @@ const props = defineProps<{
 
 const previewVideoRef = ref<HTMLVideoElement>()
 const showVideoCoverOverlay = ref(false)
+const hasPreviewContent = computed(() => Boolean(stripHtmlToText(props.previewContent)))
+const safePreviewContent = computed(() => sanitizeRichTextHtml(props.previewContent))
 const resolveMediaPreviewKey = (url: string, index: number) => {
     const normalizedUrl = String(url || '').trim()
     return normalizedUrl ? `media:${normalizedUrl}:${index}` : `media-index:${index}`

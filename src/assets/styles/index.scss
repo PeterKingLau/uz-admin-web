@@ -89,6 +89,29 @@ html.client-route-shell,
 body.client-route-shell,
 body.client-route-shell #app {
     background: #f4f6f8;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+html.client-route-shell::-webkit-scrollbar,
+body.client-route-shell::-webkit-scrollbar,
+body.client-route-shell #app::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+html.client-route-shell *,
+body.client-route-shell * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+html.client-route-shell *::-webkit-scrollbar,
+body.client-route-shell *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 html.portal-route-shell,
@@ -514,7 +537,7 @@ html.dark {
 }
 
 html.client-route-shell #nprogress .bar {
-    background: linear-gradient(90deg, #ffd44d, #f4b400);
+    background: linear-gradient(90deg, #5eead4, #14b8a6);
 }
 
 #nprogress .peg {
@@ -532,8 +555,8 @@ html.client-route-shell #nprogress .bar {
 
 html.client-route-shell #nprogress .peg {
     box-shadow:
-        0 0 12px #f4b400,
-        0 0 6px #f4b400;
+        0 0 12px rgba(20, 184, 166, 0.42),
+        0 0 6px rgba(20, 184, 166, 0.34);
 }
 
 @include meta.load-css('./element-ui.scss');
